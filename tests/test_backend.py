@@ -80,6 +80,16 @@ class ScannerTest(unittest.TestCase):
         recs = scanner.scan_gio(Gio.File.new_for_path(self.d), threading.Event())
         self.assertEqual(sorted(r.name for r in recs), sorted(os.listdir(self.d)))
 
+    def test_sparse_gio_info(self):
+        """Élément réseau (Freebox) sans taille ni attributs « cachés » : aucune erreur GIO."""
+        from gi.repository import Gio
+        info = Gio.FileInfo()
+        info.set_name("Freebox")
+        info.set_file_type(Gio.FileType.MOUNTABLE)
+        r = scanner.rec_from_info(info, Gio.File.new_for_uri("network:///"))
+        self.assertTrue(r.is_dir and r.get("mountable"))
+        self.assertEqual((r.size, r.hidden), (0, False))
+
     def test_sizes_like_nautilus(self):
         from odysseus.backend.engine import decimal, human_size
         from odysseus.i18n import tr

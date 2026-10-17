@@ -159,13 +159,18 @@ def stat_all(recs: list[Rec], cancel: threading.Event, every: int = 0, on_chunk:
 
 
 def rec_from_info(info: Gio.FileInfo, parent: Gio.File) -> Rec:
+    # Lecture par get_attribute_* : certains backends GVfs (réseau, Freebox…) ne fournissent pas
+    # tous les attributs, et get_is_hidden(), get_size()… émettent alors des avertissements critiques.
     name = info.get_name()
     child = parent.get_child(name)
-    is_dir = info.get_file_type() == Gio.FileType.DIRECTORY
-    r = Rec(info.get_display_name() or name, child.get_path(), is_dir, info.get_is_symlink())
+    ftype = Gio.FileType(info.get_attribute_uint32("standard::type"))
+    is_dir = ftype == Gio.FileType.DIRECTORY
+    r = Rec(info.get_attribute_string("standard::display-name") or name, child.get_path(), is_dir,
+            info.get_attribute_boolean("standard::is-symlink"))
     r.uri = child.get_uri()
-    r.hidden = info.get_is_hidden() or info.get_is_backup()
-    r.size = info.get_size()
+    r.hidden = (info.get_attribute_boolean("standard::is-hidden")
+                or info.get_attribute_boolean("standard::is-backup"))
+    r.size = info.get_attribute_uint64("standard::size")
     r.mtime = float(info.get_attribute_uint64("time::modified") or 0)
     r.mode = info.get_attribute_uint32("unix::mode") or 0
     r.stat_ok = True
@@ -180,12 +185,12 @@ def rec_from_info(info: Gio.FileInfo, parent: Gio.File) -> Rec:
     target = info.get_attribute_string("standard::target-uri")
     if target:
         r.set("target_uri", target)
-    if info.get_file_type() == Gio.FileType.MOUNTABLE:
+    if ftype == Gio.FileType.MOUNTABLE:
         r.set("mountable", True)
         r.is_dir = True
-    elif info.get_file_type() == Gio.FileType.SHORTCUT and target and not target.startswith("file:"):
+    elif ftype == Gio.FileType.SHORTCUT and target and not target.startswith("file:"):
         r.is_dir = True     # partage réseau (Freebox, smb, dns-sd…) : pas de requête réseau ici
-    elif info.get_file_type() == Gio.FileType.SHORTCUT and target:
+    elif ftype == Gio.FileType.SHORTCUT and target:
         try:
             tf = Gio.File.new_for_uri(target)
             r.is_dir = tf.query_file_type(Gio.FileQueryInfoFlags.NONE, None) == Gio.FileType.DIRECTORY
@@ -193,7 +198,7 @@ def rec_from_info(info: Gio.FileInfo, parent: Gio.File) -> Rec:
                 r.path = tf.get_path()
         except GLib.Error:
             pass
-    icon = info.get_icon()
+    icon = info.get_attribute_object("standard::icon")
     if icon is not None and not r.path:
         r.set("gicon", icon)
     return r
