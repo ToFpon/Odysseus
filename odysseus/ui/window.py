@@ -44,6 +44,10 @@ class MainWindow(FileActions, ArchiveActions, ToolActions, Adw.ApplicationWindow
         settings.connect(self._on_setting)
         manager.connect("changed", lambda *_: self._update_dual_bar())
         self.connect("close-request", self._on_close)
+        # boutons latéraux de la souris (8 = précédent, 9 = suivant), dans toute la fenêtre
+        nav = Gtk.GestureClick(button=0, propagation_phase=Gtk.PropagationPhase.CAPTURE)
+        nav.connect("pressed", self._on_mouse_nav)
+        self.add_controller(nav)
 
     # ------------------------------------------------------------------
     # Construction
@@ -79,37 +83,51 @@ class MainWindow(FileActions, ArchiveActions, ToolActions, Adw.ApplicationWindow
 
     def _build_content(self):
         tv = Adw.ToolbarView(top_bar_style=Adw.ToolbarStyle.FLAT)
-        hb = Adw.HeaderBar(css_classes=["main-header"])
+        # Comme Nautilus, la barre de chemin occupe toute la place entre les flèches et les boutons de
+        # droite. Placée en titre, AdwHeaderBar la centrerait (vide à gauche) : toute la rangée est
+        # donc le titre, avec ses propres boutons de fenêtre.
+        hb = Adw.HeaderBar(css_classes=["main-header"], show_start_title_buttons=False,
+                           show_end_title_buttons=False)
+        bar = Gtk.Box(spacing=6, hexpand=True)
+        hb.set_title_widget(bar)
+        self.start_controls = Gtk.WindowControls(side=Gtk.PackType.START)
+        bar.append(self.start_controls)
         self.sidebar_btn = Gtk.ToggleButton(icon_name="sidebar-show-symbolic", active=settings["sidebar_visible"],
                                             tooltip_text=tr("Barre latérale (Ctrl+F9)"))
         self.sidebar_btn.bind_property("active", self.split, "show-sidebar", bidir())
-        hb.pack_start(self.sidebar_btn)
+        bar.append(self.sidebar_btn)
         for icon, action, tip in (("go-previous-symbolic", "win.back", tr("Précédent (Alt+←)")),
                                   ("go-next-symbolic", "win.forward", tr("Suivant (Alt+→)"))):
-            hb.pack_start(Gtk.Button(icon_name=icon, action_name=action, tooltip_text=tip))
+            bar.append(Gtk.Button(icon_name=icon, action_name=action, tooltip_text=tip))
         self.pathbar = PathBar(menu_model=make_folder_menu())
         self.pathbar.connect("navigate", self._on_path_navigate)
         self.pathbar.connect("navigate-tab", lambda _b, loc: self.new_tab(loc))
         self.pathbar.connect("drop", lambda _b, paths, target: self.drop_files(paths, target, "auto"))
-        hb.set_title_widget(Adw.Clamp(maximum_size=900, child=self.pathbar, hexpand=True))
+        bar.append(self.pathbar)
 
-        self.view_btn = Adw.SplitButton(menu_model=menus.view_menu(), action_name="win.toggle-view",
-                                        tooltip_text=tr("Changer de vue"), dropdown_tooltip=tr("Options d'affichage"))
-        hb.pack_end(self.view_btn)
-        self.search_btn = Gtk.ToggleButton(icon_name="system-search-symbolic", tooltip_text=tr("Rechercher (Ctrl+F)"))
-        hb.pack_end(self.search_btn)
-        self.preview_btn = Gtk.ToggleButton(icon_name="view-reveal-symbolic", tooltip_text=tr("Aperçu (F4)"),
-                                            action_name="win.preview")
-        hb.pack_end(self.preview_btn)
-        self.dual_btn = Gtk.ToggleButton(icon_name="view-dual-symbolic", tooltip_text=tr("Double panneau (F3)"),
-                                         action_name="win.dual")
-        hb.pack_end(self.dual_btn)
+        self.ops_btn = OperationsButton()
+        bar.append(self.ops_btn)
         # bouton de Column Browser, à côté du double panneau (même rôle que F9)
         self.columns_btn = Gtk.ToggleButton(icon_name=COLUMNS_ICON, tooltip_text=tr("Vue en colonnes (F9)"))
         self._columns_btn_id = self.columns_btn.connect("toggled", lambda b: self._on_columns_btn(b.get_active()))
-        hb.pack_end(self.columns_btn)
-        self.ops_btn = OperationsButton()
-        hb.pack_end(self.ops_btn)
+        bar.append(self.columns_btn)
+        self.dual_btn = Gtk.ToggleButton(icon_name="view-dual-symbolic", tooltip_text=tr("Double panneau (F3)"),
+                                         action_name="win.dual")
+        bar.append(self.dual_btn)
+        self.preview_btn = Gtk.ToggleButton(icon_name="view-reveal-symbolic", tooltip_text=tr("Aperçu (F4)"),
+                                            action_name="win.preview")
+        bar.append(self.preview_btn)
+        self.search_btn = Gtk.ToggleButton(icon_name="system-search-symbolic", tooltip_text=tr("Rechercher (Ctrl+F)"))
+        bar.append(self.search_btn)
+        self.view_btn = Adw.SplitButton(menu_model=menus.view_menu(), action_name="win.toggle-view",
+                                        tooltip_text=tr("Changer de vue"), dropdown_tooltip=tr("Options d'affichage"))
+        bar.append(self.view_btn)
+        bar.append(Gtk.WindowControls(side=Gtk.PackType.END))
+        # boutons de fenêtre côté gauche (selon la disposition du bureau) : déjà dans l'en-tête de la
+        # barre latérale quand elle est visible
+        for prop in ("show-sidebar", "collapsed"):
+            self.split.connect("notify::" + prop, lambda *_: self._sync_start_controls())
+        self._sync_start_controls()
         tv.add_top_bar(hb)
 
         # recherche
@@ -628,6 +646,26 @@ class MainWindow(FileActions, ArchiveActions, ToolActions, Adw.ApplicationWindow
         elif self.tab_view.get_n_pages() > 1:
             if not self.tab_view.select_next_page():
                 self.tab_view.set_selected_page(self.tab_view.get_nth_page(0))
+
+    def _on_mouse_nav(self, gesture, _n, x, y):
+        button = gesture.get_current_button()
+        if button not in (8, 9):
+            return
+        gesture.set_state(Gtk.EventSequenceState.CLAIMED)
+        # en double panneau : le panneau sous le pointeur, sinon le panneau actif
+        w = self.pick(x, y, Gtk.PickFlags.DEFAULT)
+        while w is not None and not isinstance(w, Pane):
+            w = w.get_parent()
+        pane = w or self.pane
+        if pane is None:
+            return
+        if button == 8:
+            pane.go_back()
+        else:
+            pane.go_forward()
+
+    def _sync_start_controls(self):
+        self.start_controls.set_visible(not self.split.get_show_sidebar() or self.split.get_collapsed())
 
     def _on_columns_btn(self, active: bool):
         p = self.pane

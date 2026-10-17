@@ -3554,3 +3554,9 @@ msgstr "Zuletzt geändert"
 
 msgid "Vue en colonnes (F9)"
 msgstr "Spaltenansicht (F9)"
+
+msgid "Boutons latéraux de la souris"
+msgstr "Seitentasten der Maus"
+
+msgid "Précédent / suivant"
+msgstr "Zurück / vor"

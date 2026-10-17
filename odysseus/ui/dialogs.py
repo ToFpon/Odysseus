@@ -173,7 +173,8 @@ class PreferencesDialog(Adw.PreferencesDialog):
 SHORTCUTS = [
     (tr("Navigation"), [
         ("Ctrl+L", tr("Saisir un emplacement")), ("Alt+← / Retour arrière", tr("Précédent")),
-        ("Alt+→", tr("Suivant")), ("Alt+↑", tr("Dossier parent")), ("Alt+Origine", tr("Dossier personnel")),
+        ("Alt+→", tr("Suivant")), (tr("Boutons latéraux de la souris"), tr("Précédent / suivant")),
+        ("Alt+↑", tr("Dossier parent")), ("Alt+Origine", tr("Dossier personnel")),
         ("F5 / Ctrl+R", tr("Actualiser")), ("Ctrl+F", tr("Rechercher")), ("Ctrl+H", tr("Fichiers cachés")),
         ("Ctrl+T / Ctrl+W", tr("Ouvrir / fermer un onglet")), ("Ctrl+N", tr("Nouvelle fenêtre")),
         ("Ctrl+D", tr("Ajouter aux signets")), ("Ctrl+F9", tr("Barre latérale"))]),

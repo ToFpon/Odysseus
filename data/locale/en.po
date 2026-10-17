@@ -3554,3 +3554,9 @@ msgstr "Modified"
 
 msgid "Vue en colonnes (F9)"
 msgstr "Column view (F9)"
+
+msgid "Boutons latéraux de la souris"
+msgstr "Mouse side buttons"
+
+msgid "Précédent / suivant"
+msgstr "Back / forward"
