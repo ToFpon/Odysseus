@@ -106,18 +106,18 @@ class Workspace(Gtk.Box):
     def _apply_ratio(self):
         if not self.dual:
             return
-        mx = self.paned.get_property("max-position")
-        if mx > 0:
+        w = self.paned.get_width()
+        if w > 0:
             self._placing = True
-            self.paned.set_position(int(mx * self._ratio))
+            self.paned.set_position(int(w * self._ratio))
             self._placing = False
 
     def _on_position(self, *_):
         if self._placing or not self.dual or not self._dragging:
             return
-        mx = self.paned.get_property("max-position")
-        if mx > 100:
-            self._ratio = max(0.1, min(0.9, self.paned.get_position() / mx))
+        w = self.paned.get_width()
+        if w > 100:
+            self._ratio = max(0.1, min(0.9, self.paned.get_position() / w))
 
     def _add_pathbar(self, pane: Pane):
         if getattr(pane, "pathbar", None) is not None:

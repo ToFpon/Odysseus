@@ -562,6 +562,11 @@ class Pane(Gtk.Box):
     # Recherche
     # ------------------------------------------------------------------
     def set_filter(self, text: str):
+        if self.view_mode == "columns" and self.miller is not None and self.mode == "fs":
+            col = self.miller.focused or (self.miller.columns[-1] if self.miller.columns else None)
+            for c in self.miller.columns:
+                c.model.set_filter(text if c is col else "")
+            return
         self.model.set_filter(text)
         self._update_state()
 

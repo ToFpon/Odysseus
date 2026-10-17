@@ -269,6 +269,7 @@ class MillerView(Gtk.ScrolledWindow):
             self.pane.columns_location(rec.path)
         else:
             self.pane.columns_location(column.path)
+        self.pane._update_floating()
         self.pane.emit("selection-changed")
 
     def set_focused(self, column: MillerColumn):

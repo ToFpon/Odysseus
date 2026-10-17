@@ -38,6 +38,7 @@ sys.excepthook = hook
 
 from odysseus.app import OdysseusApp  # noqa: E402
 from odysseus.ui.jobs import manager  # noqa: E402
+from odysseus.i18n import tr  # noqa: E402
 
 D = os.path.join(TMP, "data")
 os.makedirs(os.path.join(D, "dossier A", "sous"))
@@ -224,18 +225,19 @@ def creation_renommage(win):
 
 @step
 def copie(win):
+    COPIED = "fichier 1" + tr(" (copie)") + ".txt"
     win.run_transfer([os.path.join(D, "fichier 1.txt")], os.path.join(D, "dossier B"))
     yield wait_jobs()
     check(os.path.exists(os.path.join(D, "dossier B", "fichier 1.txt")), "copie")
     win.run_transfer([os.path.join(D, "fichier 1.txt")], D)
     yield wait_jobs()
-    check(os.path.exists(os.path.join(D, "fichier 1 (copie).txt")), "copie au même endroit : « (copie) »")
-    win.run_transfer([os.path.join(D, "fichier 1 (copie).txt")], os.path.join(D, "dossier B"), move=True)
+    check(os.path.exists(os.path.join(D, COPIED)), "copie au même endroit : « (copie) »")
+    win.run_transfer([os.path.join(D, COPIED)], os.path.join(D, "dossier B"), move=True)
     yield wait_jobs()
-    check(os.path.exists(os.path.join(D, "dossier B", "fichier 1 (copie).txt")), "déplacement")
+    check(os.path.exists(os.path.join(D, "dossier B", COPIED)), "déplacement")
     win.undo()
     yield wait_jobs()
-    check(os.path.exists(os.path.join(D, "fichier 1 (copie).txt")), "annulation du déplacement")
+    check(os.path.exists(os.path.join(D, COPIED)), "annulation du déplacement")
 
 
 @step

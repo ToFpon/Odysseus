@@ -97,7 +97,10 @@ def request_count(rec: Rec, pane: "Pane"):
     def done(n):
         rec.set("count", n if n is not None else -1)
         model.notify_rec(rec)
-    pool.submit(("count", path, hidden), lambda: scanner.count_children(path, hidden), done)
+    def work():
+        with scanner.SCAN_LOCK:     # pas de lecture disque concurrente (voir scanner.SCAN_LOCK)
+            return scanner.count_children(path, hidden)
+    pool.submit(("count", path, hidden), work, done)
 
 
 def request_duration(rec: Rec, pane: "Pane"):

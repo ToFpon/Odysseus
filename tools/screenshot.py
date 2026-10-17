@@ -3,7 +3,7 @@
 
     xvfb-run -a python3 tools/screenshot.py SORTIE.png [CHEMIN] [options]
 
-Options : --dual --grid --columns --preview --zoom=N --select=nom1,nom2 --action=win.xxx
+Options : --dual --other=chemin --grid --columns --preview --zoom=N --select=nom1,nom2 --action=win.xxx
           --prefs=page --dark --delay=ms --size=LxH
 """
 import os
@@ -65,6 +65,8 @@ def on_ready(win):
         win.activate_action("win.preview", None)
 
     def later():
+        if "other" in opts and win.other_pane():
+            win.other_pane().open(opts["other"])
         if "select" in opts and win.pane:
             win.pane.select_names(opts["select"].split(","))
         if "action" in opts:

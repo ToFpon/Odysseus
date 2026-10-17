@@ -9,6 +9,7 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from odysseus.backend import bookmarks, fileops, formats, media, scanner, search  # noqa: E402
 from odysseus.backend.engine import Job  # noqa: E402
+from odysseus.i18n import tr  # noqa: E402
 
 
 def run(func):
@@ -113,7 +114,7 @@ class FileOpsTest(unittest.TestCase):
     def test_same_place_and_into_itself(self):
         src = os.path.join(self.d, "src", "a.txt")
         run(lambda j: fileops.transfer(j, [src], os.path.join(self.d, "src"), self.ask("cancel")))
-        self.assertTrue(os.path.exists(os.path.join(self.d, "src", "a (copie).txt")))
+        self.assertTrue(os.path.exists(os.path.join(self.d, "src", "a" + tr(" (copie)") + ".txt")))
         j = Job("x", lambda j: fileops.transfer(j, [os.path.join(self.d, "src")],
                                                  os.path.join(self.d, "src", "sub"), self.ask("cancel"))).run_sync()
         self.assertEqual(j.state, "failed")
