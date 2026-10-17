@@ -649,9 +649,7 @@ class MainWindow(FileActions, ArchiveActions, ToolActions, Adw.ApplicationWindow
 
     def _on_mouse_nav(self, controller, _event):
         # Événement brut (le paramètre n'est pas utilisable depuis Python : get_current_event).
-        # Rien n'est capturé : la navigation se fait après le relâchement, une fois l'événement
-        # entièrement traité par GTK. Changer de page plus tôt laisse des widgets « actifs »
-        # retirés de l'écran (« Broken accounting of active state ») et bloque les clics suivants.
+        # Les boutons 8/9 ne sont jamais transmis aux widgets ; voir _release_pointer_grab.
         event = controller.get_current_event()
         if event is None or event.get_event_type() not in (Gdk.EventType.BUTTON_PRESS,
                                                             Gdk.EventType.BUTTON_RELEASE):
@@ -660,14 +658,29 @@ class MainWindow(FileActions, ArchiveActions, ToolActions, Adw.ApplicationWindow
         if button not in (8, 9):
             return False
         if event.get_event_type() == Gdk.EventType.BUTTON_PRESS:
-            return True     # les widgets ne voient jamais ces boutons
-        ok, x, y = event.get_position()
-        native = self.get_native()
-        if native is not None:
-            sx, sy = native.get_surface_transform()
-            x, y = x - sx, y - sy
-        GLib.idle_add(self._mouse_nav, button, x, y)
+            ok, x, y = event.get_position()
+            native = self.get_native()
+            if native is not None:
+                sx, sy = native.get_surface_transform()
+                x, y = x - sx, y - sy
+            self._release_pointer_grab()
+            GLib.idle_add(self._mouse_nav, button, x, y)
         return True
+
+    def _release_pointer_grab(self):
+        """Contourne un bug de GTK 4.14 (gtkmain.c, handle_pointing_event) : à l'appui, GTK verrouille
+        le pointeur sur le widget visé et le marque « actif », mais au relâchement il ne lève ce
+        verrou que pour les boutons 1 à 5. Avec les boutons 8/9, le verrou reste accroché au widget :
+        les clics suivants lui sont envoyés, et quand la page change GTK retire l'état « actif » une
+        seconde fois (« Broken accounting of active state »).
+        Rendre la fenêtre elle-même un instant insensible fait faire à GTK le ménage complet
+        (gtk_window_update_pointer_focus_on_state_change) pendant que l'état est encore cohérent :
+        état « actif » retiré une seule fois, verrou et suivi du pointeur supprimés."""
+        focus = self.get_focus()
+        self.set_sensitive(False)
+        self.set_sensitive(True)
+        if focus is not None and focus.get_root() is self:
+            focus.grab_focus()
 
     def _mouse_nav(self, button: int, x: float, y: float):
         # en double panneau : le panneau sous le pointeur, sinon le panneau actif

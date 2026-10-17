@@ -42,6 +42,7 @@ python3.12 -m unittest discover -s tests            # moteur (sans GTK)
 xvfb-run -a python3.12 tests/ui_smoke.py            # interface : doit finir par « Aucune erreur. »
 LANGUAGE=en xvfb-run -a python3.12 tests/ui_smoke.py
 LANGUAGE=de xvfb-run -a python3.12 tests/ui_smoke.py
+xvfb-run -a -s "-screen 0 1600x1000x24" python3.12 tests/ui_mouse.py   # vrais clics (xdotool)
 ```
 
 `tests/ui_smoke.py` pilote l'interface par des générateurs exécutés dans la vraie boucle GLib
@@ -60,8 +61,10 @@ Captures (Gtk.WidgetPaintable) : `xvfb-run -a python3.12 tools/screenshot.py SOR
   mis à jour que pendant un glisser de l'utilisateur.
 - Ghostscript `pdfimage24` : `-sCompression=JPEG` en majuscules.
 - `view-column-symbolic` n'existe pas dans Adwaita : `icons.first_icon` avec repli.
-- Boutons latéraux de la souris (8/9) : `Gtk.EventControllerLegacy` sur la fenêtre (le paramètre
-  `event` vaut None en Python : `get_current_event()`), navigation en `idle_add` au relâchement.
-  Un `GestureClick` se bloque après le premier changement de page. GTK 4.14 n'efface pas l'état
-  « actif » des boutons 8/9 : un « Broken accounting of active state » au premier changement de
-  page est attendu (GTK le répare). Test réel possible avec `xdotool click 8` sous xvfb.
+- Boutons latéraux de la souris (8/9) : bug de GTK 4.14 (`gtkmain.c`, `handle_pointing_event`) — le
+  verrou implicite du pointeur posé à l'appui n'est levé au relâchement que pour les boutons 1 à 5.
+  Il reste accroché au widget visé (clic gauche suivant perdu, « Broken accounting of active state »
+  quand la page change). Contournement dans `MainWindow._release_pointer_grab` : à l'appui, la
+  fenêtre est rendue insensible puis sensible (GTK fait alors le ménage complet), puis navigation en
+  `idle_add`. Événements lus par `Gtk.EventControllerLegacy` + `get_current_event()` (le paramètre
+  `event` vaut None en Python). Test avec de vrais clics : `tests/ui_mouse.py` (xdotool).
