@@ -230,22 +230,13 @@ def navigation(win):
     win.activate_action("win.back", None)
     yield pump(0.4)
     # boutons latéraux de la souris (8 / 9)
-    class FakeClick:
-        def __init__(self, button):
-            self.button = button
-
-        def get_current_button(self):
-            return self.button
-
-        def set_state(self, _state):
-            pass
     before = p.location
     p.open(os.path.join(D, "dossier B"))
     yield pump(0.4)
-    win._on_mouse_nav(FakeClick(8), 1, 400.0, 300.0)
+    win._mouse_nav(8, 400.0, 300.0)
     yield pump(0.4)
     check(p.location == before, "bouton « précédent » de la souris")
-    win._on_mouse_nav(FakeClick(9), 1, 400.0, 300.0)
+    win._mouse_nav(9, 400.0, 300.0)
     yield pump(0.4)
     check(p.location == os.path.join(D, "dossier B"), "bouton « suivant » de la souris")
     p.open(D)

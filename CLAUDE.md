@@ -60,3 +60,8 @@ Captures (Gtk.WidgetPaintable) : `xvfb-run -a python3.12 tools/screenshot.py SOR
   mis à jour que pendant un glisser de l'utilisateur.
 - Ghostscript `pdfimage24` : `-sCompression=JPEG` en majuscules.
 - `view-column-symbolic` n'existe pas dans Adwaita : `icons.first_icon` avec repli.
+- Boutons latéraux de la souris (8/9) : `Gtk.EventControllerLegacy` sur la fenêtre (le paramètre
+  `event` vaut None en Python : `get_current_event()`), navigation en `idle_add` au relâchement.
+  Un `GestureClick` se bloque après le premier changement de page. GTK 4.14 n'efface pas l'état
+  « actif » des boutons 8/9 : un « Broken accounting of active state » au premier changement de
+  page est attendu (GTK le répare). Test réel possible avec `xdotool click 8` sous xvfb.

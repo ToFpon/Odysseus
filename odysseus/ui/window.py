@@ -5,7 +5,7 @@ from __future__ import annotations
 import os
 from typing import Optional
 
-from gi.repository import Adw, Gio, GLib, Gtk
+from gi.repository import Adw, Gdk, Gio, GLib, Gtk
 
 from .. import APP_ID, APP_NAME, features
 from ..backend import bookmarks
@@ -45,9 +45,8 @@ class MainWindow(FileActions, ArchiveActions, ToolActions, Adw.ApplicationWindow
         manager.connect("changed", lambda *_: self._update_dual_bar())
         self.connect("close-request", self._on_close)
         # boutons latéraux de la souris (8 = précédent, 9 = suivant), dans toute la fenêtre
-        nav = Gtk.GestureClick(button=0, propagation_phase=Gtk.PropagationPhase.CAPTURE)
-        nav.connect("pressed", self._on_mouse_nav_pressed)
-        nav.connect("released", self._on_mouse_nav)
+        nav = Gtk.EventControllerLegacy(propagation_phase=Gtk.PropagationPhase.CAPTURE)
+        nav.connect("event", self._on_mouse_nav)
         self.add_controller(nav)
 
     # ------------------------------------------------------------------
@@ -648,28 +647,40 @@ class MainWindow(FileActions, ArchiveActions, ToolActions, Adw.ApplicationWindow
             if not self.tab_view.select_next_page():
                 self.tab_view.set_selected_page(self.tab_view.get_nth_page(0))
 
-    @staticmethod
-    def _on_mouse_nav_pressed(gesture, _n, _x, _y):
-        if gesture.get_current_button() in (8, 9):
-            gesture.set_state(Gtk.EventSequenceState.CLAIMED)
-
-    def _on_mouse_nav(self, gesture, _n, x, y):
-        # Au relâchement : changer de page pendant que le bouton est enfoncé laisse des widgets
-        # « actifs » retirés de l'écran (avertissements « Broken accounting of active state »).
-        button = gesture.get_current_button()
+    def _on_mouse_nav(self, controller, _event):
+        # Événement brut (le paramètre n'est pas utilisable depuis Python : get_current_event).
+        # Rien n'est capturé : la navigation se fait après le relâchement, une fois l'événement
+        # entièrement traité par GTK. Changer de page plus tôt laisse des widgets « actifs »
+        # retirés de l'écran (« Broken accounting of active state ») et bloque les clics suivants.
+        event = controller.get_current_event()
+        if event is None or event.get_event_type() not in (Gdk.EventType.BUTTON_PRESS,
+                                                            Gdk.EventType.BUTTON_RELEASE):
+            return False
+        button = event.get_button()
         if button not in (8, 9):
-            return
+            return False
+        if event.get_event_type() == Gdk.EventType.BUTTON_PRESS:
+            return True     # les widgets ne voient jamais ces boutons
+        ok, x, y = event.get_position()
+        native = self.get_native()
+        if native is not None:
+            sx, sy = native.get_surface_transform()
+            x, y = x - sx, y - sy
+        GLib.idle_add(self._mouse_nav, button, x, y)
+        return True
+
+    def _mouse_nav(self, button: int, x: float, y: float):
         # en double panneau : le panneau sous le pointeur, sinon le panneau actif
         w = self.pick(x, y, Gtk.PickFlags.DEFAULT)
         while w is not None and not isinstance(w, Pane):
             w = w.get_parent()
         pane = w or self.pane
-        if pane is None:
-            return
-        if button == 8:
-            pane.go_back()
-        else:
-            pane.go_forward()
+        if pane is not None:
+            if button == 8:
+                pane.go_back()
+            else:
+                pane.go_forward()
+        return False
 
     def _sync_start_controls(self):
         self.start_controls.set_visible(not self.split.get_show_sidebar() or self.split.get_collapsed())
