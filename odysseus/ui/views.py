@@ -9,7 +9,7 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
-from gi.repository import Gdk, Gio, GLib, GObject, Graphene, Gtk, Pango
+from gi.repository import Gdk, Gio, GLib, Graphene, Gtk, Pango
 
 from .. import features
 from ..backend import media, scanner
@@ -485,7 +485,3 @@ class GridView(Gtk.ScrolledWindow, _CellMixin):
     def focus(self):
         self.view.grab_focus()
 
-
-GObject.type_ensure(ListView)
-GObject.type_ensure(GridView)
-_ = GLib

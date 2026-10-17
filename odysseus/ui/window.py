@@ -17,7 +17,7 @@ from .actions_files import FileActions
 from .actions_tools import ToolActions
 from .common import bidir, popup_menu, toast
 from .jobs import OperationsButton, ProgressWindow, manager
-from .pane import TRASH_URI, Pane, is_uri
+from .pane import TRASH_URI, Pane
 from .pathbar import PathBar, make_folder_menu
 from .sidebar import Sidebar
 from .views import GRID_ZOOM_LEVELS, ZOOM_LEVELS
@@ -128,6 +128,8 @@ class MainWindow(FileActions, ArchiveActions, ToolActions, Adw.ApplicationWindow
         tv.add_top_bar(self.search_bar)
 
         self.tab_view = Adw.TabView(vexpand=True)
+        # Ctrl+Tab sert à changer de panneau en double panneau (voir _switch_pane).
+        self.tab_view.remove_shortcuts(Adw.TabViewShortcuts.CONTROL_TAB | Adw.TabViewShortcuts.CONTROL_SHIFT_TAB)
         self.tab_view.connect("notify::selected-page", lambda *_: self._on_tab_switch())
         self.tab_view.connect("close-page", self._on_close_page)
         self.tab_view.connect("page-detached", lambda *_: GLib.idle_add(self._check_empty))
@@ -508,6 +510,7 @@ class MainWindow(FileActions, ArchiveActions, ToolActions, Adw.ApplicationWindow
             "toggle-sidebar": lambda: self.sidebar_btn.set_active(not self.sidebar_btn.get_active()),
             "zoom-in": lambda: self._zoom(1), "zoom-out": lambda: self._zoom(-1), "zoom-normal": self._zoom_normal,
             "toggle-view": self._toggle_view, "switch-pane": self._switch_pane,
+            "toggle-columns": self._toggle_columns,
             "menu": self._show_menu, "shortcuts": self._shortcuts,
         }
         for name, cb in simple.items():
@@ -539,7 +542,7 @@ class MainWindow(FileActions, ArchiveActions, ToolActions, Adw.ApplicationWindow
             "win.zoom-in": ["<Ctrl>plus", "<Ctrl>equal", "<Ctrl>KP_Add"],
             "win.zoom-out": ["<Ctrl>minus", "<Ctrl>KP_Subtract"], "win.zoom-normal": ["<Ctrl>0", "<Ctrl>KP_0"],
             "win.view-mode::list": ["<Ctrl>1"], "win.view-mode::grid": ["<Ctrl>2"],
-            "win.view-mode::columns": ["<Ctrl>3", "F9"],
+            "win.view-mode::columns": ["<Ctrl>3"], "win.toggle-columns": ["F9"],
             "win.dual": ["F3"], "win.preview": ["F4"], "win.switch-pane": ["<Ctrl>Tab"],
             "win.menu": ["F10"], "win.shortcuts": ["<Ctrl>question", "<Ctrl>F1"],
         }
@@ -616,6 +619,21 @@ class MainWindow(FileActions, ArchiveActions, ToolActions, Adw.ApplicationWindow
             other = ws.other()
             ws.set_active(other)
             other.focus_view()
+        elif self.tab_view.get_n_pages() > 1:
+            if not self.tab_view.select_next_page():
+                self.tab_view.set_selected_page(self.tab_view.get_nth_page(0))
+
+    def _toggle_columns(self):
+        """F9 (raccourci de Column Browser) : vue en colonnes, puis retour à la vue précédente."""
+        p = self.pane
+        if p is None or not features.enabled("column_view"):
+            return
+        if p.view_mode == "columns":
+            p.set_view_mode(getattr(p, "_before_columns", "list"))
+        else:
+            p._before_columns = p.view_mode
+            p.set_view_mode("columns")
+        self._sync_view_button()
 
     def set_preview(self, value: bool):
         if value and not features.enabled("preview"):
@@ -708,6 +726,3 @@ class MainWindow(FileActions, ArchiveActions, ToolActions, Adw.ApplicationWindow
     def other_pane(self) -> Optional[Pane]:
         ws = self.workspace
         return ws.other() if ws else None
-
-
-_ = is_uri

@@ -19,7 +19,7 @@ import re
 import shutil
 import subprocess
 import tempfile
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from typing import Optional
 
 from ..i18n import tr
@@ -39,11 +39,8 @@ def qpdf() -> Optional[str]:
 
 
 def has_pypdf() -> bool:
-    try:
-        import pypdf  # noqa: F401
-        return True
-    except ImportError:
-        return False
+    import importlib.util
+    return importlib.util.find_spec("pypdf") is not None
 
 
 def is_pdf(path: str) -> bool:
@@ -579,6 +576,3 @@ def suggest_output(path: str, suffix: str) -> str:
         out = f"{base}{suffix} ({k}){ext or '.pdf'}"
         k += 1
     return out
-
-
-_unused = field

@@ -12,7 +12,7 @@ import math
 import os
 
 import cairo
-from gi.repository import Adw, Gdk, GdkPixbuf, Gio, GLib, Gtk, Pango
+from gi.repository import Adw, Gdk, GdkPixbuf, GLib, Gtk, Pango
 
 from ..i18n import tr
 from .common import alert, choose_save, toast
@@ -420,6 +420,3 @@ class AnnotateWindow(Adw.Window):
               responses=(("cancel", tr("Annuler")), ("discard", tr("Ne pas enregistrer")), ("save", tr("Enregistrer"))),
               destructive="discard", suggested="save", default="save", callback=resp)
         return True
-
-
-_ = Gio

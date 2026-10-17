@@ -11,7 +11,7 @@ import os
 import subprocess
 import threading
 
-from gi.repository import Adw, Gdk, Gio, GLib, GObject, Graphene, Gtk, Pango
+from gi.repository import Adw, Gio, GLib, GObject, Graphene, Gtk, Pango
 
 from ..backend import search
 from ..i18n import ntr, tr
@@ -332,6 +332,3 @@ class ContentSearchWindow(Adw.Window):
         widget.insert_action_group("res", group)
         ok, pt = widget.compute_point(widget, Graphene.Point().init(x, y))
         popup_menu(widget, m, x, y)
-
-
-_ = Gdk

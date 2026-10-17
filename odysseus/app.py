@@ -14,7 +14,6 @@ from gi.repository import Adw, Gdk, Gio, GLib, Gtk  # noqa: E402
 
 from . import APP_ID, APP_NAME, VERSION  # noqa: E402
 from .i18n import tr  # noqa: E402
-from .settings import settings  # noqa: E402
 
 DATA_DIR = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "data")
 
@@ -150,6 +149,3 @@ class OdysseusApp(Adw.Application):
 def main(argv=None) -> int:
     app = OdysseusApp()
     return app.run(argv if argv is not None else sys.argv)
-
-
-_ = settings

@@ -239,6 +239,43 @@ def copie(win):
 
 
 @step
+def conflits(win):
+    answers = iter([("skip", False), ("rename", False), ("replace", True)])
+    win._conflict_dialog = lambda c, reply: reply(*next(answers))
+    src = os.path.join(D, "fichier 2.txt")
+    dst = os.path.join(D, "dossier B")
+    with open(os.path.join(dst, "fichier 2.txt"), "w") as f:
+        f.write("ancien")
+    win.run_transfer([src], dst)
+    yield wait_jobs()
+    check(open(os.path.join(dst, "fichier 2.txt")).read() == "ancien", "conflit : ignorer")
+    win.run_transfer([src], dst)
+    yield wait_jobs()
+    check(os.path.exists(os.path.join(dst, "fichier 2 (2).txt")), "conflit : garder les deux")
+    win.run_transfer([src, os.path.join(D, "fichier 3.txt")], dst)
+    yield wait_jobs()
+    check(open(os.path.join(dst, "fichier 2.txt")).read().startswith("ligne"), "conflit : remplacer")
+
+
+@step
+def couleurs(win):
+    from odysseus.backend import folder_colors
+    p = win.pane
+    p.model.select_names(["dossier A"])
+    yield pump(0.2)
+    win.activate_action("win.folder-color", GLib.Variant.new_string("violet"))
+    yield pump(0.6)
+    meta = folder_colors.read(os.path.join(D, "dossier A"))
+    check(bool(meta.get("icon_uri") or meta.get("icon_name")), f"couleur de dossier ({meta})")
+    win.activate_action("win.emblem", GLib.Variant.new_string("emblem-favorite"))
+    yield pump(0.4)
+    check("emblem-favorite" in folder_colors.read(os.path.join(D, "dossier A")).get("emblems", []), "emblème")
+    win.activate_action("win.folder-restore", None)
+    yield pump(0.3)
+    check(not folder_colors.read(os.path.join(D, "dossier A")), "couleur par défaut")
+
+
+@step
 def selection_et_menus(win):
     from odysseus.ui import menus
     p = win.pane

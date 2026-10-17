@@ -8,7 +8,7 @@ import subprocess
 import threading
 from typing import Optional
 
-from gi.repository import Adw, Gdk, Gio, GLib, Gtk
+from gi.repository import Adw, Gio, GLib, Gtk
 
 from .. import features
 from ..backend import fileops, folder_colors, formats
@@ -643,7 +643,6 @@ class FileActions:
         toast(self, tr("Emplacement copié"), timeout=2)
 
     def properties(self):
-        p = self.pane
         sel = [r for r in self._sel() if r.path]
         if sel:
             self._show_properties([r.path for r in sel])
@@ -738,6 +737,3 @@ def _delete_gio(f: Gio.File):
         for ci in f.enumerate_children("standard::name", Gio.FileQueryInfoFlags.NOFOLLOW_SYMLINKS, None):
             _delete_gio(f.get_child(ci.get_name()))
     f.delete(None)
-
-
-_ = Gdk

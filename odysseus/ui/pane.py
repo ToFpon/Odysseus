@@ -8,7 +8,6 @@ from __future__ import annotations
 
 import os
 import threading
-import time
 from typing import Optional
 
 from gi.repository import Adw, Gdk, Gio, GLib, GObject, Gtk
@@ -110,33 +109,34 @@ class Pane(Gtk.Box):
     # Construction
     # ------------------------------------------------------------------
     def _build_strip(self):
-        """Bandeau d'archive (repris de Pressoir)."""
+        """Bandeau d'archive (repris de Pressoir), sur deux lignes pour tenir dans un demi-écran."""
         self.strip = Gtk.Revealer(transition_type=Gtk.RevealerTransitionType.SLIDE_DOWN)
         box = Gtk.Box(spacing=14, css_classes=["archive-strip"])
-        box.append(Gtk.Image(icon_name="package-x-generic", pixel_size=40))
-        col = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, valign=Gtk.Align.CENTER, hexpand=True)
-        title_box = Gtk.Box(spacing=8)
-        self.strip_title = Gtk.Label(xalign=0, css_classes=["title-4"], ellipsize=3)
-        self.strip_type = Gtk.Label(css_classes=["badge"])
-        self.strip_lock = Gtk.Label(label=tr("🔒 chiffrée"), css_classes=["badge", "badge-lock"], visible=False)
+        box.append(Gtk.Image(icon_name="package-x-generic", pixel_size=40, valign=Gtk.Align.CENTER))
+        col = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=4, valign=Gtk.Align.CENTER, hexpand=True)
+        top = Gtk.Box(spacing=8)
+        self.strip_title = Gtk.Label(xalign=0, css_classes=["title-4"], ellipsize=3, hexpand=True)
+        self.strip_type = Gtk.Label(css_classes=["badge"], valign=Gtk.Align.CENTER)
+        self.strip_lock = Gtk.Label(label=tr("🔒 chiffrée"), css_classes=["badge", "badge-lock"], visible=False,
+                                    valign=Gtk.Align.CENTER)
         for w in (self.strip_title, self.strip_type, self.strip_lock):
-            title_box.append(w)
-        col.append(title_box)
-        self.strip_details = Gtk.Label(xalign=0, css_classes=["dim-label"], ellipsize=3)
-        col.append(self.strip_details)
-        box.append(col)
-        btns = Gtk.Box(spacing=6, valign=Gtk.Align.CENTER)
+            top.append(w)
+        top.append(Gtk.Button(icon_name="window-close-symbolic", tooltip_text=tr("Fermer l'archive"),
+                              action_name="win.close-archive", css_classes=["circular", "flat"]))
+        col.append(top)
+        bottom = Gtk.Box(spacing=6)
+        self.strip_details = Gtk.Label(xalign=0, css_classes=["dim-label"], ellipsize=3, hexpand=True)
+        bottom.append(self.strip_details)
         for icon, tip, action in (("dialog-information-symbolic", tr("Propriétés de l'archive"), "win.archive-info"),
                                   ("emblem-ok-symbolic", tr("Tester l'intégrité"), "win.archive-test"),
                                   ("list-add-symbolic", tr("Ajouter des fichiers…"), "win.archive-add")):
-            btns.append(Gtk.Button(icon_name=icon, tooltip_text=tip, action_name=action,
-                                   css_classes=["circular", "flat"]))
-        extract = Gtk.Button(css_classes=["pill", "suggested-action"], action_name="win.extract-all")
+            bottom.append(Gtk.Button(icon_name=icon, tooltip_text=tip, action_name=action,
+                                     css_classes=["circular", "flat"]))
+        extract = Gtk.Button(css_classes=["pill", "suggested-action", "small-pill"], action_name="win.extract-all")
         extract.set_child(Adw.ButtonContent(icon_name="folder-download-symbolic", label=tr("Tout extraire")))
-        btns.append(extract)
-        btns.append(Gtk.Button(icon_name="window-close-symbolic", tooltip_text=tr("Fermer l'archive"),
-                               action_name="win.close-archive", css_classes=["circular", "flat"]))
-        box.append(btns)
+        bottom.append(extract)
+        col.append(bottom)
+        box.append(col)
         self.strip.set_child(box)
         self.append(self.strip)
 
@@ -539,6 +539,7 @@ class Pane(Gtk.Box):
             parts.append(tr("{0} décompressés").format(human_size(total)))
             parts.append(tr("ratio {0} %").format(f"{100 * phys / total:.0f}"))
         self.strip_details.set_text("  ·  ".join(parts))
+        self.strip_details.set_tooltip_text("\n".join(parts))
         self.strip_lock.set_visible(lst.encrypted)
 
     # ------------------------------------------------------------------
@@ -928,6 +929,3 @@ class Pane(Gtk.Box):
         if dirs:
             text += " · " + ntr("{0} dossier", "{0} dossiers", dirs).format(dirs)
         return text
-
-
-_ = time

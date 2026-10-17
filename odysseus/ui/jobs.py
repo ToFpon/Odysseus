@@ -2,14 +2,13 @@
 
 from __future__ import annotations
 
-import os
 import time
 from typing import Callable, Optional
 
 from gi.repository import Adw, GLib, GObject, Gtk
 
 from ..backend.engine import Job
-from ..i18n import ntr, tr
+from ..i18n import tr
 from .common import copy_to_clipboard, open_folder, toast
 
 

@@ -14,7 +14,7 @@ from ..backend import archive, formats
 from ..backend.engine import human_size
 from ..i18n import tr
 from ..settings import session_passwords, settings
-from .common import alert, ask_password, choose_files, describe_paths, open_folder, open_with_default, toast
+from .common import alert, ask_password, choose_files, describe_paths, open_with_default, toast
 from .jobs import finished_toast, manager
 
 PREVIEW_LIMIT = 512 * 1024 * 1024
@@ -305,6 +305,3 @@ class ArchiveActions:
                            lambda j: archive.new_folder_in_archive(j, arch, inner, pw),
                            lambda j: (finished_toast(self, j, tr("Dossier créé")), j.state == "done" and pane.refresh()))
         self.ask_name(tr("Nouveau dossier"), tr("Nouveau dossier"), tr("Créer"), make, select_stem=False)
-
-
-_ = open_folder

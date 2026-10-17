@@ -5,13 +5,13 @@ from __future__ import annotations
 import os
 from typing import Callable, Optional
 
-from gi.repository import Adw, GLib, Gtk
+from gi.repository import Adw, Gtk
 
 from ..backend import archive, formats, tools
 from ..backend.engine import human_size, sfx_module
 from ..settings import settings
 from ..i18n import decimal, ntr, tr
-from .common import (toast, choose_folder, choose_save, combo_row, command_group, describe_paths,
+from .common import (choose_folder, choose_save, combo_row, command_group, describe_paths,
                      dialog_shell, path_row)
 
 LEVEL_LABELS = [tr("Stockage (aucune)"), tr("La plus rapide"), tr("Rapide"), tr("Normale"), tr("Maximale"), tr("Ultra")]
@@ -179,7 +179,7 @@ class CreateDialog:
         self.pw_row.set_text(pw)
         self.pw2_row.set_text(pw)
         self.dialog.get_clipboard().set(pw)
-        from .common import toast
+        from .common import toast  # noqa: F811
         toast(self.dialog, tr("Mot de passe généré et copié dans le presse-papiers"))
 
     def _on_format(self):

@@ -9,11 +9,11 @@ import time
 
 from gi.repository import Adw, Gio, GLib, Gtk
 
-from ..backend import fileops, scanner, tools
+from ..backend import scanner, tools
 from ..backend.engine import Job, human_size
 from ..i18n import ntr, tr
 from . import icons
-from .common import combo_row, copy_to_clipboard, full_date, open_with_default, toast
+from .common import combo_row, copy_to_clipboard, full_date, toast
 
 ACCESS = [tr("Aucun"), tr("Lecture seule"), tr("Lecture et écriture")]
 
@@ -241,6 +241,3 @@ class PropertiesDialog(Adw.Dialog):
         row.add_suffix(btn)
         g.add(row)
         page.add(g)
-
-
-_ = (fileops, open_with_default)

@@ -7,12 +7,11 @@ segment : les copier ou déplacer dans ce dossier. Tab complète le nom de dossi
 from __future__ import annotations
 
 import os
-from typing import Callable, Optional
+from typing import Optional
 
-from gi.repository import Gdk, Gio, GLib, GObject, Gtk, Pango
+from gi.repository import Gdk, Gio, GLib, GObject, Gtk
 
 from ..i18n import tr
-from . import icons
 
 
 class PathBar(Gtk.Box):
@@ -33,7 +32,8 @@ class PathBar(Gtk.Box):
         # fil d'Ariane
         crumbs_frame = Gtk.Box(css_classes=["path-crumbs-frame", "linked"], hexpand=True)
         self.scroller = Gtk.ScrolledWindow(hscrollbar_policy=Gtk.PolicyType.EXTERNAL,
-                                           vscrollbar_policy=Gtk.PolicyType.NEVER, hexpand=True)
+                                           vscrollbar_policy=Gtk.PolicyType.NEVER, hexpand=True,
+                                           propagate_natural_width=True)
         self.crumbs = Gtk.Box(css_classes=["path-crumbs"])
         self.scroller.set_child(self.crumbs)
         crumbs_frame.append(self.scroller)
@@ -108,8 +108,11 @@ class PathBar(Gtk.Box):
             if icon:
                 box.append(Gtk.Image(icon_name=icon))
             if label:
-                box.append(Gtk.Label(label=label, ellipsize=Pango.EllipsizeMode.MIDDLE,
-                                     max_width_chars=28 if not last else 40))
+                # Pas d'abréviation automatique : le fil d'Ariane défile plutôt que de rogner
+                # tous les segments ; seuls les noms très longs sont raccourcis.
+                limit = 40 if last else 28
+                shown = label if len(label) <= limit else label[:limit // 2 - 1] + "…" + label[-(limit // 2 - 1):]
+                box.append(Gtk.Label(label=shown))
             if last and self.menu_model:
                 box.append(Gtk.Image(icon_name="pan-down-symbolic", css_classes=["dim-label"]))
                 btn.set_menu_model(self.menu_model)
@@ -225,6 +228,3 @@ def make_folder_menu() -> Gio.Menu:
     m.append_section(None, s3)
     return m
 
-
-_ = icons
-_unused: Callable = None

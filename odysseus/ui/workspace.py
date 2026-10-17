@@ -26,6 +26,13 @@ class Workspace(Gtk.Box):
         self._placing = False
         self.paned.connect("notify::max-position", lambda *_: self._apply_ratio())
         self.paned.connect("notify::position", self._on_position)
+        # Seul un déplacement de la poignée par l'utilisateur change la proportion des panneaux.
+        self._dragging = False
+        g = Gtk.GestureClick(propagation_phase=Gtk.PropagationPhase.CAPTURE)
+        g.connect("pressed", lambda *_: setattr(self, "_dragging", True))
+        g.connect("released", lambda *_: setattr(self, "_dragging", False))
+        g.connect("stopped", lambda *_: setattr(self, "_dragging", False))
+        self.paned.add_controller(g)
         self.panes: list[Pane] = []
         first = self._make_pane(location, view_mode)
         self.paned.set_start_child(first)
@@ -106,7 +113,7 @@ class Workspace(Gtk.Box):
             self._placing = False
 
     def _on_position(self, *_):
-        if self._placing or not self.dual:
+        if self._placing or not self.dual or not self._dragging:
             return
         mx = self.paned.get_property("max-position")
         if mx > 100:

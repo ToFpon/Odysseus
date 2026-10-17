@@ -8,7 +8,6 @@ audio, dossiers, avec les informations détaillées. Préparé hors du fil princ
 from __future__ import annotations
 
 import os
-import stat as st
 import threading
 from collections import OrderedDict
 from typing import Optional
@@ -323,6 +322,3 @@ class PreviewPanel(Gtk.Box):
             grid.attach(kl, 0, i, 1, 1)
             grid.attach(vl, 1, i, 1, 1)
         self.content.append(grid)
-
-
-_ = st

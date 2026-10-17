@@ -137,5 +137,5 @@ levelbar.ratio-bar block.filled, levelbar.ratio-bar block.empty { border-radius:
   border: 1px solid alpha(currentColor, 0.12); border-radius: 11px; padding: 7px 10px 9px 12px;
   background: alpha(currentColor, 0.025);
 }
-.annotate-canvas { background: #222; }
 .pdf-thumb { border-radius: 4px; box-shadow: 0 1px 3px alpha(black, 0.3); }
+.small-pill { padding: 4px 14px; min-height: 0; }

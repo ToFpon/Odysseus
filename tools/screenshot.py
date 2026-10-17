@@ -1,7 +1,10 @@
 #!/usr/bin/env python3
 """Capture de la fenêtre d'Odysseus (à lancer sous xvfb-run) pour la documentation et les tests.
 
-    xvfb-run -a python3 tools/screenshot.py SORTIE.png [CHEMIN] [--dual] [--grid] [--columns] [--preview]
+    xvfb-run -a python3 tools/screenshot.py SORTIE.png [CHEMIN] [options]
+
+Options : --dual --grid --columns --preview --zoom=N --select=nom1,nom2 --action=win.xxx
+          --prefs=page --dark --delay=ms --size=LxH
 """
 import os
 import sys
@@ -12,25 +15,29 @@ import gi  # noqa: E402
 
 gi.require_version("Gtk", "4.0")
 gi.require_version("Adw", "1")
-from gi.repository import GLib, Gtk  # noqa: E402
+from gi.repository import Adw, GLib, Gtk  # noqa: E402
 
 from odysseus.app import OdysseusApp  # noqa: E402
 
 out = sys.argv[1]
 args = [a for a in sys.argv[2:] if not a.startswith("--")]
-flags = {a for a in sys.argv[2:] if a.startswith("--")}
-delay = 1800
+opts = {}
+for a in sys.argv[2:]:
+    if a.startswith("--"):
+        k, _, v = a[2:].partition("=")
+        opts[k] = v
+delay = int(opts.get("delay", 1800))
 
 
 def snap(win):
     def do():
-        paint = Gtk.WidgetPaintable.new(win)
-        w, h = win.get_width(), win.get_height()
+        target = win
+        paint = Gtk.WidgetPaintable.new(target)
+        w, h = target.get_width(), target.get_height()
         snapshot = Gtk.Snapshot()
         paint.snapshot(snapshot, w, h)
         node = snapshot.to_node()
-        renderer = win.get_renderer()
-        tex = renderer.render_texture(node, None)
+        tex = target.get_renderer().render_texture(node, None)
         tex.save_to_png(out)
         print("capture", out, w, h)
         win.get_application().quit()
@@ -42,17 +49,34 @@ app = OdysseusApp()
 
 
 def on_ready(win):
-    win.set_default_size(1280, 780)
-    if "--dual" in flags:
+    if getattr(app, "_shot", False):
+        return False
+    app._shot = True
+    if "dark" in opts:
+        Adw.StyleManager.get_default().set_color_scheme(Adw.ColorScheme.FORCE_DARK)
+    w, _, h = opts.get("size", "1280x780").partition("x")
+    win.set_default_size(int(w), int(h))
+    if "dual" in opts:
         win.activate_action("win.dual", None)
-    if "--grid" in flags:
-        win.activate_action("win.view-mode", GLib.Variant.new_string("grid"))
-    if "--columns" in flags:
-        win.activate_action("win.view-mode", GLib.Variant.new_string("columns"))
-    if "--preview" in flags:
+    for mode in ("grid", "columns"):
+        if mode in opts:
+            win.activate_action("win.view-mode", GLib.Variant.new_string(mode))
+    if "preview" in opts:
         win.activate_action("win.preview", None)
-    if "--select" in flags and win.pane:
-        GLib.timeout_add(600, lambda: (win.pane.selection.select_item(min(3, len(win.pane.model.items) - 1), True), False)[1])
+
+    def later():
+        if "select" in opts and win.pane:
+            win.pane.select_names(opts["select"].split(","))
+        if "action" in opts:
+            GLib.timeout_add(300, lambda: (win.activate_action(opts["action"], None), False)[1])
+        if "prefs" in opts:
+            from odysseus.ui.dialogs import PreferencesDialog
+            d = PreferencesDialog()
+            if opts["prefs"]:
+                d.set_visible_page_name(opts["prefs"])
+            d.present(win)
+        return False
+    GLib.timeout_add(700, later)
     snap(win)
     return False
 

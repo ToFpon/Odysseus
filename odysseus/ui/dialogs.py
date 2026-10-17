@@ -3,7 +3,6 @@ raccourcis clavier et choix d'une application."""
 
 from __future__ import annotations
 
-import os
 import shutil
 
 from gi.repository import Adw, Gio, GLib, Gtk
@@ -176,8 +175,8 @@ SHORTCUTS = [
         ("Ctrl+D", tr("Ajouter aux signets")), ("Ctrl+F9", tr("Barre latérale"))]),
     (tr("Affichage"), [
         ("Ctrl+1 / Ctrl+2 / Ctrl+3", tr("Liste / grille / colonnes")), ("Ctrl++ / Ctrl+− / Ctrl+0", tr("Taille des icônes")),
-        ("F3", tr("Double panneau")), ("Ctrl+Tab", tr("Changer de panneau")), ("F4", tr("Panneau d'aperçu")),
-        ("F9", tr("Vue en colonnes"))]),
+        ("F3", tr("Double panneau")), ("Ctrl+Tab", tr("Changer de panneau (ou d'onglet)")), ("F4", tr("Panneau d'aperçu")),
+        ("F9", tr("Basculer la vue en colonnes"))]),
     (tr("Fichiers"), [
         ("Ctrl+C / Ctrl+X / Ctrl+V", tr("Copier / couper / coller")), ("F2", tr("Renommer")),
         ("Suppr", tr("Mettre à la corbeille")), ("Maj+Suppr", tr("Supprimer définitivement")),
@@ -278,6 +277,3 @@ class AppChooser(Adw.Dialog):
         except GLib.Error as e:
             toast(self, e.message)
         self.close()
-
-
-_ = os

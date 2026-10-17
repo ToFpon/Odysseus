@@ -6,7 +6,7 @@ import os
 import threading
 from typing import Optional
 
-from gi.repository import Adw, Gdk, GdkPixbuf, Gio, GLib, GObject, Gtk, Pango
+from gi.repository import Adw, Gdk, GdkPixbuf, GLib, GObject, Gtk, Pango
 
 from ..backend import pdf, thumbnails
 from ..backend.engine import human_size
@@ -578,6 +578,3 @@ class PagesDialog:
 
     def present(self, parent):
         self.dialog.present(parent)
-
-
-_ = Gio

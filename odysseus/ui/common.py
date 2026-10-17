@@ -13,7 +13,6 @@ gi.require_version("Gtk", "4.0")
 gi.require_version("Adw", "1")
 from gi.repository import Adw, Gdk, Gio, GLib, GObject, Gtk  # noqa: E402
 
-from ..backend.engine import human_size  # noqa: E402
 from ..i18n import ntr, tr  # noqa: E402
 
 
