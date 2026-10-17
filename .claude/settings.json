@@ -1,0 +1,11 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(git status*)", "Bash(git diff*)", "Bash(git log*)", "Bash(git add *)",
+      "Bash(git commit *)", "Bash(git checkout *)", "Bash(git switch *)", "Bash(git branch *)",
+      "Bash(git fetch *)", "Bash(git pull *)", "Bash(git push -u origin *)",
+      "Bash(python3 *)", "Bash(xvfb-run *)", "Bash(7z *)",
+      "Bash(cp *)", "Bash(mv *)", "Bash(mkdir *)", "Bash(ls *)"
+    ]
+  }
+}
