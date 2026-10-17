@@ -150,7 +150,7 @@ def context_menu(win, pane, on_item: bool) -> Gio.Menu:
         s.append(tr("Ouvrir dans un nouvel onglet"), "win.open-tab")
         if features.enabled("dual_panel"):
             s.append(tr("Ouvrir dans l'autre panneau"), "win.open-other")
-    if pane.mode == "search":
+    if pane.mode in ("search", "remote") and one is not None and one.path:
         s.append(tr("Ouvrir l'emplacement de l'élément"), "win.open-location")
     if one is not None and one.is_dir and features.enabled("terminal"):
         s.append(tr("Ouvrir dans un terminal"), "win.terminal-selected")

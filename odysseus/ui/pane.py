@@ -24,6 +24,7 @@ from .model import DirModel, Selection, fold
 from .views import GRID_ZOOM, ZOOM, GridView, ListView
 
 TRASH_URI = "trash:///"
+SPECIAL_URIS = {"trash:///": tr("Corbeille"), "recent:///": tr("Récents"), "network:///": tr("Réseau")}
 SEARCH_LIMIT = 20000
 SKIP_DIRS = {".git", "node_modules", "__pycache__", ".cache", ".venv", "venv", ".tox"}
 
@@ -220,7 +221,22 @@ class Pane(Gtk.Box):
     # Glisser-déposer
     # ------------------------------------------------------------------
     def drag_paths(self) -> list[str]:
+        if self.mode == "archive":
+            return self._extract_for_drag()
         return [r.path for r in self.selected_recs() if r.path]
+
+    def _extract_for_drag(self) -> list[str]:
+        """Glisser hors d'une archive (comme Archive Browser) : extraction rapide dans un dossier
+        temporaire, puis glisser les fichiers extraits. Limité aux sélections raisonnables."""
+        recs = self.selected_recs()
+        if not recs or sum(r.size for r in recs) > 300 * 1024 * 1024:
+            return []
+        inner = [r.get("inner", r.name) for r in recs]
+        from ..backend.engine import Job
+        job = Job("drag", lambda j: archive.extract_to_temp(j, self.archive_path, inner, self.password)).run_sync()
+        if job.state != "done" or not job.result:
+            return []
+        return [os.path.join(job.result, i) for i in inner if os.path.exists(os.path.join(job.result, i))]
 
     def _decide_action(self, drop: Optional[Gdk.Drop], dest: str, paths: Optional[list] = None) -> str:
         """Comme Nautilus : déplacer sur le même disque, copier ailleurs ; Ctrl copie, Maj déplace."""
@@ -860,6 +876,9 @@ class Pane(Gtk.Box):
         rec = self.model.rec_at(pos)
         if rec is None:
             return
+        if rec.get("mountable"):
+            self._mount_and_open(rec)
+            return
         if rec.is_dir:
             if self.mode == "archive":
                 self.open_inner(rec.get("inner", rec.name))
@@ -869,6 +888,24 @@ class Pane(Gtk.Box):
                 self.open(rec.get("target_uri") or rec.uri)
             return
         self.emit("activated", rec)
+
+    def _mount_and_open(self, rec: Rec):
+        """Partage réseau (emplacement « Réseau ») : le monter puis l'ouvrir."""
+        f = Gio.File.new_for_uri(rec.uri)
+        op = Gtk.MountOperation.new(self.get_root())
+
+        def done(src, res):
+            try:
+                target = src.mount_mountable_finish(res)
+            except GLib.Error as e:
+                if e.matches(Gio.io_error_quark(), Gio.IOErrorEnum.ALREADY_MOUNTED):
+                    target = None
+                else:
+                    self.emit("message", e.message)
+                    return
+            uri = rec.get("target_uri") or (target.get_uri() if target else rec.uri)
+            self.open(uri)
+        f.mount_mountable(Gio.MountMountFlags.NONE, op, None, done)
 
     # ------------------------------------------------------------------
     # Textes pour la fenêtre
@@ -882,8 +919,11 @@ class Pane(Gtk.Box):
         if self.mode == "trash":
             return tr("Corbeille")
         if is_uri(self.location):
+            if self.location in SPECIAL_URIS:
+                return SPECIAL_URIS[self.location]
             f = Gio.File.new_for_uri(self.location)
-            return f.get_basename() or self.location
+            name = f.get_basename()
+            return name if name and name != "/" else GLib.uri_unescape_string(self.location, None) or self.location
         if self.location == os.path.expanduser("~"):
             return tr("Dossier personnel")
         return os.path.basename(self.location) or "/"

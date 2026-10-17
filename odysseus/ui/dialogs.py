@@ -99,6 +99,8 @@ class PreferencesDialog(Adw.PreferencesDialog):
         exts = Adw.EntryRow(title=tr("Extensions ouvertes dans l'éditeur"), text=settings["text_editor_exts"])
         exts.connect("changed", lambda r: settings.__setitem__("text_editor_exts", r.get_text()))
         g.add(exts)
+        g.add(_switch(tr("Répondre à « Afficher dans le dossier »"), "dbus_file_manager",
+                      tr("Firefox, téléchargements… ouvrent Odysseus au lieu de Nautilus (au prochain démarrage)")))
         page.add(g)
         return page
 

@@ -68,10 +68,14 @@ class PathBar(Gtk.Box):
         if "://" in display and not display.startswith("/"):
             f = Gio.File.new_for_uri(display)
             segs = []
+            special = {"trash:///": (tr("Corbeille"), "user-trash-symbolic"),
+                       "recent:///": (tr("Récents"), "document-open-recent-symbolic"),
+                       "network:///": (tr("Réseau"), "network-workgroup-symbolic")}
             while f is not None:
                 name = f.get_basename() or f.get_uri()
-                if f.get_uri() in ("trash:///", "trash:"):
-                    segs.insert(0, (tr("Corbeille"), "trash:///", "user-trash-symbolic"))
+                if f.get_uri() in special:
+                    label, icon = special[f.get_uri()]
+                    segs.insert(0, (label, f.get_uri(), icon))
                     break
                 segs.insert(0, (name if name != "/" else f.get_uri(), f.get_uri(), None))
                 f = f.get_parent()

@@ -37,6 +37,7 @@ DEFAULTS: dict[str, Any] = {
     "confirm_delete": True,
     "terminal": "",                 # vide = détection automatique
     "text_editor": "",              # vide = détection automatique
+    "dbus_file_manager": False,     # répondre à « Afficher dans le dossier » (org.freedesktop.FileManager1)
     "text_editor_exts": "py,sh,txt,md,json,yml,yaml,conf,cfg,ini,toml,xml,css,js,log",
     "hidden_dim_mode": "icon",      # icon (icône seule) ou all (icône et nom)
     "progress_window_delay": 0.5,   # secondes avant d'afficher la fenêtre de progression

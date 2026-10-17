@@ -37,6 +37,10 @@ def places() -> list[tuple[str, str, str]]:
     return out
 
 
+def _gvfs(scheme: str) -> bool:
+    return scheme in Gio.Vfs.get_default().get_supported_uri_schemes()
+
+
 class SidebarRow(Gtk.ListBoxRow):
     def __init__(self, icon, label: str, target: Optional[str], kind: str = "place", tooltip: str = ""):
         super().__init__(css_classes=["sidebar-row"])
@@ -74,12 +78,16 @@ class Sidebar(Gtk.Box):
         self.append(scroll)
         self.lists: list[Gtk.ListBox] = []
         self.places_list = self._section(None)
+        if _gvfs("recent"):
+            self.places_list.append(SidebarRow("document-open-recent-symbolic", tr("Récents"), "recent:///"))
         for icon, label, target in places():
             self.places_list.append(SidebarRow(icon, label, target))
         self.bm_label, self.bm_list = self._section(tr("Signets"), with_label=True)
         self.dev_label, self.dev_list = self._section(tr("Périphériques"), with_label=True)
         self.other_list = self._section(None)
         self.other_list.append(SidebarRow("drive-harddisk-system-symbolic", tr("Système de fichiers"), "/"))
+        if _gvfs("network"):
+            self.other_list.append(SidebarRow("network-workgroup-symbolic", tr("Réseau"), "network:///"))
         self._fill_bookmarks()
         self._watch_bookmarks()
         self._watch_devices()

@@ -176,6 +176,17 @@ def rec_from_info(info: Gio.FileInfo, parent: Gio.File) -> Rec:
     target = info.get_attribute_string("standard::target-uri")
     if target:
         r.set("target_uri", target)
+    if info.get_file_type() == Gio.FileType.MOUNTABLE:
+        r.set("mountable", True)
+        r.is_dir = True
+    elif info.get_file_type() == Gio.FileType.SHORTCUT and target:
+        try:
+            tf = Gio.File.new_for_uri(target)
+            r.is_dir = tf.query_file_type(Gio.FileQueryInfoFlags.NONE, None) == Gio.FileType.DIRECTORY
+            if tf.get_path():
+                r.path = tf.get_path()
+        except GLib.Error:
+            pass
     icon = info.get_icon()
     if icon is not None and not r.path:
         r.set("gicon", icon)

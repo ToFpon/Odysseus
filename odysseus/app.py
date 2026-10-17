@@ -54,6 +54,12 @@ class OdysseusApp(Adw.Application):
             if accels:
                 self.set_accels_for_action(f"app.{name}", accels)
 
+        from .settings import settings
+        if settings["dbus_file_manager"]:
+            from .dbus import FileManager1
+            self._fm1 = FileManager1(self)
+            self._fm1.start()
+
     def _quit(self):
         for w in list(self.get_windows()):
             w.close()
