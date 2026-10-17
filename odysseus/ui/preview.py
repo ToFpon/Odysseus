@@ -154,13 +154,15 @@ def build_preview(rec: Rec, show_hidden: bool) -> dict:
                 import gi
                 gi.require_version("Poppler", "0.18")
                 from gi.repository import Poppler
-                doc = Poppler.Document.new_from_file(thumbnails.uri_for(path), None)
-                rows.append((tr("Pages"), str(doc.get_n_pages())))
-                for getter, label in ((doc.get_title, tr("Titre")), (doc.get_author, tr("Auteur")),
-                                      (doc.get_subject, tr("Sujet"))):
-                    v = getter()
-                    if v:
-                        rows.append((label, v))
+                with thumbnails.POPPLER_LOCK:
+                    doc = Poppler.Document.new_from_file(thumbnails.uri_for(path), None)
+                    rows.append((tr("Pages"), str(doc.get_n_pages())))
+                    for getter, label in ((doc.get_title, tr("Titre")), (doc.get_author, tr("Auteur")),
+                                          (doc.get_subject, tr("Sujet"))):
+                        v = getter()
+                        if v:
+                            rows.append((label, v))
+                    del doc, getter
             except Exception:  # noqa: BLE001
                 pass
             pb = thumbnails.pdf_page_pixbuf(path, IMAGE_PX)

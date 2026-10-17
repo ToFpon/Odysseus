@@ -12,6 +12,7 @@ import os
 import shutil
 import subprocess
 import tempfile
+import threading
 import urllib.parse
 from typing import Optional
 
@@ -158,6 +159,12 @@ def _video(path: str, px: int) -> Optional[GdkPixbuf.Pixbuf]:
     return None
 
 
+# Poppler n'est pas sûr entre fils : deux rendus de PDF en parallèle (miniatures, aperçu,
+# dialogues PDF) peuvent corrompre la mémoire (« malloc(): unaligned fastbin chunk »).
+# Tout usage de Poppler passe par ce verrou, et les objets sont libérés avant de le rendre.
+POPPLER_LOCK = threading.RLock()
+
+
 def pdf_page_pixbuf(path: str, px: int, page: int = 0) -> Optional[GdkPixbuf.Pixbuf]:
     """Rendu d'une page de PDF (Poppler si présent, sinon pdftoppm)."""
     try:
@@ -165,18 +172,21 @@ def pdf_page_pixbuf(path: str, px: int, page: int = 0) -> Optional[GdkPixbuf.Pix
         gi.require_version("Poppler", "0.18")
         from gi.repository import Poppler, Gdk
         import cairo
-        doc = Poppler.Document.new_from_file(uri_for(path), None)
-        if doc.get_n_pages() <= page:
-            return None
-        pg = doc.get_page(page)
-        w, h = pg.get_size()
-        s = px / max(w, h)
-        surf = cairo.ImageSurface(cairo.FORMAT_ARGB32, max(1, int(w * s)), max(1, int(h * s)))
-        ctx = cairo.Context(surf)
-        ctx.set_source_rgb(1, 1, 1)
-        ctx.paint()
-        ctx.scale(s, s)
-        pg.render(ctx)
+        with POPPLER_LOCK:
+            doc = Poppler.Document.new_from_file(uri_for(path), None)
+            if doc.get_n_pages() <= page:
+                del doc
+                return None
+            pg = doc.get_page(page)
+            w, h = pg.get_size()
+            s = px / max(w, h)
+            surf = cairo.ImageSurface(cairo.FORMAT_ARGB32, max(1, int(w * s)), max(1, int(h * s)))
+            ctx = cairo.Context(surf)
+            ctx.set_source_rgb(1, 1, 1)
+            ctx.paint()
+            ctx.scale(s, s)
+            pg.render(ctx)
+            del ctx, pg, doc
         surf.flush()
         return Gdk.pixbuf_get_from_surface(surf, 0, 0, surf.get_width(), surf.get_height())
     except Exception:  # noqa: BLE001

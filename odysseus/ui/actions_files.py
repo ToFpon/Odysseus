@@ -573,6 +573,14 @@ class FileActions:
             self._run(tr("Restauration"), lambda j: fileops.restore_from_trash(j, uris), on_done=lambda j: p.refresh())
 
     def empty_trash(self):
+        try:
+            info = Gio.File.new_for_uri("trash:///").query_info("trash::item-count", Gio.FileQueryInfoFlags.NONE, None)
+            if info.get_attribute_uint32("trash::item-count") == 0:
+                toast(self, tr("La corbeille est vide"))
+                return
+        except GLib.Error:
+            pass
+
         def go(r):
             if r == "empty":
                 def done(job):

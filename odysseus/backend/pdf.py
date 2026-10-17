@@ -61,9 +61,12 @@ def page_sizes(path: str) -> list[tuple[float, float]]:
         import gi
         gi.require_version("Poppler", "0.18")
         from gi.repository import Poppler
-        from .thumbnails import uri_for
-        doc = Poppler.Document.new_from_file(uri_for(path), None)
-        return [doc.get_page(i).get_size() for i in range(doc.get_n_pages())]
+        from .thumbnails import POPPLER_LOCK, uri_for
+        with POPPLER_LOCK:
+            doc = Poppler.Document.new_from_file(uri_for(path), None)
+            sizes = [doc.get_page(i).get_size() for i in range(doc.get_n_pages())]
+            del doc
+        return sizes
     except Exception:  # noqa: BLE001
         pass
     if has_pypdf():
@@ -88,8 +91,12 @@ def page_count(path: str) -> int:
         import gi
         gi.require_version("Poppler", "0.18")
         from gi.repository import Poppler
-        from .thumbnails import uri_for
-        return Poppler.Document.new_from_file(uri_for(path), None).get_n_pages()
+        from .thumbnails import POPPLER_LOCK, uri_for
+        with POPPLER_LOCK:
+            doc = Poppler.Document.new_from_file(uri_for(path), None)
+            n = doc.get_n_pages()
+            del doc
+        return n
     except Exception:  # noqa: BLE001
         pass
     if has_pypdf():

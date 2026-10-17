@@ -418,7 +418,7 @@ class Pane(Gtk.Box):
         self.mode = "trash" if uri.startswith("trash:") else "remote"
         self.location = uri
         self._select_after = select
-        self.trash_bar.set_reveal_child(self.mode == "trash")
+        self.trash_bar.set_reveal_child(False)     # affichée une fois la corbeille lue, si non vide
         self.list_view.update_columns()
         if self.view_mode == "columns":
             self.set_view_mode("list", save=False)
@@ -787,6 +787,8 @@ class Pane(Gtk.Box):
                 self._search_cancel = None
             self._update_floating()
             return
+        # comme Nautilus : pas de barre « Restaurer / Vider » quand la corbeille est vide
+        self.trash_bar.set_reveal_child(self.mode == "trash" and not self.model.loading and bool(self.model.all))
         self._show_content()
         self._update_floating()
 

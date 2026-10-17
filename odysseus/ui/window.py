@@ -46,7 +46,8 @@ class MainWindow(FileActions, ArchiveActions, ToolActions, Adw.ApplicationWindow
         self.connect("close-request", self._on_close)
         # boutons latéraux de la souris (8 = précédent, 9 = suivant), dans toute la fenêtre
         nav = Gtk.GestureClick(button=0, propagation_phase=Gtk.PropagationPhase.CAPTURE)
-        nav.connect("pressed", self._on_mouse_nav)
+        nav.connect("pressed", self._on_mouse_nav_pressed)
+        nav.connect("released", self._on_mouse_nav)
         self.add_controller(nav)
 
     # ------------------------------------------------------------------
@@ -647,11 +648,17 @@ class MainWindow(FileActions, ArchiveActions, ToolActions, Adw.ApplicationWindow
             if not self.tab_view.select_next_page():
                 self.tab_view.set_selected_page(self.tab_view.get_nth_page(0))
 
+    @staticmethod
+    def _on_mouse_nav_pressed(gesture, _n, _x, _y):
+        if gesture.get_current_button() in (8, 9):
+            gesture.set_state(Gtk.EventSequenceState.CLAIMED)
+
     def _on_mouse_nav(self, gesture, _n, x, y):
+        # Au relâchement : changer de page pendant que le bouton est enfoncé laisse des widgets
+        # « actifs » retirés de l'écran (avertissements « Broken accounting of active state »).
         button = gesture.get_current_button()
         if button not in (8, 9):
             return
-        gesture.set_state(Gtk.EventSequenceState.CLAIMED)
         # en double panneau : le panneau sous le pointeur, sinon le panneau actif
         w = self.pick(x, y, Gtk.PickFlags.DEFAULT)
         while w is not None and not isinstance(w, Pane):

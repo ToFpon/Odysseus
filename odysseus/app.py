@@ -153,5 +153,8 @@ class OdysseusApp(Adw.Application):
 
 
 def main(argv=None) -> int:
+    # En cas de plantage natif (GTK, GLib, Poppler…), afficher la pile Python de chaque fil
+    import faulthandler
+    faulthandler.enable(all_threads=True)
     app = OdysseusApp()
     return app.run(argv if argv is not None else sys.argv)
