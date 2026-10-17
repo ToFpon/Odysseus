@@ -170,6 +170,7 @@ def _run(job: Job, argv: list[str], label: str = "", total_pages: int = 0, base=
         elif line:
             out.append(line)
     code = p.wait()
+    p.stdout.close()
     job.check_cancel()
     text = "\n".join(out)
     if code not in (0, 3):      # 3 = avertissements de qpdf
