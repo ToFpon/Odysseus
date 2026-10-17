@@ -1,0 +1,31 @@
+[Desktop Entry]
+Type=Application
+Name=Odysseus
+GenericName=File Manager
+GenericName[fr]=Gestionnaire de fichiers
+GenericName[de]=Dateiverwaltung
+Comment=Browse and manage your files, dual panel, columns, archives and PDF tools built in
+Comment[fr]=Parcourir et gérer vos fichiers : double panneau, colonnes, archives et outils PDF intégrés
+Comment[de]=Dateien durchsuchen und verwalten: Zwei Fenster, Spaltenansicht, Archive und PDF-Werkzeuge integriert
+Exec=odysseus %U
+Icon=io.github.odysseus.Odysseus
+Terminal=false
+Categories=GTK;GNOME;Utility;Core;FileManager;FileTools;
+Keywords=folder;manager;explore;disk;filesystem;nautilus;dual;panel;columns;
+Keywords[fr]=dossier;gestionnaire;fichiers;explorer;disque;nautilus;double;panneau;colonnes;
+Keywords[de]=Ordner;Dateiverwaltung;Dateien;Explorer;Datenträger;nautilus;Zwei;Fenster;Spalten;
+StartupNotify=true
+MimeType=inode/directory;
+Actions=new-window;dual;
+
+[Desktop Action new-window]
+Name=New Window
+Name[fr]=Nouvelle fenêtre
+Name[de]=Neues Fenster
+Exec=odysseus --new-window
+
+[Desktop Action dual]
+Name=Dual Panel
+Name[fr]=Double panneau
+Name[de]=Zwei Fenster
+Exec=odysseus --new-window --dual

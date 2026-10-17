@@ -123,7 +123,9 @@ class PreferencesDialog(Adw.PreferencesDialog):
                 if missing:
                     sub += "\n" + tr("⚠ Manquant : {0} (sudo apt install {1})").format(", ".join(missing), f.packages)
                 row.set_subtitle(sub)
-                row.add_prefix(Gtk.Image(icon_name=f.icon))
+                from .icons import first_icon
+                row.add_prefix(Gtk.Image(icon_name=first_icon(f.icon, "view-dual-symbolic"
+                                                              if f.id == "column_view" else "application-x-addon-symbolic")))
                 row.connect("notify::active", lambda r, *_a, fid=f.id: features.set_enabled(fid, r.get_active()))
                 g.add(row)
                 if f.id == "hidden_dim":
