@@ -48,6 +48,8 @@ class ToolActions:
         if not self._need("pdf_" + tool):
             return
         paths = [r.path for r in self.pane.selected_recs() if r.path and r.name.lower().endswith(".pdf")]
+        if not paths and tool != "merge":
+            return
         from . import pdf_dialogs
         {"compress": pdf_dialogs.CompressDialog, "merge": pdf_dialogs.MergeDialog,
          "watermark": pdf_dialogs.WatermarkDialog, "pages": pdf_dialogs.PagesDialog}[tool](self, paths).present(self)

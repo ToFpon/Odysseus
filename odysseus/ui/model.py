@@ -140,24 +140,27 @@ class DirModel(GObject.Object, Gio.ListModel):
         local = not _is_uri(location)
 
         def work():
-            try:
-                if local:
-                    recs = scanner.scan_local(location, cancel, with_stat=False)
-                    if len(recs) <= STAT_INLINE or self.sort_key not in ("name", "type"):
-                        scanner.stat_all(recs, cancel)
-                        GLib.idle_add(self._loaded, gen, recs, None, True)
+            with scanner.SCAN_LOCK:
+                if cancel.is_set():
+                    return
+                try:
+                    if local:
+                        recs = scanner.scan_local(location, cancel, with_stat=False)
+                        if len(recs) <= STAT_INLINE or self.sort_key not in ("name", "type"):
+                            scanner.stat_all(recs, cancel)
+                            GLib.idle_add(self._loaded, gen, recs, None, True)
+                        else:
+                            # très gros dossier : les noms d'abord, tailles et dates ensuite
+                            GLib.idle_add(self._loaded, gen, recs, None, False)
+                            scanner.stat_all(recs, cancel)
+                            GLib.idle_add(self._stats_done, gen)
                     else:
-                        # très gros dossier : les noms d'abord, tailles et dates ensuite
-                        GLib.idle_add(self._loaded, gen, recs, None, False)
-                        scanner.stat_all(recs, cancel)
-                        GLib.idle_add(self._stats_done, gen)
-                else:
-                    recs = scanner.scan_gio(Gio.File.new_for_uri(location), cancel)
-                    GLib.idle_add(self._loaded, gen, recs, None, True)
-            except OSError as e:
-                GLib.idle_add(self._loaded, gen, [], (e.strerror or str(e), e.errno), True)
-            except GLib.Error as e:
-                GLib.idle_add(self._loaded, gen, [], (e.message, e.code), True)
+                        recs = scanner.scan_gio(Gio.File.new_for_uri(location), cancel)
+                        GLib.idle_add(self._loaded, gen, recs, None, True)
+                except OSError as e:
+                    GLib.idle_add(self._loaded, gen, [], (e.strerror or str(e), e.errno), True)
+                except GLib.Error as e:
+                    GLib.idle_add(self._loaded, gen, [], (e.message, e.code), True)
         threading.Thread(target=work, daemon=True).start()
         GLib.timeout_add(150, self._maybe_spinner, gen)
         if local:
@@ -263,9 +266,19 @@ class DirModel(GObject.Object, Gio.ListModel):
     def _publish(self, keep_selection: bool):
         selected = self.selected_recs() if keep_selection and self.selection else []
         old = len(self.items)
-        self.items = [r for r in self.all if self._visible(r)]
+        items = [r for r in self.all if self._visible(r)]
         self._index = None
-        self.items_changed(0, old, len(self.items))
+        if old and len(items) > 2000:
+            # Remplacer en une fois ferait chercher à GTK l'élément qui avait le focus parmi
+            # tous les nouveaux éléments (100 000 objets créés pour rien) : vider, puis remplir.
+            # Le contenu doit rester cohérent avec chaque signal.
+            self.items = []
+            self.items_changed(0, old, 0)
+            self.items = items
+            self.items_changed(0, 0, len(items))
+        else:
+            self.items = items
+            self.items_changed(0, old, len(items))
         if selected:
             self.select_recs(selected)
         self.emit("reset")
@@ -420,3 +433,82 @@ class DirModel(GObject.Object, Gio.ListModel):
 
 def _is_uri(location: str) -> bool:
     return "://" in location and not location.startswith("/")
+
+
+class Selection(GObject.Object, Gio.ListModel, Gtk.SelectionModel):
+    """Sélection multiple par simple ensemble de bits.
+
+    Gtk.MultiSelection garde chaque élément sélectionné dans une table : « tout sélectionner »
+    dans un dossier de 100 000 fichiers créait 100 000 objets (2 s). Ici, seules des positions
+    sont mémorisées.
+    """
+    __gtype_name__ = "OdysseusSelection"
+
+    def __init__(self, model: DirModel):
+        super().__init__()
+        self.model = model
+        self.bits = Gtk.Bitset.new_empty()
+        model.connect("items-changed", self._on_items_changed)
+
+    # -- Gio.ListModel -----------------------------------------------------
+    def do_get_item_type(self):
+        return Entry.__gtype__
+
+    def do_get_n_items(self):
+        return self.model.get_n_items()
+
+    def do_get_item(self, i):
+        return self.model.get_item(i)
+
+    def _on_items_changed(self, _m, pos, removed, added):
+        self.bits.splice(pos, removed, added)
+        self.items_changed(pos, removed, added)
+
+    # -- Gtk.SelectionModel ------------------------------------------------
+    def do_is_selected(self, pos):
+        return self.bits.contains(pos)
+
+    def do_get_selection_in_range(self, pos, n):
+        out = self.bits.copy()
+        if n:
+            out.intersect(Gtk.Bitset.new_range(pos, n))
+        return out
+
+    def do_set_selection(self, selected, mask):
+        # attention : Gtk.Bitset.difference() est la différence symétrique, subtract() la différence
+        new = self.bits.copy()
+        new.subtract(mask)
+        sel = selected.copy()
+        sel.intersect(mask)
+        new.union(sel)
+        changed = new.copy()
+        changed.difference(self.bits)
+        self.bits = new
+        if not changed.is_empty():
+            first = changed.get_minimum()
+            self.selection_changed(first, changed.get_maximum() - first + 1)
+        return True
+
+    def do_select_item(self, pos, unselect_rest):
+        n = self.model.get_n_items()
+        mask = Gtk.Bitset.new_range(0, n) if unselect_rest else Gtk.Bitset.new_range(pos, 1)
+        return self.do_set_selection(Gtk.Bitset.new_range(pos, 1), mask)
+
+    def do_unselect_item(self, pos):
+        return self.do_set_selection(Gtk.Bitset.new_empty(), Gtk.Bitset.new_range(pos, 1))
+
+    def do_select_range(self, pos, n, unselect_rest):
+        total = self.model.get_n_items()
+        mask = Gtk.Bitset.new_range(0, total) if unselect_rest else Gtk.Bitset.new_range(pos, n)
+        return self.do_set_selection(Gtk.Bitset.new_range(pos, n), mask)
+
+    def do_unselect_range(self, pos, n):
+        return self.do_set_selection(Gtk.Bitset.new_empty(), Gtk.Bitset.new_range(pos, n))
+
+    def do_select_all(self):
+        n = self.model.get_n_items()
+        return self.do_set_selection(Gtk.Bitset.new_range(0, n), Gtk.Bitset.new_range(0, n))
+
+    def do_unselect_all(self):
+        n = self.model.get_n_items()
+        return self.do_set_selection(Gtk.Bitset.new_empty(), Gtk.Bitset.new_range(0, n))

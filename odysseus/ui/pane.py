@@ -21,7 +21,7 @@ from ..i18n import ntr, tr
 from ..settings import session_passwords, settings
 from . import clipboard
 from .columns import MillerView
-from .model import DirModel, fold
+from .model import DirModel, Selection, fold
 from .views import GRID_ZOOM, ZOOM, GridView, ListView
 
 TRASH_URI = "trash:///"
@@ -74,7 +74,7 @@ class Pane(Gtk.Box):
         self._load_token = 0
 
         self.model = DirModel()
-        self.selection = Gtk.MultiSelection(model=self.model)
+        self.selection = Selection(self.model)
         self.model.selection = self.selection
         self.selection.connect("selection-changed", lambda *_: self._on_selection())
         self.model.connect("state", self._on_state)
@@ -335,9 +335,10 @@ class Pane(Gtk.Box):
         else:
             sel = [r.name for r in self.selected_recs()]
             self._select_after = sel
-            if self.miller is not None and self.view_mode == "columns":
+            if self.miller is not None and self.view_mode == "columns" and self.mode == "fs":
                 self.miller.refresh()
-            self.model.load(self.location)
+            else:
+                self.model.load(self.location)
 
     def open(self, location: str, push: bool = True, select: Optional[list] = None) -> bool:
         """Ouvre un emplacement : dossier, URI GIO, archive, ou fichier (son dossier, fichier sélectionné)."""
@@ -384,9 +385,13 @@ class Pane(Gtk.Box):
         self._select_after = select
         self.list_view.update_columns()
         self._load_token += 1
-        self.model.load(path)
         if self.view_mode == "columns":
+            # la vue en colonnes a ses propres modèles : ne pas relire le même dossier deux fois
+            self.model.cancel()
+            self.model.location = path
             self._ensure_miller().open(path)
+        else:
+            self.model.load(path)
         self._show_content()
         self.emit("location-changed")
 
@@ -642,6 +647,9 @@ class Pane(Gtk.Box):
             settings["view_mode"] = mode
         if mode == "columns":
             self._ensure_miller().open(self.location)
+        elif self.mode == "fs" and (self.model.location != self.location or self.model.static
+                                    or (not self.model.all and not self.model.loading)):
+            self.model.load(self.location)
         self._show_content()
         GLib.idle_add(self.focus_view)
         self.emit("location-changed")
@@ -665,11 +673,20 @@ class Pane(Gtk.Box):
         if path != self.location:
             self._push()
             self.location = path
-            self._load_token += 1
-            self.model.load(path)
+            self.model.location = path
             self.emit("location-changed")
 
+    def _attach_views(self):
+        """Seule la vue affichée reçoit le modèle : une vue cachée construirait sinon des milliers
+        de cellules pour rien (mesuré : 2 000 cases de grille et 200 000 objets demandés)."""
+        want = None if (self.view_mode == "columns" and self.mode == "fs") else self.view_mode
+        for name, view in (("list", self.list_view.view), ("grid", self.grid_view.view)):
+            target = self.selection if name == want else None
+            if view.get_model() is not target:
+                view.set_model(target)
+
     def _show_content(self):
+        self._attach_views()
         if self.stack.get_visible_child_name() == "locked" and self.mode == "archive" and not self.listing:
             return
         name = "grid" if self.view_mode == "grid" else "list"
@@ -775,6 +792,9 @@ class Pane(Gtk.Box):
                 self.set_view_mode("list", save=False)
         elif key in ("hidden_dim_mode", "thumbnails"):
             self.refresh_rows()
+        elif key == "single_click":
+            self.list_view.view.set_single_click_activate(value)
+            self.grid_view.view.set_single_click_activate(value)
 
     # ------------------------------------------------------------------
     # Sélection

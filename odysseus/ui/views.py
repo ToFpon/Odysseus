@@ -247,11 +247,12 @@ class ListView(Gtk.ScrolledWindow, _CellMixin):
         super().__init__(vexpand=True, hexpand=True)
         self.pane = pane
         self.add_css_class("nautilus-list-view")
-        self.view = Gtk.ColumnView(model=pane.selection, show_row_separators=False, show_column_separators=False,
+        self.view = Gtk.ColumnView(model=None, show_row_separators=False, show_column_separators=False,
                                    reorderable=True, enable_rubberband=True, css_classes=["file-view"])
         if hasattr(self.view, "set_tab_behavior"):
             self.view.set_tab_behavior(Gtk.ListTabBehavior.ITEM)
         self.view.connect("activate", lambda _v, pos: pane.activate_position(pos))
+        self.view.set_single_click_activate(settings["single_click"])
         self.columns: dict[str, Gtk.ColumnViewColumn] = {}
         self._syncing = False
         self._narrow = 0
@@ -418,9 +419,10 @@ class GridView(Gtk.ScrolledWindow, _CellMixin):
         f.connect("setup", self._setup)
         f.connect("bind", self._bind)
         f.connect("unbind", lambda _f, li: self._untrack(li.get_child()))
-        self.view = Gtk.GridView(model=pane.selection, factory=f, max_columns=64, min_columns=1,
+        self.view = Gtk.GridView(model=None, factory=f, max_columns=64, min_columns=1,
                                  enable_rubberband=True, css_classes=["file-grid"])
         self.view.connect("activate", lambda _v, pos: pane.activate_position(pos))
+        self.view.set_single_click_activate(settings["single_click"])
         self.set_child(self.view)
         bg = Gtk.GestureClick(button=3)
         bg.connect("pressed", self._on_bg_click)

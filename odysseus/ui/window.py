@@ -64,8 +64,9 @@ class MainWindow(FileActions, ArchiveActions, ToolActions, Adw.ApplicationWindow
         brand.append(Gtk.Image(icon_name=APP_ID, pixel_size=20))
         brand.append(Gtk.Label(label=APP_NAME, css_classes=["heading"]))
         hb.set_title_widget(brand)
-        hb.pack_end(Gtk.MenuButton(icon_name="open-menu-symbolic", menu_model=menus.main_menu(),
-                                   tooltip_text=tr("Menu principal (F10)"), primary=True))
+        self.main_menu_btn = Gtk.MenuButton(icon_name="open-menu-symbolic", menu_model=menus.main_menu(),
+                                            tooltip_text=tr("Menu principal (F10)"), primary=True)
+        hb.pack_end(self.main_menu_btn)
         tv.add_top_bar(hb)
         self.sidebar = Sidebar()
         self.sidebar.connect("open", self._on_sidebar_open)
@@ -359,6 +360,7 @@ class MainWindow(FileActions, ArchiveActions, ToolActions, Adw.ApplicationWindow
         if not features.enabled("preview") and self.preview is not None:
             self.set_preview(False)
         self.view_btn.set_menu_model(menus.view_menu())
+        self.main_menu_btn.set_menu_model(menus.main_menu())
         self._update_sensitivity()
 
     def _update_sensitivity(self):
