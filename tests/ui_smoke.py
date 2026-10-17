@@ -39,6 +39,7 @@ sys.excepthook = hook
 from odysseus.app import OdysseusApp  # noqa: E402
 from odysseus.ui.jobs import manager  # noqa: E402
 from odysseus.i18n import tr  # noqa: E402
+from odysseus.settings import settings  # noqa: E402
 
 D = os.path.join(TMP, "data")
 os.makedirs(os.path.join(D, "dossier A", "sous"))
@@ -177,6 +178,14 @@ def tri(win):
     win.activate_action("win.sort-by", GLib.Variant.new_string("name"))
     yield pump(0.2)
     check(win.pane.model.items[0].name == "dossier A", "tri par nom rétabli")
+    lv = win.pane.list_view
+    lv.view.sort_by_column(lv.columns["size"], Gtk.SortType.DESCENDING)   # clic sur l'en-tête « Taille »
+    yield pump(0.3)
+    check(settings["sort_key"] == "size" and settings["sort_reverse"], "tri par clic sur l'en-tête")
+    lv.view.sort_by_column(lv.columns["name"], Gtk.SortType.ASCENDING)
+    yield pump(0.3)
+    check(settings["sort_key"] == "name" and not settings["sort_reverse"]
+          and win.pane.model.items[0].name == "dossier A", "retour au tri par nom par l'en-tête")
 
 
 @step

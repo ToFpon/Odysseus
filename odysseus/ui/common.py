@@ -270,19 +270,22 @@ def describe_paths(paths: list[str]) -> str:
         name=os.path.basename(paths[0].rstrip("/")), n=n)
 
 
+# Mois abrégés comme dans Nautilus (indépendants de la locale C du processus)
+MONTHS = [tr("janv."), tr("févr."), tr("mars"), tr("avril"), tr("mai"), tr("juin"), tr("juil."),
+          tr("août"), tr("sept."), tr("oct."), tr("nov."), tr("déc.")]
+
+
 def date_label(mtime: float) -> str:
-    """Date courte à la manière de Nautilus."""
+    """Date à la manière de Nautilus : « Aujourd'hui à 23:25 », « Hier à 23:35 », « 4 sept. 2026 »."""
     if not mtime:
         return ""
     dt = datetime.fromtimestamp(mtime)
     now = datetime.now()
     if dt.date() == now.date():
-        return tr("Aujourd'hui {0}").format(dt.strftime("%H:%M"))
+        return tr("Aujourd'hui à {0}").format(dt.strftime("%H:%M"))
     if (now.date() - dt.date()).days == 1:
-        return tr("Hier {0}").format(dt.strftime("%H:%M"))
-    if dt.year == now.year:
-        return dt.strftime("%d %b %H:%M")
-    return dt.strftime("%d %b %Y")
+        return tr("Hier à {0}").format(dt.strftime("%H:%M"))
+    return tr("{day} {month} {year}").format(day=dt.day, month=MONTHS[dt.month - 1], year=dt.year)
 
 
 def full_date(mtime: float) -> str:

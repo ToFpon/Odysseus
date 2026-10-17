@@ -1846,13 +1846,7 @@ msgid_plural "{name} et {n} autres"
 msgstr[0] "{name} and {n} other"
 msgstr[1] "{name} and {n} others"
 
-#: odysseus/ui/common.py:280
-msgid "Aujourd'hui {0}"
-msgstr "Today {0}"
 
-#: odysseus/ui/common.py:282
-msgid "Hier {0}"
-msgstr "Yesterday {0}"
 
 #: odysseus/ui/common.py:236
 msgid "Commande copiée"
@@ -3509,3 +3503,48 @@ msgstr "Mark copied items"
 
 msgid "Une barre colorée devant les éléments copiés (Ctrl+C), tant qu'ils sont dans le presse-papiers"
 msgstr "A colored bar in front of copied items (Ctrl+C), as long as they are on the clipboard"
+
+msgid "Aujourd'hui à {0}"
+msgstr "Today at {0}"
+
+msgid "Hier à {0}"
+msgstr "Yesterday at {0}"
+
+msgid "{day} {month} {year}"
+msgstr "{month} {day}, {year}"
+
+msgid "janv."
+msgstr "Jan"
+
+msgid "févr."
+msgstr "Feb"
+
+msgid "mars"
+msgstr "Mar"
+
+msgid "avril"
+msgstr "Apr"
+
+msgid "mai"
+msgstr "May"
+
+msgid "juin"
+msgstr "Jun"
+
+msgid "juil."
+msgstr "Jul"
+
+msgid "août"
+msgstr "Aug"
+
+msgid "sept."
+msgstr "Sep"
+
+msgid "oct."
+msgstr "Oct"
+
+msgid "nov."
+msgstr "Nov"
+
+msgid "déc."
+msgstr "Dec"

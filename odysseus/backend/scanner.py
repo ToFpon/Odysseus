@@ -82,11 +82,15 @@ class Rec:
 
 
 def sort_name(name: str) -> str:
-    """Clé de tri des noms identique à Nautilus (g_utf8_collate_key_for_filename : 2 < 10)."""
+    """Clé de tri des noms identique à Nautilus (g_utf8_collate_key_for_filename : 2 < 10).
+
+    Comme Nautilus, les noms commençant par « . » ou « # » (fichiers cachés, sauvegardes)
+    passent après les autres."""
+    last = "1" if name[:1] in (".", "#") else "0"
     try:
-        return GLib.utf8_collate_key_for_filename(name, -1)
+        return last + GLib.utf8_collate_key_for_filename(name, -1)
     except (TypeError, UnicodeError):
-        return GLib.utf8_collate_key_for_filename(
+        return last + GLib.utf8_collate_key_for_filename(
             name.encode("utf-8", "surrogateescape").decode("utf-8", "replace"), -1)
 
 

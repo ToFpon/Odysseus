@@ -795,6 +795,13 @@ class Pane(Gtk.Box):
         if self.miller is not None:
             self.miller.refresh_rows()
 
+    def set_sort(self, key: str, reverse: bool):
+        """Tri choisi en cliquant sur un en-tête de colonne (un seul nouveau tri pour les deux réglages)."""
+        if key == settings["sort_key"] and reverse == settings["sort_reverse"]:
+            return
+        settings.data["sort_key"] = key
+        settings["sort_reverse"] = reverse
+
     def _on_setting(self, key, value):
         if key == "show_hidden":
             self.model.set_show_hidden(value)

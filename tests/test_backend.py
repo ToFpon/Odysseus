@@ -55,6 +55,25 @@ class ScannerTest(unittest.TestCase):
         by_size = [r.name for r in scanner.sort_recs(recs, "size") if not r.is_dir]
         self.assertEqual(by_size[0], "lien" if os.path.getsize(os.path.join(self.d, "lien")) <= 4 else by_size[0])
 
+    def test_hidden_names_last(self):
+        # (l'ordre des majuscules dépend de la locale : noms en minuscules seulement)
+        names = [".zeta", "beta", "#sauve#", "alpha", ".android", "10", "2"]
+        out = sorted(names, key=scanner.sort_name)
+        self.assertEqual(out[:4], ["2", "10", "alpha", "beta"])
+        self.assertEqual(set(out[4:]), {".android", ".zeta", "#sauve#"})
+        self.assertLess(out.index(".android"), out.index(".zeta"))
+
+    def test_date_label(self):
+        import time
+        from datetime import datetime
+        from odysseus.ui.common import MONTHS, date_label
+        from odysseus.i18n import tr
+        now = time.time()
+        self.assertEqual(date_label(now), tr("Aujourd'hui à {0}").format(time.strftime("%H:%M", time.localtime(now))))
+        self.assertTrue(date_label(now - 86400).startswith(tr("Hier à {0}").split("{0}")[0]))
+        old = datetime(2024, 9, 4, 12, 0).timestamp()
+        self.assertEqual(date_label(old), tr("{day} {month} {year}").format(day=4, month=MONTHS[8], year=2024))
+
     def test_rec_for_path_and_count(self):
         r = scanner.rec_for_path(os.path.join(self.d, "b.txt"))
         self.assertTrue(r.hidden)

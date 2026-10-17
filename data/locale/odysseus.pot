@@ -1811,6 +1811,54 @@ msgstr ""
 msgid "Commande équivalente"
 msgstr ""
 
+#: odysseus/ui/common.py:274
+msgid "janv."
+msgstr ""
+
+#: odysseus/ui/common.py:274
+msgid "févr."
+msgstr ""
+
+#: odysseus/ui/common.py:274
+msgid "mars"
+msgstr ""
+
+#: odysseus/ui/common.py:274
+msgid "avril"
+msgstr ""
+
+#: odysseus/ui/common.py:274
+msgid "mai"
+msgstr ""
+
+#: odysseus/ui/common.py:274
+msgid "juin"
+msgstr ""
+
+#: odysseus/ui/common.py:274
+msgid "juil."
+msgstr ""
+
+#: odysseus/ui/common.py:275
+msgid "août"
+msgstr ""
+
+#: odysseus/ui/common.py:275
+msgid "sept."
+msgstr ""
+
+#: odysseus/ui/common.py:275
+msgid "oct."
+msgstr ""
+
+#: odysseus/ui/common.py:275
+msgid "nov."
+msgstr ""
+
+#: odysseus/ui/common.py:275
+msgid "déc."
+msgstr ""
+
 #: odysseus/ui/common.py:66 odysseus/ui/pane.py:175
 msgid "Archive protégée"
 msgstr ""
@@ -1849,12 +1897,16 @@ msgid_plural "{name} et {n} autres"
 msgstr[0] ""
 msgstr[1] ""
 
-#: odysseus/ui/common.py:280
-msgid "Aujourd'hui {0}"
+#: odysseus/ui/common.py:288
+msgid "{day} {month} {year}"
 msgstr ""
 
-#: odysseus/ui/common.py:282
-msgid "Hier {0}"
+#: odysseus/ui/common.py:285
+msgid "Aujourd'hui à {0}"
+msgstr ""
+
+#: odysseus/ui/common.py:287
+msgid "Hier à {0}"
 msgstr ""
 
 #: odysseus/ui/common.py:236
@@ -2073,7 +2125,7 @@ msgstr ""
 msgid "Dossier parent"
 msgstr ""
 
-#: odysseus/ui/dialogs.py:176 odysseus/ui/pane.py:933 odysseus/ui/pathbar.py:86 odysseus/ui/sidebar.py:25
+#: odysseus/ui/dialogs.py:176 odysseus/ui/pane.py:940 odysseus/ui/pathbar.py:86 odysseus/ui/sidebar.py:25
 msgid "Dossier personnel"
 msgstr ""
 
@@ -2549,7 +2601,7 @@ msgstr ""
 msgid "Supprimer de l'archive"
 msgstr ""
 
-#: odysseus/ui/pane.py:27 odysseus/ui/pane.py:925 odysseus/ui/pane.py:147 odysseus/ui/pathbar.py:71
+#: odysseus/ui/pane.py:27 odysseus/ui/pane.py:932 odysseus/ui/pane.py:147 odysseus/ui/pathbar.py:71
 msgid "Corbeille"
 msgstr ""
 
@@ -2577,7 +2629,7 @@ msgstr ""
 msgid "Dossier vide"
 msgstr ""
 
-#: odysseus/ui/pane.py:169 odysseus/ui/pane.py:959 odysseus/ui/pane.py:747
+#: odysseus/ui/pane.py:169 odysseus/ui/pane.py:966 odysseus/ui/pane.py:747
 msgid "Chargement…"
 msgstr ""
 
@@ -2605,7 +2657,7 @@ msgstr ""
 msgid "Accès impossible"
 msgstr ""
 
-#: odysseus/ui/pane.py:971 odysseus/ui/preview.py:246
+#: odysseus/ui/pane.py:978 odysseus/ui/preview.py:246
 msgid "{0} élément sélectionné"
 msgid_plural "{0} éléments sélectionnés"
 msgstr[0] ""
@@ -2623,7 +2675,7 @@ msgstr ""
 msgid "Mot de passe incorrect, réessayez."
 msgstr ""
 
-#: odysseus/ui/pane.py:553 odysseus/ui/pane.py:975 odysseus/ui/preview.py:97 odysseus/ui/properties.py:134
+#: odysseus/ui/pane.py:553 odysseus/ui/pane.py:982 odysseus/ui/preview.py:97 odysseus/ui/properties.py:134
 msgid "{0} dossier"
 msgid_plural "{0} dossiers"
 msgstr[0] ""
@@ -2633,7 +2685,7 @@ msgstr[1] ""
 msgid "La corbeille est vide"
 msgstr ""
 
-#: odysseus/ui/pane.py:923
+#: odysseus/ui/pane.py:930
 msgid "Recherche « {0} »"
 msgstr ""
 
@@ -2653,7 +2705,7 @@ msgstr ""
 msgid "Déposez des fichiers ici pour les ajouter à l'archive."
 msgstr ""
 
-#: odysseus/ui/pane.py:969
+#: odysseus/ui/pane.py:976
 msgid "« {0} » sélectionné"
 msgstr ""
 
@@ -2661,7 +2713,7 @@ msgstr ""
 msgid "Recherche… {0} résultat(s)"
 msgstr ""
 
-#: odysseus/ui/pane.py:966 odysseus/ui/preview.py:237 odysseus/ui/preview.py:96 odysseus/ui/properties.py:46
+#: odysseus/ui/pane.py:973 odysseus/ui/preview.py:237 odysseus/ui/preview.py:96 odysseus/ui/properties.py:46
 msgid "{0} élément"
 msgid_plural "{0} éléments"
 msgstr[0] ""
