@@ -1,0 +1,576 @@
+"""Opérations sur les fichiers : copier, déplacer, corbeille, supprimer, créer, renommer.
+
+Tout s'exécute dans une tâche de fond (engine.Job) avec progression, vitesse et annulation.
+La copie passe par os.copy_file_range (copie dans le noyau, très rapide) par blocs de 8 Mo pour
+suivre l'avancement ; un déplacement sur le même disque n'est qu'un renommage instantané.
+Les conflits de noms sont posés à l'utilisateur par la fonction `ask`, appelée depuis le fil de
+la tâche (elle attend la réponse de l'interface).
+"""
+
+from __future__ import annotations
+
+import os
+import shutil
+import stat as st
+import time
+from dataclasses import dataclass, field
+from typing import Callable, Optional
+
+from gi.repository import Gio, GLib
+
+from ..i18n import ntr, tr
+from .engine import Cancelled, Job, ToolError, human_size
+
+CHUNK = 8 * 1024 * 1024
+
+
+@dataclass
+class Conflict:
+    src: str
+    dst: str
+    src_is_dir: bool
+    dst_is_dir: bool
+    move: bool = False
+
+
+# Réponses possibles : "replace", "merge" (dossiers), "rename", "skip", "cancel".
+Asker = Callable[[Conflict], tuple]
+
+
+@dataclass
+class Result:
+    """Ce qui a été fait (pour annuler, sélectionner les nouveaux éléments, signaler les erreurs)."""
+    kind: str
+    created: list = field(default_factory=list)      # chemins créés au premier niveau
+    moved: list = field(default_factory=list)        # (ancien, nouveau)
+    trashed: list = field(default_factory=list)      # chemins d'origine
+    errors: list = field(default_factory=list)       # (chemin, message)
+
+
+# ---------------------------------------------------------------------------
+# Noms
+# ---------------------------------------------------------------------------
+
+def split_ext(name: str) -> tuple[str, str]:
+    """« photo.tar.gz » → (« photo », « .tar.gz ») ; les dossiers et fichiers cachés gardent leur nom."""
+    if name.startswith(".") and name.count(".") == 1:
+        return name, ""
+    low = name.lower()
+    for double in (".tar.gz", ".tar.bz2", ".tar.xz", ".tar.zst", ".tar.lz4", ".tar.br", ".tar.lzma"):
+        if low.endswith(double) and len(name) > len(double):
+            return name[:-len(double)], name[-len(double):]
+    base, ext = os.path.splitext(name)
+    return (base, ext) if base else (name, "")
+
+
+def unique_name(folder: str, name: str, is_dir: bool = False, copy_word: bool = False) -> str:
+    """Nom libre : « nom (copie).ext », « nom (copie 2).ext »… ou « nom (2).ext »."""
+    if not os.path.lexists(os.path.join(folder, name)):
+        return name
+    base, ext = (name, "") if is_dir else split_ext(name)
+    n = 1
+    while True:
+        if copy_word:
+            suffix = tr(" (copie)") if n == 1 else tr(" (copie {0})").format(n)
+        else:
+            suffix = f" ({n + 1})"
+        cand = f"{base}{suffix}{ext}"
+        if not os.path.lexists(os.path.join(folder, cand)):
+            return cand
+        n += 1
+
+
+def valid_name(name: str) -> str:
+    """Message d'erreur si le nom n'est pas utilisable, sinon chaîne vide."""
+    if not name or not name.strip():
+        return tr("Le nom ne peut pas être vide")
+    if "/" in name:
+        return tr("Le nom ne peut pas contenir « / »")
+    if name in (".", ".."):
+        return tr("« {0} » n'est pas un nom valide").format(name)
+    if len(name.encode("utf-8", "surrogateescape")) > 255:
+        return tr("Le nom est trop long")
+    return ""
+
+
+# ---------------------------------------------------------------------------
+# Mesure
+# ---------------------------------------------------------------------------
+
+def measure(job: Optional[Job], paths: list[str]) -> tuple[int, int]:
+    """(octets, nombre de fichiers) d'une sélection, liens non suivis."""
+    total = files = 0
+    stack = list(paths)
+    last = time.monotonic()
+    while stack:
+        p = stack.pop()
+        try:
+            s = os.lstat(p)
+        except OSError:
+            continue
+        if st.S_ISDIR(s.st_mode):
+            try:
+                with os.scandir(p) as it:
+                    stack.extend(e.path for e in it)
+            except OSError:
+                pass
+        else:
+            total += s.st_size
+            files += 1
+        if job is not None:
+            job.check_cancel()
+            now = time.monotonic()
+            if now - last > 0.2:
+                last = now
+                job.progress(None, tr("Préparation… {0} fichiers, {1}").format(files, human_size(total)))
+    return total, files
+
+
+# ---------------------------------------------------------------------------
+# Copie / déplacement
+# ---------------------------------------------------------------------------
+
+class _Copier:
+    def __init__(self, job: Job, ask: Asker, total: int, files: int, move: bool):
+        self.job = job
+        self.ask = ask
+        self.total = max(total, 1)
+        self.files = files
+        self.done = 0
+        self.done_files = 0
+        self.move = move
+        self.sticky: dict = {}       # décision « pour tous » par type de conflit
+        self.errors: list = []
+        self.started = time.monotonic()
+        self._last = 0.0
+        self.current = ""
+
+    def tick(self, force: bool = False):
+        now = time.monotonic()
+        if not force and now - self._last < 0.1:
+            return
+        self._last = now
+        elapsed = max(now - self.started, 0.001)
+        speed = self.done / elapsed
+        verb = tr("Déplacement") if self.move else tr("Copie")
+        status = tr("{verb} de « {name} » — {done} sur {total}").format(
+            verb=verb, name=self.current, done=human_size(self.done), total=human_size(self.total))
+        if self.files > 1:
+            status += tr(" · fichier {0} sur {1}").format(min(self.done_files + 1, self.files), self.files)
+        if speed > 0 and elapsed > 1:
+            status += f" · {human_size(speed)}/s"
+        self.job.progress(self.done / self.total, status)
+
+    def decide(self, c: Conflict) -> str:
+        kind = "dir" if (c.src_is_dir and c.dst_is_dir) else "file"
+        if kind in self.sticky:
+            return self.sticky[kind]
+        choice, for_all = self.ask(c)
+        if choice == "cancel":
+            raise Cancelled()
+        if for_all:
+            self.sticky[kind] = choice
+        return choice
+
+    def copy_file(self, src: str, dst: str, s: os.stat_result):
+        self.current = os.path.basename(src)
+        tmp_created = False
+        try:
+            with open(src, "rb") as fin:
+                fd = os.open(dst, os.O_WRONLY | os.O_CREAT | os.O_TRUNC, st.S_IMODE(s.st_mode) | 0o200)
+                tmp_created = True
+                try:
+                    use_cfr = hasattr(os, "copy_file_range")
+                    while True:
+                        self.job.check_cancel()
+                        n = 0
+                        if use_cfr:
+                            try:
+                                n = os.copy_file_range(fin.fileno(), fd, CHUNK)
+                            except OSError:
+                                use_cfr = False
+                                continue
+                        else:
+                            data = fin.read(CHUNK)
+                            if data:
+                                os.write(fd, data)
+                                n = len(data)
+                        if not n:
+                            break
+                        self.done += n
+                        self.tick()
+                finally:
+                    os.close(fd)
+            try:
+                shutil.copystat(src, dst)
+            except OSError:
+                pass
+        except Cancelled:
+            if tmp_created:
+                try:
+                    os.remove(dst)
+                except OSError:
+                    pass
+            raise
+        self.done_files += 1
+
+    def copy_tree(self, src: str, dst: str):
+        """Copie récursive ; dst n'existe pas, ou est un dossier à fusionner."""
+        self.job.check_cancel()
+        try:
+            s = os.lstat(src)
+        except OSError as e:
+            self.errors.append((src, e.strerror or str(e)))
+            return
+        try:
+            if st.S_ISLNK(s.st_mode):
+                os.symlink(os.readlink(src), dst)
+                self.done_files += 1
+            elif st.S_ISDIR(s.st_mode):
+                os.makedirs(dst, exist_ok=True)
+                with os.scandir(src) as it:
+                    children = [e.name for e in it]
+                for name in children:
+                    child_dst = os.path.join(dst, name)
+                    self.place(os.path.join(src, name), child_dst, nested=True)
+                try:
+                    shutil.copystat(src, dst)
+                except OSError:
+                    pass
+            elif st.S_ISREG(s.st_mode):
+                self.copy_file(src, dst, s)
+            else:
+                self.errors.append((src, tr("Fichier spécial ignoré")))
+        except Cancelled:
+            raise
+        except OSError as e:
+            self.errors.append((src, e.strerror or str(e)))
+
+    def place(self, src: str, dst: str, nested: bool = False) -> Optional[str]:
+        """Copie src vers dst en réglant un éventuel conflit ; renvoie le chemin final."""
+        src_is_dir = os.path.isdir(src) and not os.path.islink(src)
+        if os.path.lexists(dst):
+            dst_is_dir = os.path.isdir(dst) and not os.path.islink(dst)
+            choice = self.decide(Conflict(src, dst, src_is_dir, dst_is_dir, self.move))
+            if choice == "skip":
+                if not nested:
+                    return None
+                _, files = measure(None, [src]) if src_is_dir else (0, 1)
+                self.done_files += files
+                return None
+            if choice == "rename":
+                dst = os.path.join(os.path.dirname(dst),
+                                   unique_name(os.path.dirname(dst), os.path.basename(dst), src_is_dir))
+            elif choice == "merge" and src_is_dir and dst_is_dir:
+                pass
+            else:   # replace
+                try:
+                    _remove(dst)
+                except OSError as e:
+                    self.errors.append((dst, e.strerror or str(e)))
+                    return None
+        self.copy_tree(src, dst)
+        return dst
+
+
+def _remove(path: str):
+    if os.path.isdir(path) and not os.path.islink(path):
+        shutil.rmtree(path)
+    else:
+        os.remove(path)
+
+
+def _is_inside(child: str, parent: str) -> bool:
+    child, parent = os.path.realpath(child), os.path.realpath(parent)
+    return child == parent or child.startswith(parent.rstrip("/") + "/")
+
+
+def transfer(job: Job, sources: list[str], dest_dir: str, ask: Asker, move: bool = False) -> Result:
+    """Copie ou déplace des éléments dans dest_dir."""
+    res = Result("move" if move else "copy")
+    if not os.path.isdir(dest_dir):
+        raise ToolError(tr("Le dossier de destination n'existe pas : {0}").format(dest_dir))
+    for s in sources:
+        if os.path.isdir(s) and _is_inside(dest_dir, s):
+            raise ToolError(tr("Impossible de copier « {0} » dans lui-même").format(os.path.basename(s)))
+    try:
+        dest_dev = os.stat(dest_dir).st_dev
+    except OSError as e:
+        raise ToolError(e.strerror or str(e))
+
+    # Déplacements sur le même disque : simples renommages, sans mesure préalable.
+    to_copy = []
+    copier = _Copier(job, ask, 0, 0, move)
+    for src in sources:
+        job.check_cancel()
+        name = os.path.basename(src.rstrip("/"))
+        dst = os.path.join(dest_dir, name)
+        if move:
+            if os.path.dirname(os.path.abspath(src)) == os.path.abspath(dest_dir):
+                continue                       # déjà là
+            try:
+                same = os.lstat(src).st_dev == dest_dev
+            except OSError as e:
+                res.errors.append((src, e.strerror or str(e)))
+                continue
+            if same:
+                if os.path.lexists(dst):
+                    src_is_dir = os.path.isdir(src) and not os.path.islink(src)
+                    dst_is_dir = os.path.isdir(dst) and not os.path.islink(dst)
+                    choice = copier.decide(Conflict(src, dst, src_is_dir, dst_is_dir, True))
+                    if choice == "skip":
+                        continue
+                    if choice == "rename":
+                        dst = os.path.join(dest_dir, unique_name(dest_dir, name, src_is_dir))
+                    elif choice == "merge" and src_is_dir and dst_is_dir:
+                        to_copy.append((src, dst, True))
+                        continue
+                    else:
+                        try:
+                            _remove(dst)
+                        except OSError as e:
+                            res.errors.append((dst, e.strerror or str(e)))
+                            continue
+                try:
+                    os.rename(src, dst)
+                    res.moved.append((src, dst))
+                    res.created.append(dst)
+                except OSError as e:
+                    res.errors.append((src, e.strerror or str(e)))
+                continue
+        else:
+            if os.path.abspath(dst) == os.path.abspath(src):
+                # coller au même endroit : « nom (copie) », comme Nautilus
+                is_dir = os.path.isdir(src) and not os.path.islink(src)
+                dst = os.path.join(dest_dir, unique_name(dest_dir, name, is_dir, copy_word=True))
+        to_copy.append((src, dst, False))
+
+    if to_copy:
+        total, files = measure(job, [s for s, _d, _m in to_copy])
+        copier.total, copier.files = max(total, 1), files
+        copier.started = time.monotonic()
+        for src, dst, merge in to_copy:
+            job.check_cancel()
+            before = len(copier.errors)
+            if merge:
+                copier.copy_tree(src, dst)
+                final = dst
+            else:
+                final = copier.place(src, dst)
+            if final is None:
+                continue
+            res.created.append(final)
+            if move:
+                if len(copier.errors) == before:
+                    try:
+                        _remove(src)
+                        res.moved.append((src, final))
+                    except OSError as e:
+                        copier.errors.append((src, e.strerror or str(e)))
+        copier.tick(force=True)
+    res.errors.extend(copier.errors)
+    _raise_partial(res)
+    return res
+
+
+def _raise_partial(res: Result):
+    if res.errors and not res.created and not res.trashed:
+        path, msg = res.errors[0]
+        raise ToolError(f"{os.path.basename(path)} : {msg}",
+                        "\n".join(f"{p} : {m}" for p, m in res.errors))
+
+
+# ---------------------------------------------------------------------------
+# Corbeille / suppression
+# ---------------------------------------------------------------------------
+
+def trash(job: Job, paths: list[str]) -> Result:
+    res = Result("trash")
+    for i, p in enumerate(paths):
+        job.check_cancel()
+        job.progress(i / max(len(paths), 1), tr("Mise à la corbeille de « {0} »").format(os.path.basename(p)))
+        try:
+            Gio.File.new_for_path(p).trash(None)
+            res.trashed.append(p)
+        except GLib.Error as e:
+            res.errors.append((p, e.message))
+    _raise_partial(res)
+    return res
+
+
+def delete(job: Job, paths: list[str]) -> Result:
+    res = Result("delete")
+    total, files = measure(job, paths)
+    done = 0
+    for p in paths:
+        job.check_cancel()
+        try:
+            if os.path.isdir(p) and not os.path.islink(p):
+                for root, dirs, fnames in os.walk(p, topdown=False):
+                    for f in fnames:
+                        job.check_cancel()
+                        os.remove(os.path.join(root, f))
+                        done += 1
+                        if done % 200 == 0:
+                            job.progress(done / max(files, 1), tr("Suppression… {0} sur {1}").format(done, files))
+                    for d in dirs:
+                        full = os.path.join(root, d)
+                        if os.path.islink(full):
+                            os.remove(full)
+                        else:
+                            os.rmdir(full)
+                os.rmdir(p)
+            else:
+                os.remove(p)
+                done += 1
+            res.created.append(p)
+        except OSError as e:
+            res.errors.append((p, e.strerror or str(e)))
+    if res.errors and not res.created:
+        path, msg = res.errors[0]
+        raise ToolError(f"{os.path.basename(path)} : {msg}")
+    return res
+
+
+def trash_items(job: Job) -> list[Gio.File]:
+    out = []
+    try:
+        en = Gio.File.new_for_uri("trash:///").enumerate_children(
+            "standard::name,trash::orig-path,trash::deletion-date", Gio.FileQueryInfoFlags.NONE, None)
+        while True:
+            infos = en.next_files(200, None)
+            if not infos:
+                break
+            out.extend((i, Gio.File.new_for_uri("trash:///").get_child(i.get_name())) for i in infos)
+    except GLib.Error:
+        pass
+    return out
+
+
+def empty_trash(job: Job) -> int:
+    n = 0
+
+    def rm(f: Gio.File):
+        try:
+            info = f.query_info("standard::type", Gio.FileQueryInfoFlags.NOFOLLOW_SYMLINKS, None)
+            if info.get_file_type() == Gio.FileType.DIRECTORY:
+                en = f.enumerate_children("standard::name", Gio.FileQueryInfoFlags.NOFOLLOW_SYMLINKS, None)
+                for ci in en:
+                    rm(f.get_child(ci.get_name()))
+            f.delete(None)
+        except GLib.Error:
+            pass
+    items = trash_items(job)
+    for i, (_info, f) in enumerate(items):
+        job.check_cancel()
+        job.progress(i / max(len(items), 1), tr("Vidage de la corbeille…"))
+        rm(f)
+        n += 1
+    return n
+
+
+def restore_from_trash(job: Job, uris: list[str]) -> Result:
+    """Remet des éléments de la corbeille à leur emplacement d'origine."""
+    res = Result("restore")
+    for uri in uris:
+        job.check_cancel()
+        f = Gio.File.new_for_uri(uri)
+        try:
+            info = f.query_info("trash::orig-path", Gio.FileQueryInfoFlags.NONE, None)
+            orig = info.get_attribute_byte_string("trash::orig-path")
+            if not orig:
+                raise GLib.Error(tr("Emplacement d'origine inconnu"))
+            target = orig
+            if os.path.lexists(target):
+                target = os.path.join(os.path.dirname(orig),
+                                      unique_name(os.path.dirname(orig), os.path.basename(orig)))
+            os.makedirs(os.path.dirname(target), exist_ok=True)
+            f.move(Gio.File.new_for_path(target), Gio.FileCopyFlags.NOFOLLOW_SYMLINKS, None, None, None)
+            res.created.append(target)
+        except (GLib.Error, OSError) as e:
+            res.errors.append((uri, getattr(e, "message", None) or str(e)))
+    _raise_partial(res)
+    return res
+
+
+def restore_trashed_paths(job: Job, originals: list[str]) -> Result:
+    """Annulation d'une mise à la corbeille : retrouve les éléments par leur chemin d'origine."""
+    wanted = set(originals)
+    best: dict = {}
+    for info, f in trash_items(job):
+        orig = info.get_attribute_byte_string("trash::orig-path")
+        if orig in wanted:
+            date = info.get_attribute_string("trash::deletion-date") or ""
+            if orig not in best or date > best[orig][0]:
+                best[orig] = (date, f.get_uri())
+    return restore_from_trash(job, [u for _d, u in best.values()])
+
+
+# ---------------------------------------------------------------------------
+# Création / renommage
+# ---------------------------------------------------------------------------
+
+def make_folder(folder: str, name: str) -> str:
+    err = valid_name(name)
+    if err:
+        raise ToolError(err)
+    path = os.path.join(folder, name)
+    if os.path.lexists(path):
+        raise ToolError(tr("« {0} » existe déjà").format(name))
+    os.mkdir(path)
+    return path
+
+
+def make_file(folder: str, name: str, template: str = "") -> str:
+    err = valid_name(name)
+    if err:
+        raise ToolError(err)
+    path = os.path.join(folder, name)
+    if os.path.lexists(path):
+        raise ToolError(tr("« {0} » existe déjà").format(name))
+    if template:
+        shutil.copyfile(template, path)
+    else:
+        with open(path, "x"):
+            pass
+    return path
+
+
+def rename(path: str, new_name: str) -> str:
+    err = valid_name(new_name)
+    if err:
+        raise ToolError(err)
+    target = os.path.join(os.path.dirname(path), new_name)
+    if os.path.lexists(target) and os.path.realpath(target) != os.path.realpath(path):
+        raise ToolError(tr("« {0} » existe déjà").format(new_name))
+    os.rename(path, target)
+    return target
+
+
+def make_link(job: Job, sources: list[str], dest_dir: str) -> Result:
+    res = Result("link")
+    for s in sources:
+        name = tr("Lien vers {0}").format(os.path.basename(s))
+        dst = os.path.join(dest_dir, unique_name(dest_dir, name))
+        try:
+            os.symlink(s, dst)
+            res.created.append(dst)
+        except OSError as e:
+            res.errors.append((s, e.strerror or str(e)))
+    _raise_partial(res)
+    return res
+
+
+def describe_result(res: Result) -> str:
+    n = len(res.created) or len(res.trashed)
+    if res.kind == "trash":
+        return ntr("{0} élément mis à la corbeille", "{0} éléments mis à la corbeille", n).format(n)
+    if res.kind == "delete":
+        return ntr("{0} élément supprimé", "{0} éléments supprimés", n).format(n)
+    if res.kind == "move":
+        return ntr("{0} élément déplacé", "{0} éléments déplacés", n).format(n)
+    if res.kind == "restore":
+        return ntr("{0} élément restauré", "{0} éléments restaurés", n).format(n)
+    if res.kind == "link":
+        return ntr("{0} lien créé", "{0} liens créés", n).format(n)
+    return ntr("{0} élément copié", "{0} éléments copiés", n).format(n)

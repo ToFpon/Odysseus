@@ -1,0 +1,11 @@
+#!/usr/bin/env python3
+"""Lanceur d'Odysseus depuis le dépôt ou une installation locale."""
+import os
+import sys
+
+here = os.path.dirname(os.path.realpath(__file__))
+sys.path.insert(0, os.path.dirname(here))
+
+from odysseus.app import main  # noqa: E402
+
+sys.exit(main())

@@ -1,0 +1,10 @@
+# Fichiers de développement exclus des archives de distribution
+# (git archive, « Download ZIP » et archives des releases GitHub).
+# Le dépôt complet reste disponible avec git clone.
+.claude/            export-ignore
+.gitattributes      export-ignore
+.gitignore          export-ignore
+tests/              export-ignore
+tools/              export-ignore
+docs/               export-ignore
+data/locale/odysseus.pot export-ignore

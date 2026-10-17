@@ -1,0 +1,21 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="128" height="128" viewBox="0 0 128 128">
+  <defs>
+    <linearGradient id="back" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#4a7fd6"/><stop offset="1" stop-color="#2a5bb0"/>
+    </linearGradient>
+    <linearGradient id="front" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#7fb2f5"/><stop offset="1" stop-color="#4f8fe6"/>
+    </linearGradient>
+    <linearGradient id="sail" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#ffffff"/><stop offset="1" stop-color="#e3ecf9"/>
+    </linearGradient>
+  </defs>
+  <path d="M14 22h34l10 10h56c4.4 0 8 3.6 8 8v62c0 4.4-3.6 8-8 8H14c-4.4 0-8-3.6-8-8V30c0-4.4 3.6-8 8-8z" fill="url(#back)"/>
+  <path d="M6 48c0-4.4 3.6-8 8-8h100c4.4 0 8 3.6 8 8v54c0 4.4-3.6 8-8 8H14c-4.4 0-8-3.6-8-8z" fill="url(#front)"/>
+  <!-- navire : voile et coque -->
+  <path d="M64 50v36" stroke="#f6d32d" stroke-width="3" stroke-linecap="round"/>
+  <path d="M66 52c14 6 20 18 20 30H66z" fill="url(#sail)"/>
+  <path d="M62 58c-9 5-13 13-13 24h13z" fill="url(#sail)" opacity="0.9"/>
+  <path d="M42 88h44c-2 8-10 12-22 12s-20-4-22-12z" fill="#2a3f66"/>
+  <path d="M30 104c8-3 14-3 22 0s14 3 22 0 14-3 22 0" fill="none" stroke="#ffffff" stroke-width="3" stroke-linecap="round" opacity="0.8"/>
+</svg>

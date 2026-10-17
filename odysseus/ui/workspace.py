@@ -1,0 +1,124 @@
+"""Contenu d'un onglet : un panneau, ou deux côte à côte (double panneau, touche F3)."""
+
+from __future__ import annotations
+
+from typing import Optional
+
+from gi.repository import GLib, GObject, Gtk
+
+from .pane import Pane
+from .pathbar import PathBar
+
+
+class Workspace(Gtk.Box):
+    __gtype_name__ = "OdysseusWorkspace"
+    __gsignals__ = {
+        "active-changed": (GObject.SignalFlags.RUN_FIRST, None, ()),
+    }
+
+    def __init__(self, window, location: str, dual: bool = False, view_mode: Optional[str] = None):
+        super().__init__(orientation=Gtk.Orientation.VERTICAL, vexpand=True, hexpand=True)
+        self.window = window
+        self.paned = Gtk.Paned(orientation=Gtk.Orientation.HORIZONTAL, wide_handle=True, vexpand=True,
+                               shrink_start_child=False, shrink_end_child=False)
+        self.append(self.paned)
+        self._ratio = 0.5
+        self._placing = False
+        self.paned.connect("notify::max-position", lambda *_: self._apply_ratio())
+        self.paned.connect("notify::position", self._on_position)
+        self.panes: list[Pane] = []
+        first = self._make_pane(location, view_mode)
+        self.paned.set_start_child(first)
+        self.active: Pane = first
+        self.dual = False
+        if dual:
+            self.set_dual(True)
+
+    def _make_pane(self, location: str, view_mode: Optional[str] = None) -> Pane:
+        pane = Pane(location, view_mode)
+        self.window.connect_pane(pane, self)
+        pane.connect("focused", lambda p: self.set_active(p))
+        self.panes.append(pane)
+        return pane
+
+    def other(self, pane: Optional[Pane] = None) -> Optional[Pane]:
+        pane = pane or self.active
+        if not self.dual:
+            return None
+        for p in self.panes:
+            if p is not pane:
+                return p
+        return None
+
+    def set_active(self, pane: Pane):
+        if pane is self.active:
+            return
+        self.active = pane
+        for p in self.panes:
+            if p is pane:
+                p.add_css_class("active-pane")
+            else:
+                p.remove_css_class("active-pane")
+        self.emit("active-changed")
+
+    def set_dual(self, dual: bool):
+        if dual == self.dual:
+            return
+        self.dual = dual
+        if dual:
+            src = self.active
+            second = self._make_pane(src.location if src.mode in ("fs", "trash", "remote") else src.current_dir()
+                                     or src.location, src.view_mode)
+            self.paned.set_end_child(second)
+            for p in self.panes:
+                self._add_pathbar(p)
+            self.active.add_css_class("active-pane")
+            GLib.idle_add(self._center)
+        else:
+            keep = self.active
+            for p in list(self.panes):
+                if p is not keep:
+                    p.model.cancel()
+                    self.panes.remove(p)
+            self.paned.set_start_child(None)
+            self.paned.set_end_child(None)
+            self.paned.set_start_child(keep)
+            for p in self.panes:
+                p.remove_css_class("active-pane")
+                if getattr(p, "pathbar", None) is not None:
+                    p.top.remove(p.pathbar)
+                    p.pathbar = None
+            self.active = keep
+        self.emit("active-changed")
+
+    def _center(self):
+        self._ratio = 0.5
+        self._apply_ratio()
+        return False
+
+    def _apply_ratio(self):
+        if not self.dual:
+            return
+        mx = self.paned.get_property("max-position")
+        if mx > 0:
+            self._placing = True
+            self.paned.set_position(int(mx * self._ratio))
+            self._placing = False
+
+    def _on_position(self, *_):
+        if self._placing or not self.dual:
+            return
+        mx = self.paned.get_property("max-position")
+        if mx > 100:
+            self._ratio = max(0.1, min(0.9, self.paned.get_position() / mx))
+
+    def _add_pathbar(self, pane: Pane):
+        if getattr(pane, "pathbar", None) is not None:
+            return
+        bar = PathBar(compact=True)
+        bar.connect("navigate", lambda _b, loc: (pane.open(loc) if loc else pane.focus_view(), self.set_active(pane)))
+        bar.connect("navigate-tab", lambda _b, loc: self.window.new_tab(loc))
+        bar.connect("drop", lambda _b, paths, target: self.window.drop_files(paths, target, "auto"))
+        pane.pathbar = bar
+        pane.top.append(bar)
+        self.window.update_pane_pathbar(pane)

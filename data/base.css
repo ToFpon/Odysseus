@@ -1,0 +1,141 @@
+/* Odysseus — mise en page. Aucune couleur fixe : tout vient du thème GTK actif
+   (Adwaita, couleur d'accentuation du système, ou thème installé dans ~/.config/gtk-4.0). */
+
+/* --- Barre latérale --------------------------------------------- */
+.sidebar-pane headerbar { background: transparent; box-shadow: none; }
+.sidebar-heading {
+  margin: 12px 18px 2px 18px;
+  font-size: 0.78em; font-weight: 700; letter-spacing: 0.06em; opacity: 0.55;
+}
+.sidebar-separator { margin: 6px 12px; opacity: 0.5; }
+.navigation-sidebar { background: transparent; }
+.navigation-sidebar > row { border-radius: 8px; margin: 1px 8px; min-height: 34px; }
+.row-eject { min-height: 22px; min-width: 22px; padding: 0; opacity: 0.75; }
+.navigation-sidebar > row.drop-row,
+.navigation-sidebar.drop-bookmark { box-shadow: inset 0 0 0 2px alpha(@accent_bg_color, 0.7); }
+
+/* --- Barre de chemin (comme Nautilus) ---------------------------- */
+.path-bar { min-height: 34px; }
+.path-crumbs-frame {
+  border-radius: 8px;
+  background: alpha(currentColor, 0.08);
+  padding: 0 4px;
+}
+.path-bar.compact .path-crumbs-frame { border-radius: 6px; margin: 4px 6px; }
+.path-crumbs { min-height: 34px; }
+.path-bar.compact .path-crumbs { min-height: 28px; }
+.path-button { padding: 2px 8px; min-height: 26px; border-radius: 6px; }
+.path-button.current { font-weight: 700; }
+.path-sep { margin: 0 1px; opacity: 0.45; }
+.path-entry { border-radius: 8px; }
+.path-button.drop-row { box-shadow: inset 0 0 0 2px alpha(@accent_bg_color, 0.7); }
+
+/* --- Zone de fichiers --------------------------------------------- */
+/* Fond et texte « fenêtre » du thème, plutôt que le fond « vue » (semi-transparent dans
+   certains thèmes, il délave la liste). */
+.file-pane scrolledwindow,
+columnview.file-view,
+columnview.file-view > listview,
+columnview.file-view > header,
+gridview.file-grid,
+.miller-view, .miller-list {
+  background: transparent;
+  color: @window_fg_color;
+}
+
+/* Mêmes dimensions que la vue liste de Nautilus */
+.file-view > listview > row { border-radius: 6px; margin: 0 6px; }
+.file-view > listview > row > cell { padding: 6px; }
+.file-view.compact > listview > row > cell { padding-top: 8px; padding-bottom: 7px; }
+.file-view > header > button { font-weight: 700; font-size: 0.85em; }
+.numeric { font-feature-settings: "tnum"; }
+.name-cell .emblem, .grid-cell .emblem { -gtk-icon-shadow: 0 0 2px alpha(black, 0.4); }
+
+/* Vue grille */
+.file-grid { padding: 12px; }
+.file-grid > child { border-radius: 12px; padding: 8px 4px; margin: 2px; }
+image.thumbnail { border-radius: 4px; }
+
+/* Vue en colonnes */
+.miller-column { border-right: 1px solid alpha(currentColor, 0.08); }
+.miller-column.focused { background: alpha(@accent_bg_color, 0.04); }
+.miller-resize-handle { background: alpha(currentColor, 0.05); }
+.miller-resize-handle:hover { background: alpha(@accent_bg_color, 0.5); }
+.miller-chevron { opacity: 0.45; }
+
+/* Déposer */
+.file-pane.drop-hover { box-shadow: inset 0 0 0 3px alpha(@accent_bg_color, 0.6); }
+.drop-row { box-shadow: inset 0 0 0 2px alpha(@accent_bg_color, 0.8); border-radius: 6px; }
+.drag-icon { padding: 4px; }
+.drag-count {
+  background: @accent_bg_color; color: @accent_fg_color; border-radius: 999px;
+  padding: 0 7px; font-weight: 800;
+}
+
+/* Barre flottante (comme Nautilus) */
+.floating-bar {
+  margin: 0 6px 6px 6px; padding: 4px 12px; border-radius: 8px;
+  background: @popover_bg_color; color: @popover_fg_color;
+  box-shadow: 0 1px 4px alpha(black, 0.2);
+  font-size: 0.92em;
+}
+
+/* Double panneau : panneau actif repérable */
+.file-pane { border-top: 2px solid transparent; }
+.file-pane.active-pane { border-top: 2px solid alpha(@accent_bg_color, 0.85); }
+.dual-bar button { min-width: 34px; }
+.destructive-trash:hover { background: alpha(@error_color, 0.15); }
+
+/* --- Bandeaux ------------------------------------------------------ */
+.archive-strip {
+  padding: 12px 18px;
+  background: alpha(@accent_bg_color, 0.08);
+  border-bottom: 1px solid alpha(currentColor, 0.1);
+}
+.trash-bar {
+  padding: 8px 14px;
+  background: alpha(currentColor, 0.05);
+  border-bottom: 1px solid alpha(currentColor, 0.1);
+}
+.badge {
+  padding: 1px 8px; border-radius: 6px; font-size: 0.75em; font-weight: 800;
+  letter-spacing: 0.05em; background: alpha(@accent_bg_color, 0.15); color: @accent_color;
+}
+.badge-lock { background: alpha(@warning_color, 0.2); color: @warning_color; }
+statuspage.compact > scrolledwindow > viewport > box { margin: 24px; }
+
+/* --- Aperçu ------------------------------------------------------- */
+.preview-panel { border-left: 1px solid alpha(currentColor, 0.1); }
+.preview-title { font-weight: 800; font-size: 1.1em; }
+.preview-text { font-family: monospace; font-size: 0.85em; }
+.preview-image { border-radius: 8px; }
+.info-key { opacity: 0.6; }
+
+/* --- Opérations ----------------------------------------------------- */
+.operations-button { padding: 2px 8px; }
+.job-progress trough { min-height: 6px; border-radius: 999px; }
+.job-progress progress { min-height: 6px; border-radius: 999px; }
+.job-row.error .heading { color: @error_color; }
+.job-row.success image:first-child { color: @success_color; }
+
+/* --- Dialogues ---------------------------------------------------- */
+.dialog-hero { padding: 16px; border-radius: 12px; background: alpha(@accent_bg_color, 0.08); }
+.hero-icon { color: @accent_color; }
+.info-hero { padding: 8px 0 4px 0; }
+.command-label { font-size: 0.85em; opacity: 0.85; }
+levelbar.ratio-bar trough { min-height: 5px; border-radius: 999px; }
+levelbar.ratio-bar block.filled, levelbar.ratio-bar block.empty { border-radius: 999px; }
+.keycap {
+  font-family: monospace; font-size: 0.85em; padding: 2px 8px; border-radius: 6px;
+  background: alpha(currentColor, 0.08); border: 1px solid alpha(currentColor, 0.15);
+}
+.search-result { font-family: monospace; }
+.diff-old { color: @error_color; text-decoration: line-through; }
+.diff-new { color: @success_color; }
+.terminal-view { font-family: monospace; font-size: 0.9em; }
+.option-card {
+  border: 1px solid alpha(currentColor, 0.12); border-radius: 11px; padding: 7px 10px 9px 12px;
+  background: alpha(currentColor, 0.025);
+}
+.annotate-canvas { background: #222; }
+.pdf-thumb { border-radius: 4px; box-shadow: 0 1px 3px alpha(black, 0.3); }
