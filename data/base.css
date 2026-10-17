@@ -56,6 +56,11 @@ gridview.file-grid,
 .file-grid > child { border-radius: 12px; padding: 8px 4px; margin: 2px; }
 image.thumbnail { border-radius: 4px; }
 
+/* Éléments copiés (Ctrl+C) : petite barre verticale de la couleur d'accentuation */
+.copy-mark { min-width: 3px; margin: 2px 0; border-radius: 2px; }
+.copy-mark.copied { background: @accent_color; }
+.grid-cell .copy-mark { min-width: 4px; margin: 14px 0; }
+
 /* Vue en colonnes */
 .miller-column { border-right: 1px solid alpha(currentColor, 0.08); }
 .miller-column.focused { background: alpha(@accent_bg_color, 0.04); }

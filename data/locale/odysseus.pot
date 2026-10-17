@@ -728,114 +728,122 @@ msgid "Les éléments coupés (Ctrl+X) sont estompés jusqu'au collage"
 msgstr ""
 
 #: odysseus/features.py:60
-msgid "Couleurs et emblèmes"
+msgid "Marquer les éléments copiés"
 msgstr ""
 
 #: odysseus/features.py:61
-msgid "Colorer les dossiers et poser des emblèmes, compatible avec Folder Color de Nautilus"
+msgid "Une barre colorée devant les éléments copiés (Ctrl+C), tant qu'ils sont dans le presse-papiers"
 msgstr ""
 
 #: odysseus/features.py:63
-msgid "Colonne Durée"
+msgid "Couleurs et emblèmes"
 msgstr ""
 
 #: odysseus/features.py:64
+msgid "Colorer les dossiers et poser des emblèmes, compatible avec Folder Color de Nautilus"
+msgstr ""
+
+#: odysseus/features.py:66
+msgid "Colonne Durée"
+msgstr ""
+
+#: odysseus/features.py:67
 msgid "Durée des fichiers audio et vidéo (ffprobe), avec cache"
 msgstr ""
 
-#: odysseus/features.py:67 odysseus/ui/dialogs.py:148
+#: odysseus/features.py:70 odysseus/ui/dialogs.py:148
 msgid "Archives"
 msgstr ""
 
-#: odysseus/features.py:68
+#: odysseus/features.py:71
 msgid "Parcourir les archives comme des dossiers, extraire ici, compresser (moteur de Pressoir)"
 msgstr ""
 
-#: odysseus/features.py:71 odysseus/ui/search_dialog.py:35
+#: odysseus/features.py:74 odysseus/ui/search_dialog.py:35
 msgid "Recherche dans le contenu"
 msgstr ""
 
-#: odysseus/features.py:72
+#: odysseus/features.py:75
 msgid "Rechercher et remplacer du texte dans les fichiers avec ripgrep ou grep"
 msgstr ""
 
-#: odysseus/features.py:75 odysseus/ui/menus.py:208
+#: odysseus/features.py:78 odysseus/ui/menus.py:208
 msgid "Ouvrir avec l'éditeur de texte"
 msgstr ""
 
-#: odysseus/features.py:76
+#: odysseus/features.py:79
 msgid "Ouvrir directement les fichiers texte sélectionnés dans l'éditeur choisi"
 msgstr ""
 
-#: odysseus/features.py:78 odysseus/ui/dialogs.py:190 odysseus/ui/window.py:171
+#: odysseus/features.py:81 odysseus/ui/dialogs.py:190 odysseus/ui/window.py:171
 msgid "Terminal ici"
 msgstr ""
 
-#: odysseus/features.py:79
+#: odysseus/features.py:82
 msgid "Ouvrir un terminal dans le dossier courant"
 msgstr ""
 
-#: odysseus/features.py:81
+#: odysseus/features.py:84
 msgid "Fenêtre de progression"
 msgstr ""
 
-#: odysseus/features.py:82
+#: odysseus/features.py:85
 msgid "Une fenêtre suit les copies et déplacements longs ; les opérations courtes restent discrètes"
 msgstr ""
 
-#: odysseus/features.py:84
+#: odysseus/features.py:87
 msgid "Compresser un PDF"
 msgstr ""
 
-#: odysseus/features.py:85
+#: odysseus/features.py:88
 msgid "Réduire la taille des PDF avec Ghostscript, comparaison avant / après"
 msgstr ""
 
-#: odysseus/features.py:88 odysseus/ui/pdf_dialogs.py:151
+#: odysseus/features.py:91 odysseus/ui/pdf_dialogs.py:151
 msgid "Fusionner des PDF"
 msgstr ""
 
-#: odysseus/features.py:89
+#: odysseus/features.py:92
 msgid "Assembler plusieurs PDF dans l'ordre voulu, avec choix des pages"
 msgstr ""
 
-#: odysseus/features.py:92 odysseus/ui/pdf_dialogs.py:254
+#: odysseus/features.py:95 odysseus/ui/pdf_dialogs.py:254
 msgid "Filigrane PDF"
 msgstr ""
 
-#: odysseus/features.py:93
+#: odysseus/features.py:96
 msgid "Texte ou image en filigrane, position, pages, aplatissement de sécurité"
 msgstr ""
 
-#: odysseus/features.py:96 odysseus/ui/pdf_dialogs.py:457
+#: odysseus/features.py:99 odysseus/ui/pdf_dialogs.py:457
 msgid "Pages PDF"
 msgstr ""
 
-#: odysseus/features.py:97
+#: odysseus/features.py:100
 msgid "Extraire, supprimer, faire pivoter ou éclater les pages d'un PDF"
 msgstr ""
 
-#: odysseus/features.py:100
+#: odysseus/features.py:103
 msgid "Vidéo vers audio"
 msgstr ""
 
-#: odysseus/features.py:101
+#: odysseus/features.py:104
 msgid "Extraire la piste audio des vidéos : MP3, M4A, OGG, OPUS, FLAC, WAV"
 msgstr ""
 
-#: odysseus/features.py:104
+#: odysseus/features.py:107
 msgid "Annoter une image"
 msgstr ""
 
-#: odysseus/features.py:105
+#: odysseus/features.py:108
 msgid "Flèches, cadres, texte, surligneur et dessin à main levée sur une image"
 msgstr ""
 
-#: odysseus/features.py:107
+#: odysseus/features.py:110
 msgid "Installateur de paquets .deb"
 msgstr ""
 
-#: odysseus/features.py:108
+#: odysseus/features.py:111
 msgid "Installer un paquet .deb avec contrôle des dépendances et suivi en direct"
 msgstr ""
 
@@ -1481,7 +1489,7 @@ msgstr ""
 msgid "Caractéristiques"
 msgstr ""
 
-#: odysseus/ui/archive_dialogs.py:449 odysseus/ui/properties.py:59 odysseus/ui/views.py:44 odysseus/ui/views.py:328
+#: odysseus/ui/archive_dialogs.py:449 odysseus/ui/properties.py:59 odysseus/ui/views.py:44 odysseus/ui/views.py:339
 msgid "Emplacement"
 msgstr ""
 
@@ -3383,7 +3391,7 @@ msgstr ""
 msgid "Ratio"
 msgstr ""
 
-#: odysseus/ui/views.py:328
+#: odysseus/ui/views.py:339
 msgid "Emplacement d'origine"
 msgstr ""
 

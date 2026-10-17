@@ -293,6 +293,39 @@ def selection_et_menus(win):
     check(m.get_n_items() > 1, "menu contextuel du fond")
     win._on_context_menu(p, 100.0, 100.0, True)
     yield pump(0.3)
+def _marks(widget, out):
+    if widget.has_css_class("copy-mark") and widget.get_mapped():
+        out.append(widget)
+    c = widget.get_first_child()
+    while c is not None:
+        _marks(c, out)
+        c = c.get_next_sibling()
+    return out
+
+
+@step
+def marque_copie(win):
+    p = win.pane
+    p.model.select_names(["fichier 3.txt", "fichier 4.txt"])
+    yield pump(0.2)
+    win.clip(False)
+    yield pump(0.3)
+    on = [m for m in _marks(p, []) if m.has_css_class("copied")]
+    check(len(on) == 2, f"barre devant les éléments copiés ({len(on)})")
+    win.clip(True)
+    yield pump(0.3)
+    on = [m for m in _marks(p, []) if m.has_css_class("copied")]
+    check(not on, "pas de barre pour les éléments coupés")
+    win.clip(False)
+    from odysseus import features
+    features.set_enabled("copy_mark", False)
+    yield pump(0.3)
+    check(not _marks(p, []), "marque des copies désactivable")
+    features.set_enabled("copy_mark", True)
+    from odysseus.ui import clipboard
+    clipboard.state.clear()
+
+
 @step
 def apercu_proprietes(win):
     p = win.pane

@@ -82,6 +82,7 @@ class MillerColumn(Gtk.Box):
     # -- cellules ----------------------------------------------------------
     def _setup(self, _f, li):
         box = Gtk.Box(spacing=8, margin_start=4, margin_end=2)
+        box.append(Gtk.Box(css_classes=["copy-mark"], visible=False))
         box.append(Gtk.Image(pixel_size=20))
         box.append(Gtk.Label(xalign=0, hexpand=True, ellipsize=Pango.EllipsizeMode.END))
         chev = Gtk.Image(icon_name="go-next-symbolic", pixel_size=12, css_classes=["miller-chevron"])
@@ -118,7 +119,8 @@ class MillerColumn(Gtk.Box):
         box._entry = None
 
     def _fill(self, box, rec: Rec):
-        img = box.get_first_child()
+        mark = box.get_first_child()
+        img = mark.get_next_sibling()
         lbl = img.get_next_sibling()
         chev = box.get_last_child()
         img.set_from_gicon(icons.gicon_for(rec))
@@ -137,6 +139,8 @@ class MillerColumn(Gtk.Box):
             dim_all = 0.5
         img.set_opacity(dim_icon)
         box.set_opacity(dim_all)
+        from .views import _CellMixin
+        _CellMixin._apply_copy_mark(mark, rec)
 
     # -- événements --------------------------------------------------------
     def _on_selected(self, *_):

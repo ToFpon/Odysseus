@@ -38,7 +38,7 @@ Huge folders open almost instantly: a folder of **100,000 files is displayed in 
 - **Dual panel** (F3): two locations side by side, F6 / Shift+F6 copy or move to the other panel, Ctrl+Tab switches panels.
 - **Preview panel** (F4): images, videos, PDF pages, text, detailed information.
 - **Thumbnails** shared with Nautilus (freedesktop cache).
-- Hidden files dimmed (icon only or icon and name), cut items dimmed until pasted.
+- Hidden files dimmed (icon only or icon and name), cut items dimmed until pasted, a colored bar in front of copied items.
 - **Folder colors and emblems**, compatible with Folder Color.
 - **Duration column** for audio and video files (ffprobe, cached).
 
@@ -137,7 +137,7 @@ Les très gros dossiers s'ouvrent quasi instantanément : un dossier de **100 00
 - **Double panneau** (F3) : deux emplacements côte à côte, F6 / Maj+F6 pour copier ou déplacer vers l'autre panneau, Ctrl+Tab pour changer de panneau.
 - **Panneau d'aperçu** (F4) : images, vidéos, pages PDF, textes, informations détaillées.
 - **Miniatures** partagées avec Nautilus (cache freedesktop).
-- Fichiers cachés estompés (icône seule ou icône et nom), éléments coupés estompés jusqu'au collage.
+- Fichiers cachés estompés (icône seule ou icône et nom), éléments coupés estompés jusqu'au collage, barre colorée devant les éléments copiés.
 - **Couleurs et emblèmes de dossiers**, compatibles avec Folder Color.
 - **Colonne Durée** des fichiers audio et vidéo (ffprobe, avec cache).
 

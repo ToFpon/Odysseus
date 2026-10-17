@@ -151,6 +151,17 @@ class _CellMixin:
         else:
             emblem.set_visible(False)
 
+    @staticmethod
+    def _apply_copy_mark(mark: Gtk.Widget, rec: Rec):
+        """Barre colorée devant un élément copié ; l'emplacement n'existe que si la fonctionnalité
+        est activée, pour ne pas décaler les noms sinon."""
+        on = features.enabled("copy_mark")
+        mark.set_visible(on)
+        if on and clipboard.state.is_copied(rec.path):
+            mark.add_css_class("copied")
+        else:
+            mark.remove_css_class("copied")
+
     def _apply_dim(self, box: Gtk.Widget, image: Gtk.Image, rec: Rec):
         dim_icon = dim_all = 1.0
         if rec.hidden and features.enabled("hidden_dim"):
@@ -355,6 +366,7 @@ class ListView(Gtk.ScrolledWindow, _CellMixin):
     # -- cellules ----------------------------------------------------------
     def _setup_name(self, _f, li):
         box = Gtk.Box(spacing=10, css_classes=["name-cell"])
+        box.append(Gtk.Box(css_classes=["copy-mark"], visible=False))
         ov = Gtk.Overlay()
         img = Gtk.Image()
         ov.set_child(img)
@@ -374,13 +386,15 @@ class ListView(Gtk.ScrolledWindow, _CellMixin):
         self._fill_name(box, entry.rec)
 
     def _fill_name(self, box, rec: Rec):
-        ov = box.get_first_child()
+        mark = box.get_first_child()
+        ov = mark.get_next_sibling()
         img, emb = ov.get_child(), ov.get_last_child()
         label = box.get_last_child()
         size, _compact = self.pane.list_zoom
         self._fill_icon(img, emb, rec, size, size >= 32)
         label.set_text(rec.name)
         label.set_tooltip_text(rec.name if len(rec.name) > 50 else None)
+        self._apply_copy_mark(mark, rec)
         self._apply_dim(box, img, rec)
 
     def _setup_text(self, _f, li, xalign):
@@ -440,6 +454,7 @@ class GridView(Gtk.ScrolledWindow, _CellMixin):
         ov.set_child(img)
         ov.add_overlay(Gtk.Image(halign=Gtk.Align.END, valign=Gtk.Align.END, visible=False,
                                  css_classes=["emblem"]))
+        ov.add_overlay(Gtk.Box(halign=Gtk.Align.START, css_classes=["copy-mark"], visible=False))
         box.append(ov)
         box.append(Gtk.Label(wrap=True, wrap_mode=Pango.WrapMode.WORD_CHAR, lines=3,
                              ellipsize=Pango.EllipsizeMode.END, justify=Gtk.Justification.CENTER))
@@ -456,7 +471,9 @@ class GridView(Gtk.ScrolledWindow, _CellMixin):
 
     def _fill(self, box, rec: Rec):
         ov = box.get_first_child()
-        img, emb = ov.get_child(), ov.get_last_child()
+        img = ov.get_child()
+        emb = img.get_next_sibling()
+        mark = ov.get_last_child()
         label = box.get_last_child()
         size = self.pane.grid_icon_size
         ov.set_size_request(size, size)
@@ -466,6 +483,7 @@ class GridView(Gtk.ScrolledWindow, _CellMixin):
         label.set_max_width_chars(chars)
         label.set_text(rec.name)
         label.set_tooltip_text(rec.name)
+        self._apply_copy_mark(mark, rec)
         self._apply_dim(box, img, rec)
 
     def _on_bg_click(self, gesture, n, x, y):

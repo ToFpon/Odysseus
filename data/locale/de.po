@@ -3503,3 +3503,9 @@ msgstr "Fortfahren"
 #: odysseus/ui/window.py:489
 msgid "Quitter"
 msgstr "Beenden"
+
+msgid "Marquer les éléments copiés"
+msgstr "Kopierte Elemente markieren"
+
+msgid "Une barre colorée devant les éléments copiés (Ctrl+C), tant qu'ils sont dans le presse-papiers"
+msgstr "Ein farbiger Balken vor kopierten Elementen (Strg+C), solange sie in der Zwischenablage liegen"

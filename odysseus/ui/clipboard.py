@@ -10,7 +10,8 @@ GNOME_TYPE = "x-special/gnome-copied-files"
 
 
 class ClipState(GObject.Object):
-    """Mémorise les éléments coupés ou copiés par Odysseus (pour l'atténuation des éléments coupés)."""
+    """Mémorise les éléments coupés ou copiés par Odysseus (atténuation des éléments coupés,
+    marque des éléments copiés)."""
     __gsignals__ = {"changed": (GObject.SignalFlags.RUN_FIRST, None, ())}
 
     def __init__(self):
@@ -18,11 +19,13 @@ class ClipState(GObject.Object):
         self.paths: list[str] = []
         self.cut = False
         self._cut_set: set = set()
+        self._copy_set: set = set()
 
     def set(self, paths: list[str], cut: bool):
         self.paths = list(paths)
         self.cut = cut
         self._cut_set = set(paths) if cut else set()
+        self._copy_set = set() if cut else set(paths)
         self.emit("changed")
 
     def clear(self):
@@ -30,6 +33,9 @@ class ClipState(GObject.Object):
 
     def is_cut(self, path: Optional[str]) -> bool:
         return bool(path) and path in self._cut_set
+
+    def is_copied(self, path: Optional[str]) -> bool:
+        return bool(path) and path in self._copy_set
 
 
 state = ClipState()
@@ -44,8 +50,19 @@ def put(display: Gdk.Display, paths: list[str], cut: bool):
         Gdk.ContentProvider.new_for_value(Gdk.FileList.new_from_list([Gio.File.new_for_path(p) for p in paths])),
         Gdk.ContentProvider.new_for_bytes("text/plain;charset=utf-8", GLib.Bytes.new("\n".join(paths).encode())),
     ]
-    display.get_clipboard().set_content(Gdk.ContentProvider.new_union(providers))
+    cb = display.get_clipboard()
+    cb.set_content(Gdk.ContentProvider.new_union(providers))
     state.set(paths, cut)
+    if not getattr(cb, "_odysseus_watch", False):
+        cb._odysseus_watch = True
+        cb.connect("changed", _on_changed)
+
+
+def _on_changed(cb: Gdk.Clipboard):
+    """Une autre application (ou Nautilus) a remplacé le presse-papiers : plus rien n'est copié
+    ni coupé chez nous."""
+    if not cb.is_local() and state.paths:
+        state.clear()
 
 
 def _parse_uris(text: str) -> list[str]:
