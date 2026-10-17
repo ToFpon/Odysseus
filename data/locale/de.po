@@ -3548,3 +3548,9 @@ msgstr "Nov."
 
 msgid "déc."
 msgstr "Dez."
+
+msgid "Dernière modification"
+msgstr "Zuletzt geändert"
+
+msgid "Vue en colonnes (F9)"
+msgstr "Spaltenansicht (F9)"

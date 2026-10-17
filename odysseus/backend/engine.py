@@ -271,12 +271,13 @@ def relay(job: Job, src, dst, total: int, weight=(0.0, 1.0), label: str = "",
 def human_size(n: Optional[float]) -> str:
     if n is None:
         return ""
+    # Unités décimales (1 Ko = 1000 octets), comme Nautilus et g_format_size
     n = float(n)
     units = (tr("o"), tr("Ko"), tr("Mo"), tr("Go"), tr("To"))
     for i, unit in enumerate(units):
-        if abs(n) < 1024 or i == len(units) - 1:
+        if abs(n) < 1000 or i == len(units) - 1:
             if i == 0:
                 return f"{int(n)} {unit}"
             return f"{decimal(n)} {unit}"
-        n /= 1024
+        n /= 1000
     return f"{decimal(n)} {units[-1]}"

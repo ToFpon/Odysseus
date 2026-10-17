@@ -5,7 +5,7 @@ from __future__ import annotations
 import os
 from typing import Optional
 
-from gi.repository import Adw, Gdk, Gio, GLib, Gtk
+from gi.repository import Adw, Gio, GLib, Gtk
 
 from .. import APP_ID, APP_NAME, features
 from ..backend import bookmarks
@@ -22,6 +22,9 @@ from .pathbar import PathBar, make_folder_menu
 from .sidebar import Sidebar
 from .views import GRID_ZOOM_LEVELS, ZOOM_LEVELS
 from .workspace import Workspace
+
+# Icône livrée avec Odysseus (data/icons) : Adwaita n'a pas d'icône de vue en colonnes
+COLUMNS_ICON = "odysseus-view-columns-symbolic"
 
 
 class MainWindow(FileActions, ArchiveActions, ToolActions, Adw.ApplicationWindow):
@@ -101,6 +104,10 @@ class MainWindow(FileActions, ArchiveActions, ToolActions, Adw.ApplicationWindow
         self.dual_btn = Gtk.ToggleButton(icon_name="view-dual-symbolic", tooltip_text=tr("Double panneau (F3)"),
                                          action_name="win.dual")
         hb.pack_end(self.dual_btn)
+        # bouton de Column Browser, à côté du double panneau (même rôle que F9)
+        self.columns_btn = Gtk.ToggleButton(icon_name=COLUMNS_ICON, tooltip_text=tr("Vue en colonnes (F9)"))
+        self._columns_btn_id = self.columns_btn.connect("toggled", lambda b: self._on_columns_btn(b.get_active()))
+        hb.pack_end(self.columns_btn)
         self.ops_btn = OperationsButton()
         hb.pack_end(self.ops_btn)
         tv.add_top_bar(hb)
@@ -295,16 +302,14 @@ class MainWindow(FileActions, ArchiveActions, ToolActions, Adw.ApplicationWindow
     def _sync_view_button(self):
         p = self.pane
         mode = p.view_mode if p else settings["view_mode"]
-        icon = {"list": "view-list-symbolic", "grid": "view-grid-symbolic"}.get(mode, "view-column-symbolic")
-        self.view_btn.set_icon_name(icon if mode != "columns" or self._has_icon("view-column-symbolic")
-                                    else "view-dual-symbolic")
+        icon = {"list": "view-list-symbolic", "grid": "view-grid-symbolic"}.get(mode, COLUMNS_ICON)
+        self.view_btn.set_icon_name(icon)
+        self.columns_btn.handler_block(self._columns_btn_id)
+        self.columns_btn.set_active(mode == "columns")
+        self.columns_btn.handler_unblock(self._columns_btn_id)
         a = self.lookup_action("view-mode")
         if a:
             a.set_state(GLib.Variant.new_string(mode))
-
-    @staticmethod
-    def _has_icon(name):
-        return Gtk.IconTheme.get_for_display(Gdk.Display.get_default()).has_icon(name)
 
     def _sync_dual(self):
         ws = self.workspace
@@ -353,6 +358,7 @@ class MainWindow(FileActions, ArchiveActions, ToolActions, Adw.ApplicationWindow
 
     def _apply_features(self):
         self.dual_btn.set_visible(features.enabled("dual_panel"))
+        self.columns_btn.set_visible(features.enabled("column_view"))
         self.preview_btn.set_visible(features.enabled("preview"))
         self.content_search_btn.set_visible(features.available("content_search"))
         if not features.enabled("dual_panel"):
@@ -622,6 +628,13 @@ class MainWindow(FileActions, ArchiveActions, ToolActions, Adw.ApplicationWindow
         elif self.tab_view.get_n_pages() > 1:
             if not self.tab_view.select_next_page():
                 self.tab_view.set_selected_page(self.tab_view.get_nth_page(0))
+
+    def _on_columns_btn(self, active: bool):
+        p = self.pane
+        if p is not None and (p.view_mode == "columns") != active:
+            self._toggle_columns()
+        else:
+            self._sync_view_button()
 
     def _toggle_columns(self):
         """F9 (raccourci de Column Browser) : vue en colonnes, puis retour à la vue précédente."""

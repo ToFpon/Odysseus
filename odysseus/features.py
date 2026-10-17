@@ -43,7 +43,7 @@ FEATURES = [
             "view-dual-symbolic", "view", "F3"),
     Feature("column_view", tr("Vue en colonnes"),
             tr("Colonnes enchaînées à la manière du Finder pour descendre rapidement dans l'arborescence"),
-            "view-column-symbolic", "view", "F9 / Ctrl+3"),
+            "odysseus-view-columns-symbolic", "view", "F9 / Ctrl+3"),
     Feature("preview", tr("Panneau d'aperçu"),
             tr("Aperçu du fichier sélectionné : images, vidéos, PDF, textes, informations détaillées"),
             "view-reveal-symbolic", "view", "F4",

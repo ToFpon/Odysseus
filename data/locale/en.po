@@ -3548,3 +3548,9 @@ msgstr "Nov"
 
 msgid "déc."
 msgstr "Dec"
+
+msgid "Dernière modification"
+msgstr "Modified"
+
+msgid "Vue en colonnes (F9)"
+msgstr "Column view (F9)"

@@ -74,6 +74,18 @@ class ScannerTest(unittest.TestCase):
         old = datetime(2024, 9, 4, 12, 0).timestamp()
         self.assertEqual(date_label(old), tr("{day} {month} {year}").format(day=4, month=MONTHS[8], year=2024))
 
+    def test_scan_gio(self):
+        """Lecture par GIO (corbeille, réseau) : ici sur une URI file://."""
+        from gi.repository import Gio
+        recs = scanner.scan_gio(Gio.File.new_for_path(self.d), threading.Event())
+        self.assertEqual(sorted(r.name for r in recs), sorted(os.listdir(self.d)))
+
+    def test_sizes_like_nautilus(self):
+        from odysseus.backend.engine import decimal, human_size
+        from odysseus.i18n import tr
+        self.assertEqual(human_size(35100), decimal(35.1) + " " + tr("Ko"))
+        self.assertEqual(human_size(999), "999 " + tr("o"))
+
     def test_rec_for_path_and_count(self):
         r = scanner.rec_for_path(os.path.join(self.d, "b.txt"))
         self.assertTrue(r.hidden)

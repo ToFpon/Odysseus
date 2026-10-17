@@ -169,6 +169,16 @@ def vues(win):
 
 
 @step
+def bouton_colonnes(win):
+    win.columns_btn.set_active(True)
+    yield pump(0.5)
+    check(win.pane.view_mode == "columns", "bouton vue en colonnes")
+    win.columns_btn.set_active(False)
+    yield pump(0.5)
+    check(win.pane.view_mode == "list" and not win.columns_btn.get_active(), "retour à la liste par le bouton")
+
+
+@step
 def tri(win):
     win.activate_action("win.sort-by", GLib.Variant.new_string("size"))
     yield pump(0.2)

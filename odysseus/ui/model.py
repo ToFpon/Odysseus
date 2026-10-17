@@ -11,6 +11,7 @@ from __future__ import annotations
 import bisect
 import os
 import threading
+import traceback
 import unicodedata
 from typing import Optional
 
@@ -161,10 +162,15 @@ class DirModel(GObject.Object, Gio.ListModel):
                     GLib.idle_add(self._loaded, gen, [], (e.strerror or str(e), e.errno), True)
                 except GLib.Error as e:
                     GLib.idle_add(self._loaded, gen, [], (e.message, e.code), True)
+                except Exception as e:     # jamais de chargement sans fin : toute erreur s'affiche
+                    traceback.print_exc()
+                    GLib.idle_add(self._loaded, gen, [], (str(e), None), True)
         threading.Thread(target=work, daemon=True).start()
         GLib.timeout_add(150, self._maybe_spinner, gen)
         if local:
             self._start_monitor(location)
+        else:
+            self._start_uri_monitor(location)
 
     def _maybe_spinner(self, gen):
         if gen == self._gen and self.loading:
@@ -320,6 +326,43 @@ class DirModel(GObject.Object, Gio.ListModel):
         m.set_rate_limit(300)
         m.connect("changed", self._on_changed)
         self._monitor = m
+
+    def _start_uri_monitor(self, uri: str):
+        """Corbeille, réseau… : GVfs signale les changements (élément jeté, Freebox découverte sur le
+        réseau quelques secondes après l'ouverture) ; on relit alors l'emplacement sans spinner."""
+        try:
+            m = Gio.File.new_for_uri(uri).monitor_directory(Gio.FileMonitorFlags.NONE, None)
+        except GLib.Error:
+            return
+        m.set_rate_limit(500)
+        m.connect("changed", self._on_uri_changed)
+        self._monitor = m
+
+    def _on_uri_changed(self, *_):
+        if not self._pending_id:
+            self._pending_id = GLib.timeout_add(400, self._reload_quiet)
+
+    def _reload_quiet(self):
+        self._pending_id = 0
+        location, gen, cancel = self.location, self._gen, self._cancel
+        if not location or self.static or self.loading:
+            return False
+
+        def work():
+            try:
+                recs = scanner.scan_gio(Gio.File.new_for_uri(location), cancel)
+            except Exception:
+                return
+            GLib.idle_add(self._reloaded, gen, recs)
+        threading.Thread(target=work, daemon=True).start()
+        return False
+
+    def _reloaded(self, gen, recs):
+        if gen == self._gen:
+            self.all = scanner.sort_recs(recs, self.sort_key, self.sort_reverse, self.folders_first)
+            self._publish(keep_selection=True)
+            self.emit("state", "ready")
+        return False
 
     def _stop_monitor(self):
         if self._monitor:

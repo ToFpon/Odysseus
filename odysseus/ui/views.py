@@ -33,11 +33,11 @@ GRID_ZOOM = {"small": 64, "medium": 96, "large": 128, "larger": 256}
 # clé, titre, largeur, alignement, clé de tri
 COLUMNS = [
     ("name", tr("Nom"), 0, 0.0, "name"),
-    ("size", tr("Taille"), 110, 0.0, "size"),
+    ("size", tr("Taille"), 105, 0.0, "size"),
     ("packed", tr("Compressé"), 100, 1.0, "packed"),
     ("ratio", tr("Ratio"), 70, 1.0, None),
     ("type", tr("Type"), 170, 0.0, "type"),
-    ("date", tr("Modifié"), 170, 1.0, "date"),
+    ("date", tr("Dernière modification"), 175, 1.0, "date"),
     ("perms", tr("Droits"), 110, 0.0, "perms"),
     ("owner", tr("Propriétaire"), 110, 0.0, "owner"),
     ("duration", tr("Durée"), 90, 1.0, "duration"),

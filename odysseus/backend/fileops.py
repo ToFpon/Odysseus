@@ -437,11 +437,12 @@ def trash_items(job: Job) -> list[Gio.File]:
     try:
         en = Gio.File.new_for_uri("trash:///").enumerate_children(
             "standard::name,trash::orig-path,trash::deletion-date", Gio.FileQueryInfoFlags.NONE, None)
+        root = Gio.File.new_for_uri("trash:///")
         while True:
-            infos = en.next_files(200, None)
-            if not infos:
+            info = en.next_file(None)
+            if info is None:
                 break
-            out.extend((i, Gio.File.new_for_uri("trash:///").get_child(i.get_name())) for i in infos)
+            out.append((info, root.get_child(info.get_name())))
     except GLib.Error:
         pass
     return out

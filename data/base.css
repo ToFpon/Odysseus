@@ -44,8 +44,16 @@ gridview.file-grid,
 }
 
 /* Mêmes dimensions que la vue liste de Nautilus */
-.file-view > listview > row { border-radius: 6px; margin: 0 6px; }
+/* Marges latérales de Nautilus : lignes à 12 px des bords, textes à 24 px.
+   La marge se met sur la vue entière : une marge sur les lignes décale les cellules sans
+   réduire leur largeur, et la dernière colonne déborde (dates coupées au bord). */
+columnview.file-view { margin: 0 12px; }
+.file-view > listview > row { border-radius: 6px; }
 .file-view > listview > row > cell { padding: 6px; }
+.file-view > listview > row > cell:first-child { padding-left: 12px; }
+.file-view > listview > row > cell:last-child { padding-right: 12px; }
+.file-view > header > button:first-child { padding-left: 12px; }
+.file-view > header > button:last-child { padding-right: 12px; }
 .file-view.compact > listview > row > cell { padding-top: 8px; padding-bottom: 7px; }
 .file-view > header > button { font-weight: 700; font-size: 0.85em; }
 .numeric { font-feature-settings: "tnum"; }

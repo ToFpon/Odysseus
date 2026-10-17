@@ -183,6 +183,8 @@ def rec_from_info(info: Gio.FileInfo, parent: Gio.File) -> Rec:
     if info.get_file_type() == Gio.FileType.MOUNTABLE:
         r.set("mountable", True)
         r.is_dir = True
+    elif info.get_file_type() == Gio.FileType.SHORTCUT and target and not target.startswith("file:"):
+        r.is_dir = True     # partage réseau (Freebox, smb, dns-sd…) : pas de requête réseau ici
     elif info.get_file_type() == Gio.FileType.SHORTCUT and target:
         try:
             tf = Gio.File.new_for_uri(target)
@@ -204,10 +206,10 @@ def scan_gio(gfile: Gio.File, cancel: threading.Event) -> list[Rec]:
     en = gfile.enumerate_children(ATTRS, Gio.FileQueryInfoFlags.NONE, cancellable)
     try:
         while not cancel.is_set():
-            infos = en.next_files(500, cancellable)
-            if not infos:
+            info = en.next_file(cancellable)   # (next_files n'existe qu'en asynchrone en Python)
+            if info is None:
                 break
-            out.extend(rec_from_info(i, gfile) for i in infos)
+            out.append(rec_from_info(info, gfile))
     finally:
         en.close(None)
     return out
