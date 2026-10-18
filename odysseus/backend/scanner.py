@@ -12,6 +12,7 @@ principal.
 
 from __future__ import annotations
 
+import contextlib
 import os
 import stat as st
 import threading
@@ -26,6 +27,20 @@ from gi.repository import Gio, GLib
 # lenteur pathologique observée autrefois dans Dual Panel. En sérialisant les lectures, chaque
 # dossier est lu à pleine vitesse, l'un après l'autre.
 SCAN_LOCK = threading.Lock()
+SCAN_WAIT = 0.3      # attente maximale du verrou (secondes)
+
+
+@contextlib.contextmanager
+def scan_slot(timeout: float = SCAN_WAIT):
+    """Tour de lecture disque. L'attente est plafonnée : si le détenteur reste bloqué (clé USB ou
+    montage réseau qui ne répond plus, stat() figé), les autres lectures continuent sans lui au lieu
+    de geler tous les panneaux — au pire on retrouve l'effet de convoi le temps du blocage."""
+    got = SCAN_LOCK.acquire(timeout=timeout)
+    try:
+        yield got
+    finally:
+        if got:
+            SCAN_LOCK.release()
 
 ATTRS = ("standard::name,standard::display-name,standard::type,standard::size,standard::is-hidden,"
          "standard::is-backup,standard::is-symlink,standard::fast-content-type,standard::icon,"

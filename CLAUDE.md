@@ -23,8 +23,11 @@ Gestionnaire de fichiers GTK4 / libadwaita en Python, look Nautilus, intégrant 
 - `backend/scanner.py` : `os.scandir` dans un fil ; au-delà de 4000 éléments les noms sont affichés
   avant le `stat` (`stat_all` en seconde phase). Tri en Python avec
   `GLib.utf8_collate_key_for_filename` (ordre naturel de Nautilus).
-- `scanner.SCAN_LOCK` sérialise tous les `stat` massifs (panneaux, colonnes, comptage des dossiers).
-  Sans lui, deux fils qui font des `stat` en parallèle se battent pour le GIL (« convoi ») : ×10 à ×50.
+- `scanner.scan_slot()` (verrou `SCAN_LOCK`) sérialise les lectures locales massives (panneaux,
+  colonnes, comptage des dossiers). Sans lui, deux fils qui font des `stat` en parallèle se battent
+  pour le GIL (« convoi ») : ×10 à ×50. L'attente est plafonnée à 0,3 s : un périphérique bloqué dans
+  un `stat` ne gèle pas les autres panneaux. Les lectures GIO (réseau, corbeille, admin://) ne le
+  prennent pas.
 - `ui/model.py` : `DirModel` est un `Gio.ListModel` virtuel ; les `Entry` ne sont créés que pour les
   lignes affichées. `Selection` maison sur `Gtk.Bitset` (`difference` = différence symétrique,
   utiliser `subtract`).
@@ -44,6 +47,11 @@ LANGUAGE=en xvfb-run -a python3.12 tests/ui_smoke.py
 LANGUAGE=de xvfb-run -a python3.12 tests/ui_smoke.py
 xvfb-run -a -s "-screen 0 1600x1000x24" python3.12 tests/ui_mouse.py   # vrais clics (xdotool)
 ```
+
+`tests/test_destructive.py` : remplacer, fusionner, annuler, déplacer entre deux systèmes de fichiers,
+liens symboliques, corbeille — sur un arbre jetable, avec un dossier « précieux » qui ne doit jamais
+changer. Règles : un déplacement ne supprime à la source que ce qui a été copié (`_prune_moved`) ;
+« remplacer » copie sous un nom temporaire puis échange (`_swap_into`), l'ancien reste si ça échoue.
 
 `tests/ui_smoke.py` pilote l'interface par des générateurs exécutés dans la vraie boucle GLib
 (une boucle imbriquée dans un timeout ne traite pas les sources idle).

@@ -9,6 +9,7 @@ quasi instantanée. Tri, filtre et fichiers cachés sont gérés ici, à vitesse
 from __future__ import annotations
 
 import bisect
+import contextlib
 import os
 import threading
 import traceback
@@ -141,7 +142,9 @@ class DirModel(GObject.Object, Gio.ListModel):
         local = not _is_uri(location)
 
         def work():
-            with scanner.SCAN_LOCK:
+            # GIO (réseau, corbeille, admin://) se lit en C sans le verrou de l'interpréteur : pas de
+            # convoi possible, et un serveur lent ne doit pas faire attendre les dossiers locaux
+            with (scanner.scan_slot() if local else contextlib.nullcontext()):
                 if cancel.is_set():
                     return
                 try:

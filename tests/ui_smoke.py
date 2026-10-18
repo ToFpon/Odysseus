@@ -8,6 +8,7 @@ import shutil
 import subprocess
 import sys
 import tempfile
+import threading
 import time
 import traceback
 
@@ -291,6 +292,43 @@ def annuler_retablir(win):
     win.undo()
     yield wait_jobs()
     check(os.path.exists(src), "nouvelle annulation après rétablissement")
+
+
+@step
+def dossier_bloque(win):
+    """Un dossier qui ne répond plus (stat figé sur une clé ou un montage réseau) ne doit pas geler
+    l'autre panneau : l'attente du verrou de lecture est plafonnée."""
+    from odysseus.backend import scanner
+    gate = threading.Event()
+    real = scanner.scan_local
+    lent = os.path.join(D, "dossier A")
+
+    def scan(path, cancel, with_stat=True):
+        if path == lent:
+            gate.wait(20)          # simule un périphérique qui ne répond pas
+        return real(path, cancel, with_stat)
+    scanner.scan_local = scan
+    try:
+        win.activate_action("win.dual", None)
+        yield pump(0.5)
+        p = win.pane
+        other = win.workspace.other(p)
+        p.open(lent)
+        yield pump(0.2)
+        t0 = time.monotonic()
+        other.open(os.path.join(D, "dossier B"))
+        yield Wait(5, until=lambda: not other.model.loading)
+        waited = time.monotonic() - t0
+        check(not other.model.loading and waited < 2, f"panneau non gelé par un dossier bloqué ({waited:.1f} s)")
+        check(p.model.loading, "le dossier bloqué attend toujours (normal)")
+    finally:
+        gate.set()
+        scanner.scan_local = real
+    yield pump(0.5)
+    win.activate_action("win.dual", None)
+    yield pump(0.3)
+    win.pane.open(D)
+    yield pump(0.5)
 
 
 @step

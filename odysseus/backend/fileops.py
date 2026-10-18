@@ -144,6 +144,7 @@ class _Copier:
         self.started = time.monotonic()
         self._last = 0.0
         self.current = ""
+        self.copied: set = set()     # sources (fichiers, liens) copiées avec succès
 
     def tick(self, force: bool = False):
         now = time.monotonic()
@@ -205,7 +206,8 @@ class _Copier:
                 shutil.copystat(src, dst)
             except OSError:
                 pass
-        except Cancelled:
+        except BaseException:
+            # annulation, disque plein, clé retirée… : pas de fichier à moitié copié
             if tmp_created:
                 try:
                     os.remove(dst)
@@ -213,6 +215,7 @@ class _Copier:
                     pass
             raise
         self.done_files += 1
+        self.copied.add(src)
 
     def copy_tree(self, src: str, dst: str):
         """Copie récursive ; dst n'existe pas, ou est un dossier à fusionner."""
@@ -226,8 +229,10 @@ class _Copier:
             if st.S_ISLNK(s.st_mode):
                 os.symlink(os.readlink(src), dst)
                 self.done_files += 1
+                self.copied.add(src)
             elif st.S_ISDIR(s.st_mode):
                 os.makedirs(dst, exist_ok=True)
+                self.copied.add(src)
                 with os.scandir(src) as it:
                     children = [e.name for e in it]
                 for name in children:
@@ -264,13 +269,80 @@ class _Copier:
             elif choice == "merge" and src_is_dir and dst_is_dir:
                 pass
             else:   # replace
-                try:
-                    _remove(dst)
-                except OSError as e:
-                    self.errors.append((dst, e.strerror or str(e)))
-                    return None
+                return self._replace(src, dst)
         self.copy_tree(src, dst)
         return dst
+
+    def _replace(self, src: str, dst: str) -> Optional[str]:
+        """Remplacer sans risque : copie complète sous un nom temporaire, puis échange. Si la copie
+        échoue ou est annulée, l'élément existant reste intact."""
+        tmp = os.path.join(os.path.dirname(dst), f".{os.path.basename(dst)}.odysseus-{os.getpid()}")
+        before = len(self.errors)
+        try:
+            self.copy_tree(src, tmp)
+        except BaseException:
+            if os.path.lexists(tmp):
+                _remove(tmp)
+            raise
+        if len(self.errors) != before or not os.path.lexists(tmp):
+            if os.path.lexists(tmp):
+                _remove(tmp)
+            return None
+        try:
+            _swap_into(tmp, dst)
+        except OSError as e:
+            self.errors.append((dst, e.strerror or str(e)))
+            if os.path.lexists(tmp):
+                _remove(tmp)
+            return None
+        return dst
+
+
+def _swap_into(new: str, dst: str):
+    """Met new à la place de dst. Fichier sur fichier : os.replace, atomique. Sinon l'ancien est
+    d'abord mis de côté puis supprimé seulement une fois le nouveau en place (remis s'il y a échec)."""
+    old_is_dir = os.path.isdir(dst) and not os.path.islink(dst)
+    new_is_dir = os.path.isdir(new) and not os.path.islink(new)
+    if not old_is_dir and not new_is_dir:
+        os.replace(new, dst)
+        return
+    aside = os.path.join(os.path.dirname(dst), f".{os.path.basename(dst)}.odysseus-ancien-{os.getpid()}")
+    os.rename(dst, aside)
+    try:
+        os.rename(new, dst)
+    except OSError:
+        os.rename(aside, dst)
+        raise
+    _remove(aside)
+
+
+def _prune_moved(src: str, copied: set):
+    """Après un déplacement par copie : retire de la source ce qui a été copié, et seulement ça.
+    Les éléments ignorés (conflit « ignorer ») ou en erreur restent à la source avec leurs dossiers."""
+    if os.path.islink(src) or not os.path.isdir(src):
+        if src in copied:
+            os.remove(src)
+        return
+    for root, dirs, files in os.walk(src, topdown=False):
+        for name in files:
+            p = os.path.join(root, name)
+            if p in copied:
+                os.remove(p)
+        for name in dirs:
+            p = os.path.join(root, name)
+            if os.path.islink(p):
+                if p in copied:
+                    os.remove(p)
+            elif p in copied:
+                try:
+                    os.rmdir(p)          # seulement s'il est vide : rien d'ignoré dedans
+                except OSError:
+                    pass
+    if src in copied:
+        try:
+            os.rmdir(src)
+        except OSError:
+            pass
 
 
 def _remove(path: str):
@@ -327,10 +399,12 @@ def transfer(job: Job, sources: list[str], dest_dir: str, ask: Asker, move: bool
                         continue
                     else:
                         try:
-                            _remove(dst)
+                            _swap_into(src, dst)
+                            res.moved.append((src, dst))
+                            res.created.append(dst)
                         except OSError as e:
                             res.errors.append((dst, e.strerror or str(e)))
-                            continue
+                        continue
                 try:
                     os.rename(src, dst)
                     res.moved.append((src, dst))
@@ -361,12 +435,12 @@ def transfer(job: Job, sources: list[str], dest_dir: str, ask: Asker, move: bool
                 continue
             res.created.append(final)
             if move:
-                if len(copier.errors) == before:
-                    try:
-                        _remove(src)
+                try:
+                    _prune_moved(src, copier.copied)
+                    if not os.path.lexists(src):
                         res.moved.append((src, final))
-                    except OSError as e:
-                        copier.errors.append((src, e.strerror or str(e)))
+                except OSError as e:
+                    copier.errors.append((src, e.strerror or str(e)))
         copier.tick(force=True)
     res.errors.extend(copier.errors)
     _raise_partial(res)

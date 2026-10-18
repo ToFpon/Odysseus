@@ -101,7 +101,7 @@ def request_count(rec: Rec, pane: "Pane"):
         rec.set("count", n if n is not None else -1)
         model.notify_rec(rec)
     def work():
-        with scanner.SCAN_LOCK:     # pas de lecture disque concurrente (voir scanner.SCAN_LOCK)
+        with scanner.scan_slot():     # pas de lecture disque concurrente (voir scanner.scan_slot)
             return scanner.count_children(path, hidden)
     pool.submit(("count", path, hidden), work, done)
 
