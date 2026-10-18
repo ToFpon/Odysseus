@@ -11,9 +11,13 @@
 |---|---|---|
 | ![Dual panel](docs/captures/double-panneau.png) | ![Columns](docs/captures/colonnes.png) | ![Grid](docs/captures/grille.png) |
 
-| Archive browser / Archive ouverte | PDF watermark / Filigrane PDF | Features / Fonctionnalités | Dark mode / Mode sombre |
-|---|---|---|---|
-| ![Archive](docs/captures/archive.png) | ![Watermark](docs/captures/filigrane.png) | ![Features](docs/captures/fonctionnalites.png) | ![Dark](docs/captures/sombre.png) |
+| Archive browser / Archive ouverte | PDF watermark / Filigrane PDF | Other locations / Autres emplacements |
+|---|---|---|
+| ![Archive](docs/captures/archive.png) | ![Watermark](docs/captures/filigrane.png) | ![Other locations](docs/captures/autres-emplacements.png) |
+
+| Features / Fonctionnalités | Dark mode / Mode sombre |
+|---|---|
+| ![Features](docs/captures/fonctionnalites.png) | ![Dark](docs/captures/sombre.png) |
 
 ---
 

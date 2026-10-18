@@ -317,7 +317,7 @@ class ListView(Gtk.ScrolledWindow, _CellMixin):
         Gtk.ScrolledWindow.do_size_allocate(self, width, height, baseline)
         # Panneau étroit (double panneau) : les colonnes facultatives s'effacent pour laisser
         # la place au nom, comme Nautilus.
-        level = 0 if width >= 760 else (1 if width >= 560 else (2 if width >= 420 else 3))
+        level = 0 if width >= 900 else (1 if width >= 520 else (2 if width >= 400 else 3))
         if level != self._narrow:
             self._narrow = level
             GLib.idle_add(self._idle_columns)
@@ -329,7 +329,7 @@ class ListView(Gtk.ScrolledWindow, _CellMixin):
     def update_columns(self):
         mode = self.pane.mode
         wanted = set(settings["list_columns"])
-        drop = {0: set(), 1: {"perms", "owner"}, 2: {"perms", "owner", "type", "packed", "ratio"},
+        drop = {0: set(), 1: {"perms", "owner", "type"}, 2: {"perms", "owner", "type", "packed", "ratio", "date"},
                 3: {"perms", "owner", "type", "date", "duration", "packed", "ratio", "location"}}[self._narrow]
         wanted -= drop
         for key, col in self.columns.items():

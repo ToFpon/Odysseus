@@ -41,6 +41,7 @@ class PathBar(Gtk.Box):
         if menu_factory is not None:
             self.menu_btn = Gtk.MenuButton(icon_name="view-more-symbolic", css_classes=["flat", "path-menu"],
                                            tooltip_text=tr("Menu du dossier"), valign=Gtk.Align.CENTER)
+            self.menu_btn.set_has_frame(False)     # plat, même dans le cadre « linked » du fil d'Ariane
             self.menu_btn.set_create_popup_func(lambda b: b.set_menu_model(menu_factory()))
             crumbs_frame.append(self.menu_btn)
         click = Gtk.GestureClick()

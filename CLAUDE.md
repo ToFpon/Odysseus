@@ -50,7 +50,9 @@ xvfb-run -a -s "-screen 0 1600x1000x24" python3.12 tests/ui_mouse.py   # vrais c
 
 Captures (Gtk.WidgetPaintable) : `xvfb-run -a python3.12 tools/screenshot.py SORTIE.png [--dual]
 [--other=DOSSIER] [--grid] [--columns] [--preview] [--select=NOMS] [--action=ACTION] [--prefs=PAGE]
-[--dark] [--delay=S] [--size=LxH]` ; captures de la documentation dans `docs/captures/`.
+[--dark] [--delay=S] [--size=LxH]` ; captures de la documentation dans `docs/captures/`, faites sur le
+dossier personnel de démonstration de `tools/demo-home.py` (HOME pointé dessus, LANGUAGE=fr,
+settings.json remis à zéro avant chaque capture : la vue et le double panneau sont mémorisés).
 
 ## Pièges connus
 
