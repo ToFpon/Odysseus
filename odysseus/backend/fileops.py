@@ -9,6 +9,7 @@ la tâche (elle attend la réponse de l'interface).
 
 from __future__ import annotations
 
+import ctypes
 import errno
 import os
 import shutil
@@ -340,13 +341,44 @@ def _fsync_dir(folder: str):
         os.close(fd)
 
 
+_RENAME_EXCHANGE = 2
+_renameat2 = None
+
+
+def _exchange(a: str, b: str) -> bool:
+    """Échange atomique de deux chemins (renameat2 RENAME_EXCHANGE, dossiers compris). False si le
+    système de fichiers ne sait pas faire (FAT, certains FUSE, NFS…) : rien n'a alors bougé."""
+    global _renameat2
+    if _renameat2 is None:
+        try:
+            libc = ctypes.CDLL(None, use_errno=True)
+            _renameat2 = libc.renameat2
+            _renameat2.argtypes = [ctypes.c_int, ctypes.c_char_p, ctypes.c_int, ctypes.c_char_p, ctypes.c_uint]
+        except (OSError, AttributeError):
+            _renameat2 = False
+    if not _renameat2:
+        return False
+    at_fdcwd = -100
+    if _renameat2(at_fdcwd, os.fsencode(a), at_fdcwd, os.fsencode(b), _RENAME_EXCHANGE) == 0:
+        return True
+    err = ctypes.get_errno()
+    if err in (errno.EINVAL, errno.ENOSYS, errno.ENOTSUP, errno.EOPNOTSUPP):
+        return False
+    raise OSError(err, os.strerror(err), b)
+
+
 def _swap_into(new: str, dst: str):
-    """Met new à la place de dst. Fichier sur fichier : os.replace, atomique. Sinon l'ancien est
-    d'abord mis de côté puis supprimé seulement une fois le nouveau en place (remis s'il y a échec)."""
+    """Met new à la place de dst. Fichier sur fichier : os.replace, atomique. Dossier : échange
+    atomique si possible (le nom visé existe à tout instant), puis l'ancien, désormais sous le nom
+    temporaire, est supprimé. Sinon l'ancien est d'abord mis de côté puis supprimé seulement une
+    fois le nouveau en place (remis s'il y a échec)."""
     old_is_dir = os.path.isdir(dst) and not os.path.islink(dst)
     new_is_dir = os.path.isdir(new) and not os.path.islink(new)
     if not old_is_dir and not new_is_dir:
         os.replace(new, dst)
+        return
+    if _exchange(new, dst):
+        _remove(new)
         return
     aside = os.path.join(os.path.dirname(dst), f".{os.path.basename(dst)}.odysseus-ancien-{os.getpid()}")
     os.rename(dst, aside)

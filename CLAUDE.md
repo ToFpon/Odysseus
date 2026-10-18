@@ -53,13 +53,18 @@ liens symboliques, corbeille — sur un arbre jetable, avec un dossier « préci
 changer. Règles : un déplacement ne supprime à la source que ce qui a été copié (`_prune_moved`) ;
 « remplacer » copie sous un nom temporaire dans le dossier de destination (renommage atomique),
 `fsync` des fichiers puis du dossier, puis échange (`_swap_into`) ; l'ancien reste si ça échoue.
+Dossier remplacé : `renameat2(RENAME_EXCHANGE)` (ctypes, `_exchange`), le nom visé existe à tout
+instant ; repli en deux renommages là où ce n'est pas géré (FAT, FUSE : testé sur ntfs-3g).
+Annulation testée en annulant après N octets copiés (pas de délai fixe : la copie va trop vite).
 
 Supports amovibles (`backend/fsinfo.py`, type lu dans `/proc/self/mountinfo`, sans `stat`) : vers
 FAT / exFAT / NTFS, noms nettoyés (`: ? * " < > | \\`, points et espaces finaux → `safe_name`),
 deux noms qui ne diffèrent que par la casse dans une même copie → le second est renommé, liens
 symboliques refusés avec un message clair (la source reste), FAT32 : fichier > 4 Go refusé avant
 d'écrire. `FatKeyTest` monte une vraie image `mkfs.vfat` avec `fusefat -o rw+` (pas de module vfat
-dans le bac à sable ; fusefat refuse les accents et n'a pas d'inodes stables : pas de `samefile`).
+dans le bac à sable ; fusefat refuse les accents, n'a pas d'inodes stables — pas de `samefile` — et
+perd le contenu d'un dossier non vide renommé : ne pas y tester les remplacements de dossier).
+Noms nettoyés qui se rejoignent (`a:b.txt` / `a_b.txt`, `fin.` / `fin`) : même renommage « (2) ».
 
 `workers.Pool` : un fil bloqué dans un appel système ne se tue pas ; si tous sont pris depuis plus
 de 3 s, un fil est ajouté (6 au plus).

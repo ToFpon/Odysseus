@@ -123,6 +123,37 @@ class DestructiveTest(unittest.TestCase):
         self.assertTrue(os.path.exists(os.path.join(self.src, "sub", "c.txt")))
         self.assertIn(j.state, ("done", "failed"))
 
+    def test_replace_dir_name_never_missing(self):
+        """Dossier remplacé par un dossier : échange atomique, le nom visé existe à tout instant."""
+        write(os.path.join(self.dst, "sub", "vieux.txt"), "vieux")
+        target = os.path.join(self.dst, "sub")
+        gaps, real = [], os.rename
+
+        def watched(a, b, *k, **kw):
+            real(a, b, *k, **kw)
+            if not os.path.lexists(target):
+                gaps.append((a, b))
+        os.rename = watched
+        try:
+            run(lambda j: fileops.transfer(j, [os.path.join(self.src, "sub")], self.dst, ask("replace")))
+        finally:
+            os.rename = real
+        self.assertEqual(gaps, [], "le dossier visé a disparu entre deux renommages")
+        self.assertEqual(tree(target), tree(os.path.join(self.src, "sub")))
+        self.assertFalse([n for n in os.listdir(self.dst) if ".odysseus-" in n])
+
+    def test_replace_dir_without_exchange_support(self):
+        """Système de fichiers sans RENAME_EXCHANGE (FAT…) : repli en deux renommages, rien perdu."""
+        write(os.path.join(self.dst, "sub", "vieux.txt"), "vieux")
+        real = fileops._exchange
+        fileops._exchange = lambda a, b: False
+        try:
+            run(lambda j: fileops.transfer(j, [os.path.join(self.src, "sub")], self.dst, ask("replace")))
+        finally:
+            fileops._exchange = real
+        self.assertEqual(tree(os.path.join(self.dst, "sub")), tree(os.path.join(self.src, "sub")))
+        self.assertFalse([n for n in os.listdir(self.dst) if ".odysseus-" in n])
+
     def test_move_replace_same_disk(self):
         write(os.path.join(self.dst, "sub", "vieux.txt"), "vieux")
         run(lambda j: fileops.transfer(j, [os.path.join(self.src, "sub")], self.dst, ask("replace"), move=True))
@@ -171,13 +202,23 @@ class DestructiveTest(unittest.TestCase):
             for _ in range(mb):
                 fh.write(block)
 
-    def _cancel_during(self, func, delay=0.15):
+    def _cancel_during(self, func, after=8 << 20):
+        """Annule la tâche quand « after » octets ont été copiés : au milieu du gros fichier, quelle
+        que soit la vitesse du disque (un délai fixe ne marche plus quand la copie est trop rapide)."""
         j = Job("x", func)
-        th = threading.Thread(target=j.run_sync)
-        th.start()
-        time.sleep(delay)
-        j.cancel()
-        th.join(30)
+        real = fileops._Copier.tick
+
+        def tick(self_, force=False):
+            if self_.done >= after:
+                j.cancel()
+            return real(self_, force)
+        fileops._Copier.tick = tick
+        try:
+            th = threading.Thread(target=j.run_sync)
+            th.start()
+            th.join(30)
+        finally:
+            fileops._Copier.tick = real
         self.assertFalse(th.is_alive(), "l'annulation n'a pas abouti")
         return j
 
@@ -201,8 +242,7 @@ class DestructiveTest(unittest.TestCase):
         h = digest(big)
         dest = tempfile.mkdtemp(dir=other)
         try:
-            self._cancel_during(lambda j: fileops.transfer(j, [self.src], dest, ask("cancel"), move=True),
-                                delay=0.05)
+            self._cancel_during(lambda j: fileops.transfer(j, [self.src], dest, ask("cancel"), move=True))
             # quel que soit le moment de l'annulation : chaque fichier existe, intact, d'un côté ou de l'autre
             for rel in ("gros.bin", os.path.join("sub", "b.txt"), os.path.join("sub", "c.txt"), "a.txt"):
                 here, there = os.path.join(self.src, rel), os.path.join(dest, "src", rel)
@@ -372,6 +412,16 @@ class FatKeyTest(unittest.TestCase):
         self.assertEqual(tree(self.key), {"rapport_ v2_.txt": b"r", "dossier_": "<dossier>",
                                           os.path.join("dossier_", "a_b.txt"): b"ab", "fin": b"f"})
 
+    def test_cleaned_names_that_collide_are_renamed(self):
+        """« a:b.txt » et « a_b.txt », « fin. » et « fin » : même nom une fois nettoyés."""
+        for n in ("a:b.txt", "a_b.txt", "fin.", "fin"):
+            write(os.path.join(self.src, "lot", n), n)
+        j = self.copy(["lot"])
+        self.assertEqual(j.state, "done", j.error)
+        got = {n: open(os.path.join(self.key, "lot", n)).read() for n in os.listdir(os.path.join(self.key, "lot"))}
+        self.assertEqual(sorted(got.values()), sorted(["a:b.txt", "a_b.txt", "fin.", "fin"]), got)
+        self.assertEqual(len(got), 4)
+
     def test_symlink_gives_clear_error_and_move_keeps_it(self):
         write(os.path.join(self.src, "projet", "vrai.txt"), "v")
         os.symlink("vrai.txt", os.path.join(self.src, "projet", "lien"))
@@ -406,6 +456,46 @@ class FatKeyTest(unittest.TestCase):
         with self.assertRaises(Exception):
             fileops.rename(os.path.join(self.key, "autre.jpg"), "PHOTO.JPG")    # vrai conflit
         self.assertEqual(open(os.path.join(self.key, "Photo.jpg")).read(), "x")
+
+
+class NtfsFuseTest(unittest.TestCase):
+    """Image NTFS montée avec ntfs-3g : FUSE sans RENAME_EXCHANGE, le remplacement d'un dossier
+    passe par le repli en deux renommages, sur un vrai système de fichiers. (fusefat ne convient pas
+    ici : il perd le contenu d'un dossier non vide qu'on renomme.)"""
+
+    def setUp(self):
+        if not (shutil.which("mkfs.ntfs") and shutil.which("ntfs-3g") and shutil.which("fusermount")):
+            self.skipTest("mkfs.ntfs / ntfs-3g indisponibles")
+        self.tmp = tempfile.TemporaryDirectory()
+        self.d = self.tmp.name
+        img = os.path.join(self.d, "disque.img")
+        with open(img, "wb") as fh:
+            fh.truncate(16 * 1024 * 1024)
+        subprocess.run(["mkfs.ntfs", "-F", "-Q", img], check=True, capture_output=True)
+        self.key = os.path.join(self.d, "disque")
+        os.makedirs(self.key)
+        r = subprocess.run(["ntfs-3g", img, self.key], capture_output=True)
+        if r.returncode or not (fsinfo.fs_type(self.key) or "").startswith("fuse"):
+            self.tmp.cleanup()
+            self.skipTest("montage ntfs-3g impossible")
+        self.src = os.path.join(self.d, "src")
+
+    def tearDown(self):
+        subprocess.run(["fusermount", "-u", self.key], capture_output=True)
+        self.tmp.cleanup()
+
+    def test_replace_folder_without_exchange(self):
+        write(os.path.join(self.key, "docs", "vieux.txt"), "vieux")
+        write(os.path.join(self.src, "docs", "sous", "neuf.txt"), "neuf")
+        os.makedirs(os.path.join(self.key, "essai"))
+        self.assertFalse(fileops._exchange(os.path.join(self.key, "essai"), os.path.join(self.key, "docs")))
+        os.rmdir(os.path.join(self.key, "essai"))
+        j = Job("x", lambda j: fileops.transfer(j, [os.path.join(self.src, "docs")], self.key,
+                                                 ask("replace"))).run_sync()
+        self.assertEqual(j.state, "done", j.error)
+        got = {k: v for k, v in tree(self.key).items() if not k.startswith("$")}
+        self.assertEqual(got, {"docs": "<dossier>", os.path.join("docs", "sous"): "<dossier>",
+                               os.path.join("docs", "sous", "neuf.txt"): b"neuf"})
 
 
 class FsInfoTest(unittest.TestCase):
