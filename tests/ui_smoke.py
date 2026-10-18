@@ -675,6 +675,41 @@ def application_par_defaut(win):
 
 
 @step
+def annuler_sans_ecraser(win):
+    """Annuler ne doit jamais écraser ni emporter ce qui existait (retours de l'agent de test)."""
+    from odysseus.backend import fileops
+    base = os.path.join(D, "annulation")
+    os.makedirs(os.path.join(base, "A", "sous"))
+    os.makedirs(os.path.join(base, "B", "sous"))
+    for path, text in ((os.path.join(base, "a.txt"), "original"), (os.path.join(base, "A", "sous", "nouveau.txt"), "n"),
+                       (os.path.join(base, "B", "sous", "garde.txt"), "à garder")):
+        with open(path, "w") as f:
+            f.write(text)
+    # renommage puis réutilisation de l'ancien nom
+    target = fileops.rename(os.path.join(base, "a.txt"), "b.txt")
+    win._push_undo(("rename", os.path.join(base, "a.txt"), target))
+    with open(os.path.join(base, "a.txt"), "w") as f:
+        f.write("créé entre-temps")
+    win.undo()
+    yield pump(0.4)
+    _close_alerts()
+    check(open(os.path.join(base, "a.txt")).read() == "créé entre-temps" and os.path.exists(target),
+          "annuler un renommage n'écrase pas un fichier créé entre-temps")
+    # copie avec fusion, puis annulation
+    win._conflict_dialog = lambda c, reply: reply("merge", True)
+    win.run_transfer([os.path.join(base, "A", "sous")], os.path.join(base, "B"))
+    yield wait_jobs()
+    check(os.path.exists(os.path.join(base, "B", "sous", "nouveau.txt")), "fusion faite")
+    win.undo()
+    yield wait_jobs()
+    yield pump(0.4)
+    check(os.path.exists(os.path.join(base, "B", "sous", "garde.txt")) and
+          not os.path.exists(os.path.join(base, "B", "sous", "nouveau.txt")),
+          "annuler une fusion ne retire que ce qui a été ajouté")
+    del win._conflict_dialog
+
+
+@step
 def fonctionnalites(win):
     from odysseus import features
     features.set_enabled("dual_panel", False)

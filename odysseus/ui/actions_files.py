@@ -12,7 +12,7 @@ from gi.repository import Adw, Gio, GLib, Gtk
 
 from .. import features
 from ..backend import fileops, folder_colors, formats, gioops
-from ..backend.engine import Job, human_size
+from ..backend.engine import Job, ToolError, human_size
 from ..i18n import ntr, tr
 from ..settings import settings
 from . import clipboard
@@ -424,8 +424,9 @@ class FileActions:
         title = (ntr("Déplacement de {0} élément", "Déplacement de {0} éléments", n) if move else
                  ntr("Copie de {0} élément", "Copie de {0} éléments", n)).format(n) + " → " + \
             (os.path.basename(dest.rstrip("/")) or dest)
-        undo = (lambda r: ("move", list(r.moved)) if move and r.moved else ("copy", list(r.created))
-                if r.created else None)
+        # seulement ce qui a été créé / déplacé : dans un dossier fusionné, pas ce qu'il contenait déjà
+        undo = (lambda r: ("move", list(r.new_moves)) if move and r.new_moves else ("copy", list(r.new_items))
+                if r.new_items else None)
         self._run(title, lambda j: fileops.transfer(j, paths, dest, self._ask_conflict, move=move), dest,
                   undo=undo)
 
@@ -798,10 +799,10 @@ class FileActions:
         if kind == "rename":
             _k, old, new = entry
             try:
-                os.rename(old, new)
+                fileops.rename(old, os.path.basename(new))
                 self._push_undo(entry, keep_redo=True)
-            except OSError as e:
-                alert(self, tr("Rétablissement impossible"), e.strerror or str(e))
+            except (OSError, ToolError) as e:
+                alert(self, tr("Rétablissement impossible"), getattr(e, "strerror", None) or str(e))
         elif kind == "move":
             pairs = entry[1]
 
@@ -812,12 +813,20 @@ class FileActions:
                     try:
                         if os.path.lexists(dst):
                             raise OSError(17, tr("« {0} » existe déjà").format(os.path.basename(dst)))
+                        os.makedirs(os.path.dirname(dst), exist_ok=True)
                         shutil.move(src, dst)
                         res.created.append(dst)
+                        res.moved.append((src, dst))
                     except OSError as e:
                         res.errors.append((src, e.strerror or str(e)))
                 return res
-            self._run(tr("Déplacement"), work, on_done=lambda j: self._push_undo(entry, keep_redo=True))
+
+            def redone(j):
+                # n'annuler ensuite que ce qui a réellement bougé
+                moved = list(j.result.moved) if isinstance(j.result, fileops.Result) else []
+                if moved:
+                    self._push_undo(("move", moved), keep_redo=True)
+            self._run(tr("Déplacement"), work, on_done=redone)
         elif kind == "trash":
             originals = [p for p in entry[1] if os.path.lexists(p)]
 
@@ -843,10 +852,13 @@ class FileActions:
         if kind == "rename":
             _k, old, new = entry
             try:
-                os.rename(new, old)
+                # fileops.rename refuse d'écraser un élément créé entre-temps sous l'ancien nom
+                fileops.rename(new, os.path.basename(old))
                 toast(self, tr("Renommage annulé"))
-            except OSError as e:
-                alert(self, tr("Annulation impossible"), e.strerror or str(e))
+            except (OSError, ToolError) as e:
+                self.redo_stack.pop()
+                self._update_undo_actions()
+                alert(self, tr("Annulation impossible"), getattr(e, "strerror", None) or str(e))
         elif kind == "move":
             pairs = entry[1]
 
@@ -857,6 +869,7 @@ class FileActions:
                     try:
                         if os.path.lexists(src):
                             raise OSError(17, tr("« {0} » existe déjà").format(os.path.basename(src)))
+                        os.makedirs(os.path.dirname(src), exist_ok=True)   # dossier vidé puis retiré
                         shutil.move(dst, src)
                         res.created.append(src)
                     except OSError as e:

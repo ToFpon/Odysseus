@@ -48,6 +48,11 @@ class Result:
     moved: list = field(default_factory=list)        # (ancien, nouveau)
     trashed: list = field(default_factory=list)      # chemins d'origine
     errors: list = field(default_factory=list)       # (chemin, message)
+    # Pour annuler : seulement ce que l'opération a CRÉÉ. Dans un dossier fusionné, ce sont les
+    # éléments ajoutés dedans, pas le dossier (qui existait) : sinon l'annulation emportait aussi
+    # ce qu'il contenait déjà.
+    new_items: list = field(default_factory=list)    # chemins créés (racines des créations)
+    new_moves: list = field(default_factory=list)    # (ancien, nouveau) des éléments déplacés
 
 
 # ---------------------------------------------------------------------------
@@ -153,6 +158,8 @@ class _Copier:
         self.fat = False             # FAT32 : 4 Go maximum par fichier
         self.sync = False            # fsync de chaque fichier (remplacement : rien de « vide » après)
         self._names: dict = {}       # FAT… : dossier -> {nom.casefold(): nom réel}, voir _existing()
+        self.made: set = set()       # destinations créées (chemins exacts)
+        self.roots: list = []        # (source, destination) des créations dont le parent existait
 
     def tick(self, force: bool = False):
         now = time.monotonic()
@@ -195,6 +202,11 @@ class _Copier:
                 names = {}
             self._names[folder] = names
         return names.get(name.casefold())
+
+    def _made(self, src: str, dst: str):
+        if os.path.dirname(dst) not in self.made:
+            self.roots.append((src, dst))
+        self.made.add(dst)
 
     def _created(self, dst: str):
         self.created_here.add(dst.casefold())
@@ -264,6 +276,7 @@ class _Copier:
         self.done_files += 1
         self.copied.add(src)
         self._created(dst)
+        self._made(src, dst)
 
     def copy_tree(self, src: str, dst: str):
         """Copie récursive ; dst n'existe pas, ou est un dossier à fusionner."""
@@ -284,10 +297,14 @@ class _Copier:
                 self.done_files += 1
                 self.copied.add(src)
                 self._created(dst)
+                self._made(src, dst)
             elif st.S_ISDIR(s.st_mode):
+                existed = os.path.isdir(dst) and not os.path.islink(dst)
                 os.makedirs(dst, exist_ok=True)
                 self.copied.add(src)
                 self._created(dst)
+                if not existed:
+                    self._made(src, dst)
                 with os.scandir(src) as it:
                     children = [e.name for e in it]
                 for name in children:
@@ -345,6 +362,7 @@ class _Copier:
         échoue ou est annulée, l'élément existant reste intact."""
         tmp = os.path.join(os.path.dirname(dst), f".{os.path.basename(dst)}.odysseus-{os.getpid()}")
         before = len(self.errors)
+        roots_before = len(self.roots)
         self.sync = True
         try:
             self.copy_tree(src, tmp)
@@ -361,6 +379,8 @@ class _Copier:
         try:
             _swap_into(tmp, dst)
             _fsync_dir(os.path.dirname(dst))
+            del self.roots[roots_before:]          # ce qui était sous le nom temporaire
+            self._made(src, dst)
         except OSError as e:
             self.errors.append((dst, e.strerror or str(e)))
             if os.path.lexists(tmp):
@@ -488,6 +508,7 @@ def transfer(job: Job, sources: list[str], dest_dir: str, ask: Asker, move: bool
 
     # Déplacements sur le même disque : simples renommages, sans mesure préalable.
     to_copy = []
+    direct = []                    # déplacements par simple renommage : (ancien, nouveau)
     copier = _Copier(job, ask, 0, 0, move)
     kind = fsinfo.fs_type(dest_dir)
     copier.windows, copier.fat = kind in fsinfo.WINDOWS_LIKE, kind in fsinfo.FAT
@@ -522,6 +543,7 @@ def transfer(job: Job, sources: list[str], dest_dir: str, ask: Asker, move: bool
                             _swap_into(src, dst)
                             res.moved.append((src, dst))
                             res.created.append(dst)
+                            direct.append((src, dst))
                         except OSError as e:
                             res.errors.append((dst, e.strerror or str(e)))
                         continue
@@ -529,6 +551,7 @@ def transfer(job: Job, sources: list[str], dest_dir: str, ask: Asker, move: bool
                     os.rename(src, dst)
                     res.moved.append((src, dst))
                     res.created.append(dst)
+                    direct.append((src, dst))
                 except OSError as e:
                     res.errors.append((src, e.strerror or str(e)))
                 continue
@@ -562,6 +585,9 @@ def transfer(job: Job, sources: list[str], dest_dir: str, ask: Asker, move: bool
                 except OSError as e:
                     copier.errors.append((src, e.strerror or str(e)))
         copier.tick(force=True)
+    res.new_items = [d for _s, d in direct] + [d for _s, d in copier.roots]
+    if move:
+        res.new_moves = list(direct) + [(s_, d) for s_, d in copier.roots if not os.path.lexists(s_)]
     res.errors.extend(copier.errors)
     _raise_partial(res)
     return res

@@ -324,6 +324,27 @@ class DestructiveTest(unittest.TestCase):
             fileops.make_folder(self.d, "pris.txt")
         self.assertEqual(open(os.path.join(self.d, "pris.txt")).read(), "contenu")
 
+    def test_merge_reports_only_what_it_created(self):
+        """Fusion : l'annulation ne doit viser que ce qui a été ajouté, pas le dossier existant."""
+        write(os.path.join(self.dst, "sub", "garde.txt"), "à garder")
+        res = run(lambda j: fileops.transfer(j, [os.path.join(self.src, "sub")], self.dst, ask("merge")))
+        self.assertEqual(sorted(res.new_items), sorted([os.path.join(self.dst, "sub", "b.txt"),
+                                                        os.path.join(self.dst, "sub", "c.txt")]))
+        res = run(lambda j: fileops.transfer(j, [os.path.join(self.src, "a.txt")], self.dst, ask("skip")))
+        self.assertEqual(res.new_items, [os.path.join(self.dst, "a.txt")])
+
+    def test_move_merge_reports_leaf_moves(self):
+        write(os.path.join(self.dst, "sub", "garde.txt"), "à garder")
+        res = run(lambda j: fileops.transfer(j, [os.path.join(self.src, "sub")], self.dst, ask("merge"),
+                                             move=True))
+        self.assertEqual(sorted(res.new_moves),
+                         sorted([(os.path.join(self.src, "sub", n), os.path.join(self.dst, "sub", n))
+                                 for n in ("b.txt", "c.txt")]))
+
+    def test_copy_into_new_folder_reports_the_folder(self):
+        res = run(lambda j: fileops.transfer(j, [os.path.join(self.src, "sub")], self.dst, ask("cancel")))
+        self.assertEqual(res.new_items, [os.path.join(self.dst, "sub")])
+
     def test_move_into_itself_refuses(self):
         before = tree(self.src)
         j = Job("x", lambda j: fileops.transfer(j, [self.src], os.path.join(self.src, "sub"), ask("cancel"),
