@@ -90,11 +90,17 @@ class MillerColumn(Gtk.Box):
         li.set_child(box)
         g = Gtk.GestureClick(button=3)
 
+        # ni la cellule ni le Gtk.ListItem ne sont capturés (cycle → GTK libère dans le désordre,
+        # voir views._cell_pos) : retrouvés depuis le geste et l'élément affiché
         def pressed(gesture, n, x, y):
             gesture.set_state(Gtk.EventSequenceState.CLAIMED)
-            pos = li.get_position()
-            if pos != Gtk.INVALID_LIST_POSITION:
-                self.selection.set_selected(pos)
+            box = gesture.get_widget()
+            rec = getattr(box, "_rec", None)
+            model = self.selection.get_model()
+            for pos in range(model.get_n_items()):
+                if getattr(model.get_item(pos), "rec", None) is rec:
+                    self.selection.set_selected(pos)
+                    break
             self.view.set_focused(self)
             ok, pt = box.compute_point(self.view.pane, Graphene.Point().init(x, y))
             self.view.pane.emit("context-menu", pt.x if ok else x, pt.y if ok else y, True)
@@ -247,6 +253,8 @@ class MillerView(Gtk.ScrolledWindow):
             self.chain.remove(w)
 
     def _scroll_end(self):
+        if self.get_root() is None:
+            return False
         adj = self.get_hadjustment()
         adj.set_value(adj.get_upper())
         return False

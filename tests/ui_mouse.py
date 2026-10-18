@@ -36,10 +36,15 @@ if os.environ.get("ODYSSEUS_UI_MOUSE_CHILD") != "1":
     for line in broken:
         print("ÉCHEC :", line)
     if r.returncode or broken or "ÉCHEC" in r.stdout:
+        if r.returncode:
+            print("\n".join(r.stderr.splitlines()[-40:]))
         sys.exit(1)
     print("Aucune erreur.")
     sys.exit(0)
 
+import faulthandler  # noqa: E402
+
+faulthandler.enable()          # plantage natif (GTK) : la pile Python s'affiche quand même
 TMP = os.environ["ODYSSEUS_UI_MOUSE_TMP"]
 D = os.path.join(TMP, "data")
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
@@ -47,6 +52,7 @@ import gi  # noqa: E402
 
 gi.require_version("Gtk", "4.0")
 gi.require_version("Adw", "1")
+gi.require_version("Graphene", "1.0")
 import threading  # noqa: E402
 import time  # noqa: E402
 
@@ -136,6 +142,40 @@ def steps(win):
         yield
     check(os.path.exists(os.path.join(D, "dst", "f2")), "glisser vers l'autre panneau")
     check(not any(x.has_css_class("drop-hover") for x in win.all_panes()), "pas de cadre resté en double panneau")
+
+    # Touches tapées dans un champ de saisie : elles vont au texte, pas aux fichiers (GTK 4 traite les
+    # raccourcis de l'application avant le widget qui a le focus)
+    win.activate_action("win.dual", None)
+    yield
+    p = win.pane
+    with open(os.path.join(D, "important.txt"), "w") as f:
+        f.write("x")
+    p.open(D)
+    yield
+    yield
+    p.model.select_names(["important.txt"])
+    xdo("key", "ctrl+f")
+    yield
+    xdo("type", "--delay", "60", "imp")
+    yield
+    xdo("key", "Home", "Delete")
+    yield
+    yield
+    check(os.path.exists(os.path.join(D, "important.txt")) and win.search_entry.get_text() == "mp",
+          f"Suppr dans la recherche efface un caractère, ne jette pas le fichier ({win.search_entry.get_text()!r})")
+    xdo("key", "End", "BackSpace")
+    yield
+    check(p.location == D and win.search_entry.get_text() == "m", "Retour arrière dans la recherche efface, ne navigue pas")
+    xdo("key", "Escape")
+    yield
+    xdo("key", "ctrl+l")
+    yield
+    xdo("type", "--delay", "60", "/usr/share")
+    yield
+    xdo("key", "Return")
+    yield
+    yield
+    check(p.location == "/usr/share", f"Ctrl+L puis « /usr/share » au clavier ({p.location})")
 
 
 def on_window(_a, win):

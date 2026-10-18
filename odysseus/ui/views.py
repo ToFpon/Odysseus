@@ -177,12 +177,23 @@ class _CellMixin:
         image.set_opacity(dim_icon)
         box.set_opacity(dim_all)
 
-    def _attach_menu_gesture(self, widget, list_item):
+    # Les gestionnaires des cellules ne capturent ni la cellule ni son Gtk.ListItem : ils les
+    # retrouvent par controller.get_widget() et l'élément affiché (widget._rec). Capturés dans des
+    # fermetures Python, ils formaient des cycles (cellule → contrôleur → fermeture → cellule) et
+    # GTK les libérait dans le désordre en recréant les cellules : segfault en changeant la
+    # visibilité des colonnes après deux glisser-déposer (sortie du double panneau).
+    def _cell_pos(self, widget) -> int:
+        rec = getattr(widget, "_rec", None)
+        i = self.pane.model.index_of(rec) if rec is not None else -1
+        return i if i >= 0 else Gtk.INVALID_LIST_POSITION
+
+    def _attach_menu_gesture(self, widget, list_item=None):
         g = Gtk.GestureClick(button=3)
 
         def pressed(gesture, n, x, y):
             gesture.set_state(Gtk.EventSequenceState.CLAIMED)
-            pos = list_item.get_position()
+            widget = gesture.get_widget()
+            pos = self._cell_pos(widget)
             sel = self.pane.selection
             if pos != Gtk.INVALID_LIST_POSITION and not sel.is_selected(pos):
                 sel.select_item(pos, True)
@@ -195,14 +206,14 @@ class _CellMixin:
         m = Gtk.GestureClick(button=2)
 
         def middle(gesture, n, x, y):
-            rec = getattr(widget, "_rec", None)
+            rec = getattr(gesture.get_widget(), "_rec", None)
             if rec is not None and rec.is_dir:
                 gesture.set_state(Gtk.EventSequenceState.CLAIMED)
                 self.pane.emit("open-in-tab", rec)
         m.connect("pressed", middle)
         widget.add_controller(m)
 
-    def _attach_drag(self, widget, list_item):
+    def _attach_drag(self, widget, list_item=None):
         """Glisser des fichiers. La source est posée sur chaque cellule, comme dans Nautilus : sur la
         vue entière, la sélection par rectangle (rubberband) prend le geste et rien ne se glisse."""
         pane = self.pane
@@ -210,7 +221,7 @@ class _CellMixin:
                               propagation_phase=Gtk.PropagationPhase.CAPTURE)
 
         def prepare(source, x, y):
-            pos = list_item.get_position()
+            pos = self._cell_pos(source.get_widget())
             if pos != Gtk.INVALID_LIST_POSITION and not pane.selection.is_selected(pos):
                 pane.selection.select_item(pos, True)     # glisser un élément non sélectionné : lui seul
             paths = pane.drag_paths()
@@ -242,16 +253,18 @@ class _CellMixin:
         t = Gtk.DropTarget.new(Gdk.FileList, Gdk.DragAction.COPY | Gdk.DragAction.MOVE)
 
         def accept(_t, drop):
-            rec = getattr(widget, "_rec", None)
+            rec = getattr(_t.get_widget(), "_rec", None)
             return bool(rec is not None and rec.is_dir and rec.path and self.pane.mode == "fs")
 
         def enter(_t, x, y):
-            widget.add_css_class("drop-row")
-            return self.pane.preferred_action(_t.get_current_drop(), getattr(widget, "_rec", None))
+            w = _t.get_widget()
+            w.add_css_class("drop-row")
+            return self.pane.preferred_action(_t.get_current_drop(), getattr(w, "_rec", None))
 
         def drop(_t, value, x, y):
-            widget.remove_css_class("drop-row")
-            rec = getattr(widget, "_rec", None)
+            w = _t.get_widget()
+            w.remove_css_class("drop-row")
+            rec = getattr(w, "_rec", None)
             paths = [f.get_path() for f in value.get_files() if f.get_path()]
             if rec is None or not paths or rec.path in paths:
                 return False
@@ -260,7 +273,7 @@ class _CellMixin:
         t.connect("accept", accept)
         t.connect("enter", enter)
         t.connect("motion", enter)
-        t.connect("leave", lambda *_: widget.remove_css_class("drop-row"))
+        t.connect("leave", lambda t_: t_.get_widget().remove_css_class("drop-row"))
         t.connect("drop", drop)
         widget.add_controller(t)
 
@@ -273,41 +286,11 @@ class ListView(Gtk.ScrolledWindow, _CellMixin):
         super().__init__(vexpand=True, hexpand=True)
         self.pane = pane
         self.add_css_class("nautilus-list-view")
-        self.view = Gtk.ColumnView(model=None, show_row_separators=False, show_column_separators=False,
-                                   reorderable=True, enable_rubberband=True, css_classes=["file-view"])
-        if hasattr(self.view, "set_tab_behavior"):
-            self.view.set_tab_behavior(Gtk.ListTabBehavior.ITEM)
-        self.view.connect("activate", lambda _v, pos: pane.activate_position(pos))
-        self.view.set_single_click_activate(settings["single_click"])
+        self.view = None
         self.columns: dict[str, Gtk.ColumnViewColumn] = {}
+        self._widths: dict[str, int] = {}
         self._syncing = False
         self._narrow = 0
-        for key, title, width, xalign, sort_key in COLUMNS:
-            f = Gtk.SignalListItemFactory()
-            if key == "name":
-                f.connect("setup", self._setup_name)
-                f.connect("bind", self._bind_name)
-                f.connect("unbind", lambda _f, li: self._untrack(li.get_child()))
-            else:
-                f.connect("setup", self._setup_text, xalign)
-                f.connect("bind", self._bind_text, key)
-                f.connect("unbind", lambda _f, li: self._untrack(li.get_child()))
-            col = Gtk.ColumnViewColumn(title=title, factory=f, resizable=True, expand=(key == "name"))
-            if width:
-                col.set_fixed_width(width)
-            if sort_key:
-                col.set_sorter(Gtk.CustomSorter.new(lambda *_: 0))
-                col._sort_key = sort_key
-            self.view.append_column(col)
-            self.columns[key] = col
-        self.view.get_sorter().connect("changed", self._on_header_sort)
-        self.set_child(self.view)
-        bg = Gtk.GestureClick(button=3)
-        bg.connect("pressed", self._on_bg_click)
-        self.view.add_controller(bg)
-        lp = Gtk.GestureLongPress(touch_only=True)
-        lp.connect("pressed", lambda g, x, y: pane.emit("context-menu", x, y, True))
-        self.view.add_controller(lp)
         self.apply_zoom()
         self.update_columns()
         self.sync_sort()
@@ -323,16 +306,90 @@ class ListView(Gtk.ScrolledWindow, _CellMixin):
             GLib.idle_add(self._idle_columns)
 
     def _idle_columns(self):
-        self.update_columns()
+        # panneau fermé entre-temps (sortie du double panneau, onglet fermé) : ses colonnes sont
+        # détruites, y toucher fait planter GTK (segfault vu dans tests/ui_mouse.py)
+        if self.get_root() is not None:
+            self.update_columns()
         return False
 
     def update_columns(self):
+        """Colonnes affichées selon le mode et la largeur. GTK 4.14 tient mal la liste des cellules
+        d'une colonne qu'on montre ou cache dans une vue déjà remplie : une cellule libérée y reste
+        et la suppression suivante d'une ligne plante (gtk_column_view_column_queue_resize, vu avec
+        les symboles de libgtk-4 en sortant du double panneau après des glisser-déposer ; 0 plantage
+        sur 5 sans ces changements, 2 à 4 sur 5 avec). On ne touche donc JAMAIS à la visibilité
+        d'une colonne : quand l'ensemble change, la vue est reconstruite avec les bonnes colonnes,
+        modèle débranché (pas de lignes, pas de cellules). C'est rare : passage étroit ↔ large,
+        corbeille, archive, recherche, réglage des colonnes."""
+        vis = self._wanted_columns()
+        wanted = [key for key, *_ in COLUMNS if vis[key]]
+        if self.view is None or wanted != list(self.columns):
+            self._rebuild(wanted)
+        loc = self.columns.get("location")
+        if loc is not None:
+            loc.set_title(tr("Emplacement d'origine") if self.pane.mode == "trash" else tr("Emplacement"))
+
+    def _rebuild(self, keys: list):
+        old = self.view
+        model = old.get_model() if old is not None else None
+        adj = self.get_vadjustment()
+        top = adj.get_value() if (old is not None and adj is not None) else 0
+        for key, col in self.columns.items():       # largeurs réglées à la main : gardées
+            self._widths[key] = col.get_fixed_width()
+        if old is not None:
+            old.set_model(None)
+        pane = self.pane
+        view = Gtk.ColumnView(model=None, show_row_separators=False, show_column_separators=False,
+                              reorderable=True, enable_rubberband=True, css_classes=["file-view"])
+        if hasattr(view, "set_tab_behavior"):
+            view.set_tab_behavior(Gtk.ListTabBehavior.ITEM)
+        view.connect("activate", lambda _v, pos: pane.activate_position(pos))
+        view.set_single_click_activate(settings["single_click"])
+        self.columns = {}
+        for key, title, width, xalign, sort_key in COLUMNS:
+            if key not in keys:
+                continue
+            f = Gtk.SignalListItemFactory()
+            if key == "name":
+                f.connect("setup", self._setup_name)
+                f.connect("bind", self._bind_name)
+            else:
+                f.connect("setup", self._setup_text, xalign)
+                f.connect("bind", self._bind_text, key)
+            f.connect("unbind", lambda _f, li: self._untrack(li.get_child()))
+            col = Gtk.ColumnViewColumn(title=title, factory=f, resizable=True, expand=(key == "name"))
+            w = self._widths.get(key, width or -1)
+            if w and w > 0:
+                col.set_fixed_width(w)
+            if sort_key:
+                col.set_sorter(Gtk.CustomSorter.new(lambda *_: 0))
+                col._sort_key = sort_key
+            view.append_column(col)
+            self.columns[key] = col
+        view.get_sorter().connect("changed", self._on_header_sort)
+        bg = Gtk.GestureClick(button=3)
+        bg.connect("pressed", self._on_bg_click)
+        view.add_controller(bg)
+        lp = Gtk.GestureLongPress(touch_only=True)
+        lp.connect("pressed", lambda g, x, y: pane.emit("context-menu", x, y, True))
+        view.add_controller(lp)
+        self.view = view
+        self.set_child(view)
+        self.apply_zoom()
+        self.sync_sort()
+        if model is not None:
+            view.set_model(model)
+            if top:
+                GLib.idle_add(lambda: (self.get_root() is not None and adj.set_value(top), False)[1])
+
+    def _wanted_columns(self) -> dict:
         mode = self.pane.mode
         wanted = set(settings["list_columns"])
         drop = {0: set(), 1: {"perms", "owner", "type"}, 2: {"perms", "owner", "type", "packed", "ratio", "date"},
                 3: {"perms", "owner", "type", "date", "duration", "packed", "ratio", "location"}}[self._narrow]
         wanted -= drop
-        for key, col in self.columns.items():
+        out = {}
+        for key, *_ in COLUMNS:
             if key == "name":
                 vis = True
             elif key in ("packed", "ratio"):
@@ -345,11 +402,12 @@ class ListView(Gtk.ScrolledWindow, _CellMixin):
                 vis = key in wanted and mode != "archive"
             else:
                 vis = key in wanted
-            col.set_visible(vis and key not in drop)
-        loc = self.columns["location"]
-        loc.set_title(tr("Emplacement d'origine") if mode == "trash" else tr("Emplacement"))
+            out[key] = vis and key not in drop
+        return out
 
     def sync_sort(self):
+        if self.view is None:
+            return
         key = SORT_TO_COLUMN.get(self.pane.model.sort_key, "name")
         col = self.columns.get(key)
         self._syncing = True
@@ -368,6 +426,8 @@ class ListView(Gtk.ScrolledWindow, _CellMixin):
         self.pane.set_sort(key, reverse)
 
     def apply_zoom(self):
+        if self.view is None:
+            return
         _size, compact = self.pane.list_zoom
         if compact:
             self.view.add_css_class("compact")

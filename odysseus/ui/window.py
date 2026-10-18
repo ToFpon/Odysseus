@@ -259,7 +259,7 @@ class MainWindow(FileActions, ArchiveActions, ToolActions, Adw.ApplicationWindow
     def _on_close_page(self, view, tp):
         ws = tp.get_child()
         for p in ws.panes:
-            p.model.cancel()
+            p.retire()
         view.close_page_finish(tp, True)
         return True
 
@@ -590,7 +590,50 @@ class MainWindow(FileActions, ArchiveActions, ToolActions, Adw.ApplicationWindow
             app.set_accels_for_action(action, keys)
         self._apply_features()
 
+    # Raccourcis qui ont aussi un sens dans un champ de saisie (recherche, barre d'emplacement…).
+    # GTK 4 traite les raccourcis de l'application AVANT le widget qui a le focus : sans ce renvoi,
+    # Suppr dans la recherche mettait le fichier sélectionné à la corbeille, « / » relançait la
+    # saisie d'emplacement, Retour arrière revenait au dossier précédent, Ctrl+Z annulait une
+    # opération sur les fichiers… Quand un texte a le focus, la touche lui revient.
+    _TEXT_KEYS = {
+        "back": ("signal", "backspace"),
+        "trash": ("signal", "delete-from-cursor", Gtk.DeleteType.CHARS, 1),
+        "delete": ("signal", "cut-clipboard"),                       # Maj+Suppr = couper
+        "location-root": ("signal", "insert-at-cursor", "/"),
+        "location-home": ("signal", "insert-at-cursor", "~"),
+        "cut": ("signal", "cut-clipboard"), "copy": ("signal", "copy-clipboard"),
+        "paste": ("signal", "paste-clipboard"),
+        "select-all": ("action", "selection.select-all"), "unselect-all": ("unselect",),
+        "undo": ("action", "text.undo"), "redo": ("action", "text.redo"),
+    }
+
+    def _text_focus(self) -> Optional[Gtk.Widget]:
+        focus = self.get_focus()
+        return focus if isinstance(focus, (Gtk.Text, Gtk.TextView)) and focus.is_sensitive() else None
+
+    def _to_text(self, name: str) -> bool:
+        """Renvoie la touche au champ de saisie qui a le focus ; False s'il n'y en a pas."""
+        what = self._TEXT_KEYS.get(name)
+        text = self._text_focus() if what else None
+        if text is None:
+            return False
+        if what[0] == "signal":
+            if what[1] == "insert-at-cursor":    # une frappe remplace la sélection
+                if isinstance(text, Gtk.Text):
+                    text.delete_selection()
+                else:
+                    text.get_buffer().delete_selection(True, True)
+            text.emit(what[1], *what[2:])
+        elif what[0] == "action":
+            text.activate_action(what[1], None)
+        elif isinstance(text, Gtk.Text):
+            pos = text.get_position()
+            text.select_region(pos, pos)
+        return True
+
     def _add(self, name, cb, param: Optional[str] = None):
+        if name in self._TEXT_KEYS and not param:
+            cb = (lambda cb=cb, name=name: None if self._to_text(name) else cb())
         a = Gio.SimpleAction.new(name, GLib.VariantType.new(param) if param else None)
         if param:
             a.connect("activate", lambda _a, v, cb=cb: cb(v.unpack()))

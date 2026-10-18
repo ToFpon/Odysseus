@@ -85,7 +85,7 @@ class Workspace(Gtk.Box):
             keep = self.active
             for p in list(self.panes):
                 if p is not keep:
-                    p.model.cancel()
+                    p.retire()
                     self.panes.remove(p)
             self.paned.set_start_child(None)
             self.paned.set_end_child(None)

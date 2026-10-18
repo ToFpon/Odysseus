@@ -112,6 +112,19 @@ Les dialogues ouverts (fenêtres posées sur la principale) sont composés au ce
   (`dialogs.AppChooser` : `Gtk.AppChooserWidget`, le composant de Nautilus 46, déprécié mais présent
   en GTK 4.14 ; ses titres de section viennent des traductions de GTK ; sa treeview a un fond `view`
   opaque : rendu transparent dans base.css, `.odysseus-app-chooser`).
+- Raccourcis : GTK 4 traite ceux de l'application AVANT le widget qui a le focus. Ceux qui ont un
+  sens dans un champ (Suppr, Retour arrière, `/`, `~`, Ctrl+A/X/C/V/Z…) sont renvoyés au texte qui a
+  le focus (`MainWindow._TEXT_KEYS` / `_to_text`) ; testé avec de vrais appuis dans `ui_mouse.py`.
+- GTK 4.14 / Gtk.ColumnView : NE JAMAIS changer la visibilité d'une colonne d'une vue remplie (une
+  cellule libérée reste dans la liste de la colonne → segfault à la suppression suivante d'une ligne,
+  `gtk_column_view_column_queue_resize`). `ListView.update_columns` reconstruit la vue avec les
+  bonnes colonnes. Symboles de libgtk-4 : `.ddeb` sur launchpad.net (même Build ID) + gdb.
+- Ne jamais rebrancher une vue sur son modèle PENDANT un signal items-changed (GtkListItemManager
+  est en plein traitement) : `Pane._on_items_changed` passe par `idle_add`.
+- Panneau retiré (sortie du double panneau, onglet fermé) : `Pane.retire()` (réglages, presse-papiers,
+  modèle débranché). « destroy » n'arrive pas tant que Python garde une référence.
+- Gestionnaires des cellules : ne capturer ni la cellule ni le Gtk.ListItem dans une fermeture
+  (`controller.get_widget()`, `widget._rec`).
 - Ghostscript `pdfimage24` : `-sCompression=JPEG` en majuscules.
 - `view-column-symbolic` n'existe pas dans Adwaita : `icons.first_icon` avec repli.
 - Boutons latéraux de la souris (8/9) : bug de GTK 4.14 (`gtkmain.c`, `handle_pointing_event`) — le

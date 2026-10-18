@@ -81,6 +81,7 @@ class Pane(Gtk.Box):
         self.selection.connect("selection-changed", lambda *_: self._on_selection())
         self.model.connect("state", self._on_state)
         self.model.connect("reset", lambda *_: self._on_reset())
+        self._empty_check_id = 0
         self.model.connect("items-changed", self._on_items_changed)
 
         self.top = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)     # barre de chemin du double panneau
@@ -102,12 +103,28 @@ class Pane(Gtk.Box):
         self.open(location or os.path.expanduser("~"), push=False)
 
     def _cleanup(self):
-        settings.disconnect(self._settings_cb)
+        if getattr(self, "_retired", False):
+            return
+        self._retired = True
+        try:
+            settings.disconnect(self._settings_cb)
+        except (TypeError, ValueError):
+            pass
         try:
             clipboard.state.disconnect(self._clip_id)
         except TypeError:
             pass
         self.model.cancel()
+
+    def retire(self):
+        """Panneau retiré de l'écran (sortie du double panneau, onglet fermé). En GTK 4, « destroy »
+        n'arrive pas tant que Python garde une référence : sans ce ménage, réglages, presse-papiers
+        et modèle continuaient d'agir sur des vues hors de toute fenêtre (lignes créées, colonnes
+        montrées / cachées), ce qui corrompait GTK (segfault à la sortie du double panneau)."""
+        self._cleanup()
+        for view in (self.list_view.view, self.grid_view.view):
+            if view.get_model() is not None:
+                view.set_model(None)
 
     # ------------------------------------------------------------------
     # Construction
@@ -742,6 +759,8 @@ class Pane(Gtk.Box):
     def _attach_views(self):
         """Seule la vue affichée reçoit le modèle : une vue cachée construirait sinon des milliers
         de cellules pour rien (mesuré : 2 000 cases de grille et 200 000 objets demandés)."""
+        if getattr(self, "_retired", False):
+            return
         want = None if (self.view_mode == "columns" and self.mode == "fs") else self.view_mode
         for name, view in (("list", self.list_view.view), ("grid", self.grid_view.view)):
             target = self.selection if name == want else None
@@ -811,13 +830,23 @@ class Pane(Gtk.Box):
 
     def _on_items_changed(self, _m, _pos, removed, added):
         """Fichier arrivé dans un dossier vide (copie, surveillance) ou dernier fichier supprimé :
-        passer de la page « Dossier vide » à la liste, et inversement."""
-        if self.model.loading or self.mode == "search" or not (removed or added):
+        passer de la page « Dossier vide » à la liste, et inversement. Jamais PENDANT le signal :
+        _show_content rebranche la vue sur le modèle, et GTK (GtkListItemManager) est alors au milieu
+        de son propre traitement de items-changed — l'état devient incohérent et GTK plante plus
+        tard (segfault vu après un glisser vers un panneau vide)."""
+        if not (removed or added) or self._empty_check_id:
             return
+        self._empty_check_id = GLib.idle_add(self._check_empty_page)
+
+    def _check_empty_page(self):
+        self._empty_check_id = 0
+        if self.model.loading or self.mode == "search" or self.get_root() is None:
+            return False
         empty_shown = self.stack.get_visible_child_name() == "empty"
         if empty_shown == bool(self.model.items):
             self._show_content()
             self._update_floating()
+        return False
 
     def _on_reset(self):
         if not self.model.loading:
@@ -920,7 +949,7 @@ class Pane(Gtk.Box):
     def scroll_to(self, pos: int):
         v = self.active_view
         if hasattr(v, "scroll_to"):
-            GLib.idle_add(lambda: (v.scroll_to(pos), False)[1])
+            GLib.idle_add(lambda: (v.get_root() is not None and v.scroll_to(pos), False)[1])
 
     def select_all(self):
         if self.view_mode != "columns":
@@ -937,7 +966,8 @@ class Pane(Gtk.Box):
         self.selection.set_selection(inv, Gtk.Bitset.new_range(0, n) if n else Gtk.Bitset.new_empty())
 
     def focus_view(self):
-        self.active_view.focus()
+        if self.get_root() is not None:      # panneau peut-être fermé depuis
+            self.active_view.focus()
         return False
 
     def activate_position(self, pos: int):
