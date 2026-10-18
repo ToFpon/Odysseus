@@ -9,6 +9,7 @@ from typing import Optional
 from gi.repository import Adw, Gdk, GdkPixbuf, GLib, GObject, Gtk, Pango
 
 from ..backend import pdf, thumbnails
+from ..backend.fileops import unique_name
 from ..backend.engine import human_size
 from ..i18n import ntr, tr
 from ..settings import settings
@@ -160,7 +161,8 @@ class MergeDialog:
         page.add(self.group)
         g = Adw.PreferencesGroup(title=tr("Résultat"))
         first = paths[0] if paths else os.path.expanduser("~/fusion.pdf")
-        self.out = path_row(tr("Enregistrer sous"), os.path.join(os.path.dirname(first), tr("fusion.pdf")),
+        folder = os.path.dirname(first)
+        self.out = path_row(tr("Enregistrer sous"), os.path.join(folder, unique_name(folder, tr("fusion.pdf"))),
                             lambda r: choose_save(self.dialog, tr("Enregistrer le PDF"), r.get_text(), r.set_text),
                             icon="document-save-symbolic")
         g.add(self.out)
@@ -229,6 +231,8 @@ class MergeDialog:
         out = self.out.get_text().strip()
         if not out.lower().endswith(".pdf"):
             out += ".pdf"
+        if os.path.lexists(out):       # jamais par-dessus une fusion précédente
+            out = os.path.join(os.path.dirname(out), unique_name(os.path.dirname(out), os.path.basename(out)))
         self.dialog.close()
         _submit(self.window, tr("Fusion de {0} PDF").format(len(items)), lambda j: pdf.merge(j, items, out),
                 lambda j: tr("{0} créé").format(os.path.basename(out)), os.path.dirname(out))

@@ -93,6 +93,16 @@ class BackendTest(unittest.TestCase):
         run(lambda j: archive.extract(j, vol + ".001", archive.ExtractOptions(dest=self.root + "/v")))
         self.assertTrue(os.path.exists(self.root + "/v/projet/sous dossier/data.bin"))
 
+    def test_existing_tar_archive_not_overwritten(self):
+        """TAR.GZ & co. : une archive du même nom (une sauvegarde…) ne doit jamais être écrasée."""
+        out = os.path.join(self.root, "projet.tar.gz")
+        with open(out, "wb") as f:
+            f.write(b"ANCIENNE SAUVEGARDE")
+        made = run(lambda j: archive.create(j, [self.src], out, archive.CreateOptions(fmt="tar.gz")))
+        self.assertEqual(open(out, "rb").read(), b"ANCIENNE SAUVEGARDE")
+        self.assertEqual(os.path.basename(made), "projet (2).tar.gz")
+        self.assertIn("projet/lisez-moi.txt", {e.path for e in archive.list_archive(made).entries})
+
     def test_smart_destination(self):
         out = self.roundtrip("7z")
         o = archive.ExtractOptions(dest=self.root, subfolder="smart")
@@ -186,11 +196,11 @@ class SmartExtractTest(unittest.TestCase):
 
     def test_single_file_next_to_existing(self):
         self._extract("solo.txt.bz2")      # solo.txt existe déjà : pas de dossier « solo.txt »
-        self.assertTrue(os.path.isfile(os.path.join(self.d, "solo_1.txt")))
+        self.assertTrue(os.path.isfile(os.path.join(self.d, "solo (2).txt")))
 
     def test_tar_single_root_twice(self):
-        self.assertEqual(self._extract("un.tar.bz2"), os.path.join(self.d, "racine_1"))
-        self.assertEqual(self._extract("un.tar.bz2"), os.path.join(self.d, "racine_2"))
+        self.assertEqual(self._extract("un.tar.bz2"), os.path.join(self.d, "racine (2)"))
+        self.assertEqual(self._extract("un.tar.bz2"), os.path.join(self.d, "racine (3)"))
         self.assertFalse([n for n in os.listdir(self.d) if n.startswith(".odysseus-extract")])
 
 

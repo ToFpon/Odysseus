@@ -77,11 +77,13 @@ class ArchiveActions:
         def done(job):
             folder = os.path.dirname(out)
             if job.state == "done":
-                size = f" ({human_size(os.path.getsize(out))})" if not each and os.path.exists(out) else ""
-                finished_toast(self, job, tr("{name} créée{size}").format(name=name, size=size) if not each
-                               else tr("Archives créées"), folder)
+                # nom réellement créé : « projet (2).tar.gz » si l'archive existait déjà
+                made = job.result if (not each and isinstance(job.result, str)) else out
+                size = f" ({human_size(os.path.getsize(made))})" if not each and os.path.exists(made) else ""
+                finished_toast(self, job, tr("{name} créée{size}").format(name=os.path.basename(made), size=size)
+                               if not each else tr("Archives créées"), folder)
                 if o.password and settings["remember_passwords"]:
-                    session_passwords[os.path.abspath(out)] = o.password
+                    session_passwords[os.path.abspath(made)] = o.password
             else:
                 finished_toast(self, job, "")
         self._watch_progress(manager.submit(title, func, done))

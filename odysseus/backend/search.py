@@ -152,8 +152,19 @@ def preview_replace(q: Query, matches: list[Match], replacement: str) -> list[tu
     return out
 
 
-def apply_replace(q: Query, targets: dict, replacement: str, backup: bool = True) -> tuple[int, int, list]:
-    """targets : chemin → ensemble de numéros de ligne. Renvoie (remplacements, fichiers, erreurs)."""
+def backup_name(path: str) -> str:
+    """« fichier.bak », ou « .bak2 », « .bak3 »… : jamais par-dessus une sauvegarde existante."""
+    out, n = path + ".bak", 1
+    while os.path.lexists(out):
+        n += 1
+        out = f"{path}.bak{n}"
+    return out
+
+
+def apply_replace(q: Query, targets: dict, replacement: str, backup: bool = True,
+                  backups: Optional[list] = None) -> tuple[int, int, list]:
+    """targets : chemin → ensemble de numéros de ligne. Renvoie (remplacements, fichiers, erreurs).
+    backups, si fourni, reçoit les sauvegardes créées."""
     rx = compile_rx(q)
     repl = replacement if q.regex else replacement.replace("\\", "\\\\")
     total = files = 0
@@ -169,7 +180,9 @@ def apply_replace(q: Query, targets: dict, replacement: str, backup: bool = True
         except OSError as e:
             errors.append((path, e.strerror or str(e)))
             continue
-        parts = text.splitlines(keepends=True)
+        # lignes coupées sur « \n » seulement, comme ripgrep qui a donné les numéros : splitlines()
+        # coupe aussi sur \r, \f, \x85, U+2028… et la mauvaise ligne était modifiée
+        parts = text.split("\n")
         n_file = 0
         for i in range(len(parts)):
             if i + 1 in lines:
@@ -181,11 +194,14 @@ def apply_replace(q: Query, targets: dict, replacement: str, backup: bool = True
             continue
         try:
             if backup:
-                shutil.copy2(path, path + ".bak")
+                bak = backup_name(path)
+                shutil.copy2(path, bak)
+                if backups is not None:
+                    backups.append(bak)
             st = os.stat(path)
             tmp = path + ".odysseus-tmp"
             with open(tmp, "w", encoding="utf-8", newline="") as fh:
-                fh.write("".join(parts))
+                fh.write("\n".join(parts))
             os.chmod(tmp, st.st_mode & 0o7777)
             os.replace(tmp, path)
             total += n_file

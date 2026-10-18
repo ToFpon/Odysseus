@@ -221,6 +221,45 @@ class SearchTest(unittest.TestCase):
         self.assertTrue(os.path.exists(a + ".bak"))
 
 
+class ReplaceTest(unittest.TestCase):
+    """Rechercher / remplacer (retours de l'agent de test)."""
+
+    def setUp(self):
+        self.tmp = tempfile.TemporaryDirectory()
+        self.d = self.tmp.name
+
+    def tearDown(self):
+        self.tmp.cleanup()
+
+    def test_line_numbers_like_ripgrep(self):
+        # \f, \r seul, \x85, U+2028 ne sont pas des fins de ligne pour ripgrep
+        for name, text in (("ff.c", "a\fb\nCIBLE\n"), ("cr.txt", "a\rb\nCIBLE\n"),
+                           ("nel.txt", "a\x85b\nCIBLE\n"), ("u2028.txt", "a\u2028CIBLE\nCIBLE\n"),
+                           ("crlf.txt", "x\r\nCIBLE\r\n")):
+            p = os.path.join(self.d, name)
+            with open(p, "w", encoding="utf-8", newline="") as f:
+                f.write(text)
+            q = search.Query(pattern="CIBLE", folder=self.d)
+            total, files, errors = search.apply_replace(q, {p: {2}}, "OK", backup=False)
+            with open(p, encoding="utf-8", newline="") as f:
+                got = f.read()
+            self.assertEqual(got, text.replace("\nCIBLE", "\nOK", 1) if name != "u2028.txt"
+                             else "a\u2028CIBLE\nOK\n", name)
+            self.assertEqual(total, 1, name)
+
+    def test_backup_never_overwrites_existing_bak(self):
+        p = os.path.join(self.d, "f.txt")
+        with open(p, "w") as f:
+            f.write("bonjour\n")
+        with open(p + ".bak", "w") as f:
+            f.write("MA SAUVEGARDE")
+        made = []
+        search.apply_replace(search.Query(pattern="bonjour", folder=self.d), {p: {1}}, "salut", True, made)
+        self.assertEqual(open(p + ".bak").read(), "MA SAUVEGARDE")
+        self.assertEqual(made, [p + ".bak2"])
+        self.assertEqual(open(p + ".bak2").read(), "bonjour\n")
+
+
 class PoolTest(unittest.TestCase):
     def test_stuck_workers_do_not_block_others(self):
         """Deux fils coincés (stat sur un montage réseau mort) : une nouvelle tâche passe quand même."""

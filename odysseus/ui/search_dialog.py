@@ -38,6 +38,7 @@ class ContentSearchWindow(Adw.Window):
         self.folder = folder or os.path.expanduser("~")
         self._cancel = threading.Event()
         self._running = False
+        self._backups: set = set()     # sauvegardes .bak créées ici : pas proposées au remplacement suivant
         self.query = None
         self.toast_overlay = Adw.ToastOverlay()
         tv = Adw.ToolbarView()
@@ -222,6 +223,7 @@ class ContentSearchWindow(Adw.Window):
         self.status.set_text(tr("Recherche en cours…"))
 
         def add(batch):
+            batch = [m for m in batch if m.path not in self._backups]
             if replacing:
                 items = [ResultItem(m, after) for m, after in search.preview_replace(q, batch, replacement)]
             else:
@@ -279,8 +281,9 @@ class ContentSearchWindow(Adw.Window):
         q, replacement = self.query, self.replace.get_text()
 
         def work():
-            res = search.apply_replace(q, targets, replacement, backup)
-            GLib.idle_add(self._replaced, *res)
+            made = []
+            res = search.apply_replace(q, targets, replacement, backup, made)
+            GLib.idle_add(lambda: (self._backups.update(made), self._replaced(*res))[1])
         threading.Thread(target=work, daemon=True).start()
         self.status.set_text(tr("Remplacement en cours…"))
 

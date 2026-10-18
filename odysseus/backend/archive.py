@@ -463,6 +463,11 @@ def create(job: Job, sources: list[str], out: str, o: CreateOptions) -> str:
         job.run_tool(build_7z_create(sources, out, o), label=tr("Compression"))
         return out
 
+    if os.path.lexists(out):
+        # tar.*, gz, xz… : pas de mise à jour possible comme en 7z/zip, et os.replace écrasait sans
+        # question l'archive existante (une sauvegarde…) : on garde les deux, comme Nautilus
+        from .fileops import unique_name
+        out = os.path.join(os.path.dirname(out), unique_name(os.path.dirname(out) or ".", os.path.basename(out)))
     tmp_out = out + ".part"
     total = total_size(sources)
     try:
@@ -595,13 +600,12 @@ def describe_extract(archive: str, o: ExtractOptions) -> str:
 
 
 def _unique_path(path: str) -> str:
-    if not os.path.exists(path):
+    """« projet (2) », « notes (2).txt »… comme partout ailleurs (et comme Nautilus)."""
+    if not os.path.lexists(path):
         return path
-    root, ext = os.path.splitext(path)
-    i = 1
-    while os.path.exists(f"{root}_{i}{ext}"):
-        i += 1
-    return f"{root}_{i}{ext}"
+    from .fileops import unique_name
+    folder = os.path.dirname(path) or "."
+    return os.path.join(folder, unique_name(folder, os.path.basename(path), os.path.isdir(path)))
 
 
 _DANGEROUS_LINK = re.compile(r"ERROR:\s*Dangerous link path was ignored : (.+?) : (.*)$")
