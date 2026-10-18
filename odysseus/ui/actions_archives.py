@@ -98,6 +98,8 @@ class ArchiveActions:
 
     # -- extraction ------------------------------------------------------
     def extract_dialog(self):
+        if not features.available("archives"):      # désactivée : les raccourcis aussi (Ctrl+E)
+            return
         arcs = self._selected_archives()
         if not arcs:
             return
@@ -107,6 +109,8 @@ class ArchiveActions:
         ExtractDialog(self, arcs, self.run_extract, password=pw).present(self)
 
     def extract_selected(self):
+        if not features.available("archives"):
+            return
         p = self.pane
         if p.mode != "archive":
             return self.extract_dialog()
@@ -118,6 +122,8 @@ class ArchiveActions:
 
     def extract_quick(self, subfolder: str):
         """« Extraire ici » : dossier intelligent à côté de l'archive (comme Extract Here)."""
+        if not features.available("archives"):      # désactivée : Ctrl+Maj+E aussi
+            return
         p = self.pane
         arcs = self._selected_archives()
         files = [r.get("inner", r.name) for r in p.selected_recs()] if p.mode == "archive" else []
@@ -238,7 +244,7 @@ class ArchiveActions:
                     self.preview_archive_item(pane, rec, external)
                 self._handle_job_error(job, arch, retry)
                 return
-            target = os.path.join(job.result, inner)
+            target = os.path.join(job.result, os.path.basename(inner.rstrip("/")))
             if not external and formats.looks_like_archive(rec.name):
                 pane.open_archive(target)
             else:
@@ -287,7 +293,9 @@ class ArchiveActions:
                     pane.refresh()
             manager.submit(tr("Renommage dans l'archive"),
                            lambda j: archive.rename_in_archive(j, arch, old, parent + new, pw), done)
-        self.ask_name(tr("Renommer"), rec.name, tr("Renommer"), apply, current=rec.name)
+        # 7-Zip accepte un nom déjà pris et crée un doublon dans l'archive : refusé dès la saisie
+        taken = {r.name for r in pane.model.all}
+        self.ask_name(tr("Renommer"), rec.name, tr("Renommer"), apply, current=rec.name, taken=taken)
 
     def delete_in_archive(self, pane):
         if not formats.is_modifiable(pane.archive_path):

@@ -141,6 +141,27 @@ class BackendTest(unittest.TestCase):
             self.assertEqual(r.stdout.strip(), "['secret.txt']", fmt)
             self.assertTrue(os.path.exists(out), fmt)
 
+    def test_extract_into_existing_folder_and_selected_items(self):
+        """« Extraire dans un dossier » : un dossier neuf, jamais celui du même nom qui existe ; éléments
+        choisis : posés sans leur chemin dans l'archive (pas dans le dossier source à côté)."""
+        arc = os.path.join(self.root, "projet.zip")
+        run(lambda j: archive.create(j, [self.src], arc, archive.CreateOptions(fmt="zip")))
+        with open(os.path.join(self.src, "lisez-moi.txt"), "w") as f:
+            f.write("MODIFIÉ DEPUIS")
+        for over in ("rename", "overwrite"):
+            dest = run(lambda j: archive.extract(j, arc, archive.ExtractOptions(subfolder="always", overwrite=over)))
+            self.assertNotEqual(dest, self.src)
+        self.assertEqual(open(os.path.join(self.src, "lisez-moi.txt")).read(), "MODIFIÉ DEPUIS")
+        before = sorted(os.listdir(self.src))
+        out = os.path.join(self.root, "choix")
+        os.makedirs(out)
+        run(lambda j: archive.extract(j, arc, archive.ExtractOptions(dest=out, subfolder="never",
+                                                                      files=["projet/lisez-moi.txt"])))
+        self.assertEqual(os.listdir(out), ["lisez-moi.txt"])
+        self.assertEqual(sorted(os.listdir(self.src)), before)
+        tmp = run(lambda j: archive.extract_to_temp(j, arc, ["projet/sous dossier"]))
+        self.assertEqual(os.listdir(tmp), ["sous dossier"])
+
     def test_smart_destination(self):
         out = self.roundtrip("7z")
         o = archive.ExtractOptions(dest=self.root, subfolder="smart")

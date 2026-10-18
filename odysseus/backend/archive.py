@@ -601,7 +601,9 @@ def resolve_destination(archive: str, o: ExtractOptions, listing: Optional[Archi
     dest = o.dest or os.path.dirname(os.path.abspath(archive))
     base = formats.detect(archive).base_name or "archive"
     if o.subfolder == "always":
-        return os.path.join(dest, base)
+        # un dossier NEUF : extraire dans un dossier existant du même nom mélangeait (ou, avec
+        # « Remplacer », écrasait) ce qu'il contenait
+        return _unique_path(os.path.join(dest, base))
     if o.subfolder == "smart" and not o.files:
         if listing is None:
             try:
@@ -780,10 +782,42 @@ def _extract_smart(job: Job, archive: str, det, o: ExtractOptions) -> str:
             shutil.rmtree(tmp, ignore_errors=True)
 
 
+def _extract_selected(job: Job, archive: str, det, o: ExtractOptions) -> str:
+    """Éléments choisis dans l'archive : posés à destination SANS leur chemin dans l'archive
+    (« projet/doc.txt » → « doc.txt »), comme un glisser hors de l'archive. 7-Zip les recréait
+    avec leur chemin, donc dans le dossier source « projet » s'il existait à côté de l'archive."""
+    dest = resolve_destination(archive, o)
+    os.makedirs(dest, exist_ok=True)
+    tmp = tempfile.mkdtemp(prefix=".odysseus-extract-", dir=dest)
+    try:
+        _extract_into(job, archive, det, o, tmp)
+        job.check_cancel()
+        for inner in o.files:
+            src = os.path.join(tmp, inner.strip("/"))
+            if not os.path.lexists(src):
+                continue
+            final = os.path.join(dest, os.path.basename(inner.rstrip("/")))
+            if os.path.lexists(final):
+                if o.overwrite == "skip":
+                    continue
+                if o.overwrite == "overwrite" and not os.path.isdir(final):
+                    os.remove(final)
+                elif o.overwrite == "rename_existing":
+                    os.replace(final, _unique_path(final))
+                else:
+                    final = _unique_path(final)
+            os.rename(src, final)
+    finally:
+        shutil.rmtree(tmp, ignore_errors=True)
+    return dest
+
+
 def extract(job: Job, archive: str, o: ExtractOptions) -> str:
     det = formats.detect(archive)
     if o.subfolder == "smart" and not o.files:
         dest = _extract_smart(job, archive, det, o)
+    elif o.files and o.keep_paths and det.kind != "stream":
+        dest = _extract_selected(job, archive, det, o)
     else:
         dest = resolve_destination(archive, o)
         os.makedirs(dest, exist_ok=True)

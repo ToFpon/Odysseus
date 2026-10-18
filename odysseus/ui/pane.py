@@ -257,7 +257,9 @@ class Pane(Gtk.Box):
         job = Job("drag", lambda j: archive.extract_to_temp(j, self.archive_path, inner, self.password)).run_sync()
         if job.state != "done" or not job.result:
             return []
-        return [os.path.join(job.result, i) for i in inner if os.path.exists(os.path.join(job.result, i))]
+        # éléments posés sans leur chemin dans l'archive (archive._extract_selected)
+        out = [os.path.join(job.result, os.path.basename(i.rstrip("/"))) for i in inner]
+        return [p for p in out if os.path.lexists(p)]
 
     def _decide_action(self, drop: Optional[Gdk.Drop], dest: str, paths: Optional[list] = None) -> str:
         """Comme Nautilus : déplacer sur le même disque, copier ailleurs ; Ctrl copie, Maj déplace."""

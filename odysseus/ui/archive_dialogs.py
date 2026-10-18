@@ -193,6 +193,15 @@ class CreateDialog:
             base, _ = formats.split_archive_name(name)
             if base.endswith(".run"):
                 base = base[:-4]
+            # un seul fichier : « notes.txt » → « notes.txt.gz » en GZ / XZ… (un seul fichier, l'extension
+            # doit survivre à la décompression), « notes.zip » en ZIP / 7Z… (si la base n'a pas été
+            # changée à la main)
+            srcs = [self.convert_from] if self.convert_from else self.sources
+            if len(srcs) == 1 and os.path.isfile(srcs[0]) and not self.convert_from:
+                full = os.path.basename(srcs[0])
+                stem = os.path.splitext(full)[0] or full
+                if base in (full, stem):
+                    base = stem if f.multi else full
             new = os.path.join(folder, f"{base}.{f.ext}")
             if new != out:
                 self.out_row.set_text(new)

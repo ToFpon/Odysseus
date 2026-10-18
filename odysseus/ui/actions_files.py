@@ -434,7 +434,7 @@ class FileActions:
     # Renommer, créer
     # ------------------------------------------------------------------
     def ask_name(self, heading: str, initial: str, action: str, callback, folder: str = "",
-                 select_stem: bool = True, current: str = ""):
+                 select_stem: bool = True, current: str = "", taken: Optional[set] = None):
         """Saisie d'un nom avec vérification immédiate (vide, « / », déjà existant)."""
         row = Adw.EntryRow(title=tr("Nom"), text=initial)
         box = Gtk.ListBox(css_classes=["boxed-list"], selection_mode=Gtk.SelectionMode.NONE)
@@ -456,6 +456,8 @@ class FileActions:
             if err:
                 return err
             if folder and text != current and os.path.lexists(os.path.join(folder, text)):
+                return tr("« {0} » existe déjà").format(text)
+            if taken is not None and text != current and text in taken:      # noms dans une archive
                 return tr("« {0} » existe déjà").format(text)
             return ""
 
