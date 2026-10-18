@@ -66,6 +66,16 @@ class PdfTest(unittest.TestCase):
         files = run(lambda j: pdf.split_pages(j, self.b, self.d, 3))
         self.assertEqual(len(files), 2)
 
+    def test_split_never_overwrites(self):
+        mine = os.path.join(self.d, "a-1.pdf")
+        with open(mine, "w") as f:
+            f.write("mon fichier")
+        files = run(lambda j: pdf.split_pages(j, self.a, self.d, 1))
+        self.assertEqual(open(mine).read(), "mon fichier")
+        self.assertEqual([os.path.basename(f) for f in files], ["a-1 (2).pdf", "a-2.pdf", "a-3.pdf"])
+        again = run(lambda j: pdf.split_pages(j, self.a, self.d, 1))
+        self.assertEqual([os.path.basename(f) for f in again], ["a-1 (3).pdf", "a-2 (2).pdf", "a-3 (2).pdf"])
+
     def test_output_permissions(self):
         """Fichiers produits avec les droits d'un fichier ordinaire (mkstemp crée en 0600), et un
         original modifié sur place garde les siens."""

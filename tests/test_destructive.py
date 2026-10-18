@@ -63,6 +63,17 @@ def write(path, data):
         fh.write(data)
 
 
+def _purge_trash(prefix):
+    """Les tests de corbeille passent par la VRAIE corbeille (GIO) : on en retire ce qu'ils y ont mis."""
+    for info, f in fileops.trash_items(None):
+        orig = info.get_attribute_byte_string("trash::orig-path") or ""
+        if orig == prefix or orig.startswith(prefix.rstrip("/") + "/"):
+            try:
+                f.delete(None)
+            except Exception:  # noqa: BLE001
+                pass
+
+
 class DestructiveTest(unittest.TestCase):
     def setUp(self):
         self.tmp = tempfile.TemporaryDirectory()
@@ -80,6 +91,7 @@ class DestructiveTest(unittest.TestCase):
 
     def tearDown(self):
         self.assertEqual(tree(self.outside), self.outside_snapshot, "un fichier hors opération a été modifié")
+        _purge_trash(self.d)
         self.tmp.cleanup()
 
     # -- remplacer ---------------------------------------------------------
@@ -351,6 +363,45 @@ class DestructiveTest(unittest.TestCase):
                                                  move=True)).run_sync()
         self.assertEqual(j.state, "failed")
         self.assertEqual(tree(self.src), before)
+
+    # -- liens symboliques vers le même dossier, remplacements qui échouent -------------------
+    def test_move_to_same_folder_through_link_changes_nothing(self):
+        docs = os.path.join(self.d, "Documents")
+        write(os.path.join(docs, "Projet", "rapport.txt"), "précieux")
+        write(os.path.join(docs, "Projet", "sub", "x.txt"), "x")
+        os.symlink(docs, os.path.join(self.d, "Docs-lien"))
+        before = tree(docs)
+        for answer in ("replace", "merge"):
+            run(lambda j: fileops.transfer(j, [os.path.join(docs, "Projet")], os.path.join(self.d, "Docs-lien"),
+                                           ask(answer), move=True))
+            self.assertEqual(tree(docs), before, f"déplacement sur lui-même ({answer})")
+
+    def test_copy_to_same_folder_through_link_makes_a_copy(self):
+        docs = os.path.join(self.d, "Documents")
+        write(os.path.join(docs, "rapport.txt"), "précieux")
+        os.symlink(docs, os.path.join(self.d, "Docs-lien"))
+        run(lambda j: fileops.transfer(j, [os.path.join(docs, "rapport.txt")], os.path.join(self.d, "Docs-lien"),
+                                       ask("merge")))
+        self.assertEqual(open(os.path.join(docs, "rapport.txt")).read(), "précieux")
+        self.assertEqual(len(os.listdir(docs)), 2, "« rapport (copie).txt » attendu")
+
+    def test_failed_nested_replace_keeps_sources_on_move(self):
+        other = tempfile.mkdtemp(dir="/dev/shm") if os.path.isdir("/dev/shm") else None
+        if not other or os.stat(other).st_dev == os.stat(self.d).st_dev:
+            self.skipTest("pas de second système de fichiers")
+        try:
+            write(os.path.join(other, "A", "S", "f1.txt"), "f1")
+            write(os.path.join(other, "A", "S", "f2.txt"), "f2")
+            os.mkfifo(os.path.join(other, "A", "S", "tube"))       # erreur : le remplacement échoue
+            write(os.path.join(self.dst, "A", "S"), "un fichier S")
+            answers = iter(["merge", "replace"])
+            Job("x", lambda j: fileops.transfer(j, [os.path.join(other, "A")], self.dst,
+                                                lambda c: (next(answers), False), move=True)).run_sync()
+            for n in ("f1.txt", "f2.txt"):
+                self.assertTrue(os.path.exists(os.path.join(other, "A", "S", n)), f"{n} perdu")
+            self.assertEqual(open(os.path.join(self.dst, "A", "S")).read(), "un fichier S")
+        finally:
+            shutil.rmtree(other, ignore_errors=True)
 
     # -- corbeille et annulation ------------------------------------------------------
     def _trash_supported(self):

@@ -53,7 +53,12 @@ xvfb-run -a python3.12 tests/ui_smoke.py            # interface : doit finir par
 LANGUAGE=en xvfb-run -a python3.12 tests/ui_smoke.py
 LANGUAGE=de xvfb-run -a python3.12 tests/ui_smoke.py
 xvfb-run -a -s "-screen 0 1600x1000x24" python3.12 tests/ui_mouse.py   # vrais clics (xdotool)
+ODYSSEUS_UI_GVFS=1 dbus-run-session -- xvfb-run -a python3.12 tests/ui_smoke.py   # + corbeille GVfs
 ```
+
+Sans `ODYSSEUS_UI_GVFS`, les étapes qui lisent trash:/// sont sautées : ui_smoke lance alors lui-même
+gvfsd sur son HOME jetable (un gvfsd lancé à part garde le vrai HOME et montre la vraie corbeille).
+Les tests de corbeille du moteur retirent de la vraie corbeille ce qu'ils y ont mis (`_purge_trash`).
 
 `tests/test_destructive.py` : remplacer, fusionner, annuler, déplacer entre deux systèmes de fichiers,
 liens symboliques, corbeille — sur un arbre jetable, avec un dossier « précieux » qui ne doit jamais
@@ -63,6 +68,10 @@ changer. Règles : un déplacement ne supprime à la source que ce qui a été c
 Dossier remplacé : `renameat2(RENAME_EXCHANGE)` (ctypes, `_exchange`), le nom visé existe à tout
 instant ; repli en deux renommages là où ce n'est pas géré (FAT, FUSE : testé sur ntfs-3g).
 Annulation testée en annulant après N octets copiés (pas de délai fixe : la copie va trop vite).
+Même élément vu à travers un lien symbolique (`Docs-lien → Documents`) : comparé par `_real_location`
+(parent résolu + nom), jamais par `abspath` — sinon déplacer « sur lui-même » vidait le dossier.
+Remplacement abandonné (erreur dans la copie temporaire) : `_Copier._forget` retire ses fichiers de
+`copied`, sinon `_prune_moved` les supprimait de la source alors qu'ils n'existaient plus nulle part.
 
 Supports amovibles (`backend/fsinfo.py`, type lu dans `/proc/self/mountinfo`, sans `stat`) : vers
 FAT / exFAT / NTFS, noms nettoyés (`: ? * " < > | \\`, points et espaces finaux → `safe_name`),
@@ -86,6 +95,14 @@ qui protège ; il renvoie une erreur quand il IGNORE un lien dangereux alors que
 extrait : `archive.skipped_links` reconnaît ce cas (on garde, on prévient). Il réécrit aussi les liens
 absolus d'un tar vers l'intérieur du dossier de sortie (notre dossier temporaire caché) :
 `_restore_absolute_links` leur rend leur cible une fois l'extraction finie.
+Toute extraction passe par un dossier temporaire caché dans la destination, puis est rangée par
+nous (`_merge_into` : un lien déjà présent à destination n'est jamais suivi ; 7-Zip, lui, écrivait à
+travers). « Supprimer l'archive après » : gardée si des éléments ont été ignorés (`archive_kept`).
+Sorties qui n'écrasent jamais : `archive.free_output` (« nom (2) », premier volume `.001` compris ;
+en 7z / zip, `update_mode="new"` par défaut, la mise à jour d'une archive existante reste un choix
+explicite du dialogue), fichier temporaire `_tmp_name` (jamais un « X.part » existant), Éclater PDF,
+Pages / filigrane (`pdf_dialogs._free_output`, au lancement). Compression + « supprimer après » :
+les fichiers illisibles (absents de l'archive) restent (`_remove_sources(keep=…)`).
 
 `workers.Pool` : un fil bloqué dans un appel système ne se tue pas ; si tous sont pris depuis plus
 de 3 s, un fil est ajouté (6 au plus).

@@ -333,7 +333,7 @@ class CreateOptions:
     sfx: bool = False
     delete_after: bool = False
     excludes: list = field(default_factory=list)
-    update_mode: str = "add"         # add, update, sync, fresh
+    update_mode: str = "new"         # new (« nom (2) » si l'archive existe), add, update, sync, fresh
     dictionary: str = ""             # ex. « 64m »
     extra_args: str = ""             # options 7-Zip libres (utilisateurs avancés)
 
@@ -373,7 +373,7 @@ def default_output(sources: list[str], fmt_key: str, sfx: bool = False) -> str:
 
 def build_7z_create(sources: list[str], out: str, o: CreateOptions) -> list[str]:
     fmt = formats.FORMATS_BY_KEY[o.fmt]
-    cmd = {"add": "a", "update": "u", "sync": "u", "fresh": "u"}.get(o.update_mode, "a")
+    cmd = {"new": "a", "add": "a", "update": "u", "sync": "u", "fresh": "u"}.get(o.update_mode, "a")
     argv = [_7z(), cmd, "-t" + fmt.sevenz_type]
     if o.update_mode == "sync":
         argv.append("-uq0")      # supprime de l'archive ce qui n'existe plus sur disque
@@ -446,12 +446,68 @@ def describe_create(sources: list[str], out: str, o: CreateOptions) -> str:
         return str(e)
 
 
-def _remove_sources(sources: list[str]):
+def _remove_sources(sources: list[str], keep: frozenset = frozenset()):
+    """Supprime les sources après compression, sauf keep (fichiers absents de l'archive : illisibles)
+    et les dossiers qui les contiennent."""
     for s in sources:
+        s = os.path.abspath(s).rstrip("/")
         if os.path.isdir(s) and not os.path.islink(s):
-            shutil.rmtree(s, ignore_errors=True)
-        elif os.path.lexists(s):
+            if not keep:
+                shutil.rmtree(s, ignore_errors=True)
+                continue
+            for root, dirs, files in os.walk(s, topdown=False):
+                for n in files + [d for d in dirs if os.path.islink(os.path.join(root, d))]:
+                    p = os.path.join(root, n)
+                    if p not in keep:
+                        try:
+                            os.remove(p)
+                        except OSError:
+                            pass
+                for n in dirs:
+                    try:
+                        os.rmdir(os.path.join(root, n))      # vide seulement
+                    except OSError:
+                        pass
+            try:
+                os.rmdir(s)
+            except OSError:
+                pass
+        elif os.path.lexists(s) and s not in keep:
             os.remove(s)
+
+
+def _skipped_paths(sources: list[str], skipped: list) -> Optional[frozenset]:
+    """Chemins absolus des fichiers sautés par tar (noms relatifs au parent de chaque source).
+    None si l'un d'eux ne se retrouve pas : on ne supprime alors rien."""
+    out = set()
+    parents = {os.path.dirname(os.path.abspath(s).rstrip("/")) for s in sources}
+    for name, _why in skipped:
+        cands = [name] if os.path.isabs(name) else [os.path.join(d, name) for d in parents]
+        hit = [c for c in cands if os.path.lexists(c)]
+        if not hit:
+            return None
+        out.update(os.path.normpath(c) for c in hit)
+    return frozenset(out)
+
+
+def free_output(out: str, volumes: bool = False) -> str:
+    """Nom de sortie libre : « nom (2).ext » si l'archive (ou son premier volume) existe déjà.
+    Jamais d'écrasement ni de mise à jour silencieuse d'une archive existante (une sauvegarde…)."""
+    from .fileops import split_ext
+    folder, name = os.path.dirname(out) or ".", os.path.basename(out)
+
+    def taken(n):
+        p = os.path.join(folder, n)
+        return os.path.lexists(p) or (volumes and os.path.lexists(p + ".001"))
+    if not taken(name):
+        return out
+    base, ext = split_ext(name)
+    n = 2
+    while True:
+        cand = f"{base} ({n}){ext}"
+        if not taken(cand):
+            return os.path.join(folder, cand)
+        n += 1
 
 
 _7Z_UNREADABLE = re.compile(r"^(.+?) : errno=\d+ : (.+)$")
@@ -495,18 +551,18 @@ def create(job: Job, sources: list[str], out: str, o: CreateOptions) -> str:
     if not sources:
         raise ToolError(tr("Aucun fichier à compresser"))
     os.makedirs(os.path.dirname(os.path.abspath(out)) or ".", exist_ok=True)
+    if fmt.engine != "7z" or o.update_mode == "new":
+        # tar.*, gz… ne savent pas mettre à jour ; en 7z / zip, « a » modifiait sans question
+        # l'archive existante (une sauvegarde…) : on garde les deux, comme Nautilus
+        out = free_output(out, volumes=bool(o.volume_size))
     if fmt.engine == "7z":
         text = job.run_tool(build_7z_create(sources, out, o), label=tr("Compression"))
         # 7-Zip saute un fichier illisible avec un simple avertissement (code 1) : on le dit
         job.skipped_files = getattr(job, "skipped_files", []) + unreadable_from_7z(text)
         return out
 
-    if os.path.lexists(out):
-        # tar.*, gz, xz… : pas de mise à jour possible comme en 7z/zip, et os.replace écrasait sans
-        # question l'archive existante (une sauvegarde…) : on garde les deux, comme Nautilus
-        from .fileops import unique_name
-        out = os.path.join(os.path.dirname(out), unique_name(os.path.dirname(out) or ".", os.path.basename(out)))
-    tmp_out = out + ".part"
+    from .fileops import _tmp_name
+    tmp_out = _tmp_name(os.path.dirname(os.path.abspath(out)), "archive")   # jamais un « X.part » existant
     total = total_size(sources)
     try:
         if fmt.engine == "tar":
@@ -556,7 +612,12 @@ def create(job: Job, sources: list[str], out: str, o: CreateOptions) -> str:
         from .tools import split_file, parse_size
         split_file(job, out, parse_size(o.volume_size), remove_original=True)
     if o.delete_after:
-        _remove_sources(sources)
+        skipped = getattr(job, "skipped_files", [])
+        keep = _skipped_paths(sources, skipped) if skipped else frozenset()
+        if keep is not None:          # un fichier sauté introuvable : on ne supprime rien
+            _remove_sources(sources, keep)
+        else:
+            job.sources_kept = True
     return out
 
 
@@ -573,7 +634,7 @@ def create_each(job: Job, sources: list[str], out_dir: str, o: CreateOptions) ->
         sub._procs = job._procs
         sub.subscribe(lambda sj, i=i: job.progress((i + sj.fraction) / n,
                                                    f"[{i + 1}/{n}] {sj.status}"))
-        create(sub, [s], out, o)
+        out = create(sub, [s], out, o)
         job.commands += sub.commands
         results.append(out)
     return results
@@ -763,6 +824,7 @@ def _extract_smart(job: Job, archive: str, det, o: ExtractOptions) -> str:
             src, final = os.path.join(tmp, entries[0]), os.path.join(parent, entries[0])
             if os.path.lexists(final):
                 if o.overwrite == "skip":
+                    job.extract_skipped = True
                     return parent
                 if o.overwrite == "overwrite" and not os.path.isdir(final):
                     os.remove(final)
@@ -799,6 +861,7 @@ def _extract_selected(job: Job, archive: str, det, o: ExtractOptions) -> str:
             final = os.path.join(dest, os.path.basename(inner.rstrip("/")))
             if os.path.lexists(final):
                 if o.overwrite == "skip":
+                    job.extract_skipped = True
                     continue
                 if o.overwrite == "overwrite" and not os.path.isdir(final):
                     os.remove(final)
@@ -819,20 +882,55 @@ def extract(job: Job, archive: str, o: ExtractOptions) -> str:
     elif o.files and o.keep_paths and det.kind != "stream":
         dest = _extract_selected(job, archive, det, o)
     else:
+        # Extraction dans un dossier temporaire caché, puis rangement par nous-mêmes : 7-Zip, lui,
+        # écrivait à travers un lien symbolique déjà présent à destination (« x » → dossier
+        # extérieur : « x/f.txt » atterrissait dehors). Une annulation ne laisse rien derrière elle.
         dest = resolve_destination(archive, o)
         os.makedirs(dest, exist_ok=True)
-        before = set(os.listdir(dest))
+        tmp = tempfile.mkdtemp(prefix=".odysseus-extract-", dir=dest)
         try:
-            _extract_into(job, archive, det, o, dest)
-        except BaseException:
-            # annulation ou erreur : retirer ce que l'extraction avait commencé à créer
-            for name in set(os.listdir(dest)) - before:
-                _remove(os.path.join(dest, name))
-            raise
+            _extract_into(job, archive, det, o, tmp)
+            job.check_cancel()
+            if _merge_into(tmp, dest, o.overwrite):
+                job.extract_skipped = True
+        finally:
+            shutil.rmtree(tmp, ignore_errors=True)
     if o.delete_after:
-        for v in volume_set(archive):
-            os.remove(v)
+        if getattr(job, "extract_skipped", False):
+            job.archive_kept = True     # des éléments ont été ignorés : l'archive en est la seule copie
+        else:
+            for v in volume_set(archive):
+                os.remove(v)
     return dest
+
+
+def _merge_into(src_dir: str, dest_dir: str, overwrite: str) -> bool:
+    """Range le contenu extrait (src_dir) dans dest_dir. Un dossier n'est fusionné que s'il est un
+    vrai dossier des deux côtés : un lien symbolique à destination n'est jamais suivi, il est traité
+    comme un fichier. True si des éléments ont été ignorés (déjà présents, choix « Ignorer »)."""
+    skipped = False
+    for name in os.listdir(src_dir):
+        src, dst = os.path.join(src_dir, name), os.path.join(dest_dir, name)
+        src_dir_real = os.path.isdir(src) and not os.path.islink(src)
+        if not os.path.lexists(dst):
+            os.rename(src, dst)
+            continue
+        if src_dir_real and os.path.isdir(dst) and not os.path.islink(dst):
+            skipped |= _merge_into(src, dst, overwrite)
+            continue
+        if overwrite == "skip":
+            skipped = True
+        elif overwrite == "overwrite" and os.path.isdir(dst) and not os.path.islink(dst):
+            os.rename(src, _unique_path(dst))     # un fichier ne remplace jamais tout un dossier
+        elif overwrite == "overwrite":
+            from .fileops import _swap_into
+            _swap_into(src, dst)
+        elif overwrite == "rename_existing":
+            os.rename(dst, _unique_path(dst))
+            os.rename(src, dst)
+        else:
+            os.rename(src, _unique_path(dst))
+    return skipped
 
 
 def volume_set(archive: str) -> list[str]:

@@ -3830,3 +3830,26 @@ msgstr "The items are already in this folder"
 
 msgid "Pages invalides"
 msgstr "Invalid pages"
+
+msgid "L'archive n'a pas été supprimée"
+msgstr "The archive was not deleted"
+
+msgid "Des éléments déjà présents ont été ignorés : l'archive en garde la seule copie."
+msgstr "Items that already existed were skipped: the archive holds the only copy of them."
+
+msgid "Remplacer {0} élément dans l'archive ?"
+msgid_plural "Remplacer {0} éléments dans l'archive ?"
+msgstr[0] "Replace {0} item in the archive?"
+msgstr[1] "Replace {0} items in the archive?"
+
+msgid "L'archive contient déjà des éléments du même nom ; ils seront remplacés."
+msgstr "The archive already contains items with the same name; they will be replaced."
+
+msgid "Rien n'a été supprimé."
+msgstr "Nothing was deleted."
+
+msgid "Ils n'ont pas été supprimés."
+msgstr "They were not deleted."
+
+msgid "Créer une nouvelle archive"
+msgstr "Create a new archive"

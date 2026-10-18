@@ -422,6 +422,12 @@ class FileActions:
                 for p in self.all_panes():
                     p.follow_move(src, dst)
 
+    def _follow_rename(self, old: str, new: str):
+        """Annuler / rétablir un renommage de dossier : les panneaux ouverts dedans le suivent."""
+        if os.path.isdir(new):
+            for p in self.all_panes():
+                p.follow_move(old, new)
+
     def _select_created(self, res: fileops.Result):
         if not res.created or res.kind in ("trash", "delete"):
             return
@@ -464,13 +470,16 @@ class FileActions:
         d.set_close_response("cancel")
         d.set_extra_child(col)
 
+        # nom non UTF-8 : le champ montre « caf�.txt » ; inchangé, il ne doit pas renommer le fichier
+        same = shown(current) if current else None
+
         def problem(text: str) -> str:
             err = fileops.valid_name(text)
             if err:
                 return err
-            if folder and text != current and os.path.lexists(os.path.join(folder, text)):
+            if folder and text != same and os.path.lexists(os.path.join(folder, text)):
                 return tr("« {0} » existe déjà").format(text)
-            if taken is not None and text != current and text in taken:      # noms dans une archive
+            if taken is not None and text != same and text in taken:      # noms dans une archive
                 return tr("« {0} » existe déjà").format(text)
             return ""
 
@@ -488,7 +497,7 @@ class FileActions:
             if ok and problem(row.get_text()):
                 return
             state["done"] = True
-            if ok and row.get_text() != current:
+            if ok and row.get_text() != same:
                 callback(row.get_text())
 
         def activated(*_):
@@ -838,6 +847,7 @@ class FileActions:
             try:
                 fileops.rename(old, os.path.basename(new))
                 self._push_undo(entry, keep_redo=True)
+                self._follow_rename(old, new)
             except (OSError, ToolError) as e:
                 alert(self, tr("Rétablissement impossible"), getattr(e, "strerror", None) or str(e))
         elif kind == "move":
@@ -892,6 +902,7 @@ class FileActions:
                 # fileops.rename refuse d'écraser un élément créé entre-temps sous l'ancien nom
                 fileops.rename(new, os.path.basename(old))
                 toast(self, tr("Renommage annulé"))
+                self._follow_rename(new, old)
             except (OSError, ToolError) as e:
                 self.redo_stack.pop()
                 self._update_undo_actions()
@@ -909,13 +920,28 @@ class FileActions:
                         os.makedirs(os.path.dirname(src), exist_ok=True)   # dossier vidé puis retiré
                         shutil.move(dst, src)
                         res.created.append(src)
+                        res.moved.append((dst, src))
                     except OSError as e:
                         res.errors.append((dst, e.strerror or str(e)))
                 return res
             self._run(tr("Annulation du déplacement"), work)
         elif kind == "trash":
             originals = entry[1]
-            self._run(tr("Restauration depuis la corbeille"), lambda j: fileops.restore_trashed_paths(j, originals))
+
+            def restored(j):
+                # Rétablir doit renvoyer à la corbeille ce qui vient d'en sortir, là où c'est arrivé :
+                # « a (2).txt » si un nouveau « a.txt » a été créé entre-temps (et pas ce dernier)
+                back = list(j.result.created) if isinstance(j.result, fileops.Result) else []
+                for i, e in enumerate(self.redo_stack):
+                    if e is entry:
+                        if back:
+                            self.redo_stack[i] = ("trash", back)
+                        else:
+                            del self.redo_stack[i]
+                        break
+                self._update_undo_actions()
+            self._run(tr("Restauration depuis la corbeille"),
+                      lambda j: fileops.restore_trashed_paths(j, originals), on_done=restored)
         elif kind in ("copy", "create"):
             paths = [p for p in entry[1] if os.path.lexists(p)]
             if paths:

@@ -231,14 +231,21 @@ class MergeDialog:
         out = self.out.get_text().strip()
         if not out.lower().endswith(".pdf"):
             out += ".pdf"
-        if os.path.lexists(out):       # jamais par-dessus une fusion précédente
-            out = os.path.join(os.path.dirname(out), unique_name(os.path.dirname(out), os.path.basename(out)))
+        out = _free_output(out)       # jamais par-dessus une fusion précédente
         self.dialog.close()
         _submit(self.window, tr("Fusion de {0} PDF").format(len(items)), lambda j: pdf.merge(j, items, out),
                 lambda j: tr("{0} créé").format(os.path.basename(out)), os.path.dirname(out))
 
     def present(self, parent):
         self.dialog.present(parent)
+
+
+def _free_output(out: str) -> str:
+    """Un PDF existant n'est jamais écrasé : « nom (2).pdf » (le nom a pu être tapé, ou le fichier
+    créé entre l'ouverture du dialogue et le lancement)."""
+    if not os.path.lexists(out):
+        return out
+    return os.path.join(os.path.dirname(out), unique_name(os.path.dirname(out) or ".", os.path.basename(out)))
 
 
 # ---------------------------------------------------------------------------
@@ -431,7 +438,7 @@ class WatermarkDialog:
                     alert(self.dialog, tr("Pages invalides"), f"{os.path.basename(p)} : {e}")
                     return
         if len(self.paths) == 1:
-            items = [(self.paths[0], self.out.get_text().strip())]
+            items = [(self.paths[0], _free_output(self.out.get_text().strip()))]
         else:
             suffix = self.out.get_text() or tr("-filigrane")
             items = [(p, pdf.suggest_output(p, suffix)) for p in self.paths]
@@ -570,7 +577,7 @@ class PagesDialog:
     def _go(self, *_):
         key = OPERATIONS[self.op.get_selected()][0]
         src, ranges = self.path, self.ranges.get_text()
-        out = self.out.get_text().strip()
+        out = _free_output(self.out.get_text().strip())     # vérifié au lancement, pas à l'ouverture
         self.dialog.close()
         if key == "split":
             folder, every = self.out_dir.get_text().strip(), int(self.every.get_value())

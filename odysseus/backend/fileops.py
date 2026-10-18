@@ -340,6 +340,8 @@ class _Copier:
             elif actual is not None:
                 dst = os.path.join(folder, actual)      # conflit avec l'élément tel qu'il est nommé
                 exists = True
+        if exists and _real_location(src) == _real_location(dst):
+            return None          # c'est le même élément (vu à travers un lien) : rien à faire
         if exists:
             dst_is_dir = os.path.isdir(dst) and not os.path.islink(dst)
             choice = self.decide(Conflict(src, dst, src_is_dir, dst_is_dir, self.move))
@@ -377,6 +379,7 @@ class _Copier:
         if len(self.errors) != before or not os.path.lexists(tmp):
             if os.path.lexists(tmp):
                 _remove(tmp)
+            self._forget(src, roots_before)
             return None
         try:
             _swap_into(tmp, dst)
@@ -387,8 +390,17 @@ class _Copier:
             self.errors.append((dst, e.strerror or str(e)))
             if os.path.lexists(tmp):
                 _remove(tmp)
+            self._forget(src, roots_before)
             return None
         return dst
+
+    def _forget(self, src: str, roots_before: int):
+        """Remplacement abandonné : la copie temporaire est jetée, donc rien de src n'a été copié.
+        Sans ça, un déplacement supprimerait ensuite de la source des fichiers qui n'existent plus
+        nulle part (_prune_moved ne retire que ce qui est dans « copied »)."""
+        prefix = src.rstrip("/") + "/"
+        self.copied = {p for p in self.copied if p != src and not p.startswith(prefix)}
+        del self.roots[roots_before:]
 
 
 def _tmp_name(folder: str, tag: str) -> str:
@@ -499,6 +511,13 @@ def _remove(path: str):
         os.remove(path)
 
 
+def _real_location(path: str) -> str:
+    """Chemin réel du dossier parent + nom (le dernier élément n'est pas suivi : un lien reste un
+    lien). Deux chemins égaux ici désignent le même élément, même vu à travers un lien symbolique."""
+    path = os.path.abspath(path).rstrip("/") or "/"
+    return os.path.join(os.path.realpath(os.path.dirname(path)), os.path.basename(path))
+
+
 def _is_inside(child: str, parent: str) -> bool:
     child, parent = os.path.realpath(child), os.path.realpath(parent)
     return child == parent or child.startswith(parent.rstrip("/") + "/")
@@ -530,14 +549,16 @@ def transfer(job: Job, sources: list[str], dest_dir: str, ask: Asker, move: bool
             name = fsinfo.safe_name(name)
         dst = os.path.join(dest_dir, name)
         if move:
-            if os.path.dirname(os.path.abspath(src)) == os.path.abspath(dest_dir):
-                continue                       # déjà là
+            if os.path.dirname(_real_location(src)) == os.path.realpath(dest_dir):
+                continue                       # déjà là (éventuellement vu à travers un lien)
             try:
                 same = os.lstat(src).st_dev == dest_dev
             except OSError as e:
                 res.errors.append((src, e.strerror or str(e)))
                 continue
             if same:
+                if os.path.lexists(dst) and _real_location(dst) == _real_location(src):
+                    continue
                 if os.path.lexists(dst):
                     src_is_dir = os.path.isdir(src) and not os.path.islink(src)
                     dst_is_dir = os.path.isdir(dst) and not os.path.islink(dst)
@@ -567,7 +588,7 @@ def transfer(job: Job, sources: list[str], dest_dir: str, ask: Asker, move: bool
                     res.errors.append((src, e.strerror or str(e)))
                 continue
         else:
-            if os.path.abspath(dst) == os.path.abspath(src):
+            if _real_location(dst) == _real_location(src):
                 # coller au même endroit : « nom (copie) », comme Nautilus
                 is_dir = os.path.isdir(src) and not os.path.islink(src)
                 dst = os.path.join(dest_dir, unique_name(dest_dir, name, is_dir, copy_word=True))

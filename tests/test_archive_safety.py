@@ -150,6 +150,17 @@ class TrappedArchiveTest(unittest.TestCase):
                       {"name": "suid", "mode": 0o4755}], zip_too=False)
 
 
+    def test_existing_link_in_destination_not_followed(self):
+        """Extraction sans sous-dossier dans un dossier qui contient DÉJÀ un lien « x » vers l'extérieur :
+        « x/f.txt » de l'archive ne doit pas atterrir dehors en passant par ce lien."""
+        os.symlink(self.outside, os.path.join(self.work, "x"))
+        for name, data in [("e.tar", tar_bytes([{"name": "x/f.txt"}, {"name": "autre.txt"}])),
+                           ("e.zip", zip_bytes([{"name": "x/f.txt"}, {"name": "autre.txt"}]))]:
+            with self.subTest(archive=name):
+                self.extract(name, data, "never")
+                self.assertEqual(os.readlink(os.path.join(self.work, "x")), self.outside)
+
+
 @unittest.skipUnless(sevenzip_path(), "7-Zip absent")
 class LegitArchiveWithLinksTest(unittest.TestCase):
     """Les liens d'une archive normale ne doivent ni faire échouer l'extraction, ni être abîmés."""

@@ -20,8 +20,9 @@ LEVEL_FRAC = [0.0, 0.0, 0.25, 0.5, 0.75, 1.0]
 THREAD_LABEL = tr("Automatique")
 DICT_LABELS = [tr("Automatique"), tr("1 Mo"), tr("4 Mo"), tr("16 Mo"), tr("64 Mo"), tr("256 Mo"), tr("1 Go")]
 DICT_VALUES = ["", "1m", "4m", "16m", "64m", "256m", "1024m"]
-UPDATE_LABELS = [tr("Ajouter et remplacer"), tr("Mettre à jour (plus récents)"), tr("Synchroniser"), tr("Rafraîchir l'existant")]
-UPDATE_VALUES = ["add", "update", "sync", "fresh"]
+UPDATE_LABELS = [tr("Créer une nouvelle archive"), tr("Ajouter et remplacer"), tr("Mettre à jour (plus récents)"),
+                 tr("Synchroniser"), tr("Rafraîchir l'existant")]
+UPDATE_VALUES = ["new", "add", "update", "sync", "fresh"]
 
 
 def level_for(fmt: formats.CreateFormat, idx: int) -> int:

@@ -104,6 +104,60 @@ class BackendTest(unittest.TestCase):
         self.assertEqual(os.path.basename(made), "projet (2).tar.gz")
         self.assertIn("projet/lisez-moi.txt", {e.path for e in archive.list_archive(made).entries})
 
+    def test_existing_zip_and_7z_not_updated(self):
+        """ZIP / 7Z : par défaut, une archive du même nom n'est pas modifiée (« a » de 7-Zip la mettait
+        à jour en silence) : « projet (2).zip ». La mise à jour reste possible si on la demande."""
+        for fmt in ("zip", "7z"):
+            with self.subTest(fmt=fmt):
+                out = os.path.join(self.root, "projet." + fmt)
+                first = run(lambda j: archive.create(j, [self.src], out, archive.CreateOptions(fmt=fmt)))
+                self.assertEqual(first, out)
+                before = open(out, "rb").read()
+                made = run(lambda j: archive.create(j, [self.src], out, archive.CreateOptions(fmt=fmt)))
+                self.assertEqual(os.path.basename(made), f"projet (2).{fmt}")
+                self.assertEqual(open(out, "rb").read(), before)
+                same = run(lambda j: archive.create(j, [self.src], out,
+                                                    archive.CreateOptions(fmt=fmt, update_mode="add")))
+                self.assertEqual(same, out)
+
+    def test_volumes_never_overwrite_previous_set(self):
+        for fmt in ("tar.gz", "7z"):
+            with self.subTest(fmt=fmt):
+                out = os.path.join(self.root, "vol." + fmt)
+                o = archive.CreateOptions(fmt=fmt, level=0, volume_size="20k")
+                run(lambda j: archive.create(j, [self.src], out, o))
+                first = {n: open(os.path.join(self.root, n), "rb").read()
+                         for n in os.listdir(self.root) if n.startswith("vol." + fmt + ".")}
+                self.assertIn(f"vol.{fmt}.001", first)
+                made = run(lambda j: archive.create(j, [self.src], out, o))
+                self.assertEqual(os.path.basename(made), f"vol (2).{fmt}")
+                for n, data in first.items():
+                    self.assertEqual(open(os.path.join(self.root, n), "rb").read(), data, n)
+
+    def test_part_file_left_alone(self):
+        """« X.part » d'un téléchargement en cours ne sert jamais de fichier temporaire."""
+        out = os.path.join(self.root, "projet.tar.gz")
+        with open(out + ".part", "w") as f:
+            f.write("téléchargement")
+        run(lambda j: archive.create(j, [self.src], out, archive.CreateOptions(fmt="tar.gz")))
+        self.assertEqual(open(out + ".part").read(), "téléchargement")
+
+    def test_extract_skip_keeps_archive_to_delete(self):
+        """« Ignorer » + « Supprimer l'archive » : rien n'est extrait, l'archive est la seule copie,
+        elle reste."""
+        arc = os.path.join(self.root, "projet.zip")
+        run(lambda j: archive.create(j, [self.src], arc, archive.CreateOptions(fmt="zip")))
+        for mode in ("smart", "never"):
+            with self.subTest(mode=mode):
+                j = Job("x", lambda j: archive.extract(j, arc, archive.ExtractOptions(
+                    subfolder=mode, overwrite="skip", delete_after=True))).run_sync()
+                self.assertEqual(j.state, "done", j.error)
+                self.assertTrue(os.path.exists(arc), "archive supprimée alors que rien n'a été extrait")
+                self.assertTrue(getattr(j, "archive_kept", False))
+        out = os.path.join(self.root, "ailleurs")
+        run(lambda j: archive.extract(j, arc, archive.ExtractOptions(dest=out, delete_after=True)))
+        self.assertFalse(os.path.exists(arc), "tout extrait : l'archive est supprimée comme demandé")
+
     def test_smart_folder_permissions(self):
         """Extraction intelligente à plusieurs éléments : dossier en droits ordinaires (pas 0700)."""
         import stat
@@ -140,6 +194,32 @@ class BackendTest(unittest.TestCase):
             self.assertEqual(r.returncode, 0, r.stderr[-500:])
             self.assertEqual(r.stdout.strip(), "['secret.txt']", fmt)
             self.assertTrue(os.path.exists(out), fmt)
+
+    def test_delete_after_keeps_unreadable_files(self):
+        """« Supprimer les fichiers après compression » : un fichier illisible, absent de l'archive,
+        reste sur le disque (en tar.* il était supprimé)."""
+        import subprocess as sp
+        if not shutil.which("setpriv") or os.getuid() != 0:
+            self.skipTest("setpriv / root requis pour rendre un fichier illisible")
+        code = ("import sys; sys.path.insert(0, %r)\n"
+                "from odysseus.backend import archive\nfrom odysseus.backend.engine import Job\n"
+                "j = Job('x', lambda j: None)\n"
+                "archive.create(j, [%r], %r, archive.CreateOptions(fmt=%r, delete_after=True))\n")
+        root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+        for fmt in ("tar.gz", "zip", "7z"):
+            with self.subTest(fmt=fmt):
+                src = os.path.join(self.root, "a-" + fmt.replace(".", ""))
+                os.makedirs(os.path.join(src, "sous"))
+                for n in ("lu.txt", "sous/lu2.txt", "sous/secret.txt"):
+                    with open(os.path.join(src, n), "w") as f:
+                        f.write("x")
+                os.chmod(os.path.join(src, "sous", "secret.txt"), 0)
+                out = src + "." + fmt
+                r = sp.run(["setpriv", "--bounding-set", "-dac_override,-dac_read_search,-fowner", sys.executable,
+                            "-c", code % (root, src, out, fmt)], capture_output=True, text=True)
+                self.assertEqual(r.returncode, 0, r.stderr[-500:])
+                self.assertTrue(os.path.exists(os.path.join(src, "sous", "secret.txt")), "fichier illisible supprimé")
+                self.assertFalse(os.path.exists(os.path.join(src, "lu.txt")), "fichier archivé non supprimé")
 
     def test_extract_into_existing_folder_and_selected_items(self):
         """« Extraire dans un dossier » : un dossier neuf, jamais celui du même nom qui existe ; éléments

@@ -14,7 +14,7 @@ from ..backend import archive, formats
 from ..backend.engine import human_size
 from ..i18n import ntr, tr
 from ..settings import session_passwords, settings
-from .common import alert, ask_password, choose_files, describe_paths, open_with_default, toast
+from .common import alert, ask_password, choose_files, describe_paths, open_with_default, shown, toast
 from .jobs import finished_toast, manager
 
 PREVIEW_LIMIT = 512 * 1024 * 1024
@@ -91,7 +91,10 @@ class ArchiveActions:
                         text += "\n" + tr("… et {0} autre(s)").format(len(skipped) - 15)
                     alert(self, ntr("{0} fichier n'a pas pu être lu", "{0} fichiers n'ont pas pu être lus",
                                     len(skipped)).format(len(skipped)),
-                          tr("L'archive a été créée sans eux.") + "\n\n" + text)
+                          tr("L'archive a été créée sans eux.")
+                          + ("\n" + (tr("Rien n'a été supprimé.") if getattr(job, "sources_kept", False)
+                                      else tr("Ils n'ont pas été supprimés.")) if o.delete_after else "")
+                          + "\n\n" + text)
             else:
                 finished_toast(self, job, "")
         self._watch_progress(manager.submit(title, func, done))
@@ -159,6 +162,9 @@ class ArchiveActions:
                     alert(self, ntr("{0} lien ignoré", "{0} liens ignorés", len(links)).format(len(links)),
                           tr("Ces liens de l'archive pointaient hors du dossier d'extraction ; tout le reste "
                              "a été extrait.") + "\n\n" + text)
+                if getattr(job, "archive_kept", False):
+                    alert(self, tr("L'archive n'a pas été supprimée"),
+                          tr("Des éléments déjà présents ont été ignorés : l'archive en garde la seule copie."))
                 if o.open_after and dest:
                     self.open_location(dest, "tab")
             else:
@@ -271,11 +277,22 @@ class ArchiveActions:
                 pane.refresh()
 
         def go(r):
-            if r == "add":
+            if r in ("add", "replace"):
                 manager.submit(tr("Ajout dans {0}").format(os.path.basename(arch)),
                                lambda j: archive.add_to_archive(j, arch, paths, inner, pw), done)
-        alert(self, tr("Ajouter à l'archive ?"),
-              f"{describe_paths(paths)} → {os.path.basename(arch)}" + (f"/{inner}" if inner else ""),
+        target = f"{describe_paths(paths)} → {os.path.basename(arch)}" + (f"/{inner}" if inner else "")
+        # 7-Zip remplace sans prévenir une entrée du même nom dans l'archive : on demande d'abord
+        taken = {r.name for r in pane.model.all}
+        clash = [os.path.basename(p.rstrip("/")) for p in paths if os.path.basename(p.rstrip("/")) in taken]
+        if clash:
+            names = "\n".join(shown(n) for n in clash[:10]) + ("\n…" if len(clash) > 10 else "")
+            alert(self, ntr("Remplacer {0} élément dans l'archive ?", "Remplacer {0} éléments dans l'archive ?",
+                            len(clash)).format(len(clash)),
+                  tr("L'archive contient déjà des éléments du même nom ; ils seront remplacés.") + "\n\n" + names,
+                  responses=(("cancel", tr("Annuler")), ("replace", tr("Remplacer"))), destructive="replace",
+                  default="cancel", callback=go)
+            return
+        alert(self, tr("Ajouter à l'archive ?"), target,
               responses=(("cancel", tr("Annuler")), ("add", tr("Ajouter"))), suggested="add", default="add",
               callback=go)
 

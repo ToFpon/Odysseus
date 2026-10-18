@@ -3830,3 +3830,26 @@ msgstr "Die Objekte sind bereits in diesem Ordner"
 
 msgid "Pages invalides"
 msgstr "Ungültige Seiten"
+
+msgid "L'archive n'a pas été supprimée"
+msgstr "Das Archiv wurde nicht gelöscht"
+
+msgid "Des éléments déjà présents ont été ignorés : l'archive en garde la seule copie."
+msgstr "Bereits vorhandene Objekte wurden übersprungen: Das Archiv enthält die einzige Kopie davon."
+
+msgid "Remplacer {0} élément dans l'archive ?"
+msgid_plural "Remplacer {0} éléments dans l'archive ?"
+msgstr[0] "{0} Objekt im Archiv ersetzen?"
+msgstr[1] "{0} Objekte im Archiv ersetzen?"
+
+msgid "L'archive contient déjà des éléments du même nom ; ils seront remplacés."
+msgstr "Das Archiv enthält bereits Objekte mit demselben Namen; sie werden ersetzt."
+
+msgid "Rien n'a été supprimé."
+msgstr "Es wurde nichts gelöscht."
+
+msgid "Ils n'ont pas été supprimés."
+msgstr "Sie wurden nicht gelöscht."
+
+msgid "Créer une nouvelle archive"
+msgstr "Neues Archiv erstellen"

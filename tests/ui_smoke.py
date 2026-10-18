@@ -20,6 +20,12 @@ os.environ["XDG_CONFIG_HOME"] = os.path.join(TMP, "home", ".config")
 os.environ["XDG_CACHE_HOME"] = os.path.join(TMP, "home", ".cache")
 os.environ["XDG_DATA_HOME"] = os.path.join(TMP, "home", ".local", "share")
 os.makedirs(os.environ["HOME"])
+GVFSD = None
+if os.environ.get("ODYSSEUS_UI_GVFS") and os.environ.get("DBUS_SESSION_BUS_ADDRESS"):
+    # corbeille GVfs (trash:///) sur le HOME jetable : gvfsd lancé ici, avec cet environnement
+    # (lancé à part, il garde le vrai HOME et montre la vraie corbeille). Sous dbus-run-session.
+    GVFSD = subprocess.Popen(["/usr/libexec/gvfsd"], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+    time.sleep(1)
 
 import gi  # noqa: E402
 
@@ -768,6 +774,14 @@ def noms_non_utf8(win):
         if type(w).__name__ == "PropertiesDialog":
             w.close()
     check("�" in win.get_title(), f"titre affichable ({win.get_title()!r})")
+    # F2 puis « Renommer » sans rien changer : le champ montre « f�.txt », le vrai nom doit rester
+    win.activate_action("win.rename", None)
+    yield pump(0.4)
+    for w in Gtk.Window.list_toplevels():
+        if isinstance(w, Adw.MessageDialog) and w.get_heading() == tr("Renommer"):
+            w.response("ok")
+    yield pump(0.4)
+    check(os.listdir(bad_dir) == [b"f\xe9.txt"], f"renommer sans changement garde le vrai nom ({os.listdir(bad_dir)})")
     p.open(D)
     yield Wait(5, until=lambda: not p.model.loading)
 
@@ -813,6 +827,12 @@ def panneau_suit_le_dossier(win):
     win.ask_name = real
     yield pump(0.8)
     check(other.location == os.path.join(base, "Projet 2026", "src"), f"renommage suivi ({other.location})")
+    win.undo()
+    yield pump(0.6)
+    check(other.location == os.path.join(base, "Projet", "src"), f"annuler le renommage : suivi ({other.location})")
+    win.redo()
+    yield pump(0.6)
+    check(other.location == os.path.join(base, "Projet 2026", "src"), f"rétablir le renommage : suivi ({other.location})")
     other.open(os.path.join(base, "Vieux"))
     yield pump(0.6)
     win._trash_paths([os.path.join(base, "Vieux")])
@@ -823,6 +843,35 @@ def panneau_suit_le_dossier(win):
     yield pump(0.4)
     p.open(D)
     yield Wait(5, until=lambda: not p.model.loading)
+
+
+@step
+def corbeille_retablir(win):
+    """Annuler une mise à la corbeille alors qu'un nouveau fichier a pris le nom (l'original revient en
+    « a (2).txt »), puis Rétablir : c'est l'original qui repart, jamais le nouveau."""
+    from odysseus.backend import fileops
+    base = os.path.join(D, "retablir")
+    os.makedirs(base)
+    a = os.path.join(base, "a.txt")
+    with open(a, "w") as f:
+        f.write("original")
+    win._trash_paths([a])
+    yield wait_jobs()
+    if not any(i.get_attribute_byte_string("trash::orig-path") == a for i, _f in fileops.trash_items(None)):
+        print("- trash:/// ne voit pas la corbeille de test (ODYSSEUS_UI_GVFS=1 sous dbus-run-session) : test sauté")
+        return
+    with open(a, "w") as f:
+        f.write("nouveau")
+    win.undo()
+    yield wait_jobs()
+    yield pump(0.5)
+    _close_alerts()
+    check(sorted(os.listdir(base)) == ["a (2).txt", "a.txt"], f"annuler : original à côté ({os.listdir(base)})")
+    win.redo()
+    yield wait_jobs()
+    yield pump(0.5)
+    check(os.listdir(base) == ["a.txt"] and open(a).read() == "nouveau",
+          f"rétablir renvoie l'original à la corbeille, pas le nouveau ({os.listdir(base)})")
 
 
 @step
@@ -877,6 +926,8 @@ def on_window(_a, w):
 
 app.connect("window-added", on_window)
 app.run([sys.argv[0], D])
+if GVFSD is not None:
+    GVFSD.terminate()
 shutil.rmtree(TMP, ignore_errors=True)
 print("\n".join(errors) if errors else "\nAucune erreur.")
 sys.exit(1 if errors else 0)

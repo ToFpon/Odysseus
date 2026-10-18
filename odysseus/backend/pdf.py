@@ -573,7 +573,8 @@ def split_pages(job: Job, src: str, out_dir: str, every: int = 1) -> list[str]:
         job.check_cancel()
         end = min(start + every, n)
         name = f"{base}-{start + 1:0{width}d}" + (f"-{end:0{width}d}" if end - start > 1 else "") + ".pdf"
-        dst = os.path.join(out_dir, name)
+        from .fileops import unique_name
+        dst = os.path.join(out_dir, unique_name(out_dir, name))     # jamais par-dessus un fichier existant
         job.progress(start / max(n, 1), name)
         _select(job, src, list(range(start, end)), dst)
         out.append(dst)
