@@ -100,6 +100,9 @@ Les dialogues ouverts (fenêtres posées sur la principale) sont composés au ce
 - Ouvrir un fichier : `common.launch_default` (Gio.AppInfo par défaut du type, lancée directement,
   comme Nautilus). Pas `Gtk.FileLauncher` en premier : il passe par le portail, qui affiche
   « Ouvrir avec… » sous GNOME même quand une application par défaut existe (repli seulement).
+  Menu comme Nautilus : « Ouvrir avec <app par défaut> » puis « Ouvrir avec une autre application »
+  (`dialogs.AppChooser` : `Gtk.AppChooserWidget`, le composant de Nautilus 46, déprécié mais présent
+  en GTK 4.14 ; ses titres de section viennent des traductions de GTK).
 - Ghostscript `pdfimage24` : `-sCompression=JPEG` en majuscules.
 - `view-column-symbolic` n'existe pas dans Adwaita : `icons.first_icon` avec repli.
 - Boutons latéraux de la souris (8/9) : bug de GTK 4.14 (`gtkmain.c`, `handle_pointing_event`) — le

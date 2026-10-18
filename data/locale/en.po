@@ -2150,14 +2150,6 @@ msgstr "Open with"
 msgid "Ouvrir"
 msgstr "Open"
 
-#: odysseus/ui/dialogs.py:230
-msgid "Rechercher une application"
-msgstr "Search for an application"
-
-#: odysseus/ui/dialogs.py:239
-msgid "Toujours utiliser pour ce type de fichier"
-msgstr "Always use for this file type"
-
 #: odysseus/ui/dialogs.py:59
 msgid "Langue du système"
 msgstr "System language"
@@ -2209,10 +2201,6 @@ msgstr "Dimming of hidden files"
 #: odysseus/ui/dialogs.py:162
 msgid "non installé"
 msgstr "not installed"
-
-#: odysseus/ui/dialogs.py:260
-msgid "recommandée"
-msgstr "recommended"
 
 #: odysseus/ui/dialogs.py:124
 msgid "⚠ Manquant : {0} (sudo apt install {1})"
@@ -2349,10 +2337,6 @@ msgstr "Zoom out"
 #: odysseus/ui/menus.py:72
 msgid "Taille par défaut"
 msgstr "Default size"
-
-#: odysseus/ui/menus.py:95
-msgid "Autre application…"
-msgstr "Other application…"
 
 #: odysseus/ui/menus.py:160
 msgid "Couper"
@@ -3676,3 +3660,23 @@ msgstr "Permanently deleted items can not be restored"
 
 msgid "Vider tous les éléments de la corbeille ?"
 msgstr "Empty all items from Trash?"
+
+msgid "Toujours utiliser pour ce type de fichiers"
+msgstr "Always use for this file type"
+
+msgid "Ouvrir les fichiers"
+msgstr "Open Files"
+
+msgid "Choisir une application pour ouvrir <b>{0}</b>"
+msgstr "Choose an app to open <b>{0}</b>"
+
+msgid "Choisir une application pour ouvrir le fichier"
+msgid_plural "Choisir une application pour ouvrir les {0} fichiers"
+msgstr[0] "Choose an app to open the file"
+msgstr[1] "Choose an app to open the {0} files"
+
+msgid "Ouvrir avec une autre application"
+msgstr "Open With Other Application"
+
+msgid "Ouvrir avec {0}"
+msgstr "Open With {0}"

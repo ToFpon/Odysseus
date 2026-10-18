@@ -593,7 +593,7 @@ def dialogues_fenetres(win):
         return [w for w in Gtk.Window.list_toplevels() if w not in before and w.get_visible()]
     cases = [("win.properties", ["doc.pdf"]), ("win.compress", ["doc.pdf"]), ("win.pdf-watermark", ["doc.pdf"]),
              ("win.rename", ["doc.pdf"]), ("win.delete", ["doc.pdf"]), ("win.shortcuts", []),
-             ("app.preferences", []), ("app.about", [])]
+             ("win.open-with", ["image.png"]), ("app.preferences", []), ("app.about", [])]
     for action, names in cases:
         p.model.select_names(names) if names else p.unselect_all()
         before = list(Gtk.Window.list_toplevels())
@@ -655,6 +655,13 @@ def application_par_defaut(win):
           "double-clic : l'application par défaut est lancée directement")
     new = [w for w in Gtk.Window.list_toplevels() if w not in before and w.get_visible()]
     check(not new, f"pas de fenêtre « Ouvrir avec… » ({[type(w).__name__ for w in new]})")
+    from odysseus.ui.menus import context_menu
+    p.model.select_names(["image.png"])
+    m = context_menu(win, p, True)
+    first = m.get_item_link(0, "section")
+    labels = [first.get_item_attribute_value(i, "label").get_string() for i in range(first.get_n_items())]
+    check(labels[:2] == [tr("Ouvrir avec {0}").format("Visionneuse test"), tr("Ouvrir avec une autre application")],
+          f"menu comme Nautilus : {labels[:2]}")
 
 
 @step

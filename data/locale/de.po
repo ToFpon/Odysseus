@@ -2150,14 +2150,6 @@ msgstr "Öffnen mit"
 msgid "Ouvrir"
 msgstr "Öffnen"
 
-#: odysseus/ui/dialogs.py:230
-msgid "Rechercher une application"
-msgstr "Anwendung suchen"
-
-#: odysseus/ui/dialogs.py:239
-msgid "Toujours utiliser pour ce type de fichier"
-msgstr "Immer für diesen Dateityp verwenden"
-
 #: odysseus/ui/dialogs.py:59
 msgid "Langue du système"
 msgstr "Systemsprache"
@@ -2209,10 +2201,6 @@ msgstr "Abblenden verborgener Dateien"
 #: odysseus/ui/dialogs.py:162
 msgid "non installé"
 msgstr "nicht installiert"
-
-#: odysseus/ui/dialogs.py:260
-msgid "recommandée"
-msgstr "empfohlen"
 
 #: odysseus/ui/dialogs.py:124
 msgid "⚠ Manquant : {0} (sudo apt install {1})"
@@ -2349,10 +2337,6 @@ msgstr "Verkleinern"
 #: odysseus/ui/menus.py:72
 msgid "Taille par défaut"
 msgstr "Standardgröße"
-
-#: odysseus/ui/menus.py:95
-msgid "Autre application…"
-msgstr "Andere Anwendung …"
 
 #: odysseus/ui/menus.py:160
 msgid "Couper"
@@ -3676,3 +3660,23 @@ msgstr "Endgültig gelöschte Objekte können nicht wiederhergestellt werden"
 
 msgid "Vider tous les éléments de la corbeille ?"
 msgstr "Alle Objekte im Papierkorb leeren?"
+
+msgid "Toujours utiliser pour ce type de fichiers"
+msgstr "Immer für diesen Dateityp verwenden"
+
+msgid "Ouvrir les fichiers"
+msgstr "Dateien öffnen"
+
+msgid "Choisir une application pour ouvrir <b>{0}</b>"
+msgstr "Eine Anwendung zum Öffnen von <b>{0}</b> wählen"
+
+msgid "Choisir une application pour ouvrir le fichier"
+msgid_plural "Choisir une application pour ouvrir les {0} fichiers"
+msgstr[0] "Eine Anwendung zum Öffnen der Datei wählen"
+msgstr[1] "Eine Anwendung zum Öffnen der {0} Dateien wählen"
+
+msgid "Ouvrir avec une autre application"
+msgstr "Mit anderer Anwendung öffnen"
+
+msgid "Ouvrir avec {0}"
+msgstr "Mit {0} öffnen"

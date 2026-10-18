@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import os
+from typing import Optional
 
 from gi.repository import Gio, GLib
 
@@ -87,17 +88,11 @@ def _is_text(rec) -> bool:
     return ext in exts or rec.content_type.startswith(TEXT_PREFIX)
 
 
-def _open_with(rec) -> Gio.Menu:
-    sub = Gio.Menu()
-    apps = Gio.AppInfo.get_recommended_for_type(rec.content_type)[:8]
-    for app in apps:
-        item = Gio.MenuItem.new(app.get_display_name(), None)
-        item.set_action_and_target_value("win.open-with-app", GLib.Variant.new_string(app.get_id() or ""))
-        if app.get_icon() is not None:
-            item.set_icon(app.get_icon())
-        sub.append_item(item)
-    sub.append(tr("Autre application…"), "win.open-with")
-    return sub
+def _default_app(rec) -> Optional[Gio.AppInfo]:
+    try:
+        return Gio.AppInfo.get_default_for_type(rec.content_type, False) if rec.content_type else None
+    except GLib.Error:
+        return None
 
 
 def _colors_menu(paths: list[str], all_dirs: bool) -> Gio.Menu:
@@ -147,9 +142,12 @@ def context_menu(win, pane, on_item: bool) -> Gio.Menu:
     files = [r for r in sel if not r.is_dir]
 
     s = Gio.Menu()
-    s.append(tr("Ouvrir"), "win.open")
-    if one is not None and not one.is_dir:
-        s.append_submenu(tr("Ouvrir avec"), _open_with(one))
+    default = _default_app(one) if one is not None and not one.is_dir else None
+    # comme Nautilus : « Ouvrir avec gThumb » puis « Ouvrir avec une autre application »
+    s.append(tr("Ouvrir avec {0}").format(default.get_display_name()) if default else tr("Ouvrir"),
+             "win.open")
+    if files and not dirs:
+        s.append(tr("Ouvrir avec une autre application"), "win.open-with")
     if dirs:
         s.append(tr("Ouvrir dans un nouvel onglet"), "win.open-tab")
         if features.enabled("dual_panel"):

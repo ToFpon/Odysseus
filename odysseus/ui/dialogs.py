@@ -8,7 +8,7 @@ import shutil
 from gi.repository import Adw, Gio, GLib, Gtk
 
 from .. import features
-from ..i18n import LANGUAGE_NAMES, tr
+from ..i18n import LANGUAGE_NAMES, ntr, tr
 from ..settings import settings
 from .common import DialogWindow, combo_row, toast
 
@@ -225,12 +225,16 @@ def launch_app(app: Gio.AppInfo, files: list, context=None):
 
 
 class AppChooser(DialogWindow):
-    """« Ouvrir avec… » : applications recommandées, puis toutes les autres."""
+    """« Ouvrir avec une autre application », comme Nautilus 46 : application par défaut, applications
+    recommandées puis autres (Gtk.AppChooserWidget, le même composant), et « Toujours utiliser pour
+    ce type de fichiers »."""
 
     def __init__(self, parent, ctype: str, files: list):
         """files : chemins ou Gio.File (fichiers d'admin://, smb://… sans chemin local)."""
-        super().__init__(title=tr("Ouvrir avec"), content_width=440, content_height=560)
         self.files = [f if isinstance(f, Gio.File) else Gio.File.new_for_path(f) for f in files]
+        n = len(self.files)
+        super().__init__(title=tr("Ouvrir le fichier") if n == 1 else tr("Ouvrir les fichiers"), content_width=460,
+                         content_height=600)
         self.ctype = ctype
         tv = Adw.ToolbarView()
         hb = Adw.HeaderBar(show_end_title_buttons=False, show_start_title_buttons=False)
@@ -241,51 +245,45 @@ class AppChooser(DialogWindow):
         self.open_btn.connect("clicked", lambda *_: self._open())
         hb.pack_end(self.open_btn)
         tv.add_top_bar(hb)
-        box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=8, margin_top=12, margin_bottom=12,
+        box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=12, margin_top=12, margin_bottom=12,
                       margin_start=12, margin_end=12)
-        self.search = Gtk.SearchEntry(placeholder_text=tr("Rechercher une application"))
-        box.append(self.search)
-        self.list = Gtk.ListBox(css_classes=["boxed-list"], selection_mode=Gtk.SelectionMode.SINGLE)
-        self.list.connect("row-selected", lambda *_: self.open_btn.set_sensitive(self.list.get_selected_row()
-                                                                                 is not None))
-        self.list.connect("row-activated", lambda *_: self._open())
-        self.list.set_filter_func(self._filter)
-        self.search.connect("search-changed", lambda *_: self.list.invalidate_filter())
-        box.append(Gtk.ScrolledWindow(child=self.list, vexpand=True, hscrollbar_policy=Gtk.PolicyType.NEVER))
-        self.default_row = Adw.SwitchRow(title=tr("Toujours utiliser pour ce type de fichier"))
-        g = Gtk.ListBox(css_classes=["boxed-list"], selection_mode=Gtk.SelectionMode.NONE)
-        g.append(self.default_row)
-        box.append(g)
+        name = GLib.markup_escape_text(self.files[0].get_basename() or "") if n == 1 else ""
+        label = Gtk.Label(wrap=True, justify=Gtk.Justification.CENTER, use_markup=True)
+        label.set_markup(tr("Choisir une application pour ouvrir <b>{0}</b>").format(name) if n == 1 else
+                         ntr("Choisir une application pour ouvrir le fichier",
+                             "Choisir une application pour ouvrir les {0} fichiers", n).format(n))
+        box.append(label)
+        self.chooser = Gtk.AppChooserWidget(content_type=ctype, show_default=True, show_recommended=True,
+                                            show_fallback=True, show_other=True, vexpand=True)
+        self.chooser.connect("application-selected", self._selected)
+        self.chooser.connect("application-activated", lambda *_: self._open())
+        box.append(Gtk.Frame(child=self.chooser, vexpand=True))
         tv.set_content(box)
+        self.default_row = Adw.SwitchRow(title=tr("Toujours utiliser pour ce type de fichiers"),
+                                         subtitle=Gio.content_type_get_description(ctype), sensitive=False)
+        bottom = Gtk.ListBox(css_classes=["boxed-list"], selection_mode=Gtk.SelectionMode.NONE,
+                             margin_start=12, margin_end=12, margin_bottom=12)
+        bottom.append(self.default_row)
+        tv.add_bottom_bar(bottom)
         self.set_child(tv)
-        seen = set()
-        rec = Gio.AppInfo.get_recommended_for_type(ctype)
-        others = sorted((a for a in Gio.AppInfo.get_all() if a.should_show()),
-                        key=lambda a: a.get_display_name().casefold())
-        for app in list(rec) + others:
-            if app.get_id() in seen:
-                continue
-            seen.add(app.get_id())
-            row = Adw.ActionRow(title=app.get_display_name(), subtitle=app.get_description() or "")
-            if app.get_icon():
-                img = Gtk.Image(gicon=app.get_icon(), pixel_size=32)
-                row.add_prefix(img)
-            row.app = app
-            row.recommended = app in rec
-            if row.recommended:
-                row.add_suffix(Gtk.Label(label=tr("recommandée"), css_classes=["dim-label", "caption"]))
-            self.list.append(row)
+        app = self.chooser.get_app_info()
+        if app is not None:
+            self._selected(self.chooser, app)
 
-    def _filter(self, row):
-        t = self.search.get_text().casefold()
-        return not t or t in row.app.get_display_name().casefold()
+    def _selected(self, _chooser, app):
+        self.open_btn.set_sensitive(app is not None)
+        default = Gio.AppInfo.get_default_for_type(self.ctype, False)
+        # déjà l'application par défaut : rien à « toujours utiliser » (comme Nautilus)
+        is_default = app is not None and default is not None and app.equal(default)
+        self.default_row.set_sensitive(app is not None and not is_default)
+        if is_default:
+            self.default_row.set_active(False)
 
     def _open(self):
-        row = self.list.get_selected_row()
-        if row is None:
+        app = self.chooser.get_app_info()
+        if app is None:
             return
-        app = row.get_child().app if not hasattr(row, "app") else row.app
-        if self.default_row.get_active():
+        if self.default_row.get_active() and self.default_row.get_sensitive():
             try:
                 app.set_as_default_for_type(self.ctype)
             except GLib.Error:
