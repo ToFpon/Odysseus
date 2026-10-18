@@ -3699,3 +3699,9 @@ msgstr "Das Archiv wurde ohne sie erstellt."
 
 msgid "C'est un lien : ses droits sont ceux de sa cible ; ouvrez les propriétés de la cible pour les modifier."
 msgstr "Dies ist eine Verknüpfung: Ihre Rechte sind die ihres Ziels; öffnen Sie die Eigenschaften des Ziels, um sie zu ändern."
+
+msgid "PDF illisible"
+msgstr "Unlesbares PDF"
+
+msgid "« {0} » n'est pas un PDF valide ou il est endommagé."
+msgstr "»{0}« ist kein gültiges PDF oder beschädigt."

@@ -16,6 +16,19 @@ from gi.repository import Adw, Gdk, Gio, GLib, GObject, Gtk  # noqa: E402
 from ..i18n import ntr, tr  # noqa: E402
 
 
+def shown(text) -> str:
+    """Texte affichable par GTK : un nom de fichier non UTF-8 arrive de Python avec des caractères
+    de substitution (surrogateescape) que Gtk refuse (UnicodeEncodeError : ligne vide, titre figé).
+    Les octets invalides deviennent « � », comme dans Nautilus ; le vrai chemin reste intact ailleurs."""
+    if not isinstance(text, str):
+        return "" if text is None else str(text)
+    try:
+        text.encode("utf-8")
+        return text
+    except UnicodeEncodeError:
+        return text.encode("utf-8", "surrogateescape").decode("utf-8", "replace")
+
+
 def toast(widget: Gtk.Widget, text: str, button: str = "", callback: Optional[Callable] = None,
           timeout: int = 4):
     win = widget.get_root() if widget else None
@@ -302,7 +315,7 @@ def open_folder(parent: Gtk.Widget, folder: str):
 
 
 def copy_to_clipboard(widget: Gtk.Widget, text: str):
-    widget.get_clipboard().set(text)
+    widget.get_clipboard().set(shown(text))
 
 
 def combo_row(title: str, labels: list[str], selected: int = 0, subtitle: str = "") -> Adw.ComboRow:

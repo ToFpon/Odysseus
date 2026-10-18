@@ -3699,3 +3699,9 @@ msgstr "The archive was created without them."
 
 msgid "C'est un lien : ses droits sont ceux de sa cible ; ouvrez les propriétés de la cible pour les modifier."
 msgstr "This is a link: its permissions are those of its target; open the target's properties to change them."
+
+msgid "PDF illisible"
+msgstr "Unreadable PDF"
+
+msgid "« {0} » n'est pas un PDF valide ou il est endommagé."
+msgstr "“{0}” is not a valid PDF or it is damaged."

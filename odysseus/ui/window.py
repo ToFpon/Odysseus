@@ -15,7 +15,7 @@ from . import menus
 from .actions_archives import ArchiveActions
 from .actions_files import FileActions
 from .actions_tools import ToolActions
-from .common import bidir, popup_menu, toast
+from .common import bidir, popup_menu, shown, toast
 from .jobs import OperationsButton, ProgressWindow, manager
 from .pane import TRASH_URI, Pane
 from .pathbar import PathBar
@@ -250,8 +250,8 @@ class MainWindow(FileActions, ArchiveActions, ToolActions, Adw.ApplicationWindow
         if not tp:
             return
         p = ws.active
-        tp.set_title(p.title())
-        tp.set_tooltip(p.location_text())
+        tp.set_title(shown(p.title()))
+        tp.set_tooltip(shown(p.location_text()))
         icon = {"archive": "package-x-generic-symbolic", "search": "system-search-symbolic",
                 "trash": "user-trash-symbolic", "remote": "folder-remote-symbolic"}.get(p.mode, "folder-symbolic")
         tp.set_icon(Gio.ThemedIcon.new(icon))
@@ -301,7 +301,7 @@ class MainWindow(FileActions, ArchiveActions, ToolActions, Adw.ApplicationWindow
         self.pathbar.set_location(loc, pane.location_text() if pane.mode != "trash" else TRASH_URI, archive_root)
         admin = pane.location.startswith("admin:")
         self.admin_banner.set_revealed(admin)
-        self.set_title(f"{pane.title()} — {APP_NAME}" + (" — " + tr("Administrateur") if admin else ""))
+        self.set_title(shown(f"{pane.title()} — {APP_NAME}") + (" — " + tr("Administrateur") if admin else ""))
         self.sidebar.select(pane.location if pane.mode != "archive" else pane.archive_path)
         self._sync_view_button()
         self._on_selection(pane)

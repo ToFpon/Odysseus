@@ -27,6 +27,10 @@ AUDIO_FORMATS = [("mp3", "libmp3lame"), ("m4a", "aac"), ("ogg", "libvorbis"), ("
                  ("flac", "flac"), ("wav", "pcm_s16le")]
 QUALITIES = ["high", "medium", "low", "copy"]
 QUALITY_BITRATES = {"high": "320k", "medium": "192k", "low": "128k"}
+# Vorbis : qualité variable (un débit fixe de 320 kb/s est refusé sur une source mono) ;
+# Opus : plafonné à 256 kb/s, et aussi bon à débit plus bas
+VORBIS_QUALITY = {"high": "8", "medium": "6", "low": "4"}
+OPUS_BITRATES = {"high": "192k", "medium": "128k", "low": "96k"}
 LOSSLESS = {"flac", "wav"}
 
 CACHE_FILE = os.path.join(CACHE_DIR, "durations.json")
@@ -162,6 +166,10 @@ def extract_audio(job: Job, videos: list[str], fmt: str, quality: str, dest_dir:
             cmd += ["-acodec", "copy"]
         elif fmt in LOSSLESS:
             cmd += ["-acodec", codec]
+        elif fmt == "ogg":
+            cmd += ["-acodec", codec, "-q:a", VORBIS_QUALITY[quality]]
+        elif fmt == "opus":
+            cmd += ["-acodec", codec, "-b:a", OPUS_BITRATES[quality]]
         else:
             cmd += ["-acodec", codec, "-b:a", QUALITY_BITRATES[quality]]
         cmd.append(out)

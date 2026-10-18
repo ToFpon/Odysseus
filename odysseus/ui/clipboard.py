@@ -49,7 +49,7 @@ def put(display: Gdk.Display, paths: list[str], cut: bool):
         Gdk.ContentProvider.new_for_bytes(GNOME_TYPE, GLib.Bytes.new(gnome.encode())),
         Gdk.ContentProvider.new_for_bytes("text/uri-list", GLib.Bytes.new(("\r\n".join(uris) + "\r\n").encode())),
         Gdk.ContentProvider.new_for_value(Gdk.FileList.new_from_list([Gio.File.new_for_uri(u) for u in uris])),
-        Gdk.ContentProvider.new_for_bytes("text/plain;charset=utf-8", GLib.Bytes.new("\n".join(paths).encode())),
+        Gdk.ContentProvider.new_for_bytes("text/plain;charset=utf-8", GLib.Bytes.new("\n".join(paths).encode("utf-8", "surrogateescape"))),
     ]
     cb = display.get_clipboard()
     cb.set_content(Gdk.ContentProvider.new_union(providers))

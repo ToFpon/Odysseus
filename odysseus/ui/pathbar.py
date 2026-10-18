@@ -12,6 +12,7 @@ from typing import Callable, Optional
 from gi.repository import Gdk, Gio, GLib, GObject, Gtk
 
 from ..i18n import tr
+from .common import shown as _shown
 
 
 class PathBar(Gtk.Box):
@@ -67,7 +68,7 @@ class PathBar(Gtk.Box):
         self.location = location
         self.display = display
         if self.stack.get_visible_child_name() != "entry":
-            self.entry.set_text(display)
+            self.entry.set_text(_shown(display))
         self._build(display, archive_root)
 
     def _segments(self, display: str, archive_root: str) -> list[tuple[str, str, Optional[str]]]:
@@ -125,9 +126,9 @@ class PathBar(Gtk.Box):
                 # tous les segments ; seuls les noms très longs sont raccourcis.
                 limit = 40 if last else 28
                 shown = label if len(label) <= limit else label[:limit // 2 - 1] + "…" + label[-(limit // 2 - 1):]
-                box.append(Gtk.Label(label=shown))
+                box.append(Gtk.Label(label=_shown(shown)))
             btn.set_child(box)
-            btn.set_tooltip_text(target if "://" not in target else GLib.uri_unescape_string(target, None))
+            btn.set_tooltip_text(_shown(target if "://" not in target else GLib.uri_unescape_string(target, None)))
             btn.connect("clicked", lambda _b, t=target: self.emit("navigate", t))
             mid = Gtk.GestureClick(button=2)
             mid.connect("pressed", lambda *_a, t=target: self.emit("navigate-tab", t))
@@ -158,7 +159,7 @@ class PathBar(Gtk.Box):
 
     # -- saisie ------------------------------------------------------------
     def edit(self, text: Optional[str] = None):
-        self.entry.set_text(text if text is not None else self.display)
+        self.entry.set_text(_shown(text if text is not None else self.display))
         self.stack.set_visible_child_name("entry")
         self.entry.grab_focus()
         if text is None:
@@ -191,7 +192,7 @@ class PathBar(Gtk.Box):
 
     def _on_entry_key(self, _c, keyval, _code, state):
         if keyval == Gdk.KEY_Escape:
-            self.entry.set_text(self.display)
+            self.entry.set_text(_shown(self.display))
             self.stop_edit()
             self.emit("navigate", "")       # rend le focus à la vue
             return True

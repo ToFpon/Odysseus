@@ -19,7 +19,7 @@ from ..backend.workers import pool
 from ..i18n import ntr, tr
 from ..settings import settings
 from . import clipboard, icons
-from .common import date_label, perms_label
+from .common import date_label, perms_label, shown
 
 if TYPE_CHECKING:
     from .pane import Pane
@@ -464,8 +464,8 @@ class ListView(Gtk.ScrolledWindow, _CellMixin):
         label = box.get_last_child()
         size, _compact = self.pane.list_zoom
         self._fill_icon(img, emb, rec, size, size >= 32)
-        label.set_text(rec.name)
-        label.set_tooltip_text(rec.name if len(rec.name) > 50 else None)
+        label.set_text(shown(rec.name))
+        label.set_tooltip_text(shown(rec.name) if len(rec.name) > 50 else None)
         self._apply_copy_mark(mark, rec)
         self._apply_dim(box, img, rec)
 
@@ -554,8 +554,8 @@ class GridView(Gtk.ScrolledWindow, _CellMixin):
         chars = max(10, size // 7)
         label.set_width_chars(chars)
         label.set_max_width_chars(chars)
-        label.set_text(rec.name)
-        label.set_tooltip_text(rec.name)
+        label.set_text(shown(rec.name))
+        label.set_tooltip_text(shown(rec.name))
         self._apply_copy_mark(mark, rec)
         self._apply_dim(box, img, rec)
 

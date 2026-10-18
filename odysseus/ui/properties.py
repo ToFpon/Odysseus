@@ -13,7 +13,7 @@ from ..backend import scanner, tools
 from ..backend.engine import Job, human_size
 from ..i18n import ntr, tr
 from . import icons
-from .common import DialogWindow, combo_row, copy_to_clipboard, full_date, toast
+from .common import DialogWindow, combo_row, copy_to_clipboard, full_date, shown, toast
 
 ACCESS = [tr("Aucun"), tr("Lecture seule"), tr("Lecture et écriture")]
 
@@ -44,7 +44,7 @@ class PropertiesDialog(DialogWindow):
         img.set_from_gicon(icons.gicon_for(one) if one else Gio.ThemedIcon.new("edit-select-all-symbolic"))
         hero.append(img)
         title = one.name if one else ntr("{0} élément", "{0} éléments", len(recs)).format(len(recs))
-        hero.append(Gtk.Label(label=title, css_classes=["title-2"], wrap=True, justify=Gtk.Justification.CENTER,
+        hero.append(Gtk.Label(label=shown(title), css_classes=["title-2"], wrap=True, justify=Gtk.Justification.CENTER,
                               selectable=True))
         if one:
             hero.append(Gtk.Label(label=tr("Dossier") if one.is_dir else scanner.type_description(one.content_type),
@@ -56,7 +56,7 @@ class PropertiesDialog(DialogWindow):
         self.size_row = Adw.ActionRow(title=tr("Taille"), subtitle=tr("Calcul…"), subtitle_selectable=True)
         g.add(self.size_row)
         parent = os.path.dirname(paths[0])
-        loc = Adw.ActionRow(title=tr("Emplacement"), subtitle=parent, subtitle_selectable=True)
+        loc = Adw.ActionRow(title=tr("Emplacement"), subtitle=shown(parent), subtitle_selectable=True)
         btn = Gtk.Button(icon_name="folder-open-symbolic", valign=Gtk.Align.CENTER, css_classes=["flat"],
                          tooltip_text=tr("Ouvrir l'emplacement"))
         btn.connect("clicked", lambda *_: (self.close(), window.open_location(parent)))
@@ -65,7 +65,7 @@ class PropertiesDialog(DialogWindow):
         if one:
             if one.is_link:
                 try:
-                    g.add(Adw.ActionRow(title=tr("Lien vers"), subtitle=os.readlink(one.path), subtitle_selectable=True))
+                    g.add(Adw.ActionRow(title=tr("Lien vers"), subtitle=shown(os.readlink(one.path)), subtitle_selectable=True))
                 except OSError:
                     pass
             try:

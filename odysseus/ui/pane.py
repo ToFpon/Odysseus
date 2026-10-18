@@ -19,6 +19,7 @@ from ..backend.scanner import Rec
 from ..i18n import ntr, tr
 from ..settings import session_passwords, settings
 from . import clipboard
+from .common import shown
 from .columns import MillerView
 from .model import DirModel, Selection, fold
 from .other_locations import OTHER_URI, OtherLocations
@@ -1046,7 +1047,7 @@ class Pane(Gtk.Box):
 
     def _update_floating(self):
         text = self.status_text()
-        self.floating.set_text(text)
+        self.floating.set_text(shown(text))
         self.floating.set_visible(bool(text))
 
     def status_text(self) -> str:

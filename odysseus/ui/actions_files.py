@@ -17,7 +17,7 @@ from ..i18n import ntr, tr
 from ..settings import settings
 from . import clipboard
 from .common import (AlertDialog, alert, choose_folder, copy_to_clipboard, describe_paths, full_date,
-                     launch_default, open_with_default, toast)
+                     launch_default, open_with_default, shown, toast)
 from .jobs import ProgressWindow, finished_toast, manager
 
 TERMINALS = ["x-terminal-emulator", "gnome-terminal", "kgx", "ptyxis", "tilix", "terminator", "konsole",
@@ -436,7 +436,7 @@ class FileActions:
     def ask_name(self, heading: str, initial: str, action: str, callback, folder: str = "",
                  select_stem: bool = True, current: str = "", taken: Optional[set] = None):
         """Saisie d'un nom avec vérification immédiate (vide, « / », déjà existant)."""
-        row = Adw.EntryRow(title=tr("Nom"), text=initial)
+        row = Adw.EntryRow(title=tr("Nom"), text=shown(initial))
         box = Gtk.ListBox(css_classes=["boxed-list"], selection_mode=Gtk.SelectionMode.NONE)
         box.append(row)
         msg = Gtk.Label(xalign=0, css_classes=["error", "caption"], margin_top=6, visible=False, wrap=True)

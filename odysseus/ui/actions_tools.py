@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import os
+
 from .. import features
 from ..backend import media
 from ..i18n import tr
@@ -51,8 +53,23 @@ class ToolActions:
         if not paths and tool != "merge":
             return
         from . import pdf_dialogs
-        {"compress": pdf_dialogs.CompressDialog, "merge": pdf_dialogs.MergeDialog,
-         "watermark": pdf_dialogs.WatermarkDialog, "pages": pdf_dialogs.PagesDialog}[tool](self, paths).present(self)
+        from ..backend import pdf as pdfmod
+        if tool in ("watermark", "pages"):
+            # faux PDF ou PDF abîmé : le dialogue ne s'ouvrait pas et rien n'était dit
+            for p in paths:
+                try:
+                    ok = pdfmod.is_pdf(p) and pdfmod.page_count(p) > 0
+                except Exception:  # noqa: BLE001 — pypdf / qpdf lèvent des erreurs variées
+                    ok = False
+                if not ok:
+                    alert(self, tr("PDF illisible"),
+                          tr("« {0} » n'est pas un PDF valide ou il est endommagé.").format(os.path.basename(p)))
+                    return
+        try:
+            {"compress": pdf_dialogs.CompressDialog, "merge": pdf_dialogs.MergeDialog,
+             "watermark": pdf_dialogs.WatermarkDialog, "pages": pdf_dialogs.PagesDialog}[tool](self, paths).present(self)
+        except Exception as e:  # noqa: BLE001
+            alert(self, tr("PDF illisible"), str(e))
 
     def video_to_audio(self):
         if not self._need("video_to_audio"):

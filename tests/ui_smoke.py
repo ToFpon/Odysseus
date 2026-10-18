@@ -745,6 +745,34 @@ def droits(win):
 
 
 @step
+def noms_non_utf8(win):
+    """Noms de fichiers non UTF-8 (anciennes clés, archives Windows) : affichés avec « � », sans
+    exception (avant : lignes vides, titre figé, propriétés et copie impossibles)."""
+    base = os.path.join(D, "non-utf8")
+    os.makedirs(base)
+    bad_dir = os.path.join(os.fsencode(base), b"dossier-\xe9t\xe9")
+    os.makedirs(bad_dir)
+    with open(os.path.join(bad_dir, b"f\xe9.txt"), "w") as f:
+        f.write("x")
+    p = win.pane
+    p.open(os.fsdecode(bad_dir))
+    yield Wait(5, until=lambda: not p.model.loading)
+    names = [r.name for r in p.model.items]
+    check(len(names) == 1, f"dossier non UTF-8 lu ({len(names)} élément)")
+    p.model.select_names(names)
+    yield pump(0.3)
+    win.activate_action("win.copy", None)
+    win.activate_action("win.properties", None)
+    yield pump(0.6)
+    for w in Gtk.Window.list_toplevels():
+        if type(w).__name__ == "PropertiesDialog":
+            w.close()
+    check("�" in win.get_title(), f"titre affichable ({win.get_title()!r})")
+    p.open(D)
+    yield Wait(5, until=lambda: not p.model.loading)
+
+
+@step
 def fonctionnalites(win):
     from odysseus import features
     features.set_enabled("dual_panel", False)

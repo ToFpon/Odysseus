@@ -14,6 +14,7 @@ from gi.repository import Gdk, GLib, Graphene, Gtk, Pango
 
 from ..backend.scanner import Rec
 from . import clipboard, icons
+from .common import shown
 from .model import DirModel
 
 if TYPE_CHECKING:
@@ -131,7 +132,7 @@ class MillerColumn(Gtk.Box):
         chev = box.get_last_child()
         img.set_from_gicon(icons.gicon_for(rec))
         icons.request_meta(rec, self.model)
-        lbl.set_text(rec.name)
+        lbl.set_text(shown(rec.name))
         chev.set_visible(rec.is_dir)
         from .. import features
         from ..settings import settings
