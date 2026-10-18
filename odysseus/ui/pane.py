@@ -449,6 +449,7 @@ class Pane(Gtk.Box):
         self.mode = "fs"
         self.location = path
         self._select_after = select
+        self.model.show_hidden = settings["show_hidden"]     # cachés montrés pour un fichier choisi : pas ailleurs
         self.list_view.update_columns()
         self._load_token += 1
         if self.view_mode == "columns":
@@ -990,6 +991,10 @@ class Pane(Gtk.Box):
     def select_names(self, names: list[str]):
         if not names:
             return
+        if not self.model.show_hidden and any(r.hidden and r.name in names for r in self.model.all):
+            # ShowItems / « ouvrir le dossier » d'un fichier caché : comme Nautilus, on montre les
+            # fichiers cachés de ce panneau (sans changer la préférence)
+            self.model.set_show_hidden(True)
         self.model.select_names(names)
         first = self.model.find_name(names[0])
         if first >= 0:

@@ -139,15 +139,39 @@ def compile_rx(q: Query) -> re.Pattern:
     return re.compile(pat, flags)
 
 
-def preview_replace(q: Query, matches: list[Match], replacement: str) -> list[tuple[Match, str]]:
-    rx = compile_rx(q)
-    out = []
-    for m in matches:
+_CUT = re.compile(r" \[\.\.\. (omitted end of long line|\d+ more matches?)\]$")
+
+
+def _full_line(path: str, number: int, cache: dict) -> Optional[str]:
+    """Ligne complète du fichier (coupée sur « \n » comme ripgrep, comme apply_replace)."""
+    if path not in cache:
         try:
-            after = rx.sub(replacement if q.regex else replacement.replace("\\", "\\\\"), m.text)
+            with open(path, "rb") as fh:
+                cache[path] = fh.read().decode("utf-8").split("\n")
+        except (OSError, UnicodeDecodeError):
+            cache[path] = None
+    lines = cache[path]
+    return lines[number - 1] if lines is not None and 0 < number <= len(lines) else None
+
+
+def preview_replace(q: Query, matches: list[Match], replacement: str) -> list[tuple[Match, str]]:
+    """Aperçu calculé sur la ligne entière : ripgrep coupe les lignes de plus de 400 colonnes
+    (« [... omitted end of long line] »), et l'aperçu ne montrait alors qu'une partie de ce que
+    apply_replace remplaçait (ou ne proposait pas un remplacement situé après la colonne 400)."""
+    rx = compile_rx(q)
+    out, cache = [], {}
+    for m in matches:
+        text = m.text
+        if _CUT.search(text):
+            full = _full_line(m.path, m.line, cache)
+            if full is None:
+                continue
+            text = full
+        try:
+            after = rx.sub(replacement if q.regex else replacement.replace("\\", "\\\\"), text)
         except re.error:
             continue
-        if after != m.text:
+        if after != text:
             out.append((m, after))
     return out
 

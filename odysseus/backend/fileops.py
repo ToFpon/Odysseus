@@ -529,7 +529,8 @@ def transfer(job: Job, sources: list[str], dest_dir: str, ask: Asker, move: bool
     if not os.path.isdir(dest_dir):
         raise ToolError(tr("Le dossier de destination n'existe pas : {0}").format(dest_dir))
     for s in sources:
-        if os.path.isdir(s) and _is_inside(dest_dir, s):
+        # un lien symbolique est copié / déplacé comme lien : le poser dans le dossier qu'il vise est permis
+        if os.path.isdir(s) and not os.path.islink(s) and _is_inside(dest_dir, s):
             raise ToolError(tr("Impossible de copier « {0} » dans lui-même").format(os.path.basename(s)))
     try:
         dest_dev = os.stat(dest_dir).st_dev
@@ -540,7 +541,7 @@ def transfer(job: Job, sources: list[str], dest_dir: str, ask: Asker, move: bool
     to_copy = []
     direct = []                    # déplacements par simple renommage : (ancien, nouveau)
     copier = _Copier(job, ask, 0, 0, move)
-    kind = fsinfo.fs_type(dest_dir)
+    kind = fsinfo.fs_type(os.path.realpath(dest_dir))     # clé atteinte par un lien symbolique
     copier.windows, copier.fat = kind in fsinfo.WINDOWS_LIKE, kind in fsinfo.FAT
     for src in sources:
         job.check_cancel()
@@ -805,7 +806,7 @@ def rename(path: str, new_name: str) -> str:
     # d'un nom tient compte de la casse ou pas (vfat utf8 : oui, mais création refusée quand même)
     names = os.listdir(folder or ".")
     folded = [n for n in names if n.casefold() == new_name.casefold() and n != old]
-    if new_name in names or (folded and (fsinfo.is_windows_like(folder or ".") or os.path.lexists(target))):
+    if new_name in names or (folded and (fsinfo.is_windows_like(os.path.realpath(folder or ".")) or os.path.lexists(target))):
         raise ToolError(tr("« {0} » existe déjà").format(new_name))
     if new_name.casefold() == old.casefold():
         # seule la casse change : en deux temps (sur FAT, NTFS… c'est le même nom pour le système)

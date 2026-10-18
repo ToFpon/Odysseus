@@ -176,6 +176,33 @@ def steps(win):
     yield
     yield
     check(p.location == "/usr/share", f"Ctrl+L puis « /usr/share » au clavier ({p.location})")
+    # AZERTY (Tof) et QWERTZ : « / » et « ~ » se tapent avec Maj / AltGr, le raccourci se déclenchait
+    for layout in ("fr", "de"):
+        if subprocess.run(["setxkbmap", layout], capture_output=True).returncode != 0:
+            print(f"- disposition {layout} indisponible : sautée")
+            continue
+        p.open(D)
+        yield
+        xdo("key", "ctrl+l")
+        yield
+        xdo("type", "--delay", "60", "/usr/share/doc")
+        yield
+        xdo("key", "Return")
+        yield
+        yield
+        check(p.location == "/usr/share/doc", f"[{layout}] Ctrl+L puis « /usr/share/doc » ({p.location})")
+        p.open(D)
+        yield
+        xdo("key", "ctrl+f")
+        yield
+        xdo("type", "--delay", "60", "i/m~p")
+        yield
+        yield
+        check(win.search_entry.get_text() == "i/m~p" and p.location == D,
+              f"[{layout}] « / » et « ~ » tapés dans la recherche ({win.search_entry.get_text()!r})")
+        xdo("key", "Escape")
+        yield
+    subprocess.run(["setxkbmap", "us"], capture_output=True)
 
 
 def on_window(_a, win):

@@ -247,6 +247,22 @@ class ReplaceTest(unittest.TestCase):
                              else "a\u2028CIBLE\nOK\n", name)
             self.assertEqual(total, 1, name)
 
+    def test_preview_matches_apply_on_long_lines(self):
+        """ripgrep coupe les lignes > 400 colonnes : l'aperçu doit compter tout ce qui sera remplacé."""
+        p = os.path.join(self.d, "min.js")
+        with open(p, "w") as f:
+            f.write("var foo=1;" + "x" * 800 + "foo();\n" + "y" * 900 + "foo\n")
+        q = search.Query(pattern="foo", folder=self.d)
+        found = []
+        search.run(q, found.extend, lambda: False)
+        preview = search.preview_replace(q, found, "BAR")
+        self.assertEqual(sum(after.count("BAR") for _m, after in preview), 3)
+        targets = {}
+        for m, _after in preview:
+            targets.setdefault(m.path, set()).add(m.line)
+        total, _files, _err = search.apply_replace(q, targets, "BAR", backup=False)
+        self.assertEqual(total, 3)
+
     def test_backup_never_overwrites_existing_bak(self):
         p = os.path.join(self.d, "f.txt")
         with open(p, "w") as f:
@@ -320,6 +336,18 @@ class PoolTest(unittest.TestCase):
 
 
 class MiscTest(unittest.TestCase):
+    def test_7z_error_on_next_line(self):
+        """« System ERROR: » / « Error: » suivis de la raison à la ligne suivante : message non vide."""
+        from odysseus.backend.engine import ToolError, raise_for_7z
+        text = ("\nError:\nUpdating for multivolume archives is not implemented\n/tmp/x.7z.001\n\n\n"
+                "System ERROR:\nE_NOTIMPL : Not implemented\n")
+        with self.assertRaises(ToolError) as cm:
+            raise_for_7z(text, 2)
+        self.assertEqual(str(cm.exception), "Updating for multivolume archives is not implemented")
+        with self.assertRaises(ToolError) as cm:
+            raise_for_7z("System ERROR:\nE_FAIL\n", 2)
+        self.assertEqual(str(cm.exception), "E_FAIL")
+
     def test_bookmarks(self):
         with tempfile.TemporaryDirectory() as d:
             f = os.path.join(d, "bookmarks")

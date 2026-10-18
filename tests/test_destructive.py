@@ -357,6 +357,15 @@ class DestructiveTest(unittest.TestCase):
         res = run(lambda j: fileops.transfer(j, [os.path.join(self.src, "sub")], self.dst, ask("cancel")))
         self.assertEqual(res.new_items, [os.path.join(self.dst, "sub")])
 
+    def test_move_link_into_its_target(self):
+        target = os.path.join(self.d, "cible")
+        os.makedirs(target)
+        link = os.path.join(self.src, "raccourci")
+        os.symlink(target, link)
+        run(lambda j: fileops.transfer(j, [link], target, ask("cancel"), move=True))
+        self.assertEqual(os.readlink(os.path.join(target, "raccourci")), target)
+        self.assertFalse(os.path.lexists(link))
+
     def test_move_into_itself_refuses(self):
         before = tree(self.src)
         j = Job("x", lambda j: fileops.transfer(j, [self.src], os.path.join(self.src, "sub"), ask("cancel"),
@@ -483,6 +492,16 @@ class FatKeyTest(unittest.TestCase):
         self.assertEqual(j.state, "done", j.error)
         self.assertEqual(tree(self.key), {"rapport_ v2_.txt": b"r", "dossier_": "<dossier>",
                                           os.path.join("dossier_", "a_b.txt"): b"ab", "fin": b"f"})
+
+    def test_key_reached_through_symlink(self):
+        """Clé atteinte par un lien (« ~/Clé → /media/… ») : reconnue comme FAT quand même."""
+        link = os.path.join(self.d, "lien-cle")
+        os.symlink(self.key, link)
+        write(os.path.join(self.src, "rapport: v2?.txt"), "r")
+        j = Job("x", lambda j: fileops.transfer(j, [os.path.join(self.src, "rapport: v2?.txt")], link,
+                                                 ask("cancel"))).run_sync()
+        self.assertEqual(j.state, "done", j.error)
+        self.assertEqual(os.listdir(self.key), ["rapport_ v2_.txt"])
 
     def _kernel_vfat_lookup(self):
         """Imite le vfat du noyau monté en utf8 (clés USB sous Ubuntu / Zorin) : chercher un nom

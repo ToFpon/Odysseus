@@ -641,7 +641,6 @@ class MainWindow(FileActions, ArchiveActions, ToolActions, Adw.ApplicationWindow
         ("BackSpace", False, False): "back", ("Delete", False, False): "trash",
         ("KP_Delete", False, False): "trash", ("Delete", False, True): "delete",
         ("slash", False, False): "location-root", ("asciitilde", False, False): "location-home",
-        ("asciitilde", False, True): "location-home",
         ("a", True, False): "select-all", ("A", True, True): "unselect-all", ("a", True, True): "unselect-all",
         ("x", True, False): "cut", ("c", True, False): "copy", ("v", True, False): "paste",
         ("z", True, False): "undo", ("Z", True, True): "redo", ("z", True, True): "redo",
@@ -650,8 +649,11 @@ class MainWindow(FileActions, ArchiveActions, ToolActions, Adw.ApplicationWindow
     def _on_text_key(self, _ctrl, keyval, _code, state):
         if state & (Gdk.ModifierType.ALT_MASK | Gdk.ModifierType.SUPER_MASK):
             return False
-        name = self._TEXT_KEYMAP.get((Gdk.keyval_name(keyval) or "", bool(state & Gdk.ModifierType.CONTROL_MASK),
-                                      bool(state & Gdk.ModifierType.SHIFT_MASK)))
+        key = Gdk.keyval_name(keyval) or ""
+        # « / » et « ~ » se tapent avec Maj (ou AltGr) en AZERTY / QWERTZ, et le raccourci se déclenche
+        # quand même : pour ces caractères, Maj ne compte pas (sinon « /usr » devenait « usr »)
+        shift = bool(state & Gdk.ModifierType.SHIFT_MASK) and key not in ("slash", "asciitilde")
+        name = self._TEXT_KEYMAP.get((key, bool(state & Gdk.ModifierType.CONTROL_MASK), shift))
         return bool(name) and self._to_text(name)
 
     def _add(self, name, cb, param: Optional[str] = None):

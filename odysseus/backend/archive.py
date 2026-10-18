@@ -572,7 +572,7 @@ def create(job: Job, sources: list[str], out: str, o: CreateOptions) -> str:
                 comp = job.popen(comp_argv, stdin=subprocess.PIPE, stdout=fout, stderr=subprocess.PIPE)
                 try:
                     relay(job, tar.stdout, comp.stdin, int(total * 1.02) + 10240,
-                          label="Compression ")
+                          label=tr("Compression") + " ")
                 finally:
                     comp.stdin.close()
                 terr = tar.stderr.read().decode("utf-8", "replace")
@@ -596,7 +596,7 @@ def create(job: Job, sources: list[str], out: str, o: CreateOptions) -> str:
                 comp = job.popen(_compress_cmd(fmt.key, o.level), stdin=subprocess.PIPE,
                                  stdout=fout, stderr=subprocess.PIPE)
                 try:
-                    relay(job, fin, comp.stdin, total, label="Compression ")
+                    relay(job, fin, comp.stdin, total, label=tr("Compression") + " ")
                 finally:
                     comp.stdin.close()
                 cerr = comp.stderr.read().decode("utf-8", "replace")
@@ -775,7 +775,7 @@ def _extract_into(job: Job, archive: str, det, o: ExtractOptions, dest: str):
 def _extract_raw(job: Job, archive: str, det, o: ExtractOptions, dest: str):
     if det.kind == "tar-stream":
         _run_decompress_into(job, archive, det.stream, build_7z_extract(archive, dest, o, stdin_tar=True),
-                             "Extraction ")
+                             tr("Extraction") + " ")
     elif det.kind == "stream":
         target = os.path.join(dest, det.inner_name or "contenu")
         if os.path.exists(target):
@@ -788,7 +788,7 @@ def _extract_raw(job: Job, archive: str, det, o: ExtractOptions, dest: str):
         part = target + ".part"
         try:
             with open(part, "wb") as fout:
-                _run_decompress_into(job, archive, det.stream, [], "Extraction ", consumer_stdout=fout)
+                _run_decompress_into(job, archive, det.stream, [], tr("Extraction") + " ", consumer_stdout=fout)
             os.replace(part, target)
         finally:
             if os.path.exists(part):
@@ -949,10 +949,10 @@ def test(job: Job, archive: str, password: str = "") -> str:
     det = formats.detect(archive)
     if det.kind == "tar-stream":
         return _run_decompress_into(job, archive, det.stream,
-                                    [_7z(), "t", "-si", "-ttar", "-bso1", "-bse1"], "Test ")
+                                    [_7z(), "t", "-si", "-ttar", "-bso1", "-bse1"], tr("Test") + " ")
     if det.kind == "stream":
         with open(os.devnull, "wb") as null:
-            _run_decompress_into(job, archive, det.stream, [], "Test ", consumer_stdout=null)
+            _run_decompress_into(job, archive, det.stream, [], tr("Test") + " ", consumer_stdout=null)
         return tr("Flux valide")
     argv = [_7z(), "t"] + _pw_args(password) + ["-bsp1", "-bso1", "-bse1", "-y", "--", archive]
     return job.run_tool(argv, label=tr("Test"))

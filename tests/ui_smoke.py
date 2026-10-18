@@ -748,6 +748,31 @@ def droits(win):
     check(stat.S_IMODE(os.stat(script).st_mode) == 0o740,
           f"0744, « autres : aucun » → 0740 ({oct(stat.S_IMODE(os.stat(script).st_mode))})")
     d.close()
+    # une seule catégorie change, les autres gardent leurs bits exacts (même « -wx », « -w- »)
+    for name, is_dir, mode, row, value, expected in (("d754", True, 0o754, 0, 1, 0o554),
+                                                       ("d733", True, 0o733, 1, 0, 0o703),
+                                                       ("f620", False, 0o620, 2, 1, 0o624)):
+        path = os.path.join(base, name)
+        if is_dir:
+            os.makedirs(path)
+        else:
+            open(path, "w").close()
+        os.chmod(path, mode)
+        d = PropertiesDialog(win, [path])
+        d.present(win)
+        yield pump(0.5)
+        d._access_rows[row].set_selected(value)
+        yield pump(0.2)
+        got = stat.S_IMODE(os.stat(path).st_mode)
+        check(got == expected, f"{oct(mode)}, ligne {row} → {value} : {oct(got)} (attendu {oct(expected)})")
+        d.close()
+    d = PropertiesDialog(win, [script])
+    d.present(win)
+    yield pump(0.5)
+    d.exec_row.set_active(False)
+    yield pump(0.2)
+    check(stat.S_IMODE(os.stat(script).st_mode) == 0o640, f"exécution retirée : 0640 ({oct(os.stat(script).st_mode & 0o777)})")
+    d.close()
 
 
 @step
@@ -843,6 +868,24 @@ def panneau_suit_le_dossier(win):
     yield pump(0.4)
     p.open(D)
     yield Wait(5, until=lambda: not p.model.loading)
+
+
+@step
+def fichier_cache_choisi(win):
+    """Ouvrir le dossier d'un fichier caché pour le sélectionner (ShowItems) : il est montré et choisi ;
+    le dossier suivant reprend la préférence (cachés masqués)."""
+    base = os.path.join(D, "caches-choisis")
+    os.makedirs(base)
+    open(os.path.join(base, ".secret"), "w").close()
+    open(os.path.join(base, "visible"), "w").close()
+    p = win.pane
+    p.open(base, select=[".secret"])
+    yield Wait(5, until=lambda: not p.model.loading)
+    yield pump(0.3)
+    check([r.name for r in p.model.selected_recs()] == [".secret"], "fichier caché demandé : montré et sélectionné")
+    p.open(D)
+    yield Wait(5, until=lambda: not p.model.loading)
+    check(not any(r.name.startswith(".") for r in p.model.items), "dossier suivant : cachés masqués")
 
 
 @step

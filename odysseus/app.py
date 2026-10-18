@@ -18,6 +18,16 @@ from .i18n import tr  # noqa: E402
 DATA_DIR = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "data")
 
 
+def _inside_archive(path: str) -> bool:
+    """« /chemin/archive.7z/dossier » : chemin dans une archive, ouvert par le panneau."""
+    probe = os.path.dirname(path)
+    while probe and probe != "/":
+        if os.path.isfile(probe):
+            return True
+        probe = os.path.dirname(probe)
+    return False
+
+
 class OdysseusApp(Adw.Application):
     def __init__(self):
         super().__init__(application_id=APP_ID,
@@ -101,13 +111,19 @@ class OdysseusApp(Adw.Application):
             return 0
         cwd = cmd.get_cwd() or os.getcwd()
         args = cmd.get_arguments()[1:]
-        locs = []
+        locs, missing = [], []
         for a in args:
             if "://" in a and not a.startswith("file://"):
                 locs.append(a)
             else:
                 f = Gio.File.new_for_commandline_arg_and_cwd(a, cwd)
-                locs.append(f.get_path() or f.get_uri())
+                path = f.get_path()
+                if path and not os.path.lexists(path) and not _inside_archive(path):
+                    # comme Nautilus : on le dit, au lieu d'un onglet muet sur le dossier personnel
+                    missing.append(path)
+                    cmd.printerr_literal(tr("Emplacement introuvable : {0}").format(path) + "\n")
+                    continue
+                locs.append(path or f.get_uri())
         dual = True if opts.get("dual") else None
         win = self._window()
         pair = locs[1] if dual and len(locs) >= 2 else None    # --dual A B : un seul onglet A | B
@@ -131,6 +147,10 @@ class OdysseusApp(Adw.Application):
         for loc in rest:
             win.new_tab(loc)
         win.present()
+        if missing:
+            from .ui.common import toast
+            msg = tr("Emplacement introuvable : {0}").format(", ".join(missing))
+            GLib.timeout_add(300, lambda: (toast(win, msg), False)[1])
         if opts.get("search-content"):
             win.content_search(locs[0] if locs else "")
         return 0

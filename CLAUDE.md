@@ -56,8 +56,8 @@ xvfb-run -a -s "-screen 0 1600x1000x24" python3.12 tests/ui_mouse.py   # vrais c
 ODYSSEUS_UI_GVFS=1 dbus-run-session -- xvfb-run -a python3.12 tests/ui_smoke.py   # + corbeille GVfs
 ```
 
-Sans `ODYSSEUS_UI_GVFS`, les étapes qui lisent trash:/// sont sautées : ui_smoke lance alors lui-même
-gvfsd sur son HOME jetable (un gvfsd lancé à part garde le vrai HOME et montre la vraie corbeille).
+Avec `ODYSSEUS_UI_GVFS=1`, ui_smoke lance lui-même gvfsd sur son HOME jetable (un gvfsd lancé à part
+garde le vrai HOME et montre la vraie corbeille) ; sans, les étapes qui lisent trash:/// sont sautées.
 Les tests de corbeille du moteur retirent de la vraie corbeille ce qu'ils y ont mis (`_purge_trash`).
 
 `tests/test_destructive.py` : remplacer, fusionner, annuler, déplacer entre deux systèmes de fichiers,
@@ -135,6 +135,10 @@ Les dialogues ouverts (fenêtres posées sur la principale) sont composés au ce
   sens dans un champ (Suppr, Retour arrière, `/`, `~`, Ctrl+A/X/C/V/Z…) sont renvoyés au texte qui a
   le focus par un contrôleur clavier en capture (`MainWindow._on_text_key`, qui passe avant les
   raccourcis) — jamais dans l'action : un clic sur « Précédent » doit naviguer ; testé dans `ui_mouse.py`.
+  « / » et « ~ » se tapent avec Maj / AltGr en AZERTY (clavier de Tof) et QWERTZ : pour eux, Maj ne
+  compte pas ; `ui_mouse.py` les tape aussi avec `setxkbmap fr` et `de`.
+- Propriétés → Droits : ne recalculer que la catégorie modifiée (les listes ne montrent pas « -w- »,
+  « -wx »… : tout recalculer changeait les autres catégories).
 - GTK 4.14 / Gtk.ColumnView : NE JAMAIS changer la visibilité d'une colonne d'une vue remplie (une
   cellule libérée reste dans la liste de la colonne → segfault à la suppression suivante d'une ligne,
   `gtk_column_view_column_queue_resize`). `ListView.update_columns` reconstruit la vue avec les

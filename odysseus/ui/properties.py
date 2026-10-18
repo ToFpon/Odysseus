@@ -189,20 +189,23 @@ class PropertiesDialog(DialogWindow):
             row = combo_row(label, ACCESS, idx)
             row.set_sensitive(mine)
             row._shift = shift
-            row.connect("notify::selected", lambda *_: self._apply_mode(False))
+            row.connect("notify::selected", lambda r, _p: self._apply_mode(changed=r))
             rows.append(row)
             g.add(row)
         self._access_rows = rows
         if not rec.is_dir:
             self.exec_row = Adw.SwitchRow(title=tr("Autoriser l'exécution comme programme"),
                                           active=bool(mode & 0o100), sensitive=mine)
-            self.exec_row.connect("notify::active", lambda *_: self._apply_mode(True))
+            self.exec_row.connect("notify::active", lambda *_: self._apply_mode(exec_changed=True))
             g.add(self.exec_row)
         else:
             self.exec_row = None
         page.add(g)
 
-    def _apply_mode(self, exec_changed: bool = False):
+    def _apply_mode(self, changed=None, exec_changed: bool = False):
+        """Ne touche que la catégorie modifiée (ou le bit d'exécution) : les autres gardent leurs bits
+        exacts, même ceux que la liste ne sait pas montrer (« écriture seule », « -wx »). Avant, tout
+        était recalculé depuis les listes : dossier 0754, propriétaire → lecture donnait 0555."""
         try:
             s = os.lstat(self._mode_path)
         except OSError:
@@ -210,26 +213,20 @@ class PropertiesDialog(DialogWindow):
         if st.S_ISLNK(s.st_mode):
             return                      # jamais de chmod à travers un lien
         old = st.S_IMODE(s.st_mode)
-        mode = old & ~0o777
+        mode = old
         for row in self._access_rows:
-            sel = row.get_selected()
-            bits = 0
-            if sel >= 1:
-                bits |= 4
-            if sel == 2:
-                bits |= 2
-            if self._is_dir:
+            shift = row._shift
+            if row is changed:
+                sel = row.get_selected()
+                bits = (4 if sel >= 1 else 0) | (2 if sel == 2 else 0)
                 if sel >= 1:
-                    bits |= 1
-            elif sel >= 1:
-                # fichier : on garde le bit d'exécution de chaque catégorie ; seul l'interrupteur
-                # « Autoriser l'exécution » le pose ou le retire (sinon 0744 → « autres : aucun »
-                # devenait 0750, le groupe gagnant l'exécution)
-                if exec_changed and self.exec_row is not None:
-                    bits |= 1 if self.exec_row.get_active() else 0
-                else:
-                    bits |= (old >> row._shift) & 1
-            mode |= bits << row._shift
+                    # dossier : lecture = lecture + traverser ; fichier : le bit d'exécution reste
+                    # celui de la catégorie, seul l'interrupteur « Autoriser l'exécution » le change
+                    bits |= 1 if self._is_dir else (old >> shift) & 1
+                mode = (mode & ~(7 << shift)) | (bits << shift)
+            elif exec_changed and self.exec_row is not None and (old >> shift) & 4:
+                x = 1 << shift
+                mode = (mode | x) if self.exec_row.get_active() else (mode & ~x)
         if mode == old:
             return
         try:

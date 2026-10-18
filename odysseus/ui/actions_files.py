@@ -1002,6 +1002,8 @@ class FileActions:
             self._launch_terminal(d)
 
     def terminal_selected(self):
+        if not features.enabled("terminal"):
+            return
         dirs = [r.path for r in self._sel() if r.is_dir and r.path]
         if dirs:
             self._launch_terminal(dirs[0])

@@ -267,7 +267,14 @@ def raise_for_7z(text: str, code: int):
     # les récapitulatifs (« Sub items Errors: 1 », « Archives with Errors: 1 », « ERRORS: ») ne disent
     # rien : on garde la première vraie ligne d'erreur
     summary = re.compile(r"^((sub items |archives with )?errors?:?\s*\d*|warnings?:?\s*\d*)$", re.I)
-    real = [re.sub(r"^.*?ERROR:\s*", "", l) for l in lines if "ERROR:" in l]
+    real = []
+    for i, l in enumerate(lines):
+        if "ERROR:" in l or re.match(r"^error:$", l, re.I):
+            rest = re.sub(r"^.*?ERROR:\s*", "", l, flags=re.I)
+            if not rest and i + 1 < len(lines) and not summary.match(lines[i + 1]):
+                rest = lines[i + 1]          # « System ERROR: » / « Error: » puis la raison à la ligne suivante
+            if rest:
+                real.append(rest)
     others = [l for l in lines if ("error" in l.lower() or "erreur" in l.lower()) and not summary.match(l)]
     plain = [l for l in lines if not summary.match(l)]
     msg = (real[0] if real else others[0] if others else plain[-1] if plain else
