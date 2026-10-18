@@ -116,6 +116,10 @@ Captures (Gtk.WidgetPaintable) : `xvfb-run -a python3.12 tools/screenshot.py SOR
 dossier personnel de démonstration de `tools/demo-home.py` (HOME pointé dessus, LANGUAGE=fr,
 settings.json remis à zéro avant chaque capture : la vue et le double panneau sont mémorisés).
 Les dialogues ouverts (fenêtres posées sur la principale) sont composés au centre de la capture.
+Site de présentation (`site/index.html`, anglais, « coming soon », aucun lien externe) : captures de
+`site/img/` faites en anglais et en sombre (`--dark`, sauf `light.png`) sur `tools/demo-home.py
+/home/tof --en` (chemin court : il s'affiche dans la recherche) ; `--search=… --replace=…` capture la
+fenêtre de recherche dans le contenu.
 
 ## Pièges connus
 

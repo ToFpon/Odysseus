@@ -4,7 +4,7 @@
     xvfb-run -a python3 tools/screenshot.py SORTIE.png [CHEMIN] [options]
 
 Options : --dual --other=chemin --grid --columns --preview --zoom=N --select=nom1,nom2 --action=win.xxx
-          --prefs=page --dark --delay=ms --size=LxH
+          --prefs=page --dark --delay=ms --size=LxH --search=texte [--replace=texte]
 """
 import os
 import sys
@@ -32,7 +32,7 @@ delay = int(opts.get("delay", 1800))
 
 def snap(win):
     def do():
-        target = win
+        target = getattr(app, "_target", None) or win
         paint = Gtk.WidgetPaintable.new(target)
         w, h = target.get_width(), target.get_height()
         snapshot = Gtk.Snapshot()
@@ -80,6 +80,18 @@ def on_ready(win):
             win.pane.select_names(opts["select"].split(","))
         if "action" in opts:
             GLib.timeout_add(300, lambda: (win.activate_action(opts["action"], None), False)[1])
+        if "search" in opts:
+            # recherche dans le contenu (fenêtre à part) : remplie, lancée, et c'est elle qu'on capture
+            from odysseus.ui.search_dialog import ContentSearchWindow
+            sw = ContentSearchWindow(win, win.pane.current_dir())
+            sw.set_default_size(*(int(v) for v in opts.get("size", "1280x780").split("x")))
+            if "replace" in opts:
+                sw.mode_replace.set_active(True)
+                sw.replace.set_text(opts["replace"])
+            sw.entry.set_text(opts["search"])
+            sw.present()
+            app._target = sw
+            GLib.timeout_add(300, lambda: (sw.start(), False)[1])
         if "prefs" in opts:
             from odysseus.ui.dialogs import PreferencesDialog
             d = PreferencesDialog()

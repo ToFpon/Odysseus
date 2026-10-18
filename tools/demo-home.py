@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Fabrique un dossier personnel de démonstration pour les captures de la documentation.
 
-    python3 tools/demo-home.py DOSSIER
+    python3 tools/demo-home.py DOSSIER [--en]      (--en : noms anglais, pour le site)
     HOME=DOSSIER XDG_CONFIG_HOME=DOSSIER/.config XDG_CACHE_HOME=DOSSIER/.cache \\
         xvfb-run -a python3 tools/screenshot.py SORTIE.png DOSSIER/Documents …
 """
@@ -14,9 +14,17 @@ import sys
 import cairo
 
 H = os.path.abspath(sys.argv[1])
+EN = "--en" in sys.argv[2:]
 random.seed(7)
-DIRS = {"DESKTOP": "Bureau", "DOCUMENTS": "Documents", "DOWNLOAD": "Téléchargements", "MUSIC": "Musique",
-        "PICTURES": "Images", "VIDEOS": "Vidéos", "TEMPLATES": "Modèles", "PUBLICSHARE": "Public"}
+
+
+def n(fr, en):
+    return en if EN else fr
+
+
+DIRS = {"DESKTOP": n("Bureau", "Desktop"), "DOCUMENTS": "Documents", "DOWNLOAD": n("Téléchargements", "Downloads"),
+        "MUSIC": n("Musique", "Music"), "PICTURES": n("Images", "Pictures"), "VIDEOS": n("Vidéos", "Videos"),
+        "TEMPLATES": n("Modèles", "Templates"), "PUBLICSHARE": "Public"}
 
 
 def write(path, data=b"", size=0):
@@ -72,57 +80,71 @@ with open(os.path.join(H, ".config", "user-dirs.dirs"), "w") as fh:
         os.makedirs(os.path.join(H, v), exist_ok=True)
 
 D = os.path.join(H, "Documents")
-pdf(os.path.join(D, "Rapport annuel 2026.pdf"), "Rapport annuel 2026", 4)
-pdf(os.path.join(D, "Factures", "Facture EDF septembre.pdf"), "Facture — septembre")
-pdf(os.path.join(D, "Factures", "Facture Free octobre.pdf"), "Facture — octobre")
-pdf(os.path.join(D, "Contrat de location.pdf"), "Contrat de location", 6)
-for name in ("Budget familial.ods", "Lettre de motivation.odt", "Recettes.odt", "Présentation projet.odp"):
+PROJ, ADMIN, TAX = n("Projets", "Projects"), n("Administratif", "Paperwork"), n("Impôts", "Taxes")
+HOLIDAY = n("Vacances 2026", "Holidays 2026")
+pdf(os.path.join(D, n("Rapport annuel 2026.pdf", "Annual report 2026.pdf")), n("Rapport annuel 2026", "Annual report 2026"), 4)
+pdf(os.path.join(D, n("Factures", "Invoices"), n("Facture EDF septembre.pdf", "Electricity bill September.pdf")),
+    n("Facture — septembre", "Invoice — September"))
+pdf(os.path.join(D, n("Factures", "Invoices"), n("Facture Free octobre.pdf", "Internet bill October.pdf")),
+    n("Facture — octobre", "Invoice — October"))
+pdf(os.path.join(D, n("Contrat de location.pdf", "Lease agreement.pdf")), n("Contrat de location", "Lease agreement"), 6)
+for name in n(("Budget familial.ods", "Lettre de motivation.odt", "Recettes.odt", "Présentation projet.odp"),
+              ("Family budget.ods", "Cover letter.odt", "Recipes.odt", "Project pitch.odp")):
     write(os.path.join(D, name))
-write(os.path.join(D, "Notes de réunion.md"), "# Réunion du 14 octobre\n\n- Odysseus : captures à jour\n".encode())
-write(os.path.join(D, "liste-courses.txt"), "pain\nlait\ncafé\n".encode())
-for sub in ("Projets/Odysseus/docs", "Projets/Odysseus/src", "Projets/Site web/images", "Projets/Pressoir",
-            "Administratif/Impôts", "Administratif/Banque", "Administratif/Santé"):
+write(os.path.join(D, n("Notes de réunion.md", "Meeting notes.md")),
+      n("# Réunion du 14 octobre\n\n- Odysseus : captures à jour\n", "# Meeting, October 14\n\n- Odysseus: new screenshots\n").encode())
+write(os.path.join(D, n("liste-courses.txt", "shopping-list.txt")), n("pain\nlait\ncafé\n", "bread\nmilk\ncoffee\n").encode())
+for sub in (f"{PROJ}/Odysseus/docs", f"{PROJ}/Odysseus/src", f"{PROJ}/{n('Site web', 'Website')}/images", f"{PROJ}/Pressoir",
+            f"{ADMIN}/{TAX}", f"{ADMIN}/{n('Banque', 'Bank')}", f"{ADMIN}/{n('Santé', 'Health')}"):
     os.makedirs(os.path.join(D, sub), exist_ok=True)
-for name in ("README.md", "CHANGELOG.md", "install.sh"):
-    write(os.path.join(D, "Projets", "Odysseus", name), b"# Odysseus\n")
-for name in ("main.py", "pane.py", "views.py"):
-    write(os.path.join(D, "Projets", "Odysseus", "src", name), b"print('Odysseus')\n")
-pdf(os.path.join(D, "Administratif", "Impôts", "Avis d'imposition 2026.pdf"), "Avis d'imposition")
+SOURCES = {  # du texte à chercher / remplacer pour la capture de la recherche dans le contenu
+    "README.md": "# Odysseus\n\nA file manager that looks like Nautilus.\nAll Nautilus extensions built in.\n",
+    "CHANGELOG.md": "## 1.0\n\n- Nautilus look and feel\n- Dual panel, columns, archives\n",
+    "install.sh": "#!/bin/sh\n# installs Odysseus next to Nautilus\ncp -r odysseus ~/.local/share/\n",
+    "src/main.py": "from pane import Pane\n\nTITLE = 'Nautilus'\n\n\ndef main():\n    print(TITLE)\n",
+    "src/pane.py": "class Pane:\n    \"\"\"One Nautilus-like pane.\"\"\"\n    style = 'nautilus-list-view'\n",
+    "src/views.py": "def grid():\n    return 'grid'\n\n\ndef columns():\n    # Miller columns, unlike Nautilus\n    return 'columns'\n",
+}
+for name, text in SOURCES.items():
+    write(os.path.join(D, PROJ, "Odysseus", name), text.encode())
+pdf(os.path.join(D, ADMIN, TAX, n("Avis d'imposition 2026.pdf", "Tax notice 2026.pdf")), n("Avis d'imposition", "Tax notice"))
 
-I = os.path.join(H, "Images")
-for i, name in enumerate(("Plage de Biarritz.png", "Coucher de soleil.png", "Montagne.png", "Forêt.png",
-                          "Port de La Rochelle.png", "Lavande.png", "Neige.png", "Lac d'Annecy.png")):
+I = os.path.join(H, DIRS["PICTURES"])
+for i, name in enumerate(n(("Plage de Biarritz.png", "Coucher de soleil.png", "Montagne.png", "Forêt.png",
+                            "Port de La Rochelle.png", "Lavande.png", "Neige.png", "Lac d'Annecy.png"),
+                           ("Biarritz beach.png", "Sunset.png", "Mountain.png", "Forest.png",
+                            "La Rochelle harbour.png", "Lavender.png", "Snow.png", "Lake Annecy.png"))):
     image(os.path.join(I, name), 640, 420, i * 0.8)
 for i in range(5):
-    image(os.path.join(I, "Vacances 2026", f"IMG_20260{7 + i % 2}{12 + i}_1{i}4502.png"), 600, 400, 3 + i * 0.6)
-os.makedirs(os.path.join(I, "Captures d'écran"), exist_ok=True)
+    image(os.path.join(I, HOLIDAY, f"IMG_20260{7 + i % 2}{12 + i}_1{i}4502.png"), 600, 400, 3 + i * 0.6)
+os.makedirs(os.path.join(I, n("Captures d'écran", "Screenshots")), exist_ok=True)
 
-T = os.path.join(H, "Téléchargements")
-src = os.path.join(I, "Vacances 2026")
-subprocess.run(["7z", "a", "-bd", "-tzip", os.path.join(T, "Photos vacances.zip"), src], capture_output=True)
-subprocess.run(["tar", "-czf", os.path.join(T, "odysseus-1.0.tar.gz"), "-C", os.path.join(D, "Projets"), "Odysseus"])
-pdf(os.path.join(T, "Notice lave-linge.pdf"), "Notice d'utilisation", 8)
-for name, size in (("zorin-os-18.1.iso", 3_000_000), ("pilote-imprimante.deb", 400_000),
-                   ("facture-orange.pdf", 0)):
+T = os.path.join(H, DIRS["DOWNLOAD"])
+src = os.path.join(I, HOLIDAY)
+subprocess.run(["7z", "a", "-bd", "-tzip", os.path.join(T, n("Photos vacances.zip", "Holiday photos.zip")), src], capture_output=True)
+subprocess.run(["tar", "-czf", os.path.join(T, "odysseus-1.0.tar.gz"), "-C", os.path.join(D, PROJ), "Odysseus"])
+pdf(os.path.join(T, n("Notice lave-linge.pdf", "Washing machine manual.pdf")), n("Notice d'utilisation", "User manual"), 8)
+for name, size in (("zorin-os-18.1.iso", 3_000_000), (n("pilote-imprimante.deb", "printer-driver.deb"), 400_000),
+                   (n("facture-orange.pdf", "phone-bill.pdf"), 0)):
     if name.endswith(".pdf"):
-        pdf(os.path.join(T, name), "Facture")
+        pdf(os.path.join(T, name), n("Facture", "Invoice"))
     else:
         write(os.path.join(T, name), size=size)
 
-M = os.path.join(H, "Musique")
+M = os.path.join(H, DIRS["MUSIC"])
 for name in ("Daft Punk", "Air", "Christine and the Queens"):
     os.makedirs(os.path.join(M, name), exist_ok=True)
 for name in ("01 - Intro.mp3", "02 - Voyage.mp3", "03 - Retour.mp3"):
     write(os.path.join(M, "Air", name), size=random.randint(3_000_000, 6_000_000))
-V = os.path.join(H, "Vidéos")
-for name in ("Anniversaire Léa.mp4", "Randonnée.mkv"):
+V = os.path.join(H, DIRS["VIDEOS"])
+for name in n(("Anniversaire Léa.mp4", "Randonnée.mkv"), ("Lea birthday.mp4", "Hiking.mkv")):
     write(os.path.join(V, name), size=2_000_000)
 for name in (".bashrc", ".profile"):
     write(os.path.join(H, name), b"# shell\n")
 
 os.makedirs(os.path.join(H, ".config", "gtk-3.0"), exist_ok=True)
 with open(os.path.join(H, ".config", "gtk-3.0", "bookmarks"), "w") as fh:
-    for p in ("Documents/Projets", "Images/Vacances 2026", "Documents/Administratif"):
+    for p in (f"Documents/{PROJ}", f"{DIRS['PICTURES']}/{HOLIDAY}", f"Documents/{ADMIN}"):
         fh.write("file://" + os.path.join(H, p).replace(" ", "%20") + "\n")
 # dates variées, comme un vrai dossier personnel (de quelques heures à un an)
 import time  # noqa: E402

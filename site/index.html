@@ -1,0 +1,651 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Odysseus — a fast file manager for GNOME</title>
+<meta name="description" content="Odysseus is a fast GTK4 / libadwaita file manager with the look of Nautilus and twenty extensions built in: dual panel, Miller columns, archives, content search & replace, PDF tools and more. Coming soon.">
+<link rel="icon" href="img/icon.svg" type="image/svg+xml">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --desk-0:#0b0f17;
+    --desk-1:#0f1622;
+    --desk-2:#12203a;
+    --zorin:#1a8fe3;
+    --zorin-bright:#4dabf7;
+    --zorin-deep:#0d5fb0;
+
+    --bg:#0c1018;
+    --surface:#141a24;
+    --surface-2:#1a212e;
+    --line:rgba(255,255,255,.08);
+    --line-strong:rgba(255,255,255,.14);
+    --text:#eef2f7;
+    --text-dim:rgba(238,242,247,.62);
+    --text-faint:rgba(238,242,247,.40);
+
+    --green:#4ade80;
+    --amber:#f5c542;
+
+    --display:'Space Grotesk',sans-serif;
+    --body:'Inter',sans-serif;
+    --mono:'JetBrains Mono',monospace;
+  }
+
+  *{margin:0;padding:0;box-sizing:border-box}
+  html{scroll-behavior:smooth}
+  body{
+    font-family:var(--body);
+    background:var(--bg);
+    color:var(--text);
+    line-height:1.6;
+    -webkit-font-smoothing:antialiased;
+    overflow-x:hidden;
+  }
+  a{color:inherit;text-decoration:none}
+  img{display:block;max-width:100%;height:auto}
+  ::selection{background:var(--zorin);color:#fff}
+
+  .wrap{max-width:1180px;margin:0 auto;padding:0 24px}
+
+  /* ───────────────── NAV ───────────────── */
+  nav{
+    position:fixed;top:0;left:0;right:0;z-index:100;
+    backdrop-filter:blur(14px);
+    background:rgba(12,16,24,.72);
+    border-bottom:1px solid transparent;
+    transition:border-color .3s;
+  }
+  nav.scrolled{border-bottom-color:var(--line)}
+  .nav-in{
+    max-width:1180px;margin:0 auto;padding:14px 24px;
+    display:flex;align-items:center;justify-content:space-between;
+  }
+  .brand{display:flex;align-items:center;gap:11px;font-family:var(--display);font-weight:600;font-size:1.05rem;letter-spacing:-.01em}
+  .brand img{width:30px;height:30px;filter:drop-shadow(0 3px 10px rgba(26,143,227,.45))}
+  .nav-links{display:flex;gap:30px;align-items:center;font-size:.92rem}
+  .nav-links a{color:var(--text-dim);transition:color .2s}
+  .nav-links a:hover{color:var(--text)}
+  .soon-pill{
+    font-family:var(--mono);font-size:.74rem;letter-spacing:.04em;
+    color:var(--amber);border:1px solid rgba(245,197,66,.35);background:rgba(245,197,66,.08);
+    padding:6px 14px;border-radius:999px;white-space:nowrap;
+  }
+  @media(max-width:720px){.nav-links a{display:none}}
+
+  /* ───────────────── HERO ───────────────── */
+  .hero{position:relative;padding:150px 0 90px;overflow:hidden}
+  .hero-bg{
+    position:absolute;inset:0;z-index:0;
+    background:
+      radial-gradient(1200px 600px at 70% -5%,rgba(26,143,227,.28),transparent 60%),
+      radial-gradient(900px 500px at 15% 10%,rgba(13,95,176,.20),transparent 55%),
+      linear-gradient(180deg,var(--desk-1),var(--bg) 70%);
+  }
+  .hero-bg::after{
+    content:"";position:absolute;inset:0;
+    background-image:
+      linear-gradient(rgba(255,255,255,.025) 1px,transparent 1px),
+      linear-gradient(90deg,rgba(255,255,255,.025) 1px,transparent 1px);
+    background-size:54px 54px;
+    mask-image:radial-gradient(900px 500px at 50% 0%,#000,transparent 75%);
+  }
+  .hero-in{position:relative;z-index:1;text-align:center}
+  .eyebrow{
+    display:inline-flex;align-items:center;gap:8px;
+    font-family:var(--mono);font-size:.78rem;letter-spacing:.04em;
+    color:var(--zorin-bright);
+    border:1px solid rgba(77,171,247,.3);
+    background:rgba(26,143,227,.08);
+    padding:6px 14px;border-radius:999px;margin-bottom:28px;
+  }
+  .eyebrow .dot{width:7px;height:7px;border-radius:50%;background:var(--amber);box-shadow:0 0 8px var(--amber)}
+  .hero-icon{width:92px;height:92px;margin:0 auto 26px;filter:drop-shadow(0 12px 30px rgba(26,143,227,.45))}
+  h1{
+    font-family:var(--display);font-weight:700;
+    font-size:clamp(2.4rem,6vw,4.4rem);
+    line-height:1.03;letter-spacing:-.03em;margin-bottom:22px;
+  }
+  h1 .accent{
+    background:linear-gradient(120deg,var(--zorin-bright),var(--zorin));
+    -webkit-background-clip:text;background-clip:text;color:transparent;
+  }
+  .lede{
+    font-size:clamp(1.05rem,2vw,1.26rem);color:var(--text-dim);
+    max-width:660px;margin:0 auto 36px;
+  }
+  .hero-actions{display:flex;gap:14px;justify-content:center;flex-wrap:wrap}
+  .btn{
+    font-family:var(--body);font-weight:600;font-size:.96rem;
+    padding:13px 26px;border-radius:12px;transition:all .2s;
+    display:inline-flex;align-items:center;gap:9px;border:1px solid transparent;
+  }
+  .btn-soon{background:var(--surface-2);color:var(--text-dim);border-color:var(--line-strong);cursor:default}
+  .btn-soon b{color:var(--amber);font-weight:600}
+  .btn-ghost{border-color:var(--line-strong);color:var(--text)}
+  .btn-ghost:hover{border-color:var(--zorin);background:rgba(26,143,227,.1)}
+
+  /* ───────── screenshots ───────── */
+  .stage{position:relative;margin-top:64px;display:flex;justify-content:center}
+  .stage-bg{
+    position:absolute;top:-30px;left:50%;transform:translateX(-50%);
+    width:min(1040px,96vw);height:108%;border-radius:24px;z-index:0;
+    background:
+      radial-gradient(120% 90% at 30% 0%,rgba(77,171,247,.35),transparent 60%),
+      linear-gradient(160deg,var(--zorin-deep),var(--desk-2) 70%,var(--desk-0));
+    filter:blur(2px);opacity:.55;
+  }
+  .shot{
+    position:relative;z-index:1;
+    border-radius:13px;overflow:hidden;
+    border:1px solid rgba(0,0,0,.5);
+    box-shadow:0 1px 0 rgba(255,255,255,.05) inset,0 32px 70px -20px rgba(0,0,0,.8),0 0 0 1px rgba(0,0,0,.4);
+    background:#242424;
+  }
+  .shot img{width:100%}
+  .hero .shot{width:min(1020px,95vw)}
+
+  .caption{font-family:var(--mono);font-size:.74rem;color:var(--text-faint);margin-top:14px;text-align:center}
+
+  /* tabs over a screenshot */
+  .tabs{display:flex;gap:4px;background:var(--surface-2);border:1px solid var(--line);padding:4px;border-radius:11px;width:max-content;max-width:100%;margin:0 auto 16px;flex-wrap:wrap}
+  .tabs button{
+    font-family:var(--body);font-size:.8rem;font-weight:500;color:var(--text-dim);
+    background:none;border:0;padding:6px 14px;border-radius:8px;cursor:pointer;transition:all .2s;
+  }
+  .tabs button:hover{color:var(--text)}
+  .tabs button.active{background:var(--zorin);color:#fff}
+  .tabbed .shot img{display:none}
+  .tabbed .shot img.active{display:block}
+
+  /* light / dark compare */
+  .compare{position:relative;z-index:1;border-radius:13px;overflow:hidden;border:1px solid rgba(0,0,0,.5);
+    box-shadow:0 32px 70px -20px rgba(0,0,0,.8);user-select:none;touch-action:pan-y;cursor:ew-resize}
+  .compare img{width:100%}
+  .compare .top{position:absolute;inset:0;clip-path:inset(0 50% 0 0)}
+  .compare .handle{position:absolute;top:0;bottom:0;left:50%;width:2px;background:#fff;box-shadow:0 0 12px rgba(0,0,0,.6)}
+  .compare .handle::after{
+    content:"⇆";position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);
+    width:38px;height:38px;border-radius:50%;background:var(--zorin);color:#fff;
+    display:grid;place-items:center;font-size:17px;box-shadow:0 4px 16px rgba(0,0,0,.5)}
+  .compare .lbl{position:absolute;top:12px;font-family:var(--mono);font-size:.7rem;padding:3px 9px;border-radius:6px;background:rgba(0,0,0,.55);color:#fff}
+  .compare .lbl.l{left:12px}.compare .lbl.r{right:12px}
+
+  /* ───────────────── SECTIONS ───────────────── */
+  section{position:relative}
+  .stats{border-top:1px solid var(--line);border-bottom:1px solid var(--line);background:var(--surface)}
+  .stats-in{display:grid;grid-template-columns:repeat(4,1fr);gap:1px;background:var(--line)}
+  .stat{background:var(--surface);padding:30px 22px;text-align:center}
+  .stat .n{font-family:var(--display);font-size:2.1rem;font-weight:700;color:var(--text);line-height:1}
+  .stat .n .u{color:var(--zorin)}
+  .stat .l{font-size:.82rem;color:var(--text-dim);margin-top:8px}
+  @media(max-width:680px){.stats-in{grid-template-columns:repeat(2,1fr)}}
+
+  .sec-head{text-align:center;max-width:660px;margin:0 auto 64px}
+  .sec-tag{font-family:var(--mono);font-size:.78rem;letter-spacing:.08em;text-transform:uppercase;color:var(--zorin-bright);margin-bottom:14px}
+  .sec-head h2{font-family:var(--display);font-weight:700;font-size:clamp(1.8rem,3.4vw,2.6rem);letter-spacing:-.02em;line-height:1.1;margin-bottom:14px}
+  .sec-head p{color:var(--text-dim);font-size:1.04rem}
+
+  .feature{padding:100px 0}
+  .feature .wrap{display:grid;grid-template-columns:5fr 7fr;gap:56px;align-items:center}
+  .feature.flip .wrap{grid-template-columns:7fr 5fr}
+  .feature.flip .copy{order:2}
+  .feature.flip .visual{order:1}
+  .ftag{font-family:var(--mono);font-size:.76rem;letter-spacing:.08em;text-transform:uppercase;color:var(--zorin-bright);margin-bottom:16px;display:flex;align-items:center;gap:9px;flex-wrap:wrap}
+  .kbd{font-family:var(--mono);font-size:.7rem;background:var(--surface-2);border:1px solid var(--line-strong);border-bottom-width:2px;padding:2px 7px;border-radius:5px;color:var(--text);letter-spacing:0;text-transform:none}
+  .feature h3{font-family:var(--display);font-weight:700;font-size:clamp(1.6rem,2.8vw,2.1rem);letter-spacing:-.02em;line-height:1.12;margin-bottom:18px}
+  .feature p.intro{color:var(--text-dim);font-size:1.04rem;margin-bottom:24px}
+  .flist{display:flex;flex-direction:column;gap:13px}
+  .flist .fi{display:flex;gap:13px;align-items:flex-start;font-size:.95rem}
+  .flist .fi .chk{color:var(--zorin-bright);flex-shrink:0;margin-top:2px}
+  .flist .fi b{color:var(--text);font-weight:600}
+  .flist .fi span{color:var(--text-dim)}
+  @media(max-width:900px){
+    .feature .wrap,.feature.flip .wrap{grid-template-columns:1fr;gap:40px}
+    .feature.flip .copy{order:1}.feature.flip .visual{order:2}
+  }
+  .feature.alt{background:var(--surface)}
+
+  /* speed */
+  .speed{padding:100px 0;border-top:1px solid var(--line)}
+  .bars{max-width:760px;margin:0 auto;display:flex;flex-direction:column;gap:22px}
+  .bar-row .bl{display:flex;justify-content:space-between;font-size:.9rem;margin-bottom:8px}
+  .bar-row .bl span:last-child{font-family:var(--mono);color:var(--zorin-bright)}
+  .bar{height:10px;background:rgba(255,255,255,.07);border-radius:99px;overflow:hidden}
+  .bar i{display:block;height:100%;width:0;background:linear-gradient(90deg,var(--zorin),var(--zorin-bright));border-radius:99px;transition:width 1.4s cubic-bezier(.2,.7,.2,1)}
+  .speed .in .bar i{width:var(--w)}
+  .speed-notes{display:grid;grid-template-columns:repeat(3,1fr);gap:18px;max-width:1000px;margin:56px auto 0}
+  @media(max-width:820px){.speed-notes{grid-template-columns:1fr}}
+  .sn{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:20px}
+  .sn h4{font-family:var(--display);font-size:1rem;margin-bottom:6px}
+  .sn p{font-size:.88rem;color:var(--text-dim)}
+
+  /* safety */
+  .safe-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:18px}
+  @media(max-width:760px){.safe-grid{grid-template-columns:1fr}}
+  .safe{display:flex;gap:16px;background:var(--bg);border:1px solid var(--line);border-radius:14px;padding:20px}
+  .safe .si{width:40px;height:40px;flex-shrink:0;border-radius:10px;background:rgba(74,222,128,.1);border:1px solid rgba(74,222,128,.25);display:grid;place-items:center;font-size:19px}
+  .safe h4{font-family:var(--display);font-size:1rem;margin-bottom:4px}
+  .safe p{font-size:.88rem;color:var(--text-dim)}
+
+  /* ───────────────── GRID ───────────────── */
+  .grid-sec{padding:100px 0}
+  .egrid{display:grid;grid-template-columns:repeat(3,1fr);gap:18px}
+  @media(max-width:860px){.egrid{grid-template-columns:repeat(2,1fr)}}
+  @media(max-width:560px){.egrid{grid-template-columns:1fr}}
+  .ecard{
+    background:var(--surface);border:1px solid var(--line);border-radius:16px;
+    padding:24px;transition:all .25s;position:relative;overflow:hidden;
+  }
+  .ecard::before{content:"";position:absolute;inset:0;background:radial-gradient(120% 80% at 100% 0%,rgba(26,143,227,.1),transparent 60%);opacity:0;transition:opacity .25s}
+  .ecard:hover{border-color:var(--line-strong);transform:translateY(-3px)}
+  .ecard:hover::before{opacity:1}
+  .ecard .ei{width:44px;height:44px;border-radius:11px;background:var(--surface-2);border:1px solid var(--line);display:grid;place-items:center;font-size:21px;margin-bottom:16px}
+  .ecard h4{font-family:var(--display);font-weight:600;font-size:1.08rem;margin-bottom:7px}
+  .ecard p{font-size:.88rem;color:var(--text-dim);margin-bottom:14px}
+  .ecard code{font-family:var(--mono);font-size:.74rem;color:var(--zorin-bright);background:rgba(26,143,227,.1);padding:3px 8px;border-radius:6px}
+
+  /* ───────────────── SOON ───────────────── */
+  .soon{padding:100px 0;background:var(--surface);border-top:1px solid var(--line)}
+  .soon-card{
+    max-width:760px;margin:0 auto;background:#0a0d13;border:1px solid var(--line);border-radius:16px;overflow:hidden;
+    box-shadow:0 24px 60px -24px rgba(0,0,0,.7);
+  }
+  .soon-top{display:flex;align-items:center;justify-content:center;padding:11px 12px;border-bottom:1px solid var(--line);background:var(--surface-2);font-weight:600;font-size:.84rem}
+  .soon-body{padding:8px 22px}
+  .soon-row{display:flex;align-items:center;gap:14px;padding:16px 0;border-bottom:1px solid var(--line)}
+  .soon-row:last-child{border-bottom:0}
+  .soon-row .ri{font-size:20px;width:28px;text-align:center}
+  .soon-row .rt{flex:1}
+  .soon-row .rt b{display:block;font-weight:600}
+  .soon-row .rt span{font-size:.86rem;color:var(--text-dim)}
+  .badge{font-family:var(--mono);font-size:.7rem;padding:4px 10px;border-radius:999px;white-space:nowrap}
+  .badge.soon{color:var(--amber);background:rgba(245,197,66,.08);border:1px solid rgba(245,197,66,.3)}
+  .badge.ok{color:var(--green);background:rgba(74,222,128,.08);border:1px solid rgba(74,222,128,.3)}
+  .reqs{max-width:760px;margin:30px auto 0;font-size:.9rem;color:var(--text-dim);text-align:center}
+  .reqs code{font-family:var(--mono);color:var(--zorin-bright);font-size:.84rem}
+
+  /* ───────────────── FOOTER ───────────────── */
+  footer{padding:70px 0 50px;border-top:1px solid var(--line);text-align:center}
+  .foot-brand{display:inline-flex;align-items:center;gap:11px;font-family:var(--display);font-weight:600;font-size:1.1rem;margin-bottom:18px}
+  .foot-brand img{width:30px;height:30px}
+  .foot-links{display:flex;gap:26px;justify-content:center;margin-bottom:26px;flex-wrap:wrap;font-size:.92rem}
+  .foot-links a{color:var(--text-dim);transition:color .2s}
+  .foot-links a:hover{color:var(--zorin-bright)}
+  .foot-meta{font-family:var(--mono);font-size:.76rem;color:var(--text-faint)}
+  .foot-meta .sep{margin:0 10px;opacity:.5}
+
+  .js .reveal{opacity:0;transform:translateY(24px);transition:opacity .7s cubic-bezier(.2,.7,.2,1),transform .7s cubic-bezier(.2,.7,.2,1)}
+  .js .reveal.in{opacity:1;transform:none}
+  @media(prefers-reduced-motion:reduce){
+    .reveal{opacity:1;transform:none;transition:none}
+    .bar i{transition:none}
+    html{scroll-behavior:auto}
+  }
+</style>
+</head>
+<body>
+<script>document.documentElement.classList.add('js')</script>
+
+<nav id="nav">
+  <div class="nav-in">
+    <a href="#" class="brand"><img src="img/icon.svg" alt=""> Odysseus</a>
+    <div class="nav-links">
+      <a href="#features">Features</a>
+      <a href="#speed">Speed</a>
+      <a href="#all">Everything</a>
+      <a href="#soon">Availability</a>
+      <span class="soon-pill">Coming soon</span>
+    </div>
+  </div>
+</nav>
+
+<!-- ───────────── HERO ───────────── -->
+<header class="hero">
+  <div class="hero-bg"></div>
+  <div class="wrap hero-in">
+    <img class="hero-icon" src="img/icon.svg" alt="Odysseus icon">
+    <span class="eyebrow"><span class="dot"></span> Coming soon · GTK4 · libadwaita · GPL-3.0</span>
+    <h1>The look of <span class="accent">Nautilus</span>.<br>The power of its <span class="accent">extensions</span>.</h1>
+    <p class="lede">Odysseus is a fast file manager for GNOME. It looks and behaves like GNOME Files, and comes with twenty extensions built in: dual panel, Miller columns, an archive browser, content search &amp; replace, PDF tools and more. Every one of them can be switched off in a click.</p>
+    <div class="hero-actions">
+      <span class="btn btn-soon">Download — <b>coming soon</b></span>
+      <a href="#features" class="btn btn-ghost">See it in action ↓</a>
+    </div>
+
+    <div class="stage reveal">
+      <div class="stage-bg"></div>
+      <div class="shot"><img src="img/hero-dual.png" alt="Odysseus in dual panel mode: Documents on the left, Pictures on the right" width="1350" height="810"></div>
+    </div>
+    <p class="caption">Real screenshot · dual panel (F3) · Adwaita dark</p>
+  </div>
+</header>
+
+<!-- ───────────── STATS ───────────── -->
+<section class="stats">
+  <div class="wrap"><div class="stats-in">
+    <div class="stat"><div class="n">~1<span class="u">s</span></div><div class="l">to open a folder of 100,000 files</div></div>
+    <div class="stat"><div class="n">20<span class="u">+</span></div><div class="l">Nautilus extensions built in</div></div>
+    <div class="stat"><div class="n">3<span class="u">×</span></div><div class="l">Languages — EN · FR · DE</div></div>
+    <div class="stat"><div class="n">0<span class="u">%</span></div><div class="l">Telemetry, ads, nonsense</div></div>
+  </div></div>
+</section>
+
+<div id="features"></div>
+
+<!-- Views -->
+<section class="feature">
+  <div class="wrap">
+    <div class="copy">
+      <div class="ftag">Views <span class="kbd">Ctrl+1</span><span class="kbd">Ctrl+2</span><span class="kbd">Ctrl+3</span></div>
+      <h3>List, grid or columns. Whatever fits the folder.</h3>
+      <p class="intro">Compact Nautilus-style list rows, a thumbnail grid for your photos, and Finder-style Miller columns to dive deep into a tree without losing your way.</p>
+      <div class="flist">
+        <div class="fi"><span class="chk">✓</span><span><b>Optional list columns</b> — size, type, date, permissions, owner, and media duration.</span></div>
+        <div class="fi"><span class="chk">✓</span><span><b>Thumbnails shared with Nautilus</b>, through the standard freedesktop cache.</span></div>
+        <div class="fi"><span class="chk">✓</span><span><b>Preview panel</b> <span class="kbd">F4</span> for images, videos, PDF pages and text, with detailed info.</span></div>
+        <div class="fi"><span class="chk">✓</span><span><b>Folder colours and emblems</b>, compatible with Folder Color.</span></div>
+      </div>
+    </div>
+    <div class="visual reveal tabbed" data-tabs>
+      <div class="tabs">
+        <button class="active" data-i="0">Grid</button>
+        <button data-i="1">Columns</button>
+        <button data-i="2">Preview</button>
+      </div>
+      <div class="shot">
+        <img class="active" src="img/grid.png" alt="Grid view of the Pictures folder with thumbnails" width="1270" height="770" loading="lazy">
+        <img src="img/columns.png" alt="Miller columns from Documents down to Projects/Odysseus/src" width="1270" height="770" loading="lazy">
+        <img src="img/preview.png" alt="List view with the preview panel showing a picture" width="1270" height="770" loading="lazy">
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- Dual panel -->
+<section class="feature alt flip">
+  <div class="wrap">
+    <div class="copy">
+      <div class="ftag">Dual Panel <span class="kbd">F3</span></div>
+      <h3>Two folders side by side. Half the clicks.</h3>
+      <p class="intro">Move files between two places without juggling windows. Each pane keeps its own view, history and selection, and the operations bar is always one click away.</p>
+      <div class="flist">
+        <div class="fi"><span class="chk">✓</span><span><b>Copy or move to the other pane</b> with <span class="kbd">F6</span> / <span class="kbd">Shift+F6</span>, or drag and drop.</span></div>
+        <div class="fi"><span class="chk">✓</span><span><b>Switch panes</b> with <span class="kbd">Ctrl+Tab</span>, keep tabs, history and bookmarks.</span></div>
+        <div class="fi"><span class="chk">✓</span><span><b>A progress window</b> for long copies, with undo for every operation.</span></div>
+        <div class="fi"><span class="chk">✓</span><span><b>A pane follows its folder</b> when you rename or move it elsewhere.</span></div>
+      </div>
+    </div>
+    <div class="visual reveal">
+      <div class="shot"><img src="img/hero-dual.png" alt="Dual panel with Documents and Pictures" width="1350" height="810" loading="lazy"></div>
+    </div>
+  </div>
+</section>
+
+<!-- Search & Replace -->
+<section class="feature">
+  <div class="wrap">
+    <div class="copy">
+      <div class="ftag">Search &amp; Replace <span class="kbd">F8</span></div>
+      <h3>Find and replace across files. With a real preview.</h3>
+      <p class="intro">Search inside file contents with ripgrep (or grep), then preview every change line by line before a single byte is written.</p>
+      <div class="flist">
+        <div class="fi"><span class="chk">✓</span><span><b>Colored diff preview</b> — old text struck through in red, the new one in green.</span></div>
+        <div class="fi"><span class="chk">✓</span><span><b>Per-line checkboxes</b> — apply only what you actually want.</span></div>
+        <div class="fi"><span class="chk">✓</span><span><b>Automatic .bak backup</b>, never written over an older one.</span></div>
+        <div class="fi"><span class="chk">✓</span><span><b>Plain text or regex</b>, case, whole word, hidden files, extensions filter.</span></div>
+      </div>
+    </div>
+    <div class="visual reveal">
+      <div class="shot"><img src="img/search.png" alt="Search and replace window replacing Nautilus by Odysseus in 6 files" width="1090" height="690" loading="lazy"></div>
+    </div>
+  </div>
+</section>
+
+<!-- Archives -->
+<section class="feature alt flip">
+  <div class="wrap">
+    <div class="copy">
+      <div class="ftag">Archives <span class="kbd">F7</span></div>
+      <h3>Open an archive like a folder.</h3>
+      <p class="intro">Browse more than fifty formats without extracting first, drag files out, add or rename entries. The engine comes from Pressoir and is powered by 7-Zip.</p>
+      <div class="flist">
+        <div class="fi"><span class="chk">✓</span><span><b>ZIP, 7z, RAR, TAR.*, ISO</b> and many more, multi-volume (.001, .002…) included.</span></div>
+        <div class="fi"><span class="chk">✓</span><span><b>Smart extraction</b> — one item lands next to the archive, several get their own folder.</span></div>
+        <div class="fi"><span class="chk">✓</span><span><b>Compress</b> to 7z, ZIP, tar.zst… with AES-256 encryption, volumes and levels.</span></div>
+        <div class="fi"><span class="chk">✓</span><span><b>Trapped archives defused</b> — nothing is ever written outside the destination.</span></div>
+      </div>
+    </div>
+    <div class="visual reveal tabbed" data-tabs>
+      <div class="tabs">
+        <button class="active" data-i="0">Browse</button>
+        <button data-i="1">Compress</button>
+      </div>
+      <div class="shot">
+        <img class="active" src="img/archive.png" alt="Browsing inside Holiday photos.zip" width="1270" height="770" loading="lazy">
+        <img src="img/compress.png" alt="New archive dialog: 7Z format, LZMA2, AES-256 encryption" width="1270" height="810" loading="lazy">
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- PDF -->
+<section class="feature">
+  <div class="wrap">
+    <div class="copy">
+      <div class="ftag">PDF tools</div>
+      <h3>Compress, merge, watermark, rearrange.</h3>
+      <p class="intro">The four PDF extensions, rewritten and improved. Every tool shows what it will do before it does it, and never writes over an existing file.</p>
+      <div class="flist">
+        <div class="fi"><span class="chk">✓</span><span><b>Compress</b> with Ghostscript: page-by-page progress, before / after sizes.</span></div>
+        <div class="fi"><span class="chk">✓</span><span><b>Merge</b> in any order, with page ranges per file (<code style="font-family:var(--mono);font-size:.85em">1-3,7,10-</code>).</span></div>
+        <div class="fi"><span class="chk">✓</span><span><b>Watermark</b> with text or image, live preview, optional flattening.</span></div>
+        <div class="fi"><span class="chk">✓</span><span><b>Pages</b> — extract, delete, rotate or split, with thumbnails.</span></div>
+      </div>
+    </div>
+    <div class="visual reveal">
+      <div class="shot"><img src="img/watermark.png" alt="PDF watermark dialog with a live preview of CONFIDENTIAL across the page" width="1270" height="810" loading="lazy"></div>
+    </div>
+  </div>
+</section>
+
+<!-- Theme -->
+<section class="feature alt flip">
+  <div class="wrap">
+    <div class="copy">
+      <div class="ftag">Your theme</div>
+      <h3>Looks like your desktop, not like an app.</h3>
+      <p class="intro">Odysseus has no colours of its own: it follows your GTK4 theme, light or dark, with your accent colour — Adwaita or a theme installed in <code style="font-family:var(--mono);font-size:.85em">~/.config/gtk-4.0</code>. Dialogs are real windows, so transparency and borders apply too.</p>
+      <div class="flist">
+        <div class="fi"><span class="chk">✓</span><span><b>Light and dark</b>, switched live with the system.</span></div>
+        <div class="fi"><span class="chk">✓</span><span><b>Made on Zorin OS</b>, tested on X11, GNOME 46, GTK 4.14.</span></div>
+        <div class="fi"><span class="chk">✓</span><span><b>Fully translated</b> in English, French and German.</span></div>
+      </div>
+    </div>
+    <div class="visual reveal">
+      <div class="compare" id="compare">
+        <img src="img/dark.png" alt="Odysseus with the dark theme" width="1270" height="770" loading="lazy">
+        <div class="top"><img src="img/light.png" alt="Odysseus with the light theme" width="1270" height="770" loading="lazy"></div>
+        <div class="handle"></div>
+        <span class="lbl l">Light</span><span class="lbl r">Dark</span>
+      </div>
+      <p class="caption">Drag the handle</p>
+    </div>
+  </div>
+</section>
+
+<!-- Features page -->
+<section class="feature">
+  <div class="wrap">
+    <div class="copy">
+      <div class="ftag">Preferences → Features</div>
+      <h3>Everything built in. Nothing forced on you.</h3>
+      <p class="intro">Each extension is a switch. Turn off what you don't use and it disappears from menus, toolbars and shortcuts — instantly, no restart.</p>
+      <div class="flist">
+        <div class="fi"><span class="chk">✓</span><span><b>No Python extension to install</b>, nothing to restart, nothing to break on updates.</span></div>
+        <div class="fi"><span class="chk">✓</span><span><b>Missing tool?</b> The feature tells you which package to install.</span></div>
+        <div class="fi"><span class="chk">✓</span><span><b>Duplicates merged</b> — one archive tool, one progress window, one manager.</span></div>
+      </div>
+    </div>
+    <div class="visual reveal">
+      <div class="shot"><img src="img/features.png" alt="Preferences window, Features page with a switch for each extension" width="1270" height="810" loading="lazy"></div>
+    </div>
+  </div>
+</section>
+
+<!-- ───────────── SPEED ───────────── -->
+<section class="speed" id="speed">
+  <div class="wrap">
+    <div class="sec-head">
+      <div class="sec-tag">Speed</div>
+      <h2>Huge folders, no waiting.</h2>
+      <p>Measured on a folder of 100,500 files. Your photo folder opens before you notice it was loading.</p>
+    </div>
+    <div class="bars reveal" id="bars">
+      <div class="bar-row"><div class="bl"><span>Folder of 100,500 files ready</span><span>~1 s</span></div><div class="bar"><i style="--w:100%"></i></div></div>
+      <div class="bar-row"><div class="bl"><span>Select all 100,500 files</span><span>~0.4 s</span></div><div class="bar"><i style="--w:40%"></i></div></div>
+      <div class="bar-row"><div class="bl"><span>Grid view of 20,000 files</span><span>~0.3 s</span></div><div class="bar"><i style="--w:30%"></i></div></div>
+    </div>
+    <div class="speed-notes">
+      <div class="sn reveal"><h4>Names first</h4><p>The folder is read in the background; names appear at once, sizes and dates follow.</p></div>
+      <div class="sn reveal"><h4>Virtual lists</h4><p>Only the rows on screen exist. A 100,000-file folder costs what a screenful costs.</p></div>
+      <div class="sn reveal"><h4>What you see, first</h4><p>Thumbnails and folder sizes are computed for what you are looking at before anything else.</p></div>
+    </div>
+  </div>
+</section>
+
+<!-- ───────────── SAFETY ───────────── -->
+<section class="feature alt" style="padding:100px 0">
+  <div class="wrap" style="display:block">
+    <div class="sec-head">
+      <div class="sec-tag">Your files come first</div>
+      <h2>Tested to never lose a byte.</h2>
+      <p>Every destructive operation is tested on throwaway trees, next to a “precious” folder that must never change — including real FAT USB keys and booby-trapped archives.</p>
+    </div>
+    <div class="safe-grid">
+      <div class="safe reveal"><div class="si">🔁</div><div><h4>Replace is atomic</h4><p>The new copy is written under a temporary name, synced to disk, then swapped in. If anything fails, the old file is still there.</p></div></div>
+      <div class="safe reveal"><div class="si">🚚</div><div><h4>Moves only remove what was copied</h4><p>Skipped, failed or cancelled items stay at the source, between disks too.</p></div></div>
+      <div class="safe reveal"><div class="si">💾</div><div><h4>USB keys understood</h4><p>FAT, exFAT, NTFS: forbidden characters cleaned, case clashes renamed, files over 4 GB refused before writing.</p></div></div>
+      <div class="safe reveal"><div class="si">🛡️</div><div><h4>Nothing is overwritten silently</h4><p>Archives, PDF outputs, backups: an existing file is never replaced without asking — you get “name (2)”.</p></div></div>
+      <div class="safe reveal"><div class="si">🧨</div><div><h4>Trapped archives defused</h4><p><code style="font-family:var(--mono);font-size:.85em">../</code> paths, absolute paths, links pointing outside: nothing escapes the destination folder.</p></div></div>
+      <div class="safe reveal"><div class="si">↩️</div><div><h4>Undo that doesn't bite</h4><p>Undo and redo never overwrite a file created in the meantime.</p></div></div>
+    </div>
+  </div>
+</section>
+
+<!-- ───────────── ALL ───────────── -->
+<section class="grid-sec" id="all">
+  <div class="wrap">
+    <div class="sec-head">
+      <div class="sec-tag">The full collection</div>
+      <h2>Twenty extensions. One application.</h2>
+      <p>Everything from the Nautilus Extensions collection, merged into Odysseus — and each one can be switched off.</p>
+    </div>
+    <div class="egrid">
+      <div class="ecard reveal"><div class="ei">🗂️</div><h4>Dual Panel</h4><p>Two locations side by side, copy and move between them, drag &amp; drop.</p><code>F3</code></div>
+      <div class="ecard reveal"><div class="ei">🧭</div><h4>Column View</h4><p>Finder-style Miller columns to dive quickly into the folder tree.</p><code>Ctrl+3</code></div>
+      <div class="ecard reveal"><div class="ei">🔍</div><h4>Preview Panel</h4><p>Images, videos, PDF pages, text and detailed information.</p><code>F4</code></div>
+      <div class="ecard reveal"><div class="ei">🔁</div><h4>Search &amp; Replace</h4><p>Content search with ripgrep, previewed replacement with backups.</p><code>F8</code></div>
+      <div class="ecard reveal"><div class="ei">🗜️</div><h4>Archives</h4><p>Browse, extract, compress and edit archives in 50+ formats.</p><code>F7</code></div>
+      <div class="ecard reveal"><div class="ei">📦</div><h4>Extract Here</h4><p>One-click smart extraction, multi-volume and passwords included.</p><code>Ctrl+Shift+E</code></div>
+      <div class="ecard reveal"><div class="ei">🗜️</div><h4>Compress PDF</h4><p>Ghostscript presets, real progress, before / after sizes.</p><code>PDF</code></div>
+      <div class="ecard reveal"><div class="ei">🔗</div><h4>Merge PDF</h4><p>Any order, page ranges per file.</p><code>PDF</code></div>
+      <div class="ecard reveal"><div class="ei">🔏</div><h4>Watermark PDF</h4><p>Text or image, nine positions or tiled, live preview, flattening.</p><code>PDF</code></div>
+      <div class="ecard reveal"><div class="ei">📑</div><h4>PDF Pages</h4><p>Extract, delete, rotate or split pages, with thumbnails.</p><code>PDF</code></div>
+      <div class="ecard reveal"><div class="ei">🎵</div><h4>Video to Audio</h4><p>MP3, M4A, OGG, OPUS, FLAC, WAV — batch, with progress.</p><code>ffmpeg</code></div>
+      <div class="ecard reveal"><div class="ei">🎨</div><h4>Annotate Image</h4><p>Arrows, frames, text, highlighter and freehand on any picture.</p><code>Image</code></div>
+      <div class="ecard reveal"><div class="ei">📦</div><h4>Deb Installer</h4><p>Package preview, dependency check and live log.</p><code>.deb</code></div>
+      <div class="ecard reveal"><div class="ei">⏱️</div><h4>Duration Column</h4><p>A sortable length column for audio and video files.</p><code>ffprobe</code></div>
+      <div class="ecard reveal"><div class="ei">✂️</div><h4>Cut Item Dimmer</h4><p>Cut files stay dimmed until pasted; copied ones get a colored bar.</p><code>Ctrl+X</code></div>
+      <div class="ecard reveal"><div class="ei">👁️</div><h4>Hidden Dim</h4><p>Hidden files dimmed — icon only, or icon and name.</p><code>Ctrl+H</code></div>
+      <div class="ecard reveal"><div class="ei">📁</div><h4>Folder Colors</h4><p>Colour folders and add emblems, compatible with Folder Color.</p><code>Folders</code></div>
+      <div class="ecard reveal"><div class="ei">✏️</div><h4>Edit &amp; Terminal</h4><p>Open in your text editor, open a terminal right here.</p><code>Ctrl+Alt+T</code></div>
+      <div class="ecard reveal"><div class="ei">📊</div><h4>Progress Window</h4><p>Long copies and moves, with speed, remaining time and cancel.</p><code>Built in</code></div>
+      <div class="ecard reveal"><div class="ei">⚙️</div><h4>Features Manager</h4><p>Every extension switched on or off live, from the preferences.</p><code>Preferences</code></div>
+      <div class="ecard reveal"><div class="ei">🔌</div><h4>“Show in folder”</h4><p>Other apps can open Odysseus on a file, through the standard D-Bus service.</p><code>FileManager1</code></div>
+    </div>
+  </div>
+</section>
+
+<!-- ───────────── COMING SOON ───────────── -->
+<section class="soon" id="soon">
+  <div class="wrap">
+    <div class="sec-head">
+      <div class="sec-tag">Availability</div>
+      <h2>Almost ready to sail.</h2>
+      <p>Odysseus is in daily use and final testing. Packages for <b>Ubuntu 24.04 “Noble”</b> and its derivatives — Zorin OS 18, Linux Mint 22 — are on their way.</p>
+    </div>
+    <div class="soon-card reveal">
+      <div class="soon-top">Release status</div>
+      <div class="soon-body">
+        <div class="soon-row"><span class="ri">🧪</span><div class="rt"><b>Daily use &amp; testing</b><span>Automated tests for every destructive operation, real-world feedback</span></div><span class="badge ok">In progress</span></div>
+        <div class="soon-row"><span class="ri">📦</span><div class="rt"><b>Debian package &amp; PPA</b><span>Signed packages, updated through apt</span></div><span class="badge soon">Coming soon</span></div>
+        <div class="soon-row"><span class="ri">💻</span><div class="rt"><b>Source code</b><span>GPL-3.0, published on GitHub</span></div><span class="badge soon">Coming soon</span></div>
+      </div>
+    </div>
+    <p class="reqs">Requirements: Python 3.10+, PyGObject, GTK ≥ 4.14, libadwaita ≥ 1.5. Everything else — <code>7zip</code>, <code>ghostscript</code>, <code>ffmpeg</code>, <code>ripgrep</code>… — is optional: a feature whose tool is missing tells you what to install.</p>
+  </div>
+</section>
+
+<!-- ───────────── FOOTER ───────────── -->
+<footer>
+  <div class="wrap">
+    <div class="foot-brand"><img src="img/icon.svg" alt=""> Odysseus</div>
+    <div class="foot-links">
+      <a href="#features">Features</a>
+      <a href="#speed">Speed</a>
+      <a href="#all">Everything</a>
+      <a href="#soon">Availability</a>
+    </div>
+    <p class="foot-meta">Built by Tof · GPL-3.0 <span class="sep">·</span> Made on Zorin OS <span class="sep">·</span> X11 forever <span class="sep">·</span> No telemetry, no nonsense</p>
+  </div>
+</footer>
+
+<script>
+  // ombre de la barre au défilement
+  const nav = document.getElementById('nav');
+  addEventListener('scroll', () => nav.classList.toggle('scrolled', scrollY > 20));
+
+  // apparition au défilement
+  const io = new IntersectionObserver((es) => {
+    es.forEach(e => { if (e.isIntersecting) { e.target.classList.add('in'); io.unobserve(e.target); } });
+  }, {threshold: .12});
+  document.querySelectorAll('.reveal').forEach((el, i) => {
+    el.style.transitionDelay = (Math.min(i % 6, 5) * 0.05) + 's';
+    io.observe(el);
+  });
+  // barres de vitesse : la section entière
+  const speed = document.getElementById('speed');
+  new IntersectionObserver((es, o) => {
+    if (es[0].isIntersecting) { speed.classList.add('in'); o.disconnect(); }
+  }, {threshold: .3}).observe(speed);
+
+  // onglets au-dessus des captures
+  document.querySelectorAll('[data-tabs]').forEach(box => {
+    const buttons = box.querySelectorAll('.tabs button');
+    const imgs = box.querySelectorAll('.shot img');
+    buttons.forEach(b => b.addEventListener('click', () => {
+      buttons.forEach(x => x.classList.toggle('active', x === b));
+      imgs.forEach((im, i) => im.classList.toggle('active', i === +b.dataset.i));
+    }));
+  });
+
+  // comparaison clair / sombre
+  const cmp = document.getElementById('compare');
+  const top = cmp.querySelector('.top'), handle = cmp.querySelector('.handle');
+  const set = x => {
+    const r = cmp.getBoundingClientRect();
+    const p = Math.min(Math.max((x - r.left) / r.width, 0), 1) * 100;
+    top.style.clipPath = `inset(0 ${100 - p}% 0 0)`;
+    handle.style.left = p + '%';
+  };
+  let drag = false;
+  cmp.addEventListener('pointerdown', e => { drag = true; cmp.setPointerCapture(e.pointerId); set(e.clientX); });
+  cmp.addEventListener('pointermove', e => { if (drag) set(e.clientX); });
+  cmp.addEventListener('pointerup', () => { drag = false; });
+</script>
+</body>
+</html>
