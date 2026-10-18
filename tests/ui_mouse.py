@@ -203,9 +203,39 @@ def steps(win):
         xdo("key", "Escape")
         yield
     subprocess.run(["setxkbmap", "us"], capture_output=True)
+    # Annoter une image, outil texte : un vrai clic sur l'image, puis plusieurs lettres tapées.
+    # Le dialogue s'ouvrait à l'appui du bouton ; le relâchement rendait le clavier à la fenêtre
+    # d'annotation et seule la première lettre arrivait dans le champ.
+    import cairo
+    img = os.path.join(D, "photo.png")
+    surf = cairo.ImageSurface(cairo.FORMAT_RGB24, 400, 300)
+    surf.write_to_png(img)
+    from odysseus.ui.annotate import AnnotateWindow
+    aw = AnnotateWindow(win, img)
+    aw.present()
+    yield
+    yield
+    aw.tool = "text"
+    x, y = screen_point(aw, aw.canvas, aw.canvas.get_width() // 2, aw.canvas.get_height() // 2)
+    xdo("mousemove", x, y, "mousedown", 1)     # bouton tenu comme une vraie main…
+    yield
+    xdo("mouseup", 1)                          # … relâché une fois le dialogue apparu
+    yield
+    xdo("type", "--delay", "60", "Bonjour")
+    yield
+    xdo("key", "Return")
+    yield
+    texts = [sh.text for sh in aw.shapes]
+    check(texts == ["Bonjour"], f"annotation : texte de plusieurs lettres ({texts})")
+    aw.dirty = False
+    aw.destroy()
+    yield
 
 
 def on_window(_a, win):
+    if getattr(app, "_started", False):     # fenêtres ouvertes par les étapes (annotation…)
+        return
+    app._started = True
     it = steps(win)
 
     def tick():

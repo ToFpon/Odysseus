@@ -305,7 +305,9 @@ class AnnotateWindow(Adw.Window):
         self._start = (x, y)
         p = self._to_img(x, y)
         if self.tool == "text":
-            self._ask_text(p)
+            # le dialogue s'ouvre au RELÂCHEMENT : ouvert à l'appui, le relâchement qui suivait rendait le
+            # clavier à cette fenêtre et seule la première lettre arrivait dans le champ
+            self._text_at = p
             return
         self.current = self._new_shape()
         self.current.points = [p, p]
@@ -321,6 +323,10 @@ class AnnotateWindow(Adw.Window):
         self.canvas.queue_draw()
 
     def _end(self, g, dx, dy):
+        p, self._text_at = getattr(self, "_text_at", None), None
+        if p is not None:
+            GLib.idle_add(lambda: (self._ask_text(p), False)[1])
+            return
         s = self.current
         self.current = None
         if s is None:
