@@ -25,7 +25,7 @@ import gi  # noqa: E402
 
 gi.require_version("Gtk", "4.0")
 gi.require_version("Adw", "1")
-from gi.repository import GLib, Gtk  # noqa: E402
+from gi.repository import Adw, GLib, Gtk  # noqa: E402
 
 errors = []
 
@@ -535,6 +535,51 @@ def outils(win):
     yield pump(0.5)
     win.activate_action("win.shortcuts", None)
     yield pump(0.3)
+@step
+def copie_partielle_rafraichit(win):
+    """Copie / déplacement terminés avec des erreurs (ici un fichier spécial) : la vue de la
+    destination et celle de la source doivent quand même se mettre à jour."""
+    src = os.path.join(D, "lot partiel")
+    os.makedirs(src)
+    for n in ("un.txt", "deux.txt"):
+        with open(os.path.join(src, n), "w") as f:
+            f.write(n)
+    os.mkfifo(os.path.join(src, "tube"))
+    dest = tempfile.mkdtemp(dir=D, prefix="cle vide ")     # comme une clé vide
+    p = win.pane
+    p.open(dest)
+    yield Wait(5, until=lambda: not p.model.loading)
+    check(p.stack.get_visible_child_name() == "empty", "dossier vide affiché")
+    win.run_transfer([src], dest)
+    yield wait_jobs()
+    yield pump(1.0)
+    _close_alerts()
+    check("lot partiel" in [r.name for r in p.model.items] and p.stack.get_visible_child_name() == "list",
+          f"copie dans un dossier vide : la liste apparaît ({p.stack.get_visible_child_name()})")
+    shutil.rmtree(os.path.join(dest, "lot partiel"))
+    yield pump(1.0)
+    check(p.stack.get_visible_child_name() == "empty", "dernier élément supprimé : « Dossier vide »")
+    p.open(src)
+    yield Wait(5, until=lambda: not p.model.loading)
+    # autre système de fichiers (comme une clé) : le tube ne peut pas être copié, il reste
+    other = tempfile.mkdtemp(dir="/dev/shm") if os.path.isdir("/dev/shm") else tempfile.mkdtemp()
+    win.run_transfer([os.path.join(src, n) for n in ("un.txt", "deux.txt", "tube")], other, move=True)
+    yield wait_jobs()
+    yield pump(1.0)
+    _close_alerts()
+    names = sorted(r.name for r in p.model.items)
+    check(names == ["tube"], f"déplacement avec erreurs : source rafraîchie ({names})")
+    shutil.rmtree(other, ignore_errors=True)
+    p.open(D)
+    yield Wait(5, until=lambda: not p.model.loading)
+
+
+def _close_alerts():
+    for w in Gtk.Window.list_toplevels():
+        if type(w).__name__ in ("MessageDialog", "AlertDialog") or isinstance(w, Adw.MessageDialog):
+            w.close()
+
+
 @step
 def fonctionnalites(win):
     from odysseus import features

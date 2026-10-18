@@ -412,6 +412,61 @@ class FatKeyTest(unittest.TestCase):
         self.assertEqual(tree(self.key), {"rapport_ v2_.txt": b"r", "dossier_": "<dossier>",
                                           os.path.join("dossier_", "a_b.txt"): b"ab", "fin": b"f"})
 
+    def _kernel_vfat_lookup(self):
+        """Imite le vfat du noyau monté en utf8 (clés USB sous Ubuntu / Zorin) : chercher un nom
+        tient compte de la casse, mais créer un nom qui ne diffère que par la casse est refusé.
+        (fusefat, lui, retrouve le nom quelle que soit la casse.)"""
+        real = os.path.lexists
+
+        def lexists(p):
+            folder, name = os.path.split(os.path.abspath(p))
+            if folder.startswith(self.key) and real(folder) and os.path.isdir(folder):
+                return name in os.listdir(folder)
+            return real(p)
+        os.path.lexists = lexists
+        self.addCleanup(setattr, os.path, "lexists", real)
+
+    def test_case_with_case_sensitive_lookup(self):
+        """Le cas vu sur une vraie clé : « Photo.jpg : Le fichier existe » au lieu de « (2) »."""
+        self._kernel_vfat_lookup()
+        write(os.path.join(self.src, "Photo.jpg"), "majuscule")
+        write(os.path.join(self.src, "photo.jpg"), "minuscule")
+        j = self.copy(["Photo.jpg", "photo.jpg"])
+        self.assertEqual(j.state, "done", j.error)
+        self.assertEqual(j.result.errors, [])
+        self.assertEqual(sorted(open(os.path.join(self.key, n)).read() for n in os.listdir(self.key)),
+                         ["majuscule", "minuscule"])
+
+    def test_existing_name_in_other_case_is_a_conflict(self):
+        """« PHOTO.JPG » déjà sur la clé, on copie « photo.jpg » : c'est un conflit (question), pas
+        un écrasement silencieux ni une erreur."""
+        self._kernel_vfat_lookup()
+        write(os.path.join(self.key, "PHOTO.JPG"), "ancien")
+        write(os.path.join(self.src, "photo.jpg"), "nouveau")
+        seen = []
+
+        def asker(c):
+            seen.append(os.path.basename(c.dst))
+            return ("skip", True)
+        j = Job("x", lambda j: fileops.transfer(j, [os.path.join(self.src, "photo.jpg")], self.key,
+                                                 asker)).run_sync()
+        self.assertEqual(seen, ["PHOTO.JPG"])
+        self.assertEqual(tree(self.key), {"PHOTO.JPG": b"ancien"})
+        j = Job("x", lambda j: fileops.transfer(j, [os.path.join(self.src, "photo.jpg")], self.key,
+                                                 ask("rename"))).run_sync()
+        self.assertEqual(j.state, "done", j.error)
+        self.assertEqual(sorted(tree(self.key).values()), [b"ancien", b"nouveau"])
+
+    def test_rename_case_only_with_case_sensitive_lookup(self):
+        self._kernel_vfat_lookup()
+        write(os.path.join(self.key, "photo.jpg"), "x")
+        fileops.rename(os.path.join(self.key, "photo.jpg"), "Photo.jpg")
+        self.assertEqual(os.listdir(self.key), ["Photo.jpg"])
+        write(os.path.join(self.key, "autre.jpg"), "y")
+        with self.assertRaises(Exception):
+            fileops.rename(os.path.join(self.key, "autre.jpg"), "PHOTO.JPG")
+        self.assertEqual(open(os.path.join(self.key, "Photo.jpg")).read(), "x")
+
     def test_cleaned_names_that_collide_are_renamed(self):
         """« a:b.txt » et « a_b.txt », « fin. » et « fin » : même nom une fois nettoyés."""
         for n in ("a:b.txt", "a_b.txt", "fin.", "fin"):

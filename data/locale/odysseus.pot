@@ -171,127 +171,127 @@ msgstr ""
 msgid "code {0}"
 msgstr ""
 
-#: odysseus/backend/fileops.py:88
+#: odysseus/backend/fileops.py:89
 msgid "Le nom ne peut pas être vide"
 msgstr ""
 
-#: odysseus/backend/fileops.py:90
+#: odysseus/backend/fileops.py:91
 msgid "Le nom ne peut pas contenir « / »"
 msgstr ""
 
-#: odysseus/backend/fileops.py:94
+#: odysseus/backend/fileops.py:95
 msgid "Le nom est trop long"
 msgstr ""
 
-#: odysseus/backend/fileops.py:162 odysseus/ui/actions_files.py:808
+#: odysseus/backend/fileops.py:164 odysseus/ui/actions_files.py:808
 msgid "Déplacement"
 msgstr ""
 
-#: odysseus/backend/fileops.py:162
+#: odysseus/backend/fileops.py:164
 msgid "Copie"
 msgstr ""
 
-#: odysseus/backend/fileops.py:587
+#: odysseus/backend/fileops.py:661
 msgid "Vidage de la corbeille…"
 msgstr ""
 
-#: odysseus/backend/fileops.py:708 odysseus/ui/actions_files.py:236
+#: odysseus/backend/fileops.py:786 odysseus/ui/actions_files.py:236
 msgid "{0} élément copié"
 msgid_plural "{0} éléments copiés"
 msgstr[0] ""
 msgstr[1] ""
 
-#: odysseus/backend/fileops.py:76 odysseus/backend/gioops.py:37
+#: odysseus/backend/fileops.py:77 odysseus/backend/gioops.py:37
 msgid " (copie)"
 msgstr ""
 
-#: odysseus/backend/fileops.py:92
+#: odysseus/backend/fileops.py:93
 msgid "« {0} » n'est pas un nom valide"
 msgstr ""
 
-#: odysseus/backend/fileops.py:163
+#: odysseus/backend/fileops.py:165
 msgid "{verb} de « {name} » — {done} sur {total}"
 msgstr ""
 
-#: odysseus/backend/fileops.py:186
+#: odysseus/backend/fileops.py:222
 msgid "plus de 4 Go : trop gros pour une clé FAT32 (exFAT ou NTFS le permettent)"
 msgstr ""
 
-#: odysseus/backend/fileops.py:685
+#: odysseus/backend/fileops.py:763
 msgid "Lien vers {0}"
 msgstr ""
 
-#: odysseus/backend/fileops.py:699
+#: odysseus/backend/fileops.py:777
 msgid "{0} élément mis à la corbeille"
 msgid_plural "{0} éléments mis à la corbeille"
 msgstr[0] ""
 msgstr[1] ""
 
-#: odysseus/backend/fileops.py:701
+#: odysseus/backend/fileops.py:779
 msgid "{0} élément supprimé"
 msgid_plural "{0} éléments supprimés"
 msgstr[0] ""
 msgstr[1] ""
 
-#: odysseus/backend/fileops.py:703
+#: odysseus/backend/fileops.py:781
 msgid "{0} élément déplacé"
 msgid_plural "{0} éléments déplacés"
 msgstr[0] ""
 msgstr[1] ""
 
-#: odysseus/backend/fileops.py:705
+#: odysseus/backend/fileops.py:783
 msgid "{0} élément restauré"
 msgid_plural "{0} éléments restaurés"
 msgstr[0] ""
 msgstr[1] ""
 
-#: odysseus/backend/fileops.py:707
+#: odysseus/backend/fileops.py:785
 msgid "{0} lien créé"
 msgid_plural "{0} liens créés"
 msgstr[0] ""
 msgstr[1] ""
 
-#: odysseus/backend/fileops.py:166
+#: odysseus/backend/fileops.py:168
 msgid " · fichier {0} sur {1}"
 msgstr ""
 
-#: odysseus/backend/fileops.py:406
+#: odysseus/backend/fileops.py:480
 msgid "Le dossier de destination n'existe pas : {0}"
 msgstr ""
 
-#: odysseus/backend/fileops.py:511
+#: odysseus/backend/fileops.py:585
 msgid "Mise à la corbeille de « {0} »"
 msgstr ""
 
-#: odysseus/backend/fileops.py:603
+#: odysseus/backend/fileops.py:677
 msgid "Emplacement d'origine inconnu"
 msgstr ""
 
-#: odysseus/backend/fileops.py:640 odysseus/backend/fileops.py:651 odysseus/backend/fileops.py:672 odysseus/ui/actions_files.py:444
+#: odysseus/backend/fileops.py:714 odysseus/backend/fileops.py:725 odysseus/backend/fileops.py:747 odysseus/backend/fileops.py:755
 msgid "« {0} » existe déjà"
 msgstr ""
 
-#: odysseus/backend/fileops.py:76 odysseus/backend/gioops.py:37
+#: odysseus/backend/fileops.py:77 odysseus/backend/gioops.py:37
 msgid " (copie {0})"
 msgstr ""
 
-#: odysseus/backend/fileops.py:409
+#: odysseus/backend/fileops.py:483
 msgid "Impossible de copier « {0} » dans lui-même"
 msgstr ""
 
-#: odysseus/backend/fileops.py:127
+#: odysseus/backend/fileops.py:128
 msgid "Préparation… {0} fichiers, {1}"
 msgstr ""
 
-#: odysseus/backend/fileops.py:246
+#: odysseus/backend/fileops.py:282
 msgid "les liens symboliques ne peuvent pas être copiés sur ce support"
 msgstr ""
 
-#: odysseus/backend/fileops.py:267
+#: odysseus/backend/fileops.py:303
 msgid "Fichier spécial ignoré"
 msgstr ""
 
-#: odysseus/backend/fileops.py:535
+#: odysseus/backend/fileops.py:609
 msgid "Suppression… {0} sur {1}"
 msgstr ""
 
@@ -1115,7 +1115,7 @@ msgstr ""
 msgid "Indiquez votre terminal dans les préférences."
 msgstr ""
 
-#: odysseus/ui/actions_files.py:145 odysseus/ui/pane.py:175
+#: odysseus/ui/actions_files.py:145 odysseus/ui/pane.py:176
 msgid "Impossible d'ouvrir"
 msgstr ""
 
@@ -1149,7 +1149,7 @@ msgstr[1] ""
 msgid "Suppression définitive"
 msgstr ""
 
-#: odysseus/ui/actions_files.py:676 odysseus/ui/pane.py:776
+#: odysseus/ui/actions_files.py:676 odysseus/ui/pane.py:777
 msgid "La corbeille est vide"
 msgstr ""
 
@@ -1677,7 +1677,7 @@ msgstr ""
 msgid "Fichiers déjà présents"
 msgstr ""
 
-#: odysseus/ui/archive_dialogs.py:421 odysseus/ui/menus.py:328 odysseus/ui/pane.py:133
+#: odysseus/ui/archive_dialogs.py:421 odysseus/ui/menus.py:328 odysseus/ui/pane.py:134
 msgid "Propriétés de l'archive"
 msgstr ""
 
@@ -1721,7 +1721,7 @@ msgstr ""
 msgid "AES-256 — conservez votre mot de passe en lieu sûr"
 msgstr ""
 
-#: odysseus/ui/archive_dialogs.py:111 odysseus/ui/common.py:60 odysseus/ui/pane.py:183
+#: odysseus/ui/archive_dialogs.py:111 odysseus/ui/common.py:60 odysseus/ui/pane.py:184
 msgid "Mot de passe"
 msgstr ""
 
@@ -1889,7 +1889,7 @@ msgid_plural "Extraction audio de {0} vidéos"
 msgstr[0] ""
 msgstr[1] ""
 
-#: odysseus/ui/audio_dialog.py:42 odysseus/ui/pane.py:592 odysseus/ui/pdf_dialogs.py:49 odysseus/ui/properties.py:132
+#: odysseus/ui/audio_dialog.py:42 odysseus/ui/pane.py:593 odysseus/ui/pdf_dialogs.py:49 odysseus/ui/properties.py:132
 msgid "{0} fichier"
 msgid_plural "{0} fichiers"
 msgstr[0] ""
@@ -1955,11 +1955,11 @@ msgstr ""
 msgid "déc."
 msgstr ""
 
-#: odysseus/ui/common.py:66 odysseus/ui/pane.py:178
+#: odysseus/ui/common.py:66 odysseus/ui/pane.py:179
 msgid "Archive protégée"
 msgstr ""
 
-#: odysseus/ui/common.py:68 odysseus/ui/pane.py:187
+#: odysseus/ui/common.py:68 odysseus/ui/pane.py:188
 msgid "Déverrouiller"
 msgstr ""
 
@@ -2229,7 +2229,7 @@ msgstr ""
 msgid "Dossier parent"
 msgstr ""
 
-#: odysseus/ui/dialogs.py:177 odysseus/ui/pane.py:987 odysseus/ui/pathbar.py:95 odysseus/ui/sidebar.py:25
+#: odysseus/ui/dialogs.py:177 odysseus/ui/pane.py:998 odysseus/ui/pathbar.py:95 odysseus/ui/sidebar.py:25
 msgid "Dossier personnel"
 msgstr ""
 
@@ -2561,7 +2561,7 @@ msgstr ""
 msgid "Saisir l'emplacement"
 msgstr ""
 
-#: odysseus/ui/menus.py:339 odysseus/ui/pane.py:127
+#: odysseus/ui/menus.py:339 odysseus/ui/pane.py:128
 msgid "Fermer l'archive"
 msgstr ""
 
@@ -2637,19 +2637,19 @@ msgstr ""
 msgid "Tout extraire…"
 msgstr ""
 
-#: odysseus/ui/menus.py:327 odysseus/ui/pane.py:134
+#: odysseus/ui/menus.py:327 odysseus/ui/pane.py:135
 msgid "Tester l'intégrité"
 msgstr ""
 
-#: odysseus/ui/menus.py:332 odysseus/ui/pane.py:135
+#: odysseus/ui/menus.py:332 odysseus/ui/pane.py:136
 msgid "Ajouter des fichiers…"
 msgstr ""
 
-#: odysseus/ui/menus.py:135 odysseus/ui/pane.py:150
+#: odysseus/ui/menus.py:135 odysseus/ui/pane.py:151
 msgid "Restaurer"
 msgstr ""
 
-#: odysseus/ui/menus.py:138 odysseus/ui/pane.py:152 odysseus/ui/sidebar.py:350
+#: odysseus/ui/menus.py:138 odysseus/ui/pane.py:153 odysseus/ui/sidebar.py:350
 msgid "Vider la corbeille…"
 msgstr ""
 
@@ -2737,7 +2737,7 @@ msgstr ""
 msgid "Cliquez pour monter"
 msgstr ""
 
-#: odysseus/ui/pane.py:28 odysseus/ui/pane.py:979 odysseus/ui/pane.py:149 odysseus/ui/pathbar.py:78
+#: odysseus/ui/pane.py:28 odysseus/ui/pane.py:990 odysseus/ui/pane.py:150 odysseus/ui/pathbar.py:78
 msgid "Corbeille"
 msgstr ""
 
@@ -2753,121 +2753,121 @@ msgstr ""
 msgid "Autres emplacements"
 msgstr ""
 
-#: odysseus/ui/pane.py:504
+#: odysseus/ui/pane.py:505
 msgid "Lecture…"
 msgstr ""
 
-#: odysseus/ui/pane.py:507
+#: odysseus/ui/pane.py:508
 msgid "Lecture de l'archive…"
 msgstr ""
 
-#: odysseus/ui/pane.py:123
+#: odysseus/ui/pane.py:124
 msgid "🔒 chiffrée"
 msgstr ""
 
-#: odysseus/ui/pane.py:166 odysseus/ui/pane.py:780 odysseus/ui/pane.py:784
+#: odysseus/ui/pane.py:167 odysseus/ui/pane.py:781 odysseus/ui/pane.py:785
 msgid "Dossier vide"
 msgstr ""
 
-#: odysseus/ui/pane.py:172 odysseus/ui/pane.py:1014 odysseus/ui/pane.py:790
+#: odysseus/ui/pane.py:173 odysseus/ui/pane.py:1025 odysseus/ui/pane.py:791
 msgid "Chargement…"
 msgstr ""
 
-#: odysseus/ui/pane.py:179 odysseus/ui/pane.py:528
+#: odysseus/ui/pane.py:180 odysseus/ui/pane.py:529
 msgid "Les noms de fichiers sont chiffrés. Saisissez le mot de passe."
 msgstr ""
 
-#: odysseus/ui/pane.py:531
+#: odysseus/ui/pane.py:532
 msgid "Contenu verrouillé"
 msgstr ""
 
-#: odysseus/ui/pane.py:538
+#: odysseus/ui/pane.py:539
 msgid "Illisible"
 msgstr ""
 
-#: odysseus/ui/pane.py:539
+#: odysseus/ui/pane.py:540
 msgid "Archive illisible"
 msgstr ""
 
-#: odysseus/ui/pane.py:772 odysseus/ui/pane.py:826
+#: odysseus/ui/pane.py:773 odysseus/ui/pane.py:837
 msgid "Aucun résultat"
 msgstr ""
 
-#: odysseus/ui/pane.py:801
+#: odysseus/ui/pane.py:802
 msgid "Accès impossible"
 msgstr ""
 
-#: odysseus/ui/pane.py:139
+#: odysseus/ui/pane.py:140
 msgid "Tout extraire"
 msgstr ""
 
-#: odysseus/ui/pane.py:406
+#: odysseus/ui/pane.py:407
 msgid "Emplacement introuvable : {0}"
 msgstr ""
 
-#: odysseus/ui/pane.py:529
+#: odysseus/ui/pane.py:530
 msgid "Mot de passe incorrect, réessayez."
 msgstr ""
 
-#: odysseus/ui/pane.py:593 odysseus/ui/preview.py:97 odysseus/ui/properties.py:134
+#: odysseus/ui/pane.py:594 odysseus/ui/preview.py:97 odysseus/ui/properties.py:134
 msgid "{0} dossier"
 msgid_plural "{0} dossiers"
 msgstr[0] ""
 msgstr[1] ""
 
-#: odysseus/ui/pane.py:977
+#: odysseus/ui/pane.py:988
 msgid "Recherche « {0} »"
 msgstr ""
 
-#: odysseus/ui/pane.py:1024 odysseus/ui/pane.py:1039
+#: odysseus/ui/pane.py:1035 odysseus/ui/pane.py:1050
 msgid "« {0} » sélectionné"
 msgstr ""
 
-#: odysseus/ui/pane.py:595
+#: odysseus/ui/pane.py:596
 msgid "{0} décompressés"
 msgstr ""
 
-#: odysseus/ui/pane.py:596
+#: odysseus/ui/pane.py:597
 msgid "ratio {0} %"
 msgstr ""
 
-#: odysseus/ui/pane.py:773 odysseus/ui/pane.py:827
+#: odysseus/ui/pane.py:774 odysseus/ui/pane.py:838
 msgid "Rien ne correspond à « {0} »"
 msgstr ""
 
-#: odysseus/ui/pane.py:781
+#: odysseus/ui/pane.py:782
 msgid "Déposez des fichiers ici pour les ajouter à l'archive."
 msgstr ""
 
-#: odysseus/ui/pane.py:1029
+#: odysseus/ui/pane.py:1040
 msgid "{0} dossier sélectionné"
 msgid_plural "{0} dossiers sélectionnés"
 msgstr[0] ""
 msgstr[1] ""
 
-#: odysseus/ui/pane.py:1036
+#: odysseus/ui/pane.py:1047
 msgid "{0} autre élément sélectionné"
 msgid_plural "{0} autres éléments sélectionnés"
 msgstr[0] ""
 msgstr[1] ""
 
-#: odysseus/ui/pane.py:820
+#: odysseus/ui/pane.py:831
 msgid "Recherche… {0} résultat(s)"
 msgstr ""
 
-#: odysseus/ui/pane.py:1026
+#: odysseus/ui/pane.py:1037
 msgid "(contenant {0} élément)"
 msgid_plural "(contenant {0} éléments)"
 msgstr[0] ""
 msgstr[1] ""
 
-#: odysseus/ui/pane.py:1041 odysseus/ui/preview.py:248
+#: odysseus/ui/pane.py:1052 odysseus/ui/preview.py:248
 msgid "{0} élément sélectionné"
 msgid_plural "{0} éléments sélectionnés"
 msgstr[0] ""
 msgstr[1] ""
 
-#: odysseus/ui/pane.py:1031
+#: odysseus/ui/pane.py:1042
 msgid "(contenant {0} élément au total)"
 msgid_plural "(contenant {0} éléments au total)"
 msgstr[0] ""

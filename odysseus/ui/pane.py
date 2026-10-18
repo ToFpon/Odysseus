@@ -81,6 +81,7 @@ class Pane(Gtk.Box):
         self.selection.connect("selection-changed", lambda *_: self._on_selection())
         self.model.connect("state", self._on_state)
         self.model.connect("reset", lambda *_: self._on_reset())
+        self.model.connect("items-changed", self._on_items_changed)
 
         self.top = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)     # barre de chemin du double panneau
         self.append(self.top)
@@ -807,6 +808,16 @@ class Pane(Gtk.Box):
             names, self._select_after = self._select_after, None
             self.select_names(names)
         self._update_state()
+
+    def _on_items_changed(self, _m, _pos, removed, added):
+        """Fichier arrivé dans un dossier vide (copie, surveillance) ou dernier fichier supprimé :
+        passer de la page « Dossier vide » à la liste, et inversement."""
+        if self.model.loading or self.mode == "search" or not (removed or added):
+            return
+        empty_shown = self.stack.get_visible_child_name() == "empty"
+        if empty_shown == bool(self.model.items):
+            self._show_content()
+            self._update_floating()
 
     def _on_reset(self):
         if not self.model.loading:

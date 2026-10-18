@@ -65,6 +65,12 @@ d'écrire. `FatKeyTest` monte une vraie image `mkfs.vfat` avec `fusefat -o rw+` 
 dans le bac à sable ; fusefat refuse les accents, n'a pas d'inodes stables — pas de `samefile` — et
 perd le contenu d'un dossier non vide renommé : ne pas y tester les remplacements de dossier).
 Noms nettoyés qui se rejoignent (`a:b.txt` / `a_b.txt`, `fin.` / `fin`) : même renommage « (2) ».
+Vu sur une vraie clé (vfat du noyau monté en utf8 par udisks) : `lexists("Photo.jpg")` répond non
+alors que `photo.jpg` existe, puis la création échoue (« Le fichier existe »). Sur ces supports, les
+conflits se décident sur la liste du dossier en casefold (`_Copier._existing`), jamais sur lexists ;
+`_kernel_vfat_lookup` imite ce comportement dans les tests (fusefat, lui, est insensible à la casse).
+Vue : un élément arrivé dans un dossier vide doit faire quitter la page « Dossier vide »
+(`Pane._on_items_changed`, testé dans ui_smoke).
 
 `workers.Pool` : un fil bloqué dans un appel système ne se tue pas ; si tous sont pris depuis plus
 de 3 s, un fil est ajouté (6 au plus).

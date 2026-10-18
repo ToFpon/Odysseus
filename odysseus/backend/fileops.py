@@ -152,6 +152,7 @@ class _Copier:
         self.windows = False         # destination FAT / exFAT / NTFS : noms et casse « à la Windows »
         self.fat = False             # FAT32 : 4 Go maximum par fichier
         self.sync = False            # fsync de chaque fichier (remplacement : rien de « vide » après)
+        self._names: dict = {}       # FAT… : dossier -> {nom.casefold(): nom réel}, voir _existing()
 
     def tick(self, force: bool = False):
         now = time.monotonic()
@@ -179,6 +180,40 @@ class _Copier:
         if for_all:
             self.sticky[kind] = choice
         return choice
+
+    def _existing(self, dst: str) -> Optional[str]:
+        """Nom réel de l'élément qui occupe déjà dst sur une destination FAT / exFAT / NTFS, sans tenir
+        compte de la casse. On lit le dossier au lieu de faire confiance à lexists() : le vfat du
+        noyau monté en utf8 (clés USB sous Ubuntu) cherche les noms EN tenant compte de la casse, mais
+        refuse d'en créer un qui ne diffère que par la casse (« Le fichier existe »)."""
+        folder, name = os.path.split(dst)
+        names = self._names.get(folder)
+        if names is None:
+            try:
+                names = {n.casefold(): n for n in os.listdir(folder)}
+            except OSError:
+                names = {}
+            self._names[folder] = names
+        return names.get(name.casefold())
+
+    def _created(self, dst: str):
+        self.created_here.add(dst.casefold())
+        names = self._names.get(os.path.dirname(dst))
+        if names is not None:
+            names[os.path.basename(dst).casefold()] = os.path.basename(dst)
+
+    def _free_name(self, folder: str, name: str, is_dir: bool) -> str:
+        """« nom (2).ext »… libre, casse comprise sur FAT."""
+        if not self.windows:
+            return unique_name(folder, name, is_dir)
+        base, ext = (name, "") if is_dir else split_ext(name)
+        n = 2
+        while True:
+            cand = f"{base} ({n}){ext}"
+            if self._existing(os.path.join(folder, cand)) is None and \
+                    not os.path.lexists(os.path.join(folder, cand)):
+                return cand
+            n += 1
 
     def copy_file(self, src: str, dst: str, s: os.stat_result):
         self.current = os.path.basename(src)
@@ -228,7 +263,7 @@ class _Copier:
             raise
         self.done_files += 1
         self.copied.add(src)
-        self.created_here.add(dst.casefold())
+        self._created(dst)
 
     def copy_tree(self, src: str, dst: str):
         """Copie récursive ; dst n'existe pas, ou est un dossier à fusionner."""
@@ -248,11 +283,11 @@ class _Copier:
                     raise
                 self.done_files += 1
                 self.copied.add(src)
-                self.created_here.add(dst.casefold())
+                self._created(dst)
             elif st.S_ISDIR(s.st_mode):
                 os.makedirs(dst, exist_ok=True)
                 self.copied.add(src)
-                self.created_here.add(dst.casefold())
+                self._created(dst)
                 with os.scandir(src) as it:
                     children = [e.name for e in it]
                 for name in children:
@@ -274,12 +309,19 @@ class _Copier:
     def place(self, src: str, dst: str, nested: bool = False) -> Optional[str]:
         """Copie src vers dst en réglant un éventuel conflit ; renvoie le chemin final."""
         src_is_dir = os.path.isdir(src) and not os.path.islink(src)
-        if self.windows and dst.casefold() in self.created_here and os.path.lexists(dst):
-            # « Photo.jpg » et « photo.jpg » (ou « a:b » et « a_b ») dans la même copie vers une clé
-            # FAT : c'est le même nom là-bas ; le second est renommé au lieu d'écraser le premier
+        exists = os.path.lexists(dst)
+        if self.windows:
             folder = os.path.dirname(dst)
-            dst = os.path.join(folder, unique_name(folder, os.path.basename(dst), src_is_dir))
-        if os.path.lexists(dst):
+            actual = self._existing(dst)
+            if actual is not None and dst.casefold() in self.created_here:
+                # « Photo.jpg » et « photo.jpg » (ou « a:b » et « a_b ») dans la même copie vers une
+                # clé FAT : c'est le même nom là-bas ; le second est renommé au lieu d'écraser le premier
+                dst = os.path.join(folder, self._free_name(folder, os.path.basename(dst), src_is_dir))
+                exists = False
+            elif actual is not None:
+                dst = os.path.join(folder, actual)      # conflit avec l'élément tel qu'il est nommé
+                exists = True
+        if exists:
             dst_is_dir = os.path.isdir(dst) and not os.path.islink(dst)
             choice = self.decide(Conflict(src, dst, src_is_dir, dst_is_dir, self.move))
             if choice == "skip":
@@ -290,7 +332,7 @@ class _Copier:
                 return None
             if choice == "rename":
                 dst = os.path.join(os.path.dirname(dst),
-                                   unique_name(os.path.dirname(dst), os.path.basename(dst), src_is_dir))
+                                   self._free_name(os.path.dirname(dst), os.path.basename(dst), src_is_dir))
             elif choice == "merge" and src_is_dir and dst_is_dir:
                 pass
             else:   # replace
@@ -693,20 +735,24 @@ def rename(path: str, new_name: str) -> str:
     err = valid_name(new_name)
     if err:
         raise ToolError(err)
-    target = os.path.join(os.path.dirname(path), new_name)
-    if os.path.lexists(target) and os.path.realpath(target) != os.path.realpath(path):
-        # même entrée si, dans le dossier, seul l'ancien nom correspond sans tenir compte de la casse
-        # (pas samefile : fusefat ne donne pas d'inodes stables)
-        old = os.path.basename(path)
-        same = new_name.casefold() == old.casefold() and \
-            [n for n in os.listdir(os.path.dirname(path) or ".") if n.casefold() == old.casefold()] == [old]
-        if not same:
-            raise ToolError(tr("« {0} » existe déjà").format(new_name))
-        # seule la casse change, sur un système insensible à la casse : en deux temps
-        tmp = os.path.join(os.path.dirname(path), f".{new_name}.odysseus-{os.getpid()}")
+    folder, old = os.path.split(path)
+    target = os.path.join(folder, new_name)
+    if new_name == old:
+        return target
+    # on lit le dossier plutôt que de se fier à lexists() : selon le système de fichiers, la recherche
+    # d'un nom tient compte de la casse ou pas (vfat utf8 : oui, mais création refusée quand même)
+    names = os.listdir(folder or ".")
+    folded = [n for n in names if n.casefold() == new_name.casefold() and n != old]
+    if new_name in names or (folded and (fsinfo.is_windows_like(folder or ".") or os.path.lexists(target))):
+        raise ToolError(tr("« {0} » existe déjà").format(new_name))
+    if new_name.casefold() == old.casefold():
+        # seule la casse change : en deux temps (sur FAT, NTFS… c'est le même nom pour le système)
+        tmp = os.path.join(folder, f".{new_name}.odysseus-{os.getpid()}")
         os.rename(path, tmp)
         os.rename(tmp, target)
         return target
+    if os.path.lexists(target) and os.path.realpath(target) != os.path.realpath(path):
+        raise ToolError(tr("« {0} » existe déjà").format(new_name))
     os.rename(path, target)
     return target
 
