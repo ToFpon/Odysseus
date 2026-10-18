@@ -605,6 +605,7 @@
 </footer>
 
 <script>
+(() => {
   // ombre de la barre au défilement
   const nav = document.getElementById('nav');
   addEventListener('scroll', () => nav.classList.toggle('scrolled', scrollY > 20));
@@ -635,17 +636,18 @@
 
   // comparaison clair / sombre
   const cmp = document.getElementById('compare');
-  const top = cmp.querySelector('.top'), handle = cmp.querySelector('.handle');
+  const cover = cmp.querySelector('.top'), handle = cmp.querySelector('.handle');
   const set = x => {
     const r = cmp.getBoundingClientRect();
     const p = Math.min(Math.max((x - r.left) / r.width, 0), 1) * 100;
-    top.style.clipPath = `inset(0 ${100 - p}% 0 0)`;
+    cover.style.clipPath = `inset(0 ${100 - p}% 0 0)`;
     handle.style.left = p + '%';
   };
   let drag = false;
   cmp.addEventListener('pointerdown', e => { drag = true; cmp.setPointerCapture(e.pointerId); set(e.clientX); });
   cmp.addEventListener('pointermove', e => { if (drag) set(e.clientX); });
   cmp.addEventListener('pointerup', () => { drag = false; });
+})();
 </script>
 </body>
 </html>
