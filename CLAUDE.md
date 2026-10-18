@@ -51,7 +51,18 @@ xvfb-run -a -s "-screen 0 1600x1000x24" python3.12 tests/ui_mouse.py   # vrais c
 `tests/test_destructive.py` : remplacer, fusionner, annuler, déplacer entre deux systèmes de fichiers,
 liens symboliques, corbeille — sur un arbre jetable, avec un dossier « précieux » qui ne doit jamais
 changer. Règles : un déplacement ne supprime à la source que ce qui a été copié (`_prune_moved`) ;
-« remplacer » copie sous un nom temporaire puis échange (`_swap_into`), l'ancien reste si ça échoue.
+« remplacer » copie sous un nom temporaire dans le dossier de destination (renommage atomique),
+`fsync` des fichiers puis du dossier, puis échange (`_swap_into`) ; l'ancien reste si ça échoue.
+
+Supports amovibles (`backend/fsinfo.py`, type lu dans `/proc/self/mountinfo`, sans `stat`) : vers
+FAT / exFAT / NTFS, noms nettoyés (`: ? * " < > | \\`, points et espaces finaux → `safe_name`),
+deux noms qui ne diffèrent que par la casse dans une même copie → le second est renommé, liens
+symboliques refusés avec un message clair (la source reste), FAT32 : fichier > 4 Go refusé avant
+d'écrire. `FatKeyTest` monte une vraie image `mkfs.vfat` avec `fusefat -o rw+` (pas de module vfat
+dans le bac à sable ; fusefat refuse les accents et n'a pas d'inodes stables : pas de `samefile`).
+
+`workers.Pool` : un fil bloqué dans un appel système ne se tue pas ; si tous sont pris depuis plus
+de 3 s, un fil est ajouté (6 au plus).
 
 `tests/ui_smoke.py` pilote l'interface par des générateurs exécutés dans la vraie boucle GLib
 (une boucle imbriquée dans un timeout ne traite pas les sources idle).

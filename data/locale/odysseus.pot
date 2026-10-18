@@ -43,7 +43,7 @@ msgstr ""
 msgid "Le moteur d'archives de Pressoir https://github.com/ToFpon/Pressoir"
 msgstr ""
 
-#: odysseus/backend/archive.py:707
+#: odysseus/backend/archive.py:717
 msgid "Flux valide"
 msgstr ""
 
@@ -51,71 +51,71 @@ msgstr ""
 msgid "7-Zip est introuvable (installez le paquet 7zip ou p7zip-full)"
 msgstr ""
 
-#: odysseus/backend/archive.py:270
+#: odysseus/backend/archive.py:280
 msgid "Lecture"
 msgstr ""
 
-#: odysseus/backend/archive.py:292
+#: odysseus/backend/archive.py:302
 msgid "Mot de passe requis"
 msgstr ""
 
-#: odysseus/backend/archive.py:449
+#: odysseus/backend/archive.py:459
 msgid "Aucun fichier à compresser"
 msgstr ""
 
-#: odysseus/backend/archive.py:709
+#: odysseus/backend/archive.py:719
 msgid "Test"
 msgstr ""
 
-#: odysseus/backend/archive.py:719
+#: odysseus/backend/archive.py:729
 msgid "Ce format ne peut pas être modifié ; convertissez-le d'abord (7Z, ZIP, TAR, WIM)"
 msgstr ""
 
-#: odysseus/backend/archive.py:753 odysseus/backend/archive.py:760
+#: odysseus/backend/archive.py:763 odysseus/backend/archive.py:770
 msgid "Ce format ne peut pas être modifié"
 msgstr ""
 
-#: odysseus/backend/archive.py:755
+#: odysseus/backend/archive.py:765
 msgid "Suppression"
 msgstr ""
 
-#: odysseus/backend/archive.py:762
+#: odysseus/backend/archive.py:772
 msgid "Renommage"
 msgstr ""
 
-#: odysseus/backend/archive.py:257
+#: odysseus/backend/archive.py:267
 msgid "Décompression impossible : "
 msgstr ""
 
-#: odysseus/backend/archive.py:395
+#: odysseus/backend/archive.py:405
 msgid "Module auto-extractible (7zCon.sfx) introuvable"
 msgstr ""
 
-#: odysseus/backend/archive.py:452
+#: odysseus/backend/archive.py:462
 msgid "Compression"
 msgstr ""
 
-#: odysseus/backend/archive.py:729 odysseus/backend/archive.py:748
+#: odysseus/backend/archive.py:739 odysseus/backend/archive.py:758
 msgid "Ajout"
 msgstr ""
 
-#: odysseus/backend/archive.py:771 odysseus/ui/actions_archives.py:307 odysseus/ui/actions_archives.py:307 odysseus/ui/actions_files.py:543
+#: odysseus/backend/archive.py:781 odysseus/ui/actions_archives.py:307 odysseus/ui/actions_archives.py:307 odysseus/ui/actions_files.py:543
 msgid "Nouveau dossier"
 msgstr ""
 
-#: odysseus/backend/archive.py:785
+#: odysseus/backend/archive.py:795
 msgid "L'archive est vide"
 msgstr ""
 
-#: odysseus/backend/archive.py:194 odysseus/backend/archive.py:202
+#: odysseus/backend/archive.py:200 odysseus/backend/archive.py:212
 msgid "Le programme « {prog} » est nécessaire pour ce format"
 msgstr ""
 
-#: odysseus/backend/archive.py:618 odysseus/ui/dialogs.py:149
+#: odysseus/backend/archive.py:628 odysseus/ui/dialogs.py:149
 msgid "Extraction"
 msgstr ""
 
-#: odysseus/backend/archive.py:480
+#: odysseus/backend/archive.py:490
 msgid "Le format {0} ne compresse qu'un seul fichier ; utilisez TAR.* pour un dossier"
 msgstr ""
 
@@ -171,119 +171,127 @@ msgstr ""
 msgid "code {0}"
 msgstr ""
 
-#: odysseus/backend/fileops.py:86
+#: odysseus/backend/fileops.py:88
 msgid "Le nom ne peut pas être vide"
 msgstr ""
 
-#: odysseus/backend/fileops.py:88
+#: odysseus/backend/fileops.py:90
 msgid "Le nom ne peut pas contenir « / »"
 msgstr ""
 
-#: odysseus/backend/fileops.py:92
+#: odysseus/backend/fileops.py:94
 msgid "Le nom est trop long"
 msgstr ""
 
-#: odysseus/backend/fileops.py:155 odysseus/ui/actions_files.py:808
+#: odysseus/backend/fileops.py:162 odysseus/ui/actions_files.py:808
 msgid "Déplacement"
 msgstr ""
 
-#: odysseus/backend/fileops.py:155
+#: odysseus/backend/fileops.py:162
 msgid "Copie"
 msgstr ""
 
-#: odysseus/backend/fileops.py:467
+#: odysseus/backend/fileops.py:587
 msgid "Vidage de la corbeille…"
 msgstr ""
 
-#: odysseus/backend/fileops.py:577 odysseus/ui/actions_files.py:236
+#: odysseus/backend/fileops.py:708 odysseus/ui/actions_files.py:236
 msgid "{0} élément copié"
 msgid_plural "{0} éléments copiés"
 msgstr[0] ""
 msgstr[1] ""
 
-#: odysseus/backend/fileops.py:74 odysseus/backend/gioops.py:37
+#: odysseus/backend/fileops.py:76 odysseus/backend/gioops.py:37
 msgid " (copie)"
 msgstr ""
 
-#: odysseus/backend/fileops.py:90
+#: odysseus/backend/fileops.py:92
 msgid "« {0} » n'est pas un nom valide"
 msgstr ""
 
-#: odysseus/backend/fileops.py:156
+#: odysseus/backend/fileops.py:163
 msgid "{verb} de « {name} » — {done} sur {total}"
 msgstr ""
 
-#: odysseus/backend/fileops.py:554
+#: odysseus/backend/fileops.py:186
+msgid "plus de 4 Go : trop gros pour une clé FAT32 (exFAT ou NTFS le permettent)"
+msgstr ""
+
+#: odysseus/backend/fileops.py:685
 msgid "Lien vers {0}"
 msgstr ""
 
-#: odysseus/backend/fileops.py:568
+#: odysseus/backend/fileops.py:699
 msgid "{0} élément mis à la corbeille"
 msgid_plural "{0} éléments mis à la corbeille"
 msgstr[0] ""
 msgstr[1] ""
 
-#: odysseus/backend/fileops.py:570
+#: odysseus/backend/fileops.py:701
 msgid "{0} élément supprimé"
 msgid_plural "{0} éléments supprimés"
 msgstr[0] ""
 msgstr[1] ""
 
-#: odysseus/backend/fileops.py:572
+#: odysseus/backend/fileops.py:703
 msgid "{0} élément déplacé"
 msgid_plural "{0} éléments déplacés"
 msgstr[0] ""
 msgstr[1] ""
 
-#: odysseus/backend/fileops.py:574
+#: odysseus/backend/fileops.py:705
 msgid "{0} élément restauré"
 msgid_plural "{0} éléments restaurés"
 msgstr[0] ""
 msgstr[1] ""
 
-#: odysseus/backend/fileops.py:576
+#: odysseus/backend/fileops.py:707
 msgid "{0} lien créé"
 msgid_plural "{0} liens créés"
 msgstr[0] ""
 msgstr[1] ""
 
-#: odysseus/backend/fileops.py:159
+#: odysseus/backend/fileops.py:166
 msgid " · fichier {0} sur {1}"
 msgstr ""
 
-#: odysseus/backend/fileops.py:292
+#: odysseus/backend/fileops.py:406
 msgid "Le dossier de destination n'existe pas : {0}"
 msgstr ""
 
-#: odysseus/backend/fileops.py:391
+#: odysseus/backend/fileops.py:511
 msgid "Mise à la corbeille de « {0} »"
 msgstr ""
 
-#: odysseus/backend/fileops.py:483
+#: odysseus/backend/fileops.py:603
 msgid "Emplacement d'origine inconnu"
 msgstr ""
 
-#: odysseus/backend/fileops.py:520 odysseus/backend/fileops.py:531 odysseus/backend/fileops.py:546 odysseus/ui/actions_files.py:444
+#: odysseus/backend/fileops.py:640 odysseus/backend/fileops.py:651 odysseus/backend/fileops.py:672 odysseus/ui/actions_files.py:444
 msgid "« {0} » existe déjà"
 msgstr ""
 
-#: odysseus/backend/fileops.py:74 odysseus/backend/gioops.py:37
+#: odysseus/backend/fileops.py:76 odysseus/backend/gioops.py:37
 msgid " (copie {0})"
 msgstr ""
 
-#: odysseus/backend/fileops.py:295
+#: odysseus/backend/fileops.py:409
 msgid "Impossible de copier « {0} » dans lui-même"
 msgstr ""
 
-#: odysseus/backend/fileops.py:125
+#: odysseus/backend/fileops.py:127
 msgid "Préparation… {0} fichiers, {1}"
 msgstr ""
 
-#: odysseus/backend/fileops.py:243
+#: odysseus/backend/fileops.py:246
+msgid "les liens symboliques ne peuvent pas être copiés sur ce support"
+msgstr ""
+
+#: odysseus/backend/fileops.py:267
 msgid "Fichier spécial ignoré"
 msgstr ""
 
-#: odysseus/backend/fileops.py:415
+#: odysseus/backend/fileops.py:535
 msgid "Suppression… {0} sur {1}"
 msgstr ""
 
@@ -371,51 +379,51 @@ msgstr ""
 msgid "Partagé"
 msgstr ""
 
-#: odysseus/backend/formats.py:100
+#: odysseus/backend/formats.py:119
 msgid "GZ (un fichier)"
 msgstr ""
 
-#: odysseus/backend/formats.py:101
+#: odysseus/backend/formats.py:120
 msgid "BZ2 (un fichier)"
 msgstr ""
 
-#: odysseus/backend/formats.py:102
+#: odysseus/backend/formats.py:121
 msgid "XZ (un fichier)"
 msgstr ""
 
-#: odysseus/backend/formats.py:103
+#: odysseus/backend/formats.py:122
 msgid "ZST (un fichier)"
 msgstr ""
 
-#: odysseus/backend/formats.py:104
+#: odysseus/backend/formats.py:123
 msgid "BR (un fichier)"
 msgstr ""
 
-#: odysseus/backend/formats.py:105
+#: odysseus/backend/formats.py:124
 msgid "LZ4 (un fichier)"
 msgstr ""
 
-#: odysseus/backend/formats.py:83
+#: odysseus/backend/formats.py:102
 msgid "Meilleur taux de compression, chiffrement AES-256"
 msgstr ""
 
-#: odysseus/backend/formats.py:87
+#: odysseus/backend/formats.py:106
 msgid "Compatible partout"
 msgstr ""
 
-#: odysseus/backend/formats.py:89
+#: odysseus/backend/formats.py:108
 msgid "Regroupement sans compression, conserve les droits Unix"
 msgstr ""
 
-#: odysseus/backend/formats.py:94
+#: odysseus/backend/formats.py:113
 msgid "Très rapide, excellent compromis"
 msgstr ""
 
-#: odysseus/backend/formats.py:97
+#: odysseus/backend/formats.py:116
 msgid "Le plus rapide"
 msgstr ""
 
-#: odysseus/backend/formats.py:99
+#: odysseus/backend/formats.py:118
 msgid "Image Windows, déduplication"
 msgstr ""
 
@@ -2197,7 +2205,7 @@ msgstr ""
 msgid "Programmes utilisés"
 msgstr ""
 
-#: odysseus/ui/dialogs.py:175 odysseus/ui/pathbar.py:52
+#: odysseus/ui/dialogs.py:175 odysseus/ui/pathbar.py:53
 msgid "Saisir un emplacement"
 msgstr ""
 
@@ -2221,7 +2229,7 @@ msgstr ""
 msgid "Dossier parent"
 msgstr ""
 
-#: odysseus/ui/dialogs.py:177 odysseus/ui/pane.py:987 odysseus/ui/pathbar.py:94 odysseus/ui/sidebar.py:25
+#: odysseus/ui/dialogs.py:177 odysseus/ui/pane.py:987 odysseus/ui/pathbar.py:95 odysseus/ui/sidebar.py:25
 msgid "Dossier personnel"
 msgstr ""
 
@@ -2729,19 +2737,19 @@ msgstr ""
 msgid "Cliquez pour monter"
 msgstr ""
 
-#: odysseus/ui/pane.py:28 odysseus/ui/pane.py:979 odysseus/ui/pane.py:149 odysseus/ui/pathbar.py:77
+#: odysseus/ui/pane.py:28 odysseus/ui/pane.py:979 odysseus/ui/pane.py:149 odysseus/ui/pathbar.py:78
 msgid "Corbeille"
 msgstr ""
 
-#: odysseus/ui/pane.py:28 odysseus/ui/pathbar.py:78 odysseus/ui/sidebar.py:82
+#: odysseus/ui/pane.py:28 odysseus/ui/pathbar.py:79 odysseus/ui/sidebar.py:82
 msgid "Récents"
 msgstr ""
 
-#: odysseus/ui/pane.py:28 odysseus/ui/pathbar.py:79
+#: odysseus/ui/pane.py:28 odysseus/ui/pathbar.py:80
 msgid "Réseau"
 msgstr ""
 
-#: odysseus/ui/pane.py:29 odysseus/ui/pathbar.py:80 odysseus/ui/sidebar.py:91
+#: odysseus/ui/pane.py:29 odysseus/ui/pathbar.py:81 odysseus/ui/sidebar.py:91
 msgid "Autres emplacements"
 msgstr ""
 
@@ -2869,7 +2877,7 @@ msgstr[1] ""
 msgid "Menu du dossier"
 msgstr ""
 
-#: odysseus/ui/pathbar.py:81 odysseus/ui/window.py:304
+#: odysseus/ui/pathbar.py:82 odysseus/ui/window.py:304
 msgid "Administrateur"
 msgstr ""
 

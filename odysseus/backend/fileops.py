@@ -9,6 +9,7 @@ la tâche (elle attend la réponse de l'interface).
 
 from __future__ import annotations
 
+import errno
 import os
 import shutil
 import stat as st
@@ -19,6 +20,7 @@ from typing import Callable, Optional
 from gi.repository import Gio, GLib
 
 from ..i18n import ntr, tr
+from . import fsinfo
 from .engine import Cancelled, Job, ToolError, human_size
 
 CHUNK = 8 * 1024 * 1024
@@ -145,6 +147,10 @@ class _Copier:
         self._last = 0.0
         self.current = ""
         self.copied: set = set()     # sources (fichiers, liens) copiées avec succès
+        self.created_here: set = set()   # destinations créées par cette opération (casefold)
+        self.windows = False         # destination FAT / exFAT / NTFS : noms et casse « à la Windows »
+        self.fat = False             # FAT32 : 4 Go maximum par fichier
+        self.sync = False            # fsync de chaque fichier (remplacement : rien de « vide » après)
 
     def tick(self, force: bool = False):
         now = time.monotonic()
@@ -175,6 +181,9 @@ class _Copier:
 
     def copy_file(self, src: str, dst: str, s: os.stat_result):
         self.current = os.path.basename(src)
+        if self.fat and s.st_size > fsinfo.FAT_MAX_FILE:
+            # refusé d'avance plutôt qu'après avoir écrit 4 Go
+            raise OSError(errno.EFBIG, tr("plus de 4 Go : trop gros pour une clé FAT32 (exFAT ou NTFS le permettent)"))
         tmp_created = False
         try:
             with open(src, "rb") as fin:
@@ -200,6 +209,8 @@ class _Copier:
                             break
                         self.done += n
                         self.tick()
+                    if self.sync:
+                        os.fsync(fd)       # contenu réellement écrit avant l'échange
                 finally:
                     os.close(fd)
             try:
@@ -216,6 +227,7 @@ class _Copier:
             raise
         self.done_files += 1
         self.copied.add(src)
+        self.created_here.add(dst.casefold())
 
     def copy_tree(self, src: str, dst: str):
         """Copie récursive ; dst n'existe pas, ou est un dossier à fusionner."""
@@ -227,16 +239,23 @@ class _Copier:
             return
         try:
             if st.S_ISLNK(s.st_mode):
-                os.symlink(os.readlink(src), dst)
+                try:
+                    os.symlink(os.readlink(src), dst)
+                except OSError as e:
+                    if self.windows:
+                        raise OSError(e.errno, tr("les liens symboliques ne peuvent pas être copiés sur ce support"))
+                    raise
                 self.done_files += 1
                 self.copied.add(src)
+                self.created_here.add(dst.casefold())
             elif st.S_ISDIR(s.st_mode):
                 os.makedirs(dst, exist_ok=True)
                 self.copied.add(src)
+                self.created_here.add(dst.casefold())
                 with os.scandir(src) as it:
                     children = [e.name for e in it]
                 for name in children:
-                    child_dst = os.path.join(dst, name)
+                    child_dst = os.path.join(dst, fsinfo.safe_name(name) if self.windows else name)
                     self.place(os.path.join(src, name), child_dst, nested=True)
                 try:
                     shutil.copystat(src, dst)
@@ -254,6 +273,11 @@ class _Copier:
     def place(self, src: str, dst: str, nested: bool = False) -> Optional[str]:
         """Copie src vers dst en réglant un éventuel conflit ; renvoie le chemin final."""
         src_is_dir = os.path.isdir(src) and not os.path.islink(src)
+        if self.windows and dst.casefold() in self.created_here and os.path.lexists(dst):
+            # « Photo.jpg » et « photo.jpg » (ou « a:b » et « a_b ») dans la même copie vers une clé
+            # FAT : c'est le même nom là-bas ; le second est renommé au lieu d'écraser le premier
+            folder = os.path.dirname(dst)
+            dst = os.path.join(folder, unique_name(folder, os.path.basename(dst), src_is_dir))
         if os.path.lexists(dst):
             dst_is_dir = os.path.isdir(dst) and not os.path.islink(dst)
             choice = self.decide(Conflict(src, dst, src_is_dir, dst_is_dir, self.move))
@@ -278,24 +302,42 @@ class _Copier:
         échoue ou est annulée, l'élément existant reste intact."""
         tmp = os.path.join(os.path.dirname(dst), f".{os.path.basename(dst)}.odysseus-{os.getpid()}")
         before = len(self.errors)
+        self.sync = True
         try:
             self.copy_tree(src, tmp)
         except BaseException:
             if os.path.lexists(tmp):
                 _remove(tmp)
             raise
+        finally:
+            self.sync = False
         if len(self.errors) != before or not os.path.lexists(tmp):
             if os.path.lexists(tmp):
                 _remove(tmp)
             return None
         try:
             _swap_into(tmp, dst)
+            _fsync_dir(os.path.dirname(dst))
         except OSError as e:
             self.errors.append((dst, e.strerror or str(e)))
             if os.path.lexists(tmp):
                 _remove(tmp)
             return None
         return dst
+
+
+def _fsync_dir(folder: str):
+    """L'échange (renommage) lui-même écrit sur le disque."""
+    try:
+        fd = os.open(folder, os.O_RDONLY)
+    except OSError:
+        return
+    try:
+        os.fsync(fd)
+    except OSError:
+        pass
+    finally:
+        os.close(fd)
 
 
 def _swap_into(new: str, dst: str):
@@ -373,9 +415,13 @@ def transfer(job: Job, sources: list[str], dest_dir: str, ask: Asker, move: bool
     # Déplacements sur le même disque : simples renommages, sans mesure préalable.
     to_copy = []
     copier = _Copier(job, ask, 0, 0, move)
+    kind = fsinfo.fs_type(dest_dir)
+    copier.windows, copier.fat = kind in fsinfo.WINDOWS_LIKE, kind in fsinfo.FAT
     for src in sources:
         job.check_cancel()
         name = os.path.basename(src.rstrip("/"))
+        if copier.windows:
+            name = fsinfo.safe_name(name)
         dst = os.path.join(dest_dir, name)
         if move:
             if os.path.dirname(os.path.abspath(src)) == os.path.abspath(dest_dir):
@@ -617,7 +663,18 @@ def rename(path: str, new_name: str) -> str:
         raise ToolError(err)
     target = os.path.join(os.path.dirname(path), new_name)
     if os.path.lexists(target) and os.path.realpath(target) != os.path.realpath(path):
-        raise ToolError(tr("« {0} » existe déjà").format(new_name))
+        # même entrée si, dans le dossier, seul l'ancien nom correspond sans tenir compte de la casse
+        # (pas samefile : fusefat ne donne pas d'inodes stables)
+        old = os.path.basename(path)
+        same = new_name.casefold() == old.casefold() and \
+            [n for n in os.listdir(os.path.dirname(path) or ".") if n.casefold() == old.casefold()] == [old]
+        if not same:
+            raise ToolError(tr("« {0} » existe déjà").format(new_name))
+        # seule la casse change, sur un système insensible à la casse : en deux temps
+        tmp = os.path.join(os.path.dirname(path), f".{new_name}.odysseus-{os.getpid()}")
+        os.rename(path, tmp)
+        os.rename(tmp, target)
+        return target
     os.rename(path, target)
     return target
 

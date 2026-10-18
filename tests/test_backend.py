@@ -3,11 +3,12 @@ import os
 import sys
 import tempfile
 import threading
+import time
 import unittest
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from odysseus.backend import bookmarks, fileops, formats, media, scanner, search  # noqa: E402
+from odysseus.backend import bookmarks, fileops, formats, media, scanner, search, workers  # noqa: E402
 from odysseus.backend.engine import Job  # noqa: E402
 from odysseus.i18n import tr  # noqa: E402
 
@@ -218,6 +219,23 @@ class SearchTest(unittest.TestCase):
         self.assertEqual((total, files, errors), (1, 1, []))
         self.assertEqual(open(a).read(), "x = 1\nsalut monde\nBonjour encore\n")
         self.assertTrue(os.path.exists(a + ".bak"))
+
+
+class PoolTest(unittest.TestCase):
+    def test_stuck_workers_do_not_block_others(self):
+        """Deux fils coincés (stat sur un montage réseau mort) : une nouvelle tâche passe quand même."""
+        pool = workers.Pool(2)
+        pool.STUCK = 0.3
+        gate, done = threading.Event(), threading.Event()
+        try:
+            for i in range(2):
+                pool.submit(("bloque", i), lambda: gate.wait(30), lambda r: None)
+            time.sleep(0.6)
+            pool.submit("normal", done.set, lambda r: None)
+            self.assertTrue(done.wait(2), "tâche normale bloquée derrière les fils coincés")
+            self.assertEqual(pool._threads, 3)
+        finally:
+            gate.set()
 
 
 class MiscTest(unittest.TestCase):

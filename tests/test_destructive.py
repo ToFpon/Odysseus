@@ -5,6 +5,8 @@ liens symboliques (ne jamais toucher la cible), renommer sur un nom pris, corbei
 """
 import hashlib
 import os
+import shutil
+import subprocess
 import sys
 import tempfile
 import threading
@@ -15,7 +17,7 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from gi.repository import Gio  # noqa: E402
 
-from odysseus.backend import fileops  # noqa: E402
+from odysseus.backend import fileops, fsinfo  # noqa: E402
 from odysseus.backend.engine import Job  # noqa: E402
 
 
@@ -311,6 +313,113 @@ class DestructiveTest(unittest.TestCase):
         self.assertEqual(open(p).read(), "nouvelle version", "la restauration a écrasé le nouveau fichier")
         restored = [n for n in os.listdir(self.d) if n.startswith("doc") and n != "doc.txt"]
         self.assertTrue(restored, "l'élément jeté n'a pas été restauré à côté")
+
+
+class FatKeyTest(unittest.TestCase):
+    """Copie vers une « clé USB » FAT32 : vraie image mkfs.vfat montée avec fusefat (sans droits
+    root ni module noyau). Ignoré si les outils manquent."""
+
+    def setUp(self):
+        if not (shutil.which("mkfs.vfat") and shutil.which("fusefat") and shutil.which("fusermount")):
+            self.skipTest("mkfs.vfat / fusefat indisponibles")
+        self.tmp = tempfile.TemporaryDirectory()
+        self.d = self.tmp.name
+        img = os.path.join(self.d, "cle.img")
+        with open(img, "wb") as fh:
+            fh.truncate(32 * 1024 * 1024)
+        subprocess.run(["mkfs.vfat", "-F", "32", img], check=True, capture_output=True)
+        self.key = os.path.join(self.d, "cle")
+        os.makedirs(self.key)
+        r = subprocess.run(["fusefat", "-o", "rw+", img, self.key], capture_output=True)
+        if r.returncode or fsinfo.fs_type(self.key) not in fsinfo.FAT:
+            self.tmp.cleanup()
+            self.skipTest("montage fusefat impossible")
+        self.src = os.path.join(self.d, "src")
+        os.makedirs(self.src)
+
+    def tearDown(self):
+        subprocess.run(["fusermount", "-u", self.key], capture_output=True)
+        self.tmp.cleanup()
+
+    def copy(self, names, move=False):
+        return Job("x", lambda j: fileops.transfer(j, [os.path.join(self.src, n) for n in names], self.key,
+                                                    ask("cancel"), move=move)).run_sync()
+
+    def test_detected_as_fat(self):
+        self.assertTrue(fsinfo.is_fat(self.key))
+        self.assertTrue(fsinfo.is_windows_like(os.path.join(self.key, "pas", "encore", "là")))
+        self.assertFalse(fsinfo.is_fat(self.src))
+
+    def test_names_differing_by_case_do_not_overwrite(self):
+        write(os.path.join(self.src, "Photo.jpg"), "majuscule")
+        write(os.path.join(self.src, "photo.jpg"), "minuscule")
+        write(os.path.join(self.src, "album", "IMG.png"), "1")
+        write(os.path.join(self.src, "album", "img.png"), "2")
+        j = self.copy(["Photo.jpg", "photo.jpg", "album"])
+        self.assertEqual(j.state, "done", j.error)
+        top = sorted(n for n in os.listdir(self.key) if n.lower().startswith("photo"))
+        self.assertEqual(len(top), 2, top)
+        self.assertEqual(sorted(open(os.path.join(self.key, n)).read() for n in top), ["majuscule", "minuscule"])
+        self.assertEqual(sorted(open(os.path.join(self.key, "album", n)).read()
+                                for n in os.listdir(os.path.join(self.key, "album"))), ["1", "2"])
+
+    def test_forbidden_characters_replaced(self):
+        write(os.path.join(self.src, "rapport: v2?.txt"), "r")
+        write(os.path.join(self.src, "dossier*", "a|b.txt"), "ab")
+        write(os.path.join(self.src, "fin."), "f")
+        j = self.copy(["rapport: v2?.txt", "dossier*", "fin."])
+        self.assertEqual(j.state, "done", j.error)
+        self.assertEqual(tree(self.key), {"rapport_ v2_.txt": b"r", "dossier_": "<dossier>",
+                                          os.path.join("dossier_", "a_b.txt"): b"ab", "fin": b"f"})
+
+    def test_symlink_gives_clear_error_and_move_keeps_it(self):
+        write(os.path.join(self.src, "projet", "vrai.txt"), "v")
+        os.symlink("vrai.txt", os.path.join(self.src, "projet", "lien"))
+        j = self.copy(["projet"], move=True)
+        self.assertEqual(j.state, "done", j.error)
+        self.assertTrue(any("liens symboliques" in m or "symbolic" in m for _p, m in j.result.errors),
+                        j.result.errors)
+        self.assertEqual(open(os.path.join(self.key, "projet", "vrai.txt")).read(), "v")
+        # le lien n'a pas pu être copié : il reste à la source (et seulement lui)
+        self.assertTrue(os.path.islink(os.path.join(self.src, "projet", "lien")))
+        self.assertFalse(os.path.exists(os.path.join(self.src, "projet", "vrai.txt")))
+
+    def test_file_over_4gb_refused_up_front(self):
+        big = os.path.join(self.src, "film.mkv")
+        with open(big, "wb") as fh:
+            fh.truncate(fsinfo.FAT_MAX_FILE + 1)      # fichier creux : rien à lire
+        write(os.path.join(self.src, "petit.txt"), "p")
+        t = time.monotonic()
+        j = self.copy(["film.mkv", "petit.txt"], move=True)
+        self.assertLess(time.monotonic() - t, 5, "le refus doit venir avant la copie")
+        self.assertEqual(j.state, "done", j.error)
+        self.assertTrue(any("4" in m for _p, m in j.result.errors), j.result.errors)
+        self.assertEqual(sorted(os.listdir(self.key)), ["petit.txt"], "fichier partiel laissé sur la clé")
+        self.assertEqual(os.path.getsize(big), fsinfo.FAT_MAX_FILE + 1, "source touchée")
+
+    def test_rename_changing_only_case(self):
+        write(os.path.join(self.key, "photo.jpg"), "x")
+        out = fileops.rename(os.path.join(self.key, "photo.jpg"), "Photo.jpg")
+        self.assertEqual(os.listdir(self.key), ["Photo.jpg"])
+        self.assertEqual(open(out).read(), "x")
+        write(os.path.join(self.key, "autre.jpg"), "y")
+        with self.assertRaises(Exception):
+            fileops.rename(os.path.join(self.key, "autre.jpg"), "PHOTO.JPG")    # vrai conflit
+        self.assertEqual(open(os.path.join(self.key, "Photo.jpg")).read(), "x")
+
+
+class FsInfoTest(unittest.TestCase):
+    def test_safe_name(self):
+        self.assertEqual(fsinfo.safe_name('a:b?c*d"e<f>g|h\\i'), "a_b_c_d_e_f_g_h_i")
+        self.assertEqual(fsinfo.safe_name("fin. . "), "fin")
+        self.assertEqual(fsinfo.safe_name("..."), "_")
+        self.assertEqual(fsinfo.safe_name("Été 2024 — vacances.jpg"), "Été 2024 — vacances.jpg")
+
+    def test_fs_type_longest_prefix(self):
+        self.assertIsNotNone(fsinfo.fs_type("/"))
+        pts = [p for p, _k in fsinfo.mounts()]
+        self.assertEqual(pts, sorted(pts, key=len, reverse=True))
+        self.assertEqual(fsinfo.fs_type("/proc/self"), "proc")
 
 
 if __name__ == "__main__":

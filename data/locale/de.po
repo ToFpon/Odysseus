@@ -3677,3 +3677,9 @@ msgstr "Symbolgröße"
 
 msgid "Cette application ne sait pas ouvrir les fichiers distants."
 msgstr "Diese Anwendung kann keine entfernten Dateien öffnen."
+
+msgid "plus de 4 Go : trop gros pour une clé FAT32 (exFAT ou NTFS le permettent)"
+msgstr "über 4 GB: zu groß für einen FAT32-Datenträger (exFAT oder NTFS erlauben es)"
+
+msgid "les liens symboliques ne peuvent pas être copiés sur ce support"
+msgstr "symbolische Links können nicht auf diesen Datenträger kopiert werden"
