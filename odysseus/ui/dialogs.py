@@ -274,11 +274,11 @@ class AppChooser(DialogWindow):
     def _selected(self, _chooser, app):
         self.open_btn.set_sensitive(app is not None)
         default = Gio.AppInfo.get_default_for_type(self.ctype, False)
-        # déjà l'application par défaut : rien à « toujours utiliser » (comme Nautilus)
+        # comme Nautilus : application par défaut choisie → interrupteur allumé mais grisé ;
+        # une autre → éteint, à activer si on veut en faire l'application par défaut
         is_default = app is not None and default is not None and app.equal(default)
+        self.default_row.set_active(is_default)
         self.default_row.set_sensitive(app is not None and not is_default)
-        if is_default:
-            self.default_row.set_active(False)
 
     def _open(self):
         app = self.chooser.get_app_info()

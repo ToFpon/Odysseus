@@ -25,7 +25,7 @@ import gi  # noqa: E402
 
 gi.require_version("Gtk", "4.0")
 gi.require_version("Adw", "1")
-from gi.repository import Adw, GLib, Gtk  # noqa: E402
+from gi.repository import Adw, Gio, GLib, Gtk  # noqa: E402
 
 errors = []
 
@@ -655,6 +655,16 @@ def application_par_defaut(win):
           "double-clic : l'application par défaut est lancée directement")
     new = [w for w in Gtk.Window.list_toplevels() if w not in before and w.get_visible()]
     check(not new, f"pas de fenêtre « Ouvrir avec… » ({[type(w).__name__ for w in new]})")
+    from odysseus.ui.dialogs import AppChooser
+    ch = AppChooser(win, "image/png", [os.path.join(D, "image.png")])
+    row = ch.default_row
+    check(row.get_active() and not row.get_sensitive(),
+          "« Ouvrir avec… » : application par défaut choisie → interrupteur allumé et grisé")
+    others = [a for a in Gio.AppInfo.get_all() if a.get_id() != "visionneuse-test.desktop" and a.should_show()]
+    if others:
+        ch._selected(ch.chooser, others[0])
+        check(not row.get_active() and row.get_sensitive(), "autre application → interrupteur éteint et actif")
+    ch.destroy()
     from odysseus.ui.menus import context_menu
     p.model.select_names(["image.png"])
     m = context_menu(win, p, True)
