@@ -77,6 +77,14 @@ conflits se décident sur la liste du dossier en casefold (`_Copier._existing`),
 Vue : un élément arrivé dans un dossier vide doit faire quitter la page « Dossier vide »
 (`Pane._on_items_changed`, testé dans ui_smoke).
 
+`tests/test_archive_safety.py` : archives piégées (`../`, chemins absolus, liens vers l'extérieur puis
+écriture à travers, liens durs, fichiers spéciaux, setuid) extraites par le vrai moteur dans chaque
+mode : rien ne doit changer hors du dossier d'extraction. C'est 7-Zip (23.01, celui d'Ubuntu 24.04)
+qui protège ; il renvoie une erreur quand il IGNORE un lien dangereux alors que tout le reste est
+extrait : `archive.skipped_links` reconnaît ce cas (on garde, on prévient). Il réécrit aussi les liens
+absolus d'un tar vers l'intérieur du dossier de sortie (notre dossier temporaire caché) :
+`_restore_absolute_links` leur rend leur cible une fois l'extraction finie.
+
 `workers.Pool` : un fil bloqué dans un appel système ne se tue pas ; si tous sont pris depuis plus
 de 3 s, un fil est ajouté (6 au plus).
 

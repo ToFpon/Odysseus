@@ -43,79 +43,79 @@ msgstr ""
 msgid "Le moteur d'archives de Pressoir https://github.com/ToFpon/Pressoir"
 msgstr ""
 
-#: odysseus/backend/archive.py:717
+#: odysseus/backend/archive.py:777
 msgid "Flux valide"
 msgstr ""
 
-#: odysseus/backend/archive.py:25
+#: odysseus/backend/archive.py:26
 msgid "7-Zip est introuvable (installez le paquet 7zip ou p7zip-full)"
 msgstr ""
 
-#: odysseus/backend/archive.py:280
+#: odysseus/backend/archive.py:281
 msgid "Lecture"
 msgstr ""
 
-#: odysseus/backend/archive.py:302
+#: odysseus/backend/archive.py:303
 msgid "Mot de passe requis"
 msgstr ""
 
-#: odysseus/backend/archive.py:459
+#: odysseus/backend/archive.py:460
 msgid "Aucun fichier à compresser"
 msgstr ""
 
-#: odysseus/backend/archive.py:719
+#: odysseus/backend/archive.py:779
 msgid "Test"
 msgstr ""
 
-#: odysseus/backend/archive.py:729
+#: odysseus/backend/archive.py:789
 msgid "Ce format ne peut pas être modifié ; convertissez-le d'abord (7Z, ZIP, TAR, WIM)"
 msgstr ""
 
-#: odysseus/backend/archive.py:763 odysseus/backend/archive.py:770
+#: odysseus/backend/archive.py:823 odysseus/backend/archive.py:830
 msgid "Ce format ne peut pas être modifié"
 msgstr ""
 
-#: odysseus/backend/archive.py:765
+#: odysseus/backend/archive.py:825
 msgid "Suppression"
 msgstr ""
 
-#: odysseus/backend/archive.py:772
+#: odysseus/backend/archive.py:832
 msgid "Renommage"
 msgstr ""
 
-#: odysseus/backend/archive.py:267
+#: odysseus/backend/archive.py:268
 msgid "Décompression impossible : "
 msgstr ""
 
-#: odysseus/backend/archive.py:405
+#: odysseus/backend/archive.py:406
 msgid "Module auto-extractible (7zCon.sfx) introuvable"
 msgstr ""
 
-#: odysseus/backend/archive.py:462
+#: odysseus/backend/archive.py:463
 msgid "Compression"
 msgstr ""
 
-#: odysseus/backend/archive.py:739 odysseus/backend/archive.py:758
+#: odysseus/backend/archive.py:799 odysseus/backend/archive.py:818
 msgid "Ajout"
 msgstr ""
 
-#: odysseus/backend/archive.py:781 odysseus/ui/actions_archives.py:307 odysseus/ui/actions_archives.py:307 odysseus/ui/actions_files.py:557
+#: odysseus/backend/archive.py:841 odysseus/ui/actions_archives.py:316 odysseus/ui/actions_archives.py:316 odysseus/ui/actions_files.py:557
 msgid "Nouveau dossier"
 msgstr ""
 
-#: odysseus/backend/archive.py:795
+#: odysseus/backend/archive.py:855
 msgid "L'archive est vide"
 msgstr ""
 
-#: odysseus/backend/archive.py:200 odysseus/backend/archive.py:212
+#: odysseus/backend/archive.py:201 odysseus/backend/archive.py:213
 msgid "Le programme « {prog} » est nécessaire pour ce format"
 msgstr ""
 
-#: odysseus/backend/archive.py:628 odysseus/ui/dialogs.py:150
+#: odysseus/backend/archive.py:688 odysseus/ui/dialogs.py:150
 msgid "Extraction"
 msgstr ""
 
-#: odysseus/backend/archive.py:490
+#: odysseus/backend/archive.py:491
 msgid "Le format {0} ne compresse qu'un seul fichier ; utilisez TAR.* pour un dossier"
 msgstr ""
 
@@ -671,7 +671,7 @@ msgstr ""
 msgid "Affichage"
 msgstr ""
 
-#: odysseus/features.py:37 odysseus/ui/actions_archives.py:172 odysseus/ui/archive_dialogs.py:450 odysseus/ui/dialogs.py:186
+#: odysseus/features.py:37 odysseus/ui/actions_archives.py:181 odysseus/ui/archive_dialogs.py:450 odysseus/ui/dialogs.py:186
 msgid "Fichiers"
 msgstr ""
 
@@ -863,19 +863,19 @@ msgstr ""
 msgid "Installer un paquet .deb avec contrôle des dépendances et suivi en direct"
 msgstr ""
 
-#: odysseus/ui/actions_archives.py:252
+#: odysseus/ui/actions_archives.py:261
 msgid "Ajouter à l'archive ?"
 msgstr ""
 
-#: odysseus/ui/actions_archives.py:271 odysseus/ui/actions_archives.py:271 odysseus/ui/actions_files.py:527 odysseus/ui/actions_files.py:527
+#: odysseus/ui/actions_archives.py:280 odysseus/ui/actions_archives.py:280 odysseus/ui/actions_files.py:527 odysseus/ui/actions_files.py:527
 msgid "Renommer"
 msgstr ""
 
-#: odysseus/ui/actions_archives.py:291
+#: odysseus/ui/actions_archives.py:300
 msgid "Supprimer de l'archive ?"
 msgstr ""
 
-#: odysseus/ui/actions_archives.py:307 odysseus/ui/actions_files.py:558 odysseus/ui/actions_files.py:587 odysseus/ui/actions_files.py:544
+#: odysseus/ui/actions_archives.py:316 odysseus/ui/actions_files.py:558 odysseus/ui/actions_files.py:587 odysseus/ui/actions_files.py:544
 msgid "Créer"
 msgstr ""
 
@@ -883,23 +883,23 @@ msgstr ""
 msgid "Choisir les fichiers à compresser"
 msgstr ""
 
-#: odysseus/ui/actions_archives.py:209
+#: odysseus/ui/actions_archives.py:218
 msgid "Fichier volumineux : utilisez « Extraire »"
 msgstr ""
 
-#: odysseus/ui/actions_archives.py:235
+#: odysseus/ui/actions_archives.py:244
 msgid "Ce format d'archive ne peut pas être modifié"
 msgstr ""
 
-#: odysseus/ui/actions_archives.py:238
+#: odysseus/ui/actions_archives.py:247
 msgid "Ajouter à l'archive"
 msgstr ""
 
-#: odysseus/ui/actions_archives.py:269
+#: odysseus/ui/actions_archives.py:278
 msgid "Renommage dans l'archive"
 msgstr ""
 
-#: odysseus/ui/actions_archives.py:304
+#: odysseus/ui/actions_archives.py:313
 msgid "Nouveau dossier dans l'archive"
 msgstr ""
 
@@ -911,31 +911,31 @@ msgstr ""
 msgid "Compression de {name}"
 msgstr ""
 
-#: odysseus/ui/actions_archives.py:173 odysseus/ui/menus.py:66 odysseus/ui/menus.py:58 odysseus/ui/preview.py:104
+#: odysseus/ui/actions_archives.py:182 odysseus/ui/menus.py:66 odysseus/ui/menus.py:58 odysseus/ui/preview.py:104
 msgid "Taille"
 msgstr ""
 
-#: odysseus/ui/actions_archives.py:174
+#: odysseus/ui/actions_archives.py:183
 msgid "Archive intègre ✔"
 msgstr ""
 
-#: odysseus/ui/actions_archives.py:178
+#: odysseus/ui/actions_archives.py:187
 msgid "Test de {0}"
 msgstr ""
 
-#: odysseus/ui/actions_archives.py:197
+#: odysseus/ui/actions_archives.py:206
 msgid "Lecture de {0}"
 msgstr ""
 
-#: odysseus/ui/actions_archives.py:227
+#: odysseus/ui/actions_archives.py:236
 msgid "Ouverture de {0}"
 msgstr ""
 
-#: odysseus/ui/actions_archives.py:266
+#: odysseus/ui/actions_archives.py:275
 msgid "Élément renommé"
 msgstr ""
 
-#: odysseus/ui/actions_archives.py:292
+#: odysseus/ui/actions_archives.py:301
 msgid "{0} sera retiré de {1}. Cette action est définitive."
 msgstr ""
 
@@ -943,31 +943,31 @@ msgstr ""
 msgid "Archives créées"
 msgstr ""
 
-#: odysseus/ui/actions_archives.py:144
+#: odysseus/ui/actions_archives.py:153
 msgid "Extraction de {0}"
 msgstr ""
 
-#: odysseus/ui/actions_archives.py:149 odysseus/ui/jobs.py:205
+#: odysseus/ui/actions_archives.py:158 odysseus/ui/jobs.py:205
 msgid "{0} : annulé"
 msgstr ""
 
-#: odysseus/ui/actions_archives.py:244
+#: odysseus/ui/actions_archives.py:253
 msgid "{0} élément(s) ajouté(s)"
 msgstr ""
 
-#: odysseus/ui/actions_archives.py:254 odysseus/ui/actions_archives.py:294 odysseus/ui/actions_files.py:354 odysseus/ui/actions_files.py:446
+#: odysseus/ui/actions_archives.py:263 odysseus/ui/actions_archives.py:303 odysseus/ui/actions_files.py:354 odysseus/ui/actions_files.py:446
 msgid "Annuler"
 msgstr ""
 
-#: odysseus/ui/actions_archives.py:254 odysseus/ui/annotate.py:341
+#: odysseus/ui/actions_archives.py:263 odysseus/ui/annotate.py:341
 msgid "Ajouter"
 msgstr ""
 
-#: odysseus/ui/actions_archives.py:289
+#: odysseus/ui/actions_archives.py:298
 msgid "Suppression dans {0}"
 msgstr ""
 
-#: odysseus/ui/actions_archives.py:294 odysseus/ui/actions_files.py:654 odysseus/ui/actions_files.py:672
+#: odysseus/ui/actions_archives.py:303 odysseus/ui/actions_files.py:654 odysseus/ui/actions_files.py:672
 msgid "Supprimer"
 msgstr ""
 
@@ -975,23 +975,23 @@ msgstr ""
 msgid "{0} extraite"
 msgstr ""
 
-#: odysseus/ui/actions_archives.py:173 odysseus/ui/preview.py:106 odysseus/ui/views.py:37
+#: odysseus/ui/actions_archives.py:182 odysseus/ui/preview.py:106 odysseus/ui/views.py:37
 msgid "Compressé"
 msgstr ""
 
-#: odysseus/ui/actions_archives.py:175
+#: odysseus/ui/actions_archives.py:184
 msgid "{0}\nAucune erreur détectée.\n\n{summary}"
 msgstr ""
 
-#: odysseus/ui/actions_archives.py:250
+#: odysseus/ui/actions_archives.py:259
 msgid "Ajout dans {0}"
 msgstr ""
 
-#: odysseus/ui/actions_archives.py:286
+#: odysseus/ui/actions_archives.py:295
 msgid "{0} élément(s) supprimé(s) de l'archive"
 msgstr ""
 
-#: odysseus/ui/actions_archives.py:306
+#: odysseus/ui/actions_archives.py:315
 msgid "Dossier créé"
 msgstr ""
 
@@ -999,7 +999,21 @@ msgstr ""
 msgid "{name} créée{size}"
 msgstr ""
 
-#: odysseus/ui/actions_archives.py:172 odysseus/ui/archive_dialogs.py:451 odysseus/ui/preview.py:253
+#: odysseus/ui/actions_archives.py:143
+msgid "{0} lien ignoré"
+msgid_plural "{0} liens ignorés"
+msgstr[0] ""
+msgstr[1] ""
+
+#: odysseus/ui/actions_archives.py:144
+msgid "Ces liens de l'archive pointaient hors du dossier d'extraction ; tout le reste a été extrait."
+msgstr ""
+
+#: odysseus/ui/actions_archives.py:142 odysseus/ui/actions_files.py:409 odysseus/ui/archive_dialogs.py:395 odysseus/ui/pdf_dialogs.py:55
+msgid "… et {0} autre(s)"
+msgstr ""
+
+#: odysseus/ui/actions_archives.py:181 odysseus/ui/archive_dialogs.py:451 odysseus/ui/preview.py:253
 msgid "Dossiers"
 msgstr ""
 
@@ -1206,10 +1220,6 @@ msgid "Déplacer {name} vers {dst} ?"
 msgid_plural "Déplacer {n} éléments vers {dst} ?"
 msgstr[0] ""
 msgstr[1] ""
-
-#: odysseus/ui/actions_files.py:409 odysseus/ui/archive_dialogs.py:395 odysseus/ui/pdf_dialogs.py:55
-msgid "… et {0} autre(s)"
-msgstr ""
 
 #: odysseus/ui/actions_files.py:522 odysseus/ui/actions_files.py:510
 msgid "Renommage impossible"

@@ -12,7 +12,7 @@ from typing import Optional
 from .. import features
 from ..backend import archive, formats
 from ..backend.engine import human_size
-from ..i18n import tr
+from ..i18n import ntr, tr
 from ..settings import session_passwords, settings
 from .common import alert, ask_password, choose_files, describe_paths, open_with_default, toast
 from .jobs import finished_toast, manager
@@ -134,6 +134,15 @@ class ArchiveActions:
                 if o.password and settings["remember_passwords"]:
                     session_passwords[arch] = o.password
                 finished_toast(self, job, tr("{0} extraite").format(os.path.basename(arch)), dest)
+                links = getattr(job, "skipped_links", [])
+                if links:
+                    # 7-Zip a refusé des liens qui pointaient hors du dossier d'extraction
+                    text = "\n".join(f"{name} → {target}" for name, target in links[:15])
+                    if len(links) > 15:
+                        text += "\n" + tr("… et {0} autre(s)").format(len(links) - 15)
+                    alert(self, ntr("{0} lien ignoré", "{0} liens ignorés", len(links)).format(len(links)),
+                          tr("Ces liens de l'archive pointaient hors du dossier d'extraction ; tout le reste "
+                             "a été extrait.") + "\n\n" + text)
                 if o.open_after and dest:
                     self.open_location(dest, "tab")
             else:

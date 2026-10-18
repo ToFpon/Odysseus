@@ -3680,3 +3680,11 @@ msgstr "Open With {0}"
 
 msgid "Ouvrir avec…"
 msgstr "Open With…"
+
+msgid "{0} lien ignoré"
+msgid_plural "{0} liens ignorés"
+msgstr[0] "{0} link skipped"
+msgstr[1] "{0} links skipped"
+
+msgid "Ces liens de l'archive pointaient hors du dossier d'extraction ; tout le reste a été extrait."
+msgstr "These links in the archive pointed outside the extraction folder; everything else was extracted."

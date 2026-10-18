@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import os
+import re
 import shutil
 import subprocess
 import tempfile
@@ -603,7 +604,66 @@ def _unique_path(path: str) -> str:
     return f"{root}_{i}{ext}"
 
 
+_DANGEROUS_LINK = re.compile(r"ERROR:\s*Dangerous link path was ignored : (.+?) : (.*)$")
+_SUB_ERRORS = re.compile(r"^Sub items Errors:\s*(\d+)")
+
+
+def skipped_links(err: ToolError) -> Optional[list]:
+    """Si 7-Zip n'a fait QUE refuser des liens dangereux (cible hors du dossier d'extraction), tout
+    le reste est extrait : renvoie [(lien, cible)]. Sinon None (vraie erreur)."""
+    links, other, counted = [], False, None
+    for line in (err.output or "").splitlines():
+        line = line.strip()
+        m = _DANGEROUS_LINK.search(line)
+        if m:
+            links.append((m.group(1), m.group(2)))
+        elif "ERROR" in line:
+            other = True
+        n = _SUB_ERRORS.match(line)
+        if n:
+            counted = int(n.group(1))
+    if not links or other or (counted is not None and counted != len(links)):
+        return None
+    return links
+
+
+def _restore_absolute_links(out_dir: str, names) -> None:
+    """7-Zip réécrit un lien absolu d'une archive tar (« zone -> /usr/share/zoneinfo ») en le faisant
+    pointer DANS le dossier d'extraction (dans notre dossier temporaire caché pour l'extraction
+    intelligente) : lien cassé au nom étrange. Une fois l'extraction finie — plus rien ne peut être
+    écrit à travers —, on lui rend sa cible d'origine, comme tar ou Nautilus (File Roller)."""
+    prefix = out_dir.rstrip("/") + "/"
+    for name in names:
+        top = os.path.join(out_dir, name)
+        todo = [top] if os.path.islink(top) else []
+        if os.path.isdir(top) and not os.path.islink(top):
+            for root, dirs, files in os.walk(top):
+                todo += [os.path.join(root, n) for n in dirs + files if os.path.islink(os.path.join(root, n))]
+        for link in todo:
+            try:
+                target = os.readlink(link)
+                if target.startswith(prefix):
+                    os.remove(link)
+                    os.symlink("/" + target[len(prefix):], link)
+            except OSError:
+                pass
+
+
 def _extract_into(job: Job, archive: str, det, o: ExtractOptions, dest: str):
+    before = set(os.listdir(dest)) if os.path.isdir(dest) else set()
+    try:
+        _extract_raw(job, archive, det, o, dest)
+    except ToolError as e:
+        links = skipped_links(e)
+        if links is None:
+            raise
+        # liens refusés par 7-Zip, tout le reste est là : on garde, et on le dit
+        job.skipped_links = getattr(job, "skipped_links", []) + links
+    if det.kind != "stream":
+        _restore_absolute_links(dest, set(os.listdir(dest)) - before)
+
+
+def _extract_raw(job: Job, archive: str, det, o: ExtractOptions, dest: str):
     if det.kind == "tar-stream":
         _run_decompress_into(job, archive, det.stream, build_7z_extract(archive, dest, o, stdin_tar=True),
                              "Extraction ")

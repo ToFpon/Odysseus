@@ -3680,3 +3680,11 @@ msgstr "Mit {0} öffnen"
 
 msgid "Ouvrir avec…"
 msgstr "Öffnen mit …"
+
+msgid "{0} lien ignoré"
+msgid_plural "{0} liens ignorés"
+msgstr[0] "{0} Verknüpfung übersprungen"
+msgstr[1] "{0} Verknüpfungen übersprungen"
+
+msgid "Ces liens de l'archive pointaient hors du dossier d'extraction ; tout le reste a été extrait."
+msgstr "Diese Verknüpfungen im Archiv zeigten aus dem Entpackordner heraus; alles andere wurde entpackt."
