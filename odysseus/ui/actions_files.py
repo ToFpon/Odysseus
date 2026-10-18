@@ -11,7 +11,7 @@ from typing import Optional
 from gi.repository import Adw, Gio, GLib, Gtk
 
 from .. import features
-from ..backend import fileops, folder_colors, formats
+from ..backend import fileops, folder_colors, formats, gioops
 from ..backend.engine import Job, human_size
 from ..i18n import ntr, tr
 from ..settings import settings
@@ -42,6 +42,17 @@ def find_editor() -> Optional[str]:
     return None
 
 
+
+
+def _desktop_app_for(command: str):
+    """Application installée correspondant à une commande (pour lancer l'éditeur par URI)."""
+    if not command:
+        return None
+    exe = os.path.basename(command.split()[0])
+    for app in Gio.AppInfo.get_all():
+        if app.get_executable() and os.path.basename(app.get_executable()) == exe:
+            return app
+    return None
 class FileActions:
     """Mélangé à MainWindow."""
 
@@ -91,6 +102,49 @@ class FileActions:
     def _sel_paths(self):
         return [r.path for r in self._sel() if r.path]
 
+    def _gio_dir(self) -> str:
+        """Emplacement GVfs sans chemin local (admin://…) : les opérations passent par GIO."""
+        p = self.pane
+        return p.location if p is not None and p.mode == "remote" and not p.current_dir() else ""
+
+    def _sel_locs(self) -> list[str]:
+        """Sélection en chemins, ou en URI pour les éléments sans chemin local."""
+        return [r.path or r.uri for r in self._sel() if r.path or r.uri]
+
+    def _run_gio(self, title: str, func):
+        p = self.pane
+
+        def done(job):
+            if isinstance(job.result, fileops.Result) and job.result.errors:
+                self._show_errors(job.title, job.result.errors)
+            for pane in self.all_panes():
+                if pane.mode == "remote":
+                    pane.model.reload_quiet()
+            if p is not None and p.mode == "fs":
+                p.refresh()
+        self._run(title, func, on_done=done)
+
+    def _sel_gfiles(self, files_only: bool = True) -> list:
+        """Sélection en fichiers GIO : par le chemin, ou par l'URI (admin://, smb://… sans chemin)."""
+        out = []
+        for r in self._sel():
+            if files_only and r.is_dir:
+                continue
+            if r.path:
+                out.append(Gio.File.new_for_path(r.path))
+            elif r.uri:
+                out.append(Gio.File.new_for_uri(r.get("target_uri") or r.uri))
+        return out
+
+    def _launch_app(self, app, files) -> bool:
+        from .dialogs import launch_app
+        try:
+            launch_app(app, files, self.get_display().get_app_launch_context())
+            return True
+        except GLib.Error as e:
+            alert(self, tr("Impossible d'ouvrir"), e.message)
+            return False
+
     def open_selected(self):
         p = self.pane
         sel = self._sel()
@@ -132,23 +186,22 @@ class FileActions:
                 self.preview_archive_item(p, r, external=True)
             elif r.path:
                 open_with_default(self, r.path)
+            elif r.uri:
+                Gtk.FileLauncher.new(Gio.File.new_for_uri(r.get("target_uri") or r.uri)).launch(self, None, None)
 
     def open_with_app(self, app_id: str):
         app = Gio.DesktopAppInfo.new(app_id) if app_id else None
-        files = [Gio.File.new_for_path(p) for p in self._sel_paths()]
-        if app is None or not files:
-            return
-        try:
-            app.launch(files, self.get_display().get_app_launch_context())
-        except GLib.Error as e:
-            alert(self, tr("Impossible d'ouvrir"), e.message)
+        files = self._sel_gfiles()
+        if app is not None and files:
+            self._launch_app(app, files)
 
     def open_with_dialog(self):
-        sel = [r for r in self._sel() if r.path]
-        if not sel:
+        sel = [r for r in self._sel() if not r.is_dir]
+        files = self._sel_gfiles()
+        if not files:
             return
         from .dialogs import AppChooser
-        AppChooser(self, sel[0].content_type, [r.path for r in sel]).present(self)
+        AppChooser(self, sel[0].content_type, files).present(self)
 
     def open_in_tab(self):
         for r in self._sel():
@@ -174,7 +227,7 @@ class FileActions:
     # Presse-papiers
     # ------------------------------------------------------------------
     def clip(self, cut: bool):
-        paths = self._sel_paths()
+        paths = self._sel_locs() if self._gio_dir() else self._sel_paths()
         if not paths:
             return
         clipboard.put(self.get_display(), paths, cut)
@@ -183,7 +236,8 @@ class FileActions:
                      else ntr("{0} élément copié", "{0} éléments copiés", n)).format(n), timeout=2)
 
     def paste(self, dest: Optional[str] = None):
-        dest = dest or (self.pane.current_dir() if self.pane and self.pane.mode == "fs" else "")
+        dest = dest or (self.pane.current_dir() if self.pane and self.pane.mode == "fs" else "") \
+            or self._gio_dir()
         if not dest:
             return
 
@@ -191,7 +245,14 @@ class FileActions:
             if not paths:
                 toast(self, tr("Rien à coller"))
                 return
-            self.run_transfer(paths, dest, move=cut)
+            if "://" in dest or any("://" in p for p in paths):
+                # admin://… : copie par GIO (jamais d'écrasement, « (copie) » en cas de doublon)
+                n = len(paths)
+                title = (ntr("Déplacement de {0} élément", "Déplacement de {0} éléments", n) if cut else
+                         ntr("Copie de {0} élément", "Copie de {0} éléments", n)).format(n)
+                self._run_gio(title, lambda j: gioops.transfer(j, paths, dest, move=cut))
+            else:
+                self.run_transfer(paths, dest, move=cut)
             if cut:
                 clipboard.state.clear()
                 self.get_display().get_clipboard().set_content(None)
@@ -427,6 +488,16 @@ class FileActions:
             self.rename_in_archive(p, rec)
             return
         if not rec.path:
+            if rec.uri and p.mode == "remote":
+                def apply_gio(new):
+                    try:
+                        gioops.rename(rec.uri, new)
+                    except GLib.Error as e:
+                        alert(self, tr("Renommage impossible"), e.message)
+                        return
+                    p.model.reload_quiet()
+                self.ask_name(tr("Renommer"), rec.name, tr("Renommer"), apply_gio, select_stem=not rec.is_dir,
+                              current=rec.name)
             return
         folder = os.path.dirname(rec.path)
 
@@ -448,6 +519,16 @@ class FileActions:
             self.new_folder_in_archive(p)
             return
         folder = p.current_dir()
+        if not folder and self._gio_dir():
+            def make_gio(name):
+                try:
+                    gioops.make_folder(self._gio_dir(), name)
+                except GLib.Error as e:
+                    alert(self, tr("Création impossible"), e.message)
+                    return
+                p.model.reload_quiet()
+            self.ask_name(tr("Nouveau dossier"), tr("Nouveau dossier"), tr("Créer"), make_gio, select_stem=False)
+            return
         if not folder:
             return
 
@@ -465,6 +546,17 @@ class FileActions:
     def new_file_named(self, template: str = ""):
         p = self.pane
         folder = p.current_dir() if p.mode == "fs" else ""
+        if not folder and self._gio_dir():
+            def make_gio(name):
+                try:
+                    gioops.make_file(self._gio_dir(), name, template or None)
+                except GLib.Error as e:
+                    alert(self, tr("Création impossible"), e.message)
+                    return
+                p.model.reload_quiet()
+            self.ask_name(tr("Nouveau document"), os.path.basename(template) if template
+                          else tr("Nouveau document.txt"), tr("Créer"), make_gio)
+            return
         if not folder:
             return
         initial = os.path.basename(template) if template else tr("Nouveau document.txt")
@@ -498,8 +590,8 @@ class FileActions:
         if p.mode == "archive":
             self.delete_in_archive(p)
             return
-        if p.mode == "trash":
-            self.delete()
+        if p.mode == "trash" or self._gio_dir():
+            self.delete()        # admin://… : pas de corbeille, suppression après confirmation
             return
         paths = self._sel_paths()
         if not paths:
@@ -549,13 +641,18 @@ class FileActions:
                   default="cancel", callback=go_trash)
             return
         paths = [r.path for r in sel if r.path]
+        gio = bool(self._gio_dir())
+        if gio:
+            paths = self._sel_locs()
         if not paths:
             return
 
         def go(r):
-            if r == "delete":
+            if r == "delete" and gio:
+                self._run_gio(tr("Suppression définitive"), lambda j: gioops.delete(j, paths))
+            elif r == "delete":
                 self._run(tr("Suppression définitive"), lambda j: fileops.delete(j, paths))
-        if settings["confirm_delete"]:
+        if settings["confirm_delete"] or gio:
             n = len(paths)
             alert(self, tr("Supprimer définitivement ?"),
                   ntr("« {name} » sera supprimé définitivement. Cette action est irréversible.",
@@ -640,7 +737,7 @@ class FileActions:
                 elif f.get_path():
                     app.launch([Gio.File.new_for_path(f.get_path())], None)
                 else:
-                    raise GLib.Error(tr("Cette application ne sait pas ouvrir les fichiers administrateur."))
+                    raise GLib.Error(tr("Cette application ne sait pas ouvrir les fichiers distants."))
             except GLib.Error as e:
                 alert(self, tr("Ouverture impossible"), e.message)
 
@@ -822,10 +919,17 @@ class FileActions:
             self._launch_terminal(dirs[0])
 
     def edit_text(self):
-        paths = [r.path for r in self._sel() if r.path and not r.is_dir]
-        if not paths:
+        files = self._sel_gfiles()
+        if not files:
             return
+        paths = [f.get_path() for f in files]
         editor = find_editor()
+        if not all(paths):
+            # fichiers sans chemin local (admin://…) : l'éditeur les ouvre par leur URI
+            app = _desktop_app_for(editor) or Gio.AppInfo.get_default_for_type("text/plain", False)
+            if app is not None:
+                self._launch_app(app, files)
+            return
         if editor:
             try:
                 subprocess.Popen(editor.split() + paths, start_new_session=True)

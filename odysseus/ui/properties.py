@@ -148,7 +148,8 @@ class PropertiesDialog(Adw.Dialog):
 
         def change(*_):
             from .dialogs import AppChooser
-            d = AppChooser(self.window, rec.content_type, [rec.path])
+            d = AppChooser(self.window, rec.content_type,
+                           [rec.path] if rec.path else [Gio.File.new_for_uri(rec.uri)])
             d.default_row.set_active(True)
             d.present(self)
         btn.connect("clicked", change)

@@ -281,7 +281,15 @@ class Pane(Gtk.Box):
             same = True
         return Gdk.DragAction.MOVE if same else Gdk.DragAction.COPY
 
+    def clear_drop_highlight(self):
+        """Retire le cadre de dépôt de tous les panneaux : déposé sur une ligne, le panneau ne reçoit
+        pas toujours « leave » et le cadre restait affiché."""
+        root = self.get_root()
+        for p in (root.all_panes() if hasattr(root, "all_panes") else [self]):
+            p.remove_css_class("drop-hover")
+
     def handle_drop(self, paths: list[str], dest: str, drop: Optional[Gdk.Drop]):
+        self.clear_drop_highlight()
         self.emit("files-dropped", paths, dest, self._decide_action(drop, dest, paths))
 
     # ------------------------------------------------------------------

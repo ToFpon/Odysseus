@@ -234,7 +234,7 @@ class _CellMixin:
             icon.set_child(box)
         drag.connect("prepare", prepare)
         drag.connect("drag-begin", begin)
-        drag.connect("drag-end", lambda *_: DRAG_PATHS.clear())
+        drag.connect("drag-end", lambda *_: (DRAG_PATHS.clear(), pane.clear_drop_highlight()))
         widget.add_controller(drag)
 
     def _attach_drop(self, widget):

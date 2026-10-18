@@ -342,6 +342,12 @@ class DirModel(GObject.Object, Gio.ListModel):
         if not self._pending_id:
             self._pending_id = GLib.timeout_add(400, self._reload_quiet)
 
+    def reload_quiet(self):
+        """Relit un emplacement GIO sans spinner ni nouvelle surveillance (la recréer fait protester
+        GVfs : « MonitorClient.Changed… Object does not exist »)."""
+        if not self._pending_id:
+            self._pending_id = GLib.timeout_add(150, self._reload_quiet)
+
     def _reload_quiet(self):
         self._pending_id = 0
         location, gen, cancel = self.location, self._gen, self._cancel

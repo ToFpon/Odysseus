@@ -3656,8 +3656,6 @@ msgstr "Wiederholen nicht möglich"
 msgid "Mise à la corbeille"
 msgstr "In den Papierkorb verschieben"
 
-msgid "Cette application ne sait pas ouvrir les fichiers administrateur."
-msgstr "Diese Anwendung kann keine Administratordateien öffnen."
 
 msgid "Accès administrateur refusé"
 msgstr "Administratorzugriff verweigert"
@@ -3676,3 +3674,6 @@ msgstr "Größer (Strg++)"
 
 msgid "Taille d'icône"
 msgstr "Symbolgröße"
+
+msgid "Cette application ne sait pas ouvrir les fichiers distants."
+msgstr "Diese Anwendung kann keine entfernten Dateien öffnen."

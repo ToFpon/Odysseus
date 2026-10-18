@@ -403,16 +403,16 @@ class MainWindow(FileActions, ArchiveActions, ToolActions, Adw.ApplicationWindow
         if not p:
             return
         sel = p.selected_recs()
-        # emplacements GVfs (admin://, smb://…) : opérations par le chemin local que GVfs expose
-        gvfs = p.mode == "remote" and bool(p.current_dir())
+        # emplacements GVfs (admin://, smb://…) : par le chemin local que GVfs expose, sinon par GIO
+        gvfs = p.mode == "remote" and not p.location.startswith(("network:", "recent:"))
         fs = p.mode in ("fs", "search") or gvfs
-        local_sel = [r for r in sel if r.path]
-        has_dir = bool(p.current_dir()) and (p.mode == "fs" or gvfs)
+        local_sel = [r for r in sel if r.path or (gvfs and r.uri)]
+        has_dir = (bool(p.current_dir()) and p.mode == "fs") or gvfs
         can = {
             "back": bool(p.back_stack), "forward": bool(p.forward_stack), "up": p.can_go_up(),
             "cut": fs and bool(local_sel), "copy": fs and bool(local_sel),
             "paste": has_dir, "rename": len(sel) == 1 and (fs or p.mode == "archive"),
-            "trash": fs and bool(local_sel), "delete": bool(sel) and p.mode in ("fs", "search", "trash"),
+            "trash": fs and bool(local_sel), "delete": bool(sel) and (p.mode in ("fs", "search", "trash") or gvfs),
             "new-folder": has_dir or p.mode == "archive", "new-file": has_dir, "new-empty-file": has_dir,
             "copy-to-other": fs and bool(local_sel), "move-to-other": fs and bool(local_sel),
             "restore": p.mode == "trash" and bool(sel), "properties": bool(sel) or bool(p.current_dir()),

@@ -212,12 +212,24 @@ def show_shortcuts(parent):
     dlg.present(parent)
 
 
+def launch_app(app: Gio.AppInfo, files: list, context=None):
+    """Lance une application sur des fichiers : par leur chemin, ou par leur URI quand ils n'ont
+    pas de chemin local (admin://, smb://… de GVfs). Lève GLib.Error."""
+    if all(f.get_path() for f in files):
+        app.launch(files, context)
+    elif app.supports_uris():
+        app.launch_uris([f.get_uri() for f in files], context)
+    else:
+        raise GLib.Error(tr("Cette application ne sait pas ouvrir les fichiers distants."))
+
+
 class AppChooser(Adw.Dialog):
     """« Ouvrir avec… » : applications recommandées, puis toutes les autres."""
 
-    def __init__(self, parent, ctype: str, paths: list[str]):
+    def __init__(self, parent, ctype: str, files: list):
+        """files : chemins ou Gio.File (fichiers d'admin://, smb://… sans chemin local)."""
         super().__init__(title=tr("Ouvrir avec"), content_width=440, content_height=560)
-        self.paths = paths
+        self.files = [f if isinstance(f, Gio.File) else Gio.File.new_for_path(f) for f in files]
         self.ctype = ctype
         tv = Adw.ToolbarView()
         hb = Adw.HeaderBar(show_end_title_buttons=False, show_start_title_buttons=False)
@@ -278,7 +290,7 @@ class AppChooser(Adw.Dialog):
             except GLib.Error:
                 pass
         try:
-            app.launch([Gio.File.new_for_path(p) for p in self.paths], None)
+            launch_app(app, self.files, self.get_display().get_app_launch_context())
         except GLib.Error as e:
             toast(self, e.message)
         self.close()

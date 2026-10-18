@@ -125,6 +125,7 @@ def steps(win):
     for _ in range(5):
         yield
     check(os.path.exists(os.path.join(D, "un", "cible", "f1")), "glisser un fichier sur un dossier")
+    check(not any(x.has_css_class("drop-hover") for x in win.all_panes()), "pas de cadre de dépôt resté affiché")
     win.activate_action("win.dual", None)
     yield
     other = win.workspace.other(p)
@@ -134,6 +135,7 @@ def steps(win):
     for _ in range(5):
         yield
     check(os.path.exists(os.path.join(D, "dst", "f2")), "glisser vers l'autre panneau")
+    check(not any(x.has_css_class("drop-hover") for x in win.all_panes()), "pas de cadre resté en double panneau")
 
 
 def on_window(_a, win):

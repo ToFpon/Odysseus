@@ -159,3 +159,58 @@ tmpfs /tmp tmpfs rw 0 0
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class SmartExtractTest(unittest.TestCase):
+    """« Extraire ici » (dossier intelligent) : une seule passe, rangement, noms déjà pris."""
+
+    def setUp(self):
+        import shutil
+        import subprocess
+        self.d = tempfile.mkdtemp()
+        if not shutil.which("bzip2") or not shutil.which("tar"):
+            self.skipTest("bzip2 / tar absents")
+        with open(os.path.join(self.d, "solo.txt"), "w") as fh:
+            fh.write("contenu\n")
+        subprocess.run(["bzip2", "-k", os.path.join(self.d, "solo.txt")], check=True)
+        os.makedirs(os.path.join(self.d, "racine"))
+        with open(os.path.join(self.d, "racine", "a.txt"), "w") as fh:
+            fh.write("a\n")
+        subprocess.run(["tar", "-cjf", os.path.join(self.d, "un.tar.bz2"), "-C", self.d, "racine"], check=True)
+
+    def _extract(self, name):
+        o = archive.ExtractOptions(subfolder="smart", overwrite="rename")
+        j = Job("x", lambda j: archive.extract(j, os.path.join(self.d, name), o)).run_sync()
+        self.assertEqual(j.state, "done", j.error)
+        return j.result
+
+    def test_single_file_next_to_existing(self):
+        self._extract("solo.txt.bz2")      # solo.txt existe déjà : pas de dossier « solo.txt »
+        self.assertTrue(os.path.isfile(os.path.join(self.d, "solo_1.txt")))
+
+    def test_tar_single_root_twice(self):
+        self.assertEqual(self._extract("un.tar.bz2"), os.path.join(self.d, "racine_1"))
+        self.assertEqual(self._extract("un.tar.bz2"), os.path.join(self.d, "racine_2"))
+        self.assertFalse([n for n in os.listdir(self.d) if n.startswith(".odysseus-extract")])
+
+
+class GioOpsTest(unittest.TestCase):
+    """Opérations par GIO (emplacements sans chemin local), vérifiées ici sur des fichiers locaux."""
+
+    def test_copy_rename_delete(self):
+        from odysseus.backend import gioops
+        d = tempfile.mkdtemp()
+        os.makedirs(os.path.join(d, "src", "sous"))
+        with open(os.path.join(d, "src", "sous", "f.txt"), "w") as fh:
+            fh.write("x")
+        os.makedirs(os.path.join(d, "dst"))
+        res = Job("c", lambda j: gioops.transfer(j, [os.path.join(d, "src")], os.path.join(d, "dst"))).run_sync().result
+        self.assertFalse(res.errors)
+        self.assertTrue(os.path.isfile(os.path.join(d, "dst", "src", "sous", "f.txt")))
+        gioops.transfer(Job("c", lambda j: None), [os.path.join(d, "src")], os.path.join(d, "dst"))
+        self.assertEqual(len(os.listdir(os.path.join(d, "dst"))), 2)        # « src (copie) »
+        new = gioops.rename(os.path.join(d, "dst", "src"), "renomme")
+        self.assertTrue(new.endswith("renomme"))
+        gioops.make_folder(os.path.join(d, "dst"), "vide")
+        gioops.delete(Job("d", lambda j: None), [new, os.path.join(d, "dst", "vide")])
+        self.assertEqual(len(os.listdir(os.path.join(d, "dst"))), 1)

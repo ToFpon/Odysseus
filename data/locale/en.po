@@ -3656,8 +3656,6 @@ msgstr "Unable to redo"
 msgid "Mise à la corbeille"
 msgstr "Moving to trash"
 
-msgid "Cette application ne sait pas ouvrir les fichiers administrateur."
-msgstr "This application cannot open administrator files."
 
 msgid "Accès administrateur refusé"
 msgstr "Administrator access denied"
@@ -3676,3 +3674,6 @@ msgstr "Larger (Ctrl++)"
 
 msgid "Taille d'icône"
 msgstr "Icon Size"
+
+msgid "Cette application ne sait pas ouvrir les fichiers distants."
+msgstr "This application cannot open remote files."

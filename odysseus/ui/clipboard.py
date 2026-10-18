@@ -42,12 +42,13 @@ state = ClipState()
 
 
 def put(display: Gdk.Display, paths: list[str], cut: bool):
-    uris = [Gio.File.new_for_path(p).get_uri() for p in paths]
+    # chemins locaux ou URI (admin://, smb://… sans chemin local)
+    uris = [p if "://" in p else Gio.File.new_for_path(p).get_uri() for p in paths]
     gnome = ("cut" if cut else "copy") + "\n" + "\n".join(uris)
     providers = [
         Gdk.ContentProvider.new_for_bytes(GNOME_TYPE, GLib.Bytes.new(gnome.encode())),
         Gdk.ContentProvider.new_for_bytes("text/uri-list", GLib.Bytes.new(("\r\n".join(uris) + "\r\n").encode())),
-        Gdk.ContentProvider.new_for_value(Gdk.FileList.new_from_list([Gio.File.new_for_path(p) for p in paths])),
+        Gdk.ContentProvider.new_for_value(Gdk.FileList.new_from_list([Gio.File.new_for_uri(u) for u in uris])),
         Gdk.ContentProvider.new_for_bytes("text/plain;charset=utf-8", GLib.Bytes.new("\n".join(paths).encode())),
     ]
     cb = display.get_clipboard()
@@ -72,8 +73,9 @@ def _parse_uris(text: str) -> list[str]:
         if not line or line.startswith("#"):
             continue
         f = Gio.File.new_for_uri(line) if "://" in line else Gio.File.new_for_path(line)
-        if f.get_path():
-            out.append(f.get_path())
+        loc = f.get_path() or (f.get_uri() if "://" in line else None)
+        if loc:
+            out.append(loc)
     return out
 
 
@@ -103,7 +105,7 @@ def read(display: Gdk.Display, callback):
         def done3(c, res):
             try:
                 v = c.read_value_finish(res)
-                callback([f.get_path() for f in v.get_files() if f.get_path()], False)
+                callback([f.get_path() or f.get_uri() for f in v.get_files()], False)
             except GLib.Error:
                 callback([], False)
         cb.read_value_async(Gdk.FileList, GLib.PRIORITY_DEFAULT, None, done3)

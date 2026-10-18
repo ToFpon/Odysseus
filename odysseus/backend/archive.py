@@ -551,9 +551,9 @@ def resolve_destination(archive: str, o: ExtractOptions, listing: Optional[Archi
             except ToolError:
                 return os.path.join(dest, base)
         top = listing.top_level()
-        if len(top) == 1 and (top[0].is_dir or listing.kind == "stream"):
+        if len(top) == 1:      # un seul élément à la racine (dossier ou fichier) : pas de sous-dossier
             return dest
-        return os.path.join(dest, base)
+        return _unique_path(os.path.join(dest, base))
     return dest
 
 
@@ -593,10 +593,7 @@ def _unique_path(path: str) -> str:
     return f"{root}_{i}{ext}"
 
 
-def extract(job: Job, archive: str, o: ExtractOptions) -> str:
-    det = formats.detect(archive)
-    dest = resolve_destination(archive, o)
-    os.makedirs(dest, exist_ok=True)
+def _extract_into(job: Job, archive: str, det, o: ExtractOptions, dest: str):
     if det.kind == "tar-stream":
         _run_decompress_into(job, archive, det.stream, build_7z_extract(archive, dest, o, stdin_tar=True),
                              "Extraction ")
@@ -604,7 +601,7 @@ def extract(job: Job, archive: str, o: ExtractOptions) -> str:
         target = os.path.join(dest, det.inner_name or "contenu")
         if os.path.exists(target):
             if o.overwrite == "skip":
-                return dest
+                return
             if o.overwrite == "rename":
                 target = _unique_path(target)
             elif o.overwrite == "rename_existing":
@@ -619,6 +616,68 @@ def extract(job: Job, archive: str, o: ExtractOptions) -> str:
                 os.remove(part)
     else:
         job.run_tool(build_7z_extract(archive, dest, o), label=tr("Extraction"))
+
+
+def _remove(path: str):
+    if os.path.isdir(path) and not os.path.islink(path):
+        shutil.rmtree(path, ignore_errors=True)
+    else:
+        try:
+            os.remove(path)
+        except OSError:
+            pass
+
+
+def _extract_smart(job: Job, archive: str, det, o: ExtractOptions) -> str:
+    """« Dossier intelligent » en une seule passe, sans lister d'abord (pour un tar.bz2, lister
+    oblige à tout décompresser une première fois : long, sans progression, sans annulation).
+    Extraction dans un dossier temporaire caché à côté, puis rangement : un seul élément à la racine
+    va à côté de l'archive, plusieurs vont dans un dossier au nom de l'archive. Une annulation ou
+    une erreur ne laisse rien derrière elle."""
+    parent = o.dest or os.path.dirname(os.path.abspath(archive))
+    os.makedirs(parent, exist_ok=True)
+    tmp = tempfile.mkdtemp(prefix=".odysseus-extract-", dir=parent)
+    try:
+        _extract_into(job, archive, det, o, tmp)
+        job.check_cancel()
+        entries = os.listdir(tmp)
+        if len(entries) == 1:
+            src, final = os.path.join(tmp, entries[0]), os.path.join(parent, entries[0])
+            if os.path.lexists(final):
+                if o.overwrite == "skip":
+                    return parent
+                if o.overwrite == "overwrite" and not os.path.isdir(final):
+                    os.remove(final)
+                elif o.overwrite == "rename_existing":
+                    os.replace(final, _unique_path(final))
+                else:
+                    final = _unique_path(final)
+            os.rename(src, final)
+            return final if os.path.isdir(final) else parent
+        final = _unique_path(os.path.join(parent, det.base_name or "archive"))
+        os.rename(tmp, final)
+        tmp = ""
+        return final
+    finally:
+        if tmp and os.path.isdir(tmp):
+            shutil.rmtree(tmp, ignore_errors=True)
+
+
+def extract(job: Job, archive: str, o: ExtractOptions) -> str:
+    det = formats.detect(archive)
+    if o.subfolder == "smart" and not o.files:
+        dest = _extract_smart(job, archive, det, o)
+    else:
+        dest = resolve_destination(archive, o)
+        os.makedirs(dest, exist_ok=True)
+        before = set(os.listdir(dest))
+        try:
+            _extract_into(job, archive, det, o, dest)
+        except BaseException:
+            # annulation ou erreur : retirer ce que l'extraction avait commencé à créer
+            for name in set(os.listdir(dest)) - before:
+                _remove(os.path.join(dest, name))
+            raise
     if o.delete_after:
         for v in volume_set(archive):
             os.remove(v)
