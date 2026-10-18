@@ -143,11 +143,11 @@ def context_menu(win, pane, on_item: bool) -> Gio.Menu:
 
     s = Gio.Menu()
     default = _default_app(one) if one is not None and not one.is_dir else None
-    # comme Nautilus : « Ouvrir avec gThumb » puis « Ouvrir avec une autre application »
+    # comme Nautilus : « Ouvrir avec gThumb » puis « Ouvrir avec… »
     s.append(tr("Ouvrir avec {0}").format(default.get_display_name()) if default else tr("Ouvrir"),
              "win.open")
     if files and not dirs:
-        s.append(tr("Ouvrir avec une autre application"), "win.open-with")
+        s.append(tr("Ouvrir avec…"), "win.open-with")
     if dirs:
         s.append(tr("Ouvrir dans un nouvel onglet"), "win.open-tab")
         if features.enabled("dual_panel"):

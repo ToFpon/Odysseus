@@ -2325,7 +2325,7 @@ msgstr ""
 msgid "Ouvrir"
 msgstr ""
 
-#: odysseus/ui/dialogs.py:262
+#: odysseus/ui/dialogs.py:263
 msgid "Toujours utiliser pour ce type de fichiers"
 msgstr ""
 
@@ -2572,7 +2572,7 @@ msgid "Durée"
 msgstr ""
 
 #: odysseus/ui/menus.py:150
-msgid "Ouvrir avec une autre application"
+msgid "Ouvrir avec…"
 msgstr ""
 
 #: odysseus/ui/menus.py:152 odysseus/ui/sidebar.py:335

@@ -3675,8 +3675,8 @@ msgid_plural "Choisir une application pour ouvrir les {0} fichiers"
 msgstr[0] "Choose an app to open the file"
 msgstr[1] "Choose an app to open the {0} files"
 
-msgid "Ouvrir avec une autre application"
-msgstr "Open With Other Application"
-
 msgid "Ouvrir avec {0}"
 msgstr "Open With {0}"
+
+msgid "Ouvrir avec…"
+msgstr "Open With…"

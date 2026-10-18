@@ -166,3 +166,10 @@ levelbar.ratio-bar block.filled, levelbar.ratio-bar block.empty { border-radius:
 
 /* Fenêtre administrateur : bandeau aux couleurs d'avertissement du thème */
 banner.admin-banner > revealer > widget { background-color: @warning_bg_color; color: @warning_fg_color; }
+
+/* « Ouvrir avec… » : la liste (treeview de Gtk.AppChooserWidget) laisse voir le fond de la fenêtre,
+   comme dans Nautilus, et ses icônes ont la taille de celles de Nautilus */
+.odysseus-app-chooser,
+.odysseus-app-chooser scrolledwindow,
+.odysseus-app-chooser treeview.view:not(:selected) { background: transparent; }
+.odysseus-app-chooser treeview.view { -gtk-icon-size: 32px; }

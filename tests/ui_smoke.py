@@ -660,7 +660,7 @@ def application_par_defaut(win):
     m = context_menu(win, p, True)
     first = m.get_item_link(0, "section")
     labels = [first.get_item_attribute_value(i, "label").get_string() for i in range(first.get_n_items())]
-    check(labels[:2] == [tr("Ouvrir avec {0}").format("Visionneuse test"), tr("Ouvrir avec une autre application")],
+    check(labels[:2] == [tr("Ouvrir avec {0}").format("Visionneuse test"), tr("Ouvrir avec…")],
           f"menu comme Nautilus : {labels[:2]}")
 
 

@@ -257,7 +257,8 @@ class AppChooser(DialogWindow):
                                             show_fallback=True, show_other=True, vexpand=True)
         self.chooser.connect("application-selected", self._selected)
         self.chooser.connect("application-activated", lambda *_: self._open())
-        box.append(Gtk.Frame(child=self.chooser, vexpand=True))
+        # liste sans fond propre (comme Nautilus) : celui de la fenêtre, donc du thème, transparaît
+        box.append(Gtk.Frame(child=self.chooser, vexpand=True, css_classes=["odysseus-app-chooser"]))
         tv.set_content(box)
         self.default_row = Adw.SwitchRow(title=tr("Toujours utiliser pour ce type de fichiers"),
                                          subtitle=Gio.content_type_get_description(ctype), sensitive=False)
