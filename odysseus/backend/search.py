@@ -199,7 +199,7 @@ def apply_replace(q: Query, targets: dict, replacement: str, backup: bool = True
                 if backups is not None:
                     backups.append(bak)
             st = os.stat(path)
-            tmp = path + ".odysseus-tmp"
+            tmp = os.path.join(os.path.dirname(path), f".odysseus-remplacer-{os.getpid()}")
             with open(tmp, "w", encoding="utf-8", newline="") as fh:
                 fh.write("\n".join(parts))
             os.chmod(tmp, st.st_mode & 0o7777)

@@ -251,6 +251,11 @@ class FileActions:
             if not paths:
                 toast(self, tr("Rien à coller"))
                 return
+            if cut and "://" not in dest and all(os.path.dirname(os.path.abspath(p)) == os.path.abspath(dest)
+                                                 for p in paths):
+                # couper puis coller au même endroit : rien ne bouge, le presse-papiers est gardé
+                toast(self, tr("Les éléments sont déjà dans ce dossier"))
+                return
             if "://" in dest or any("://" in p for p in paths):
                 # admin://… : copie par GIO (jamais d'écrasement, « (copie) » en cas de doublon)
                 n = len(paths)
@@ -623,8 +628,23 @@ class FileActions:
     def _trash_paths(self, paths: list[str]):
         def undo(res):
             return ("trash", list(res.trashed)) if res.trashed else None
+
+        def done(job):
+            # pas de corbeille sur ce support : comme Nautilus, proposer la suppression définitive
+            left = getattr(job.result, "no_trash", None) if job.state == "done" else None
+            if not left:
+                return
+            alert(self, ntr("Impossible de déplacer le fichier vers la corbeille, voulez-vous le supprimer "
+                            "immédiatement ?",
+                            "Impossible de déplacer les fichiers vers la corbeille, voulez-vous les supprimer "
+                            "immédiatement ?", len(left)),
+                  describe_paths(left) + "\n" + tr("Ce support n'a pas de corbeille."),
+                  responses=(("cancel", tr("Annuler")), ("delete", tr("Supprimer"))), destructive="delete",
+                  default="cancel",
+                  callback=lambda r: r == "delete" and self._run(tr("Suppression définitive"),
+                                                                 lambda j: fileops.delete(j, left)))
         self._run(ntr("Mise à la corbeille de {0} élément", "Mise à la corbeille de {0} éléments",
-                      len(paths)).format(len(paths)), lambda j: fileops.trash(j, paths), undo=undo)
+                      len(paths)).format(len(paths)), lambda j: fileops.trash(j, paths), undo=undo, on_done=done)
 
     def delete(self):
         p = self.pane
@@ -698,6 +718,10 @@ class FileActions:
                     for p in self.all_panes():
                         if p.mode == "trash":
                             p.refresh()
+                    # ce qui passait par la corbeille ne peut plus être annulé / rétabli
+                    self.undo_stack[:] = [e for e in self.undo_stack if e[0] != "trash"]
+                    self.redo_stack[:] = [e for e in self.redo_stack if e[0] not in ("copy", "create")]
+                    self._update_undo_actions()
                     toast(self, tr("Corbeille vidée"))
                 self._run(tr("Vidage de la corbeille"), fileops.empty_trash, on_done=done)
         alert(self, tr("Vider tous les éléments de la corbeille ?"),

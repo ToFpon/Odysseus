@@ -139,7 +139,7 @@ class CreateDialog:
         self.vol_row = combo_row(tr("Découper en volumes"), [tr("Ne pas découper")] +
                                  [l for l, _ in tools.PRESET_VOLUMES[1:]] + [tr("Taille personnalisée…")])
         self.vol_custom = Adw.EntryRow(title=tr("Taille d'un volume (ex. 250m, 1,5g)"), visible=False)
-        self.sfx_row = Adw.SwitchRow(title="Auto-extractible",
+        self.sfx_row = Adw.SwitchRow(title=tr("Auto-extractible"),
                                      subtitle=tr("Exécutable Linux qui s'extrait seul"))
         self.sfx_row.set_sensitive(bool(sfx_module()))
         self.del_row = Adw.SwitchRow(title=tr("Supprimer les originaux après compression"))

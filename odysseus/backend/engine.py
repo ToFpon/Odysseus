@@ -191,6 +191,13 @@ class Job:
             if e.output:
                 self.log.append(e.output)
             self.status = tr("Échec : ") + self.error
+        except OSError as e:
+            # « Permission non accordée : dossier », pas « PermissionError: [Errno 13]… »
+            self.state = "failed"
+            what = os.path.basename(str(e.filename).rstrip("/")) if e.filename else ""
+            self.error = (os.strerror(e.errno) if e.errno else str(e)) + (f" : {what}" if what else "")
+            self.log.append(f"{type(e).__name__}: {e}")
+            self.status = tr("Échec : ") + self.error
         except Exception as e:  # erreur inattendue
             self.state = "failed"
             self.error = f"{type(e).__name__}: {e}"
@@ -256,11 +263,16 @@ def raise_for_7z(text: str, code: int):
     if "wrong password" in low or "can not open encrypted" in low or \
             "cannot open encrypted" in low or "data error in encrypted" in low:
         raise PasswordRequired(tr("Mot de passe manquant ou incorrect"), text, code)
-    lines = [l for l in text.splitlines() if l.strip()]
-    errors = [l for l in lines if "error" in l.lower() or "erreur" in l.lower()]
-    msg = (errors[-1] if errors else (lines[-1] if lines else tr("code {0}").format(code))).strip()
-    msg = re.sub(r"^ERROR:\s*", "", msg)
-    raise ToolError(msg, text, code)
+    lines = [l.strip() for l in text.splitlines() if l.strip()]
+    # les récapitulatifs (« Sub items Errors: 1 », « Archives with Errors: 1 », « ERRORS: ») ne disent
+    # rien : on garde la première vraie ligne d'erreur
+    summary = re.compile(r"^((sub items |archives with )?errors?:?\s*\d*|warnings?:?\s*\d*)$", re.I)
+    real = [re.sub(r"^.*?ERROR:\s*", "", l) for l in lines if "ERROR:" in l]
+    others = [l for l in lines if ("error" in l.lower() or "erreur" in l.lower()) and not summary.match(l)]
+    plain = [l for l in lines if not summary.match(l)]
+    msg = (real[0] if real else others[0] if others else plain[-1] if plain else
+           (lines[-1] if lines else tr("code {0}").format(code)))
+    raise ToolError(msg.strip(), text, code)
 
 
 def run_capture(argv: list[str], timeout: Optional[float] = None, input_bytes=None) -> subprocess.CompletedProcess:

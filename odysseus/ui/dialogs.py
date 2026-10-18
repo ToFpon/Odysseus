@@ -173,26 +173,26 @@ class PreferencesDialog(Adw.PreferencesWindow):
 
 SHORTCUTS = [
     (tr("Navigation"), [
-        ("Ctrl+L", tr("Saisir un emplacement")), ("Alt+← / Retour arrière", tr("Précédent")),
-        ("Alt+→", tr("Suivant")), (tr("Boutons latéraux de la souris"), tr("Précédent / suivant")),
-        ("Alt+↑", tr("Dossier parent")), ("Alt+Origine", tr("Dossier personnel")),
-        ("F5 / Ctrl+R", tr("Actualiser")), ("Ctrl+F", tr("Rechercher")), ("Ctrl+H", tr("Fichiers cachés")),
-        ("Ctrl+T / Ctrl+W", tr("Ouvrir / fermer un onglet")), ("Ctrl+N", tr("Nouvelle fenêtre")),
-        ("Ctrl+D", tr("Ajouter aux signets")), ("Ctrl+F9", tr("Barre latérale"))]),
+        (tr("Ctrl+L"), tr("Saisir un emplacement")), (tr("Alt+← / Retour arrière"), tr("Précédent")),
+        (tr("Alt+→"), tr("Suivant")), (tr("Boutons latéraux de la souris"), tr("Précédent / suivant")),
+        (tr("Alt+↑"), tr("Dossier parent")), (tr("Alt+Origine"), tr("Dossier personnel")),
+        (tr("F5 / Ctrl+R"), tr("Actualiser")), (tr("Ctrl+F"), tr("Rechercher")), (tr("Ctrl+H"), tr("Fichiers cachés")),
+        (tr("Ctrl+T / Ctrl+W"), tr("Ouvrir / fermer un onglet")), (tr("Ctrl+N"), tr("Nouvelle fenêtre")),
+        (tr("Ctrl+D"), tr("Ajouter aux signets")), (tr("Ctrl+F9"), tr("Barre latérale"))]),
     (tr("Affichage"), [
-        ("Ctrl+1 / Ctrl+2 / Ctrl+3", tr("Liste / grille / colonnes")), ("Ctrl++ / Ctrl+− / Ctrl+0", tr("Taille des icônes")),
-        ("F3", tr("Double panneau")), ("Ctrl+Tab", tr("Changer de panneau (ou d'onglet)")), ("F4", tr("Panneau d'aperçu")),
-        ("F9", tr("Basculer la vue en colonnes"))]),
+        (tr("Ctrl+1 / Ctrl+2 / Ctrl+3"), tr("Liste / grille / colonnes")), (tr("Ctrl++ / Ctrl+− / Ctrl+0"), tr("Taille des icônes")),
+        (tr("F3"), tr("Double panneau")), (tr("Ctrl+Tab"), tr("Changer de panneau (ou d'onglet)")), (tr("F4"), tr("Panneau d'aperçu")),
+        (tr("F9"), tr("Basculer la vue en colonnes"))]),
     (tr("Fichiers"), [
-        ("Ctrl+C / Ctrl+X / Ctrl+V", tr("Copier / couper / coller")), ("F2", tr("Renommer")),
-        ("Suppr", tr("Mettre à la corbeille")), ("Maj+Suppr", tr("Supprimer définitivement")),
-        ("Ctrl+Maj+N", tr("Nouveau dossier")), ("Ctrl+I", tr("Propriétés")), ("Ctrl+M", tr("Créer un lien")),
-        ("Ctrl+Z", tr("Annuler")), ("Ctrl+A", tr("Tout sélectionner")), ("Ctrl+Maj+I", tr("Inverser la sélection")),
-        ("F6 / Maj+F6", tr("Copier / déplacer vers l'autre panneau")), ("Ctrl+Maj+C", tr("Copier le chemin")),
-        ("Ctrl+Alt+T", tr("Terminal ici"))]),
+        (tr("Ctrl+C / Ctrl+X / Ctrl+V"), tr("Copier / couper / coller")), (tr("F2"), tr("Renommer")),
+        (tr("Suppr"), tr("Mettre à la corbeille")), (tr("Maj+Suppr"), tr("Supprimer définitivement")),
+        (tr("Ctrl+Maj+N"), tr("Nouveau dossier")), (tr("Ctrl+I"), tr("Propriétés")), (tr("Ctrl+M"), tr("Créer un lien")),
+        (tr("Ctrl+Z"), tr("Annuler")), (tr("Ctrl+A"), tr("Tout sélectionner")), (tr("Ctrl+Maj+I"), tr("Inverser la sélection")),
+        (tr("F6 / Maj+F6"), tr("Copier / déplacer vers l'autre panneau")), (tr("Ctrl+Maj+C"), tr("Copier le chemin")),
+        (tr("Ctrl+Alt+T"), tr("Terminal ici"))]),
     (tr("Outils"), [
-        ("F7", tr("Parcourir l'archive sélectionnée")), ("Ctrl+E", tr("Extraire vers…")),
-        ("Ctrl+Maj+E", tr("Extraire ici")), ("F8", tr("Rechercher dans le contenu des fichiers"))]),
+        (tr("F7"), tr("Parcourir l'archive sélectionnée")), (tr("Ctrl+E"), tr("Extraire vers…")),
+        (tr("Ctrl+Maj+E"), tr("Extraire ici")), (tr("F8"), tr("Rechercher dans le contenu des fichiers"))]),
 ]
 
 

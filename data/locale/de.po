@@ -3705,3 +3705,128 @@ msgstr "Unlesbares PDF"
 
 msgid "« {0} » n'est pas un PDF valide ou il est endommagé."
 msgstr "»{0}« ist kein gültiges PDF oder beschädigt."
+
+msgid "Alt+Origine"
+msgstr "Alt+Pos1"
+
+msgid "Alt+← / Retour arrière"
+msgstr "Alt+← / Rücktaste"
+
+msgid "Alt+↑"
+msgstr "Alt+↑"
+
+msgid "Alt+→"
+msgstr "Alt+→"
+
+msgid "Ctrl++ / Ctrl+− / Ctrl+0"
+msgstr "Strg++ / Strg+− / Strg+0"
+
+msgid "Ctrl+1 / Ctrl+2 / Ctrl+3"
+msgstr "Strg+1 / Strg+2 / Strg+3"
+
+msgid "Ctrl+A"
+msgstr "Strg+A"
+
+msgid "Ctrl+Alt+T"
+msgstr "Strg+Alt+T"
+
+msgid "Ctrl+C / Ctrl+X / Ctrl+V"
+msgstr "Strg+C / Strg+X / Strg+V"
+
+msgid "Ctrl+D"
+msgstr "Strg+D"
+
+msgid "Ctrl+E"
+msgstr "Strg+E"
+
+msgid "Ctrl+F"
+msgstr "Strg+F"
+
+msgid "Ctrl+F9"
+msgstr "Strg+F9"
+
+msgid "Ctrl+H"
+msgstr "Strg+H"
+
+msgid "Ctrl+I"
+msgstr "Strg+I"
+
+msgid "Ctrl+L"
+msgstr "Strg+L"
+
+msgid "Ctrl+M"
+msgstr "Strg+M"
+
+msgid "Ctrl+Maj+C"
+msgstr "Strg+Umschalt+C"
+
+msgid "Ctrl+Maj+E"
+msgstr "Strg+Umschalt+E"
+
+msgid "Ctrl+Maj+I"
+msgstr "Strg+Umschalt+I"
+
+msgid "Ctrl+Maj+N"
+msgstr "Strg+Umschalt+N"
+
+msgid "Ctrl+N"
+msgstr "Strg+N"
+
+msgid "Ctrl+T / Ctrl+W"
+msgstr "Strg+T / Strg+W"
+
+msgid "Ctrl+Tab"
+msgstr "Strg+Tab"
+
+msgid "Ctrl+Z"
+msgstr "Strg+Z"
+
+msgid "F2"
+msgstr "F2"
+
+msgid "F3"
+msgstr "F3"
+
+msgid "F4"
+msgstr "F4"
+
+msgid "F5 / Ctrl+R"
+msgstr "F5 / Strg+R"
+
+msgid "F6 / Maj+F6"
+msgstr "F6 / Umschalt+F6"
+
+msgid "F7"
+msgstr "F7"
+
+msgid "F8"
+msgstr "F8"
+
+msgid "F9"
+msgstr "F9"
+
+msgid "Maj+Suppr"
+msgstr "Umschalt+Entf"
+
+msgid "Suppr"
+msgstr "Entf"
+
+msgid "Auto-extractible"
+msgstr "Selbstentpackend"
+
+msgid "Impossible de déplacer le fichier vers la corbeille, voulez-vous le supprimer immédiatement ?"
+msgid_plural "Impossible de déplacer les fichiers vers la corbeille, voulez-vous les supprimer immédiatement ?"
+msgstr[0] "Datei kann nicht in den Papierkorb verschoben werden. Soll sie sofort gelöscht werden?"
+msgstr[1] "Dateien können nicht in den Papierkorb verschoben werden. Sollen sie sofort gelöscht werden?"
+
+msgid "Ce support n'a pas de corbeille."
+msgstr "Dieser Datenträger hat keinen Papierkorb."
+
+msgid "« {0} » n'est pas un numéro de page"
+msgstr "»{0}« ist keine Seitenzahl"
+
+msgid "Les éléments sont déjà dans ce dossier"
+msgstr "Die Objekte sind bereits in diesem Ordner"
+
+msgid "Pages invalides"
+msgstr "Ungültige Seiten"

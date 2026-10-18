@@ -12,6 +12,7 @@ from __future__ import annotations
 import ctypes
 import errno
 import os
+import secrets
 import shutil
 import stat as st
 import time
@@ -53,6 +54,7 @@ class Result:
     # ce qu'il contenait déjà.
     new_items: list = field(default_factory=list)    # chemins créés (racines des créations)
     new_moves: list = field(default_factory=list)    # (ancien, nouveau) des éléments déplacés
+    no_trash: list = field(default_factory=list)     # corbeille impossible sur ce support
 
 
 # ---------------------------------------------------------------------------
@@ -360,7 +362,7 @@ class _Copier:
     def _replace(self, src: str, dst: str) -> Optional[str]:
         """Remplacer sans risque : copie complète sous un nom temporaire, puis échange. Si la copie
         échoue ou est annulée, l'élément existant reste intact."""
-        tmp = os.path.join(os.path.dirname(dst), f".{os.path.basename(dst)}.odysseus-{os.getpid()}")
+        tmp = _tmp_name(os.path.dirname(dst), "copie")
         before = len(self.errors)
         roots_before = len(self.roots)
         self.sync = True
@@ -387,6 +389,15 @@ class _Copier:
                 _remove(tmp)
             return None
         return dst
+
+
+def _tmp_name(folder: str, tag: str) -> str:
+    """Nom temporaire court et unique dans folder. Il reprenait le nom du fichier : avec un nom
+    de 250 octets, il dépassait la limite de 255 (ENAMETOOLONG)."""
+    while True:
+        p = os.path.join(folder, f".odysseus-{tag}-{os.getpid()}-{secrets.token_hex(4)}")
+        if not os.path.lexists(p):
+            return p
 
 
 def _fsync_dir(folder: str):
@@ -442,7 +453,7 @@ def _swap_into(new: str, dst: str):
     if _exchange(new, dst):
         _remove(new)
         return
-    aside = os.path.join(os.path.dirname(dst), f".{os.path.basename(dst)}.odysseus-ancien-{os.getpid()}")
+    aside = _tmp_name(os.path.dirname(dst), "ancien")
     os.rename(dst, aside)
     try:
         os.rename(new, dst)
@@ -613,8 +624,12 @@ def trash(job: Job, paths: list[str]) -> Result:
             Gio.File.new_for_path(p).trash(None)
             res.trashed.append(p)
         except GLib.Error as e:
-            res.errors.append((p, e.message))
-    _raise_partial(res)
+            if e.matches(Gio.io_error_quark(), Gio.IOErrorEnum.NOT_SUPPORTED):
+                res.no_trash.append(p)      # tmpfs, montage système… : l'interface propose de supprimer
+            else:
+                res.errors.append((p, e.message))
+    if not res.no_trash:
+        _raise_partial(res)
     return res
 
 
@@ -773,7 +788,7 @@ def rename(path: str, new_name: str) -> str:
         raise ToolError(tr("« {0} » existe déjà").format(new_name))
     if new_name.casefold() == old.casefold():
         # seule la casse change : en deux temps (sur FAT, NTFS… c'est le même nom pour le système)
-        tmp = os.path.join(folder, f".{new_name}.odysseus-{os.getpid()}")
+        tmp = _tmp_name(folder, "casse")
         os.rename(path, tmp)
         os.rename(tmp, target)
         return target

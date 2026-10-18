@@ -19,7 +19,7 @@ from typing import Optional
 import gi
 
 gi.require_version("GdkPixbuf", "2.0")
-from gi.repository import GdkPixbuf  # noqa: E402
+from gi.repository import GdkPixbuf, GLib  # noqa: E402
 
 CACHE = os.path.join(os.environ.get("XDG_CACHE_HOME") or os.path.expanduser("~/.cache"), "thumbnails")
 SIZES = {"normal": 128, "large": 256, "x-large": 512}
@@ -32,7 +32,12 @@ PDF_TYPES = ("application/pdf",)
 
 
 def uri_for(path: str) -> str:
-    return "file://" + urllib.parse.quote(os.path.abspath(path))
+    """URI comme g_file_get_uri (spécification des miniatures) : urllib.parse.quote échappait aussi
+    ( ) & , ! + = @ $ ' — md5 différent, miniatures non partagées avec Nautilus pour ces noms."""
+    try:
+        return GLib.filename_to_uri(os.path.abspath(path), None)
+    except (GLib.Error, TypeError, UnicodeError):
+        return "file://" + urllib.parse.quote(os.path.abspath(path), safe="/!$&'()*+,;=:@~")
 
 
 def _md5(path: str) -> str:

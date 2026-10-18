@@ -118,7 +118,10 @@ def parse_ranges(text: str, n: int) -> list[int]:
             return n
         if s.startswith("r") and s[1:].isdigit():      # r1 = dernière page (syntaxe qpdf)
             return n - int(s[1:]) + 1
-        v = int(s)
+        try:
+            v = int(s)
+        except ValueError:
+            raise ValueError(tr("« {0} » n'est pas un numéro de page").format(s)) from None
         if v < 1 or v > n:
             raise ValueError(tr("Page {0} hors du document ({1} pages)").format(v, n))
         return v

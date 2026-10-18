@@ -3705,3 +3705,128 @@ msgstr "Unreadable PDF"
 
 msgid "« {0} » n'est pas un PDF valide ou il est endommagé."
 msgstr "“{0}” is not a valid PDF or it is damaged."
+
+msgid "Alt+Origine"
+msgstr "Alt+Home"
+
+msgid "Alt+← / Retour arrière"
+msgstr "Alt+← / Backspace"
+
+msgid "Alt+↑"
+msgstr "Alt+↑"
+
+msgid "Alt+→"
+msgstr "Alt+→"
+
+msgid "Ctrl++ / Ctrl+− / Ctrl+0"
+msgstr "Ctrl++ / Ctrl+− / Ctrl+0"
+
+msgid "Ctrl+1 / Ctrl+2 / Ctrl+3"
+msgstr "Ctrl+1 / Ctrl+2 / Ctrl+3"
+
+msgid "Ctrl+A"
+msgstr "Ctrl+A"
+
+msgid "Ctrl+Alt+T"
+msgstr "Ctrl+Alt+T"
+
+msgid "Ctrl+C / Ctrl+X / Ctrl+V"
+msgstr "Ctrl+C / Ctrl+X / Ctrl+V"
+
+msgid "Ctrl+D"
+msgstr "Ctrl+D"
+
+msgid "Ctrl+E"
+msgstr "Ctrl+E"
+
+msgid "Ctrl+F"
+msgstr "Ctrl+F"
+
+msgid "Ctrl+F9"
+msgstr "Ctrl+F9"
+
+msgid "Ctrl+H"
+msgstr "Ctrl+H"
+
+msgid "Ctrl+I"
+msgstr "Ctrl+I"
+
+msgid "Ctrl+L"
+msgstr "Ctrl+L"
+
+msgid "Ctrl+M"
+msgstr "Ctrl+M"
+
+msgid "Ctrl+Maj+C"
+msgstr "Ctrl+Shift+C"
+
+msgid "Ctrl+Maj+E"
+msgstr "Ctrl+Shift+E"
+
+msgid "Ctrl+Maj+I"
+msgstr "Ctrl+Shift+I"
+
+msgid "Ctrl+Maj+N"
+msgstr "Ctrl+Shift+N"
+
+msgid "Ctrl+N"
+msgstr "Ctrl+N"
+
+msgid "Ctrl+T / Ctrl+W"
+msgstr "Ctrl+T / Ctrl+W"
+
+msgid "Ctrl+Tab"
+msgstr "Ctrl+Tab"
+
+msgid "Ctrl+Z"
+msgstr "Ctrl+Z"
+
+msgid "F2"
+msgstr "F2"
+
+msgid "F3"
+msgstr "F3"
+
+msgid "F4"
+msgstr "F4"
+
+msgid "F5 / Ctrl+R"
+msgstr "F5 / Ctrl+R"
+
+msgid "F6 / Maj+F6"
+msgstr "F6 / Shift+F6"
+
+msgid "F7"
+msgstr "F7"
+
+msgid "F8"
+msgstr "F8"
+
+msgid "F9"
+msgstr "F9"
+
+msgid "Maj+Suppr"
+msgstr "Shift+Delete"
+
+msgid "Suppr"
+msgstr "Delete"
+
+msgid "Auto-extractible"
+msgstr "Self-extracting"
+
+msgid "Impossible de déplacer le fichier vers la corbeille, voulez-vous le supprimer immédiatement ?"
+msgid_plural "Impossible de déplacer les fichiers vers la corbeille, voulez-vous les supprimer immédiatement ?"
+msgstr[0] "Cannot move file to trash, do you want to delete immediately?"
+msgstr[1] "Cannot move files to trash, do you want to delete them immediately?"
+
+msgid "Ce support n'a pas de corbeille."
+msgstr "This drive has no trash."
+
+msgid "« {0} » n'est pas un numéro de page"
+msgstr "“{0}” is not a page number"
+
+msgid "Les éléments sont déjà dans ce dossier"
+msgstr "The items are already in this folder"
+
+msgid "Pages invalides"
+msgstr "Invalid pages"

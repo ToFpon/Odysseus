@@ -422,6 +422,14 @@ class WatermarkDialog:
 
     def _go(self, *_):
         o = self.options()
+        if o.pages.strip():
+            # pages vérifiées tout de suite (« page 9 » sur un PDF de 2 pages échouait pendant le travail)
+            for p in self.paths:
+                try:
+                    pdf.parse_ranges(o.pages, pdf.page_count(p))
+                except ValueError as e:
+                    alert(self.dialog, tr("Pages invalides"), f"{os.path.basename(p)} : {e}")
+                    return
         if len(self.paths) == 1:
             items = [(self.paths[0], self.out.get_text().strip())]
         else:
