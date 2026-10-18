@@ -59,7 +59,8 @@ class FileActions:
             "copy-path": self.copy_path, "copy-location": self.copy_location, "bookmark": self.bookmark_toggle,
             "properties": self.properties, "properties-folder": self.properties_folder,
             "terminal": self.terminal_here, "terminal-selected": self.terminal_selected,
-            "edit-text": self.edit_text, "undo": self.undo,
+            "edit-text": self.edit_text, "undo": self.undo, "redo": self.redo,
+            "open-admin": self.open_admin, "open-admin-folder": self.open_admin_folder,
             "folder-restore": self.folder_restore, "browse-archive": self.browse_archive,
         }
         for name, cb in acts.items():
@@ -76,7 +77,7 @@ class FileActions:
             "win.rename": ["F2"], "win.trash": ["Delete", "KP_Delete"], "win.delete": ["<Shift>Delete"],
             "win.new-folder": ["<Ctrl><Shift>n"], "win.properties": ["<Ctrl>i", "<Alt>Return"],
             "win.copy-path": ["<Ctrl><Shift>c"], "win.bookmark": ["<Ctrl>d"], "win.make-link": ["<Ctrl>m"],
-            "win.open-tab": ["<Ctrl>Return"], "win.undo": ["<Ctrl>z"],
+            "win.open-tab": ["<Ctrl>Return"], "win.undo": ["<Ctrl>z"], "win.redo": ["<Ctrl><Shift>z"],
             "win.copy-to-other": ["F6"], "win.move-to-other": ["<Shift>F6"],
             "win.terminal": ["<Ctrl><Alt>t"],
         }
@@ -308,8 +309,7 @@ class FileActions:
                 if undo is not None and isinstance(res, fileops.Result):
                     entry = undo(res)
                     if entry:
-                        self.undo_stack.append(entry)
-                        del self.undo_stack[:-30]
+                        self._push_undo(entry)
                 if isinstance(res, fileops.Result):
                     msg = fileops.describe_result(res)
                     if res.errors:
@@ -436,7 +436,7 @@ class FileActions:
             except (OSError, Exception) as e:  # noqa: BLE001
                 alert(self, tr("Renommage impossible"), getattr(e, "strerror", None) or str(e))
                 return
-            self.undo_stack.append(("rename", rec.path, target))
+            self._push_undo(("rename", rec.path, target))
             p.model.connect_once_ready(lambda: p.select_names([new])) if p.model.loading else \
                 GLib.timeout_add(300, lambda: (p.select_names([new]), False)[1])
         self.ask_name(tr("Renommer"), rec.name, tr("Renommer"), apply, folder, select_stem=not rec.is_dir,
@@ -457,7 +457,7 @@ class FileActions:
             except Exception as e:  # noqa: BLE001
                 alert(self, tr("Création impossible"), getattr(e, "strerror", None) or str(e))
                 return
-            self.undo_stack.append(("create", [path]))
+            self._push_undo(("create", [path]))
             GLib.timeout_add(300, lambda: (p.select_names([name]), False)[1])
         self.ask_name(tr("Nouveau dossier"), fileops.unique_name(folder, tr("Nouveau dossier"), True),
                       tr("Créer"), make, folder, select_stem=False)
@@ -476,7 +476,7 @@ class FileActions:
             except Exception as e:  # noqa: BLE001
                 alert(self, tr("Création impossible"), getattr(e, "strerror", None) or str(e))
                 return
-            self.undo_stack.append(("create", [path]))
+            self._push_undo(("create", [path]))
             GLib.timeout_add(300, lambda: (p.select_names([name]), False)[1])
         self.ask_name(tr("Nouveau document"), initial, tr("Créer"), make, folder)
 
@@ -596,11 +596,140 @@ class FileActions:
     # ------------------------------------------------------------------
     # Annuler
     # ------------------------------------------------------------------
+    # ------------------------------------------------------------------
+    # Ouvrir en tant qu'administrateur (admin:// de GVfs, comme Nautilus)
+    # ------------------------------------------------------------------
+    def is_admin(self) -> bool:
+        p = self.pane
+        return bool(p and p.location.startswith("admin:"))
+
+    def open_admin(self):
+        sel = [r for r in self._sel() if r.path]
+        if len(sel) == 1:
+            r = sel[0]
+            if r.is_dir:
+                self._admin_window(r.path)
+            else:
+                self._admin_file(r)
+
+    def open_admin_folder(self):
+        d = self.pane.current_dir() if self.pane else ""
+        if d:
+            self._admin_window(d)
+
+    def _admin_window(self, path: str):
+        """Dossier : nouvelle fenêtre sur admin://, bandeau d'avertissement ; le mot de passe est
+        demandé par polkit au montage."""
+        if not features.available("admin"):
+            return
+        self.get_application()._new_window("admin://" + path)
+
+    def _admin_file(self, rec):
+        """Fichier : l'application par défaut l'ouvre par admin:// (ou par le chemin FUSE de GVfs si
+        elle ne gère pas les URI) ; l'enregistrement se fait alors avec les droits root."""
+        f = Gio.File.new_for_uri("admin://" + rec.path)
+        app = Gio.AppInfo.get_default_for_type(rec.content_type, False)
+        if app is None:
+            alert(self, tr("Aucune application"), tr("Aucune application n'ouvre ce type de fichier."))
+            return
+
+        def launch():
+            try:
+                if app.supports_uris():
+                    app.launch_uris([f.get_uri()], None)
+                elif f.get_path():
+                    app.launch([Gio.File.new_for_path(f.get_path())], None)
+                else:
+                    raise GLib.Error(tr("Cette application ne sait pas ouvrir les fichiers administrateur."))
+            except GLib.Error as e:
+                alert(self, tr("Ouverture impossible"), e.message)
+
+        def mounted(src, res):
+            try:
+                src.mount_enclosing_volume_finish(res)
+            except GLib.Error as e:
+                if not e.matches(Gio.io_error_quark(), Gio.IOErrorEnum.ALREADY_MOUNTED):
+                    alert(self, tr("Accès administrateur refusé"), e.message)
+                    return
+            launch()
+        f.mount_enclosing_volume(Gio.MountMountFlags.NONE, Gtk.MountOperation.new(self), None, mounted)
+
+    def _push_undo(self, entry, keep_redo: bool = False):
+        self.undo_stack.append(entry)
+        del self.undo_stack[:-30]
+        if not keep_redo:
+            self.redo_stack.clear()
+        self._update_undo_actions()
+
+    def _update_undo_actions(self):
+        for name, stack in (("undo", self.undo_stack), ("redo", self.redo_stack)):
+            a = self.lookup_action(name)
+            if a is not None:
+                a.set_enabled(bool(stack))
+
+    @staticmethod
+    def undo_label(entry, redo: bool = False) -> str:
+        """Libellé du menu, comme Nautilus : « Annuler la mise à la corbeille »…"""
+        kind = entry[0] if entry else ""
+        if redo:
+            return {"rename": tr("Rétablir le renommage"), "move": tr("Rétablir le déplacement"),
+                    "trash": tr("Rétablir la mise à la corbeille"), "copy": tr("Rétablir la copie"),
+                    "create": tr("Rétablir la création")}.get(kind, tr("Rétablir"))
+        return {"rename": tr("Annuler le renommage"), "move": tr("Annuler le déplacement"),
+                "trash": tr("Annuler la mise à la corbeille"), "copy": tr("Annuler la copie"),
+                "create": tr("Annuler la création")}.get(kind, tr("Annuler la dernière opération"))
+
+    def redo(self):
+        """Refait la dernière opération annulée."""
+        if not self.redo_stack:
+            return
+        entry = self.redo_stack.pop()
+        self._update_undo_actions()
+        kind = entry[0]
+        if kind == "rename":
+            _k, old, new = entry
+            try:
+                os.rename(old, new)
+                self._push_undo(entry, keep_redo=True)
+            except OSError as e:
+                alert(self, tr("Rétablissement impossible"), e.strerror or str(e))
+        elif kind == "move":
+            pairs = entry[1]
+
+            def work(j):
+                res = fileops.Result("move")
+                for src, dst in pairs:
+                    j.check_cancel()
+                    try:
+                        if os.path.lexists(dst):
+                            raise OSError(17, tr("« {0} » existe déjà").format(os.path.basename(dst)))
+                        shutil.move(src, dst)
+                        res.created.append(dst)
+                    except OSError as e:
+                        res.errors.append((src, e.strerror or str(e)))
+                return res
+            self._run(tr("Déplacement"), work, on_done=lambda j: self._push_undo(entry, keep_redo=True))
+        elif kind == "trash":
+            originals = [p for p in entry[1] if os.path.lexists(p)]
+
+            def done(j):
+                res = j.result
+                if isinstance(res, fileops.Result) and res.trashed:
+                    self._push_undo(("trash", list(res.trashed)), keep_redo=True)
+            self._run(tr("Mise à la corbeille"), lambda j: fileops.trash(j, originals), on_done=done)
+        elif kind in ("copy", "create"):
+            # l'annulation les avait mis à la corbeille : on les en sort
+            self._run(tr("Restauration depuis la corbeille"),
+                      lambda j: fileops.restore_trashed_paths(j, entry[1]),
+                      on_done=lambda j: self._push_undo(entry, keep_redo=True))
+
     def undo(self):
         if not self.undo_stack:
             toast(self, tr("Rien à annuler"))
             return
         entry = self.undo_stack.pop()
+        self.redo_stack.append(entry)
+        self._update_undo_actions()
         kind = entry[0]
         if kind == "rename":
             _k, old, new = entry

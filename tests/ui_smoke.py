@@ -274,6 +274,26 @@ def copie(win):
 
 
 @step
+def annuler_retablir(win):
+    p = win.pane
+    src, dst = os.path.join(D, "fichier 7.txt"), os.path.join(D, "dossier B", "fichier 7.txt")
+    win.run_transfer([src], os.path.join(D, "dossier B"), move=True)
+    yield wait_jobs()
+    check(os.path.exists(dst), "déplacement à annuler")
+    check(win.lookup_action("undo").get_enabled() and win.undo_label(win.undo_stack[-1]) ==
+          tr("Annuler le déplacement"), "menu : « Annuler le déplacement »")
+    win.undo()
+    yield wait_jobs()
+    check(os.path.exists(src) and win.lookup_action("redo").get_enabled(), "annulation, Rétablir disponible")
+    win.redo()
+    yield wait_jobs()
+    check(os.path.exists(dst) and not os.path.exists(src), "rétablir refait le déplacement")
+    win.undo()
+    yield wait_jobs()
+    check(os.path.exists(src), "nouvelle annulation après rétablissement")
+
+
+@step
 def conflits(win):
     answers = iter([("skip", False), ("rename", False), ("replace", True)])
     win._conflict_dialog = lambda c, reply: reply(*next(answers))

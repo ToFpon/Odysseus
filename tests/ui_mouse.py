@@ -21,7 +21,7 @@ os.environ["XDG_CONFIG_HOME"] = os.path.join(TMP, "home", ".config")
 os.environ["XDG_CACHE_HOME"] = os.path.join(TMP, "home", ".cache")
 os.makedirs(os.environ["HOME"])
 D = os.path.join(TMP, "data")
-for d in ("un", "deux", "vide"):
+for d in ("un", "deux", "vide", os.path.join("un", "cible"), "dst"):
     os.makedirs(os.path.join(D, d))
 for i in range(6):
     open(os.path.join(D, "un", f"f{i}"), "w").close()
@@ -47,7 +47,10 @@ import gi  # noqa: E402
 
 gi.require_version("Gtk", "4.0")
 gi.require_version("Adw", "1")
-from gi.repository import GLib  # noqa: E402
+import threading  # noqa: E402
+import time  # noqa: E402
+
+from gi.repository import Graphene, GLib, Gtk  # noqa: E402
 
 from odysseus.app import OdysseusApp  # noqa: E402
 
@@ -63,6 +66,40 @@ def check(cond, msg):
     print(("✓ " if cond else "ÉCHEC : ") + msg, flush=True)
     if not cond:
         failed.append(msg)
+
+
+def screen_point(win, widget, x, y):
+    ok, p = widget.compute_point(win, Graphene.Point().init(x, y))
+    sx, sy = win.get_native().get_surface_transform()
+    return int(p.x + sx), int(p.y + sy)
+
+
+def label_point(win, root, name):
+    def walk(w):
+        if isinstance(w, Gtk.Label) and w.get_label() == name and w.get_mapped():
+            return w
+        c = w.get_first_child()
+        while c is not None:
+            r = walk(c)
+            if r is not None:
+                return r
+            c = c.get_next_sibling()
+    return screen_point(win, walk(root), 10, 8)
+
+
+def drag(a, b):
+    """Glisser réel, dans un fil : la boucle GTK doit traiter les mouvements au fil de l'eau."""
+    def run():
+        xdo("mousemove", *a)
+        time.sleep(0.2)
+        xdo("mousedown", 1)
+        time.sleep(0.2)
+        for k in range(1, 11):
+            xdo("mousemove", a[0] + (b[0] - a[0]) * k // 10, a[1] + (b[1] - a[1]) * k // 10)
+            time.sleep(0.05)
+        time.sleep(0.3)
+        xdo("mouseup", 1)
+    threading.Thread(target=run, daemon=True).start()
 
 
 def steps(win):
@@ -81,6 +118,22 @@ def steps(win):
     xdo("key", "Down")
     yield
     check([r.name for r in p.selected_recs()] != before, "clavier après les boutons latéraux")
+    # glisser-déposer : sur un dossier, puis vers l'autre panneau
+    p.open(os.path.join(D, "un"))
+    yield
+    drag(label_point(win, p, "f1"), label_point(win, p, "cible"))
+    for _ in range(5):
+        yield
+    check(os.path.exists(os.path.join(D, "un", "cible", "f1")), "glisser un fichier sur un dossier")
+    win.activate_action("win.dual", None)
+    yield
+    other = win.workspace.other(p)
+    other.open(os.path.join(D, "dst"))
+    yield
+    drag(label_point(win, p, "f2"), screen_point(win, other, other.get_width() / 2, other.get_height() - 60))
+    for _ in range(5):
+        yield
+    check(os.path.exists(os.path.join(D, "dst", "f2")), "glisser vers l'autre panneau")
 
 
 def on_window(_a, win):

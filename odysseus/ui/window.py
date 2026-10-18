@@ -36,9 +36,11 @@ class MainWindow(FileActions, ArchiveActions, ToolActions, Adw.ApplicationWindow
                          width_request=360, height_request=360)
         self.add_css_class("odysseus-window")
         self.undo_stack: list = []
+        self.redo_stack: list = []
         self.progress_window: Optional[ProgressWindow] = None
         self._build()
         self._setup_actions()
+        self._update_undo_actions()
         self.new_tab(location or os.path.expanduser("~"),
                      dual=settings["dual_panel"] and features.enabled("dual_panel") if dual is None else dual)
         settings.connect(self._on_setting)
@@ -71,8 +73,10 @@ class MainWindow(FileActions, ArchiveActions, ToolActions, Adw.ApplicationWindow
         brand.append(Gtk.Image(icon_name=APP_ID, pixel_size=20))
         brand.append(Gtk.Label(label=APP_NAME, css_classes=["heading"]))
         hb.set_title_widget(brand)
-        self.main_menu_btn = Gtk.MenuButton(icon_name="open-menu-symbolic", menu_model=menus.main_menu(),
+        self.main_menu_btn = Gtk.MenuButton(icon_name="open-menu-symbolic",
                                             tooltip_text=tr("Menu principal (F10)"), primary=True)
+        # reconstruit à chaque ouverture : libellés « Annuler … / Rétablir … » à jour
+        self.main_menu_btn.set_create_popup_func(lambda b: self._fill_main_menu())
         hb.pack_end(self.main_menu_btn)
         tv.add_top_bar(hb)
         self.sidebar = Sidebar()
@@ -129,6 +133,10 @@ class MainWindow(FileActions, ArchiveActions, ToolActions, Adw.ApplicationWindow
             self.split.connect("notify::" + prop, lambda *_: self._sync_start_controls())
         self._sync_start_controls()
         tv.add_top_bar(hb)
+        # fenêtre administrateur (admin://) : avertissement permanent, comme Nautilus
+        self.admin_banner = Adw.Banner(title=tr("Mode administrateur : les modifications sont faites avec les "
+                                                "droits root. Soyez prudent."), css_classes=["admin-banner"])
+        tv.add_top_bar(self.admin_banner)
 
         # recherche
         self.search_bar = Gtk.SearchBar(show_close_button=True)
@@ -291,7 +299,9 @@ class MainWindow(FileActions, ArchiveActions, ToolActions, Adw.ApplicationWindow
         archive_root = pane.archive_path if pane.mode == "archive" else ""
         loc = pane.location if pane.mode not in ("archive", "search") else pane.location_text()
         self.pathbar.set_location(loc, pane.location_text() if pane.mode != "trash" else TRASH_URI, archive_root)
-        self.set_title(f"{pane.title()} — {APP_NAME}")
+        admin = pane.location.startswith("admin:")
+        self.admin_banner.set_revealed(admin)
+        self.set_title(f"{pane.title()} — {APP_NAME}" + (" — " + tr("Administrateur") if admin else ""))
         self.sidebar.select(pane.location if pane.mode != "archive" else pane.archive_path)
         self._sync_view_button()
         self._on_selection(pane)
@@ -386,7 +396,6 @@ class MainWindow(FileActions, ArchiveActions, ToolActions, Adw.ApplicationWindow
         if not features.enabled("preview") and self.preview is not None:
             self.set_preview(False)
         self.view_btn.set_menu_model(menus.view_menu())
-        self.main_menu_btn.set_menu_model(menus.main_menu())
         self._update_sensitivity()
 
     def _update_sensitivity(self):
@@ -394,9 +403,11 @@ class MainWindow(FileActions, ArchiveActions, ToolActions, Adw.ApplicationWindow
         if not p:
             return
         sel = p.selected_recs()
-        fs = p.mode in ("fs", "search")
+        # emplacements GVfs (admin://, smb://…) : opérations par le chemin local que GVfs expose
+        gvfs = p.mode == "remote" and bool(p.current_dir())
+        fs = p.mode in ("fs", "search") or gvfs
         local_sel = [r for r in sel if r.path]
-        has_dir = bool(p.current_dir()) and p.mode == "fs"
+        has_dir = bool(p.current_dir()) and (p.mode == "fs" or gvfs)
         can = {
             "back": bool(p.back_stack), "forward": bool(p.forward_stack), "up": p.can_go_up(),
             "cut": fs and bool(local_sel), "copy": fs and bool(local_sel),
@@ -410,6 +421,8 @@ class MainWindow(FileActions, ArchiveActions, ToolActions, Adw.ApplicationWindow
             "archive-test": p.mode == "archive" and p.listing is not None,
             "archive-add": p.mode == "archive" and p.listing is not None,
             "close-archive": p.mode == "archive",
+            "open-admin": len(local_sel) == 1 and not self.is_admin(),
+            "open-admin-folder": bool(p.current_dir()) and p.mode == "fs",
         }
         for name, ok in can.items():
             a = self.lookup_action(name)
@@ -694,6 +707,16 @@ class MainWindow(FileActions, ArchiveActions, ToolActions, Adw.ApplicationWindow
             else:
                 pane.go_forward()
         return False
+
+    def _fill_main_menu(self):
+        self.main_menu_btn.set_menu_model(menus.main_menu(self))
+        # « Taille d'icône  −  + », comme dans Nautilus
+        box = Gtk.Box(spacing=6, margin_start=34, margin_end=6)
+        box.append(Gtk.Label(label=tr("Taille d'icône"), xalign=0, hexpand=True))
+        for icon, action, tip in (("list-remove-symbolic", "win.zoom-out", tr("Réduire (Ctrl+−)")),
+                                  ("list-add-symbolic", "win.zoom-in", tr("Agrandir (Ctrl++)"))):
+            box.append(Gtk.Button(icon_name=icon, action_name=action, tooltip_text=tip, css_classes=["flat"]))
+        self.main_menu_btn.get_popover().add_child(box, "zoom")
 
     def _sync_start_controls(self):
         self.start_controls.set_visible(not self.split.get_show_sidebar() or self.split.get_collapsed())

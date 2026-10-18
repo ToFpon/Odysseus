@@ -22,7 +22,7 @@ from . import clipboard
 from .columns import MillerView
 from .model import DirModel, Selection, fold
 from .other_locations import OTHER_URI, OtherLocations
-from .views import GRID_ZOOM, ZOOM, GridView, ListView
+from .views import DRAG_PATHS, GRID_ZOOM, ZOOM, GridView, ListView
 
 TRASH_URI = "trash:///"
 SPECIAL_URIS = {"trash:///": tr("Corbeille"), "recent:///": tr("Récents"), "network:///": tr("Réseau"),
@@ -266,13 +266,19 @@ class Pane(Gtk.Box):
         if self.mode != "fs" and rec is None:
             return 0
         dest = rec.path if rec is not None else self.location
+        # Les drapeaux GTK ne supportent pas l'arithmétique en Python (acts - 1 vaut None) : en entier.
+        acts = int(drop.get_actions()) if drop is not None else 0
+        if acts and not (acts & (acts - 1)):     # une seule action possible (touche enfoncée)
+            return Gdk.DragAction(acts)
+        # comme Nautilus : déplacer sur le même disque, copier ailleurs ; glisser des éléments dans
+        # leur propre dossier n'a pas de sens
+        src = DRAG_PATHS if drop is not None and drop.get_drag() is not None else []
+        if src and all(os.path.dirname(p) == dest for p in src):
+            return 0
         try:
-            same = os.stat(dest).st_dev == os.stat(self.location).st_dev
+            same = os.lstat(src[0]).st_dev == os.stat(dest).st_dev if src else True
         except OSError:
             same = True
-        acts = drop.get_actions() if drop is not None else 0
-        if acts and not (acts & (acts - 1)):     # une seule action possible (touche enfoncée)
-            return acts
         return Gdk.DragAction.MOVE if same else Gdk.DragAction.COPY
 
     def handle_drop(self, paths: list[str], dest: str, drop: Optional[Gdk.Drop]):
@@ -428,10 +434,10 @@ class Pane(Gtk.Box):
         self._leave_special()
         self.mode = "other"
         self.location = OTHER_URI
-        self.model.set_static(OTHER_URI, [])
-        if self.other_page is None:
+        if self.other_page is None:       # avant set_static, qui affiche déjà la page
             self.other_page = OtherLocations(self)
             self.stack.add_named(self.other_page, "other")
+        self.model.set_static(OTHER_URI, [])
         self.other_page.refresh()
         self._show_content()
         self._update_floating()
@@ -925,6 +931,8 @@ class Pane(Gtk.Box):
         if rec.is_dir:
             if self.mode == "archive":
                 self.open_inner(rec.get("inner", rec.name))
+            elif self.mode == "remote" and rec.uri and not rec.get("target_uri"):
+                self.open(rec.uri)        # rester dans admin://, smb://… plutôt que le chemin GVfs local
             elif rec.path:
                 self.open(rec.path)
             elif rec.uri:

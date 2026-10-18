@@ -2396,9 +2396,6 @@ msgstr "Ort kopieren"
 msgid "Fermer l'archive"
 msgstr "Archiv schließen"
 
-#: odysseus/ui/menus.py:32
-msgid "Rechercher dans le contenu…"
-msgstr "Inhalte durchsuchen …"
 
 #: odysseus/ui/menus.py:54
 msgid "Date de modification"
@@ -3607,3 +3604,75 @@ msgid "(contenant {0} élément au total)"
 msgid_plural "(contenant {0} éléments au total)"
 msgstr[0] "(enthält insgesamt {0} Element)"
 msgstr[1] "(enthält insgesamt {0} Elemente)"
+
+msgid "Ouvrir en tant qu'administrateur"
+msgstr "Als Administrator öffnen"
+
+msgid "Ouvrir un dossier dans une fenêtre administrateur, ou un fichier avec les droits root (emplacement admin:// de GVfs, mot de passe demandé par polkit)"
+msgstr "Einen Ordner in einem Administratorfenster oder eine Datei mit Root-Rechten öffnen (GVfs-Ort admin://, Passwortabfrage über polkit)"
+
+msgid "Aucune application n'ouvre ce type de fichier."
+msgstr "Keine Anwendung öffnet diesen Dateityp."
+
+msgid "Rétablir"
+msgstr "Wiederholen"
+
+msgid "Annuler le renommage"
+msgstr "Umbenennen rückgängig machen"
+
+msgid "Annuler le déplacement"
+msgstr "Verschieben rückgängig machen"
+
+msgid "Annuler la mise à la corbeille"
+msgstr "In den Papierkorb verschieben rückgängig machen"
+
+msgid "Annuler la copie"
+msgstr "Kopieren rückgängig machen"
+
+msgid "Annuler la création"
+msgstr "Erstellen rückgängig machen"
+
+msgid "Ouverture impossible"
+msgstr "Öffnen nicht möglich"
+
+msgid "Rétablir le renommage"
+msgstr "Umbenennen wiederholen"
+
+msgid "Rétablir le déplacement"
+msgstr "Verschieben wiederholen"
+
+msgid "Rétablir la mise à la corbeille"
+msgstr "In den Papierkorb verschieben wiederholen"
+
+msgid "Rétablir la copie"
+msgstr "Kopieren wiederholen"
+
+msgid "Rétablir la création"
+msgstr "Erstellen wiederholen"
+
+msgid "Rétablissement impossible"
+msgstr "Wiederholen nicht möglich"
+
+msgid "Mise à la corbeille"
+msgstr "In den Papierkorb verschieben"
+
+msgid "Cette application ne sait pas ouvrir les fichiers administrateur."
+msgstr "Diese Anwendung kann keine Administratordateien öffnen."
+
+msgid "Accès administrateur refusé"
+msgstr "Administratorzugriff verweigert"
+
+msgid "Administrateur"
+msgstr "Administrator"
+
+msgid "Mode administrateur : les modifications sont faites avec les droits root. Soyez prudent."
+msgstr "Administratormodus: Änderungen erfolgen mit Root-Rechten. Seien Sie vorsichtig."
+
+msgid "Réduire (Ctrl+−)"
+msgstr "Kleiner (Strg+−)"
+
+msgid "Agrandir (Ctrl++)"
+msgstr "Größer (Strg++)"
+
+msgid "Taille d'icône"
+msgstr "Symbolgröße"

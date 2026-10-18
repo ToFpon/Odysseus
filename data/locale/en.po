@@ -2396,9 +2396,6 @@ msgstr "Copy location"
 msgid "Fermer l'archive"
 msgstr "Close archive"
 
-#: odysseus/ui/menus.py:32
-msgid "Rechercher dans le contenu…"
-msgstr "Search contents…"
 
 #: odysseus/ui/menus.py:54
 msgid "Date de modification"
@@ -3607,3 +3604,75 @@ msgid "(contenant {0} élément au total)"
 msgid_plural "(contenant {0} éléments au total)"
 msgstr[0] "(containing {0} item in total)"
 msgstr[1] "(containing a total of {0} items)"
+
+msgid "Ouvrir en tant qu'administrateur"
+msgstr "Open as Administrator"
+
+msgid "Ouvrir un dossier dans une fenêtre administrateur, ou un fichier avec les droits root (emplacement admin:// de GVfs, mot de passe demandé par polkit)"
+msgstr "Open a folder in an administrator window, or a file with root privileges (GVfs admin:// location, password asked by polkit)"
+
+msgid "Aucune application n'ouvre ce type de fichier."
+msgstr "No application opens this file type."
+
+msgid "Rétablir"
+msgstr "Redo"
+
+msgid "Annuler le renommage"
+msgstr "Undo Rename"
+
+msgid "Annuler le déplacement"
+msgstr "Undo Move"
+
+msgid "Annuler la mise à la corbeille"
+msgstr "Undo Move to Trash"
+
+msgid "Annuler la copie"
+msgstr "Undo Copy"
+
+msgid "Annuler la création"
+msgstr "Undo Create"
+
+msgid "Ouverture impossible"
+msgstr "Unable to open"
+
+msgid "Rétablir le renommage"
+msgstr "Redo Rename"
+
+msgid "Rétablir le déplacement"
+msgstr "Redo Move"
+
+msgid "Rétablir la mise à la corbeille"
+msgstr "Redo Move to Trash"
+
+msgid "Rétablir la copie"
+msgstr "Redo Copy"
+
+msgid "Rétablir la création"
+msgstr "Redo Create"
+
+msgid "Rétablissement impossible"
+msgstr "Unable to redo"
+
+msgid "Mise à la corbeille"
+msgstr "Moving to trash"
+
+msgid "Cette application ne sait pas ouvrir les fichiers administrateur."
+msgstr "This application cannot open administrator files."
+
+msgid "Accès administrateur refusé"
+msgstr "Administrator access denied"
+
+msgid "Administrateur"
+msgstr "Administrator"
+
+msgid "Mode administrateur : les modifications sont faites avec les droits root. Soyez prudent."
+msgstr "Administrator mode: changes are made with root privileges. Be careful."
+
+msgid "Réduire (Ctrl+−)"
+msgstr "Smaller (Ctrl+−)"
+
+msgid "Agrandir (Ctrl++)"
+msgstr "Larger (Ctrl++)"
+
+msgid "Taille d'icône"
+msgstr "Icon Size"

@@ -77,7 +77,8 @@ class PathBar(Gtk.Box):
             special = {"trash:///": (tr("Corbeille"), "user-trash-symbolic"),
                        "recent:///": (tr("Récents"), "document-open-recent-symbolic"),
                        "network:///": (tr("Réseau"), "network-workgroup-symbolic"),
-                       "other-locations:///": (tr("Autres emplacements"), "list-add-symbolic")}
+                       "other-locations:///": (tr("Autres emplacements"), "list-add-symbolic"),
+                       "admin:///": (tr("Administrateur"), "dialog-password-symbolic")}
             while f is not None:
                 name = f.get_basename() or f.get_uri()
                 if f.get_uri() in special:

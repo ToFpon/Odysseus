@@ -160,3 +160,6 @@ levelbar.ratio-bar block.filled, levelbar.ratio-bar block.empty { border-radius:
 .other-list > row { padding: 0 6px; }
 .other-status { margin: 6px 18px; }
 .other-connect { padding: 6px; border-top: 1px solid @borders; }
+
+/* Fenêtre administrateur : bandeau aux couleurs d'avertissement du thème */
+banner.admin-banner > revealer > widget { background-color: @warning_bg_color; color: @warning_fg_color; }

@@ -10,6 +10,8 @@ from __future__ import annotations
 import shutil
 from dataclasses import dataclass, field
 
+from gi.repository import Gio
+
 from .i18n import tr
 from .settings import settings
 
@@ -26,6 +28,7 @@ class Feature:
     tools: tuple = field(default_factory=tuple)
     packages: str = ""          # paquets Debian/Ubuntu à installer si un programme manque
     python: tuple = field(default_factory=tuple)   # modules Python facultatifs
+    uri_scheme: str = ""        # schéma GVfs nécessaire (admin…)
     default: bool = True
 
 
@@ -107,6 +110,10 @@ FEATURES = [
     Feature("annotate", tr("Annoter une image"),
             tr("Flèches, cadres, texte, surligneur et dessin à main levée sur une image"),
             "applications-graphics-symbolic", "media", python=("cairo",)),
+    Feature("admin", tr("Ouvrir en tant qu'administrateur"),
+            tr("Ouvrir un dossier dans une fenêtre administrateur, ou un fichier avec les droits root "
+               "(emplacement admin:// de GVfs, mot de passe demandé par polkit)"),
+            "dialog-password-symbolic", "system", packages="gvfs-backends", uri_scheme="admin"),
     Feature("deb_installer", tr("Installateur de paquets .deb"),
             tr("Installer un paquet .deb avec contrôle des dépendances et suivi en direct"),
             "system-software-install-symbolic", "system",
@@ -136,6 +143,8 @@ def missing_tools(fid: str) -> list[str]:
     for group in f.tools:
         if not any(shutil.which(t) for t in group):
             out.append(" / ".join(group))
+    if f.uri_scheme and f.uri_scheme not in Gio.Vfs.get_default().get_supported_uri_schemes():
+        out.append("gvfs-backends")
     for mod in f.python:
         try:
             __import__(mod)

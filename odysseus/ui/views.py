@@ -47,6 +47,9 @@ OPTIONAL_COLUMNS = [("size", tr("Taille")), ("type", tr("Type")), ("date", tr("M
                     ("perms", tr("Droits")), ("owner", tr("Propriétaire")), ("duration", tr("Durée"))]
 SORT_TO_COLUMN = {c[4]: c[0] for c in COLUMNS if c[4]}
 
+# Chemins en cours de glisser depuis Odysseus (pour choisir copier ou déplacer à l'arrivée)
+DRAG_PATHS: list[str] = []
+
 
 def cell_text(key: str, rec: Rec, pane: "Pane") -> str:
     if key == "size":
@@ -199,6 +202,41 @@ class _CellMixin:
         m.connect("pressed", middle)
         widget.add_controller(m)
 
+    def _attach_drag(self, widget, list_item):
+        """Glisser des fichiers. La source est posée sur chaque cellule, comme dans Nautilus : sur la
+        vue entière, la sélection par rectangle (rubberband) prend le geste et rien ne se glisse."""
+        pane = self.pane
+        drag = Gtk.DragSource(actions=Gdk.DragAction.COPY | Gdk.DragAction.MOVE | Gdk.DragAction.LINK,
+                              propagation_phase=Gtk.PropagationPhase.CAPTURE)
+
+        def prepare(source, x, y):
+            pos = list_item.get_position()
+            if pos != Gtk.INVALID_LIST_POSITION and not pane.selection.is_selected(pos):
+                pane.selection.select_item(pos, True)     # glisser un élément non sélectionné : lui seul
+            paths = pane.drag_paths()
+            if not paths:
+                return None
+            source._paths = paths
+            DRAG_PATHS[:] = paths
+            return Gdk.ContentProvider.new_for_value(
+                Gdk.FileList.new_from_list([Gio.File.new_for_path(p) for p in paths]))
+
+        def begin(source, drag_obj):
+            paths = getattr(source, "_paths", [])
+            icon = Gtk.DragIcon.get_for_drag(drag_obj)
+            box = Gtk.Box(spacing=6, css_classes=["drag-icon"])
+            img = Gtk.Image(pixel_size=32)
+            recs = pane.selected_recs()
+            img.set_from_gicon(icons.gicon_for(recs[0]) if recs else Gio.ThemedIcon.new("text-x-generic"))
+            box.append(img)
+            if len(paths) > 1:
+                box.append(Gtk.Label(label=str(len(paths)), css_classes=["drag-count"]))
+            icon.set_child(box)
+        drag.connect("prepare", prepare)
+        drag.connect("drag-begin", begin)
+        drag.connect("drag-end", lambda *_: DRAG_PATHS.clear())
+        widget.add_controller(drag)
+
     def _attach_drop(self, widget):
         """Déposer sur un dossier : copie ou déplacement dans ce dossier."""
         t = Gtk.DropTarget.new(Gdk.FileList, Gdk.DragAction.COPY | Gdk.DragAction.MOVE)
@@ -225,32 +263,6 @@ class _CellMixin:
         t.connect("leave", lambda *_: widget.remove_css_class("drop-row"))
         t.connect("drop", drop)
         widget.add_controller(t)
-
-
-def _setup_drag(view: Gtk.Widget, pane: "Pane"):
-    drag = Gtk.DragSource(actions=Gdk.DragAction.COPY | Gdk.DragAction.MOVE | Gdk.DragAction.LINK)
-
-    def prepare(source, x, y):
-        paths = pane.drag_paths()
-        if not paths:
-            return None
-        source._paths = paths
-        return Gdk.ContentProvider.new_for_value(Gdk.FileList.new_from_list([Gio.File.new_for_path(p) for p in paths]))
-
-    def begin(source, drag_obj):
-        paths = getattr(source, "_paths", [])
-        icon = Gtk.DragIcon.get_for_drag(drag_obj)
-        box = Gtk.Box(spacing=6, css_classes=["drag-icon"])
-        img = Gtk.Image(pixel_size=32)
-        recs = pane.selected_recs()
-        img.set_from_gicon(icons.gicon_for(recs[0]) if recs else Gio.ThemedIcon.new("text-x-generic"))
-        box.append(img)
-        if len(paths) > 1:
-            box.append(Gtk.Label(label=str(len(paths)), css_classes=["drag-count"]))
-        icon.set_child(box)
-    drag.connect("prepare", prepare)
-    drag.connect("drag-begin", begin)
-    view.add_controller(drag)
 
 
 class ListView(Gtk.ScrolledWindow, _CellMixin):
@@ -296,7 +308,6 @@ class ListView(Gtk.ScrolledWindow, _CellMixin):
         lp = Gtk.GestureLongPress(touch_only=True)
         lp.connect("pressed", lambda g, x, y: pane.emit("context-menu", x, y, True))
         self.view.add_controller(lp)
-        _setup_drag(self.view, pane)
         self.apply_zoom()
         self.update_columns()
         self.sync_sort()
@@ -376,6 +387,7 @@ class ListView(Gtk.ScrolledWindow, _CellMixin):
         box.append(Gtk.Label(xalign=0, ellipsize=Pango.EllipsizeMode.MIDDLE, hexpand=True))
         li.set_child(box)
         self._attach_menu_gesture(box, li)
+        self._attach_drag(box, li)
         self._attach_drop(box)
 
     def _bind_name(self, _f, li):
@@ -401,6 +413,7 @@ class ListView(Gtk.ScrolledWindow, _CellMixin):
         lbl = Gtk.Label(xalign=xalign, ellipsize=Pango.EllipsizeMode.END, css_classes=["dim-label", "numeric"])
         li.set_child(lbl)
         self._attach_menu_gesture(lbl, li)
+        self._attach_drag(lbl, li)
 
     def _bind_text(self, _f, li, key):
         entry = li.get_item()
@@ -444,7 +457,6 @@ class GridView(Gtk.ScrolledWindow, _CellMixin):
         bg = Gtk.GestureClick(button=3)
         bg.connect("pressed", self._on_bg_click)
         self.view.add_controller(bg)
-        _setup_drag(self.view, pane)
 
     def _setup(self, _f, li):
         box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=6, css_classes=["grid-cell"],
@@ -460,6 +472,7 @@ class GridView(Gtk.ScrolledWindow, _CellMixin):
                              ellipsize=Pango.EllipsizeMode.END, justify=Gtk.Justification.CENTER))
         li.set_child(box)
         self._attach_menu_gesture(box, li)
+        self._attach_drag(box, li)
         self._attach_drop(box)
 
     def _bind(self, _f, li):

@@ -14,27 +14,31 @@ from ..settings import settings
 TEXT_PREFIX = "text/"
 
 
-def main_menu() -> Gio.Menu:
+def main_menu(win=None) -> Gio.Menu:
+    """Menu principal, sur le modèle de Nautilus. Ce que les boutons de l'en-tête font déjà
+    (double panneau, aperçu, recherche) n'y est pas répété."""
     m = Gio.Menu()
     s = Gio.Menu()
     s.append(tr("Nouvelle fenêtre"), "win.new-window")
     s.append(tr("Nouvel onglet"), "win.new-tab")
     m.append_section(None, s)
     s = Gio.Menu()
-    if features.enabled("dual_panel"):
-        s.append(tr("Double panneau"), "win.dual")
-    if features.enabled("preview"):
-        s.append(tr("Panneau d'aperçu"), "win.preview")
+    zoom = Gio.MenuItem.new(None, None)
+    zoom.set_attribute_value("custom", GLib.Variant.new_string("zoom"))
+    s.append_item(zoom)
+    m.append_section(None, s)
+    s = Gio.Menu()
+    undo = win.undo_stack[-1] if win is not None and win.undo_stack else None
+    redo = win.redo_stack[-1] if win is not None and win.redo_stack else None
+    label = win.undo_label if win is not None else (lambda e, redo=False: tr("Rétablir") if redo else tr("Annuler la dernière opération"))
+    s.append(label(undo), "win.undo")
+    s.append(label(redo, redo=True), "win.redo")
+    m.append_section(None, s)
+    s = Gio.Menu()
     s.append(tr("Afficher les fichiers cachés"), "win.show-hidden")
     m.append_section(None, s)
     s = Gio.Menu()
-    if features.enabled("content_search"):
-        s.append(tr("Rechercher dans le contenu…"), "win.content-search")
-    s.append(tr("Annuler la dernière opération"), "win.undo")
-    m.append_section(None, s)
-    s = Gio.Menu()
     s.append(tr("Préférences"), "app.preferences")
-    s.append(tr("Fonctionnalités"), "app.features")
     s.append(tr("Raccourcis clavier"), "win.shortcuts")
     s.append(tr("À propos d'Odysseus"), "app.about")
     m.append_section(None, s)
@@ -154,6 +158,8 @@ def context_menu(win, pane, on_item: bool) -> Gio.Menu:
         s.append(tr("Ouvrir l'emplacement de l'élément"), "win.open-location")
     if one is not None and one.is_dir and features.enabled("terminal"):
         s.append(tr("Ouvrir dans un terminal"), "win.terminal-selected")
+    if one is not None and one.path and features.available("admin") and not win.is_admin():
+        s.append(tr("Ouvrir en tant qu'administrateur"), "win.open-admin")
     m.append_section(None, s)
 
     s = Gio.Menu()
@@ -276,6 +282,8 @@ def folder_menu() -> Gio.Menu:
     s.append(tr("Fonctionnalités"), "app.features")
     m.append_section(None, s)
     s = Gio.Menu()
+    if features.available("admin"):
+        s.append(tr("Ouvrir en tant qu'administrateur"), "win.open-admin-folder")
     s.append(tr("Propriétés"), "win.properties-folder")
     m.append_section(None, s)
     return m
