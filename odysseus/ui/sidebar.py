@@ -82,12 +82,13 @@ class Sidebar(Gtk.Box):
             self.places_list.append(SidebarRow("document-open-recent-symbolic", tr("Récents"), "recent:///"))
         for icon, label, target in places():
             self.places_list.append(SidebarRow(icon, label, target))
-        self.bm_label, self.bm_list = self._section(tr("Signets"), with_label=True)
+        # comme Nautilus : un simple séparateur avant les signets (masqué s'il n'y en a pas)
+        self.bm_list = self._section(None)
+        self.bm_label = self.bm_list.get_prev_sibling()
         self.dev_label, self.dev_list = self._section(tr("Périphériques"), with_label=True)
         self.other_list = self._section(None)
-        self.other_list.append(SidebarRow("drive-harddisk-system-symbolic", tr("Système de fichiers"), "/"))
-        if _gvfs("network"):
-            self.other_list.append(SidebarRow("network-workgroup-symbolic", tr("Réseau"), "network:///"))
+        # disques, réseau et connexion à un serveur : page « Autres emplacements », comme Nautilus
+        self.other_list.append(SidebarRow("list-add-symbolic", tr("Autres emplacements"), "other-locations:///"))
         self._fill_bookmarks()
         self._watch_bookmarks()
         self._watch_devices()

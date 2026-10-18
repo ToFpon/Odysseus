@@ -253,6 +253,34 @@ def _background_menu(win, pane) -> Gio.Menu:
     return m
 
 
+def folder_menu() -> Gio.Menu:
+    """Menu « ⋮ » de la barre de chemin (dossier courant), sur le modèle de Nautilus."""
+    m = Gio.Menu()
+    s = Gio.Menu()
+    s.append(tr("Nouveau dossier…"), "win.new-folder")
+    s.append_submenu(tr("Nouveau document"), new_document_menu())
+    m.append_section(None, s)
+    s = Gio.Menu()
+    s.append(tr("Actualiser"), "win.refresh")
+    s.append(tr("Ajouter aux signets"), "win.bookmark")
+    s.append(tr("Saisir l'emplacement"), "win.location")
+    s.append(tr("Copier l'emplacement"), "win.copy-location")
+    m.append_section(None, s)
+    s = Gio.Menu()
+    if features.enabled("terminal"):
+        s.append(tr("Ouvrir dans un terminal"), "win.terminal")
+    if features.enabled("dual_panel"):
+        s.append(tr("Double panneau"), "win.dual")
+    if features.available("content_search"):
+        s.append(tr("Rechercher dans les fichiers…"), "win.content-search")
+    s.append(tr("Fonctionnalités"), "app.features")
+    m.append_section(None, s)
+    s = Gio.Menu()
+    s.append(tr("Propriétés"), "win.properties-folder")
+    m.append_section(None, s)
+    return m
+
+
 def new_document_menu() -> Gio.Menu:
     sub = Gio.Menu()
     sub.append(tr("Document vide"), "win.new-empty-file")

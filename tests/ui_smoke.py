@@ -38,7 +38,7 @@ sys.excepthook = hook
 
 from odysseus.app import OdysseusApp  # noqa: E402
 from odysseus.ui.jobs import manager  # noqa: E402
-from odysseus.i18n import tr  # noqa: E402
+from odysseus.i18n import ntr, tr  # noqa: E402
 from odysseus.settings import settings  # noqa: E402
 
 D = os.path.join(TMP, "data")
@@ -334,6 +334,27 @@ def _marks(widget, out):
         _marks(c, out)
         c = c.get_next_sibling()
     return out
+
+
+@step
+def autres_emplacements_et_barre_info(win):
+    from odysseus.ui import menus
+    p = win.pane
+    p.model.select_names(["dossier A", "dossier B"])
+    yield pump(0.8)
+    check(p.status_text().startswith(ntr("{0} dossier sélectionné", "{0} dossiers sélectionnés", 2).format(2)),
+          "barre d'info : dossiers sélectionnés")
+    p.model.select_names(["dossier A", "fichier 3.txt"])
+    yield pump(0.3)
+    check(", " in p.status_text(), "barre d'info : dossiers et autres éléments")
+    check(menus.folder_menu().get_n_items() >= 3, "menu ⋮ de la barre de chemin")
+    p.open("other-locations:///")
+    yield pump(0.8)
+    check(p.mode == "other" and p.stack.get_visible_child_name() == "other", "page Autres emplacements")
+    check(p.other_page.dev_list.get_first_child() is not None, "Autres emplacements : disques listés")
+    win.activate_action("win.back", None)
+    yield pump(0.6)
+    check(p.mode == "fs" and p.location == D, "retour depuis Autres emplacements")
 
 
 @step

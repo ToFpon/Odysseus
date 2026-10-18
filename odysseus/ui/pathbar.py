@@ -7,7 +7,7 @@ segment : les copier ou déplacer dans ce dossier. Tab complète le nom de dossi
 from __future__ import annotations
 
 import os
-from typing import Optional
+from typing import Callable, Optional
 
 from gi.repository import Gdk, Gio, GLib, GObject, Gtk
 
@@ -22,9 +22,8 @@ class PathBar(Gtk.Box):
         "drop": (GObject.SignalFlags.RUN_FIRST, None, (object, str)),
     }
 
-    def __init__(self, compact: bool = False, menu_model: Optional[Gio.MenuModel] = None):
+    def __init__(self, compact: bool = False, menu_factory: Optional[Callable[[], Gio.MenuModel]] = None):
         super().__init__(css_classes=["path-bar"] + (["compact"] if compact else []), hexpand=True)
-        self.menu_model = menu_model
         self.location = ""
         self.display = ""
         self.stack = Gtk.Stack(hexpand=True, transition_type=Gtk.StackTransitionType.CROSSFADE,
@@ -37,6 +36,13 @@ class PathBar(Gtk.Box):
         self.crumbs = Gtk.Box(css_classes=["path-crumbs"])
         self.scroller.set_child(self.crumbs)
         crumbs_frame.append(self.scroller)
+        # menu du dossier : bouton « ⋮ » au bout de la barre, comme Nautilus (menu reconstruit à
+        # chaque ouverture : il dépend des fonctionnalités activées)
+        if menu_factory is not None:
+            self.menu_btn = Gtk.MenuButton(icon_name="view-more-symbolic", css_classes=["flat", "path-menu"],
+                                           tooltip_text=tr("Menu du dossier"), valign=Gtk.Align.CENTER)
+            self.menu_btn.set_create_popup_func(lambda b: b.set_menu_model(menu_factory()))
+            crumbs_frame.append(self.menu_btn)
         click = Gtk.GestureClick()
         click.connect("released", self._on_frame_click)
         self.scroller.add_controller(click)
@@ -70,7 +76,8 @@ class PathBar(Gtk.Box):
             segs = []
             special = {"trash:///": (tr("Corbeille"), "user-trash-symbolic"),
                        "recent:///": (tr("Récents"), "document-open-recent-symbolic"),
-                       "network:///": (tr("Réseau"), "network-workgroup-symbolic")}
+                       "network:///": (tr("Réseau"), "network-workgroup-symbolic"),
+                       "other-locations:///": (tr("Autres emplacements"), "list-add-symbolic")}
             while f is not None:
                 name = f.get_basename() or f.get_uri()
                 if f.get_uri() in special:
@@ -87,7 +94,8 @@ class PathBar(Gtk.Box):
             rest = display[len(home):].strip("/")
             base = home
         else:
-            segs.append(("", "/", "drive-harddisk-symbolic"))
+            # comme Nautilus : la racine porte le nom du système (« Zorin OS »)
+            segs.append((GLib.get_os_info("NAME") or "", "/", "drive-harddisk-symbolic"))
             rest = display.strip("/")
             base = ""
         for part in [p for p in rest.split("/") if p]:
@@ -106,8 +114,7 @@ class PathBar(Gtk.Box):
             last = i == len(segs) - 1
             if i > 0:
                 self.crumbs.append(Gtk.Label(label="/", css_classes=["path-sep", "dim-label"]))
-            btn = Gtk.MenuButton(css_classes=["flat", "path-button", "current"]) if (last and self.menu_model) \
-                else Gtk.Button(css_classes=["flat", "path-button"] + (["current"] if last else []))
+            btn = Gtk.Button(css_classes=["flat", "path-button"] + (["current"] if last else []))
             box = Gtk.Box(spacing=6)
             if icon:
                 box.append(Gtk.Image(icon_name=icon))
@@ -117,13 +124,9 @@ class PathBar(Gtk.Box):
                 limit = 40 if last else 28
                 shown = label if len(label) <= limit else label[:limit // 2 - 1] + "…" + label[-(limit // 2 - 1):]
                 box.append(Gtk.Label(label=shown))
-            if last and self.menu_model:
-                box.append(Gtk.Image(icon_name="pan-down-symbolic", css_classes=["dim-label"]))
-                btn.set_menu_model(self.menu_model)
             btn.set_child(box)
             btn.set_tooltip_text(target if "://" not in target else GLib.uri_unescape_string(target, None))
-            if not (last and self.menu_model):
-                btn.connect("clicked", lambda _b, t=target: self.emit("navigate", t))
+            btn.connect("clicked", lambda _b, t=target: self.emit("navigate", t))
             mid = Gtk.GestureClick(button=2)
             mid.connect("pressed", lambda *_a, t=target: self.emit("navigate-tab", t))
             btn.add_controller(mid)
@@ -213,22 +216,3 @@ class PathBar(Gtk.Box):
             new += "/"
         self.entry.set_text(new)
         self.entry.set_position(-1)
-
-
-def make_folder_menu() -> Gio.Menu:
-    """Menu du dossier courant (dernier segment), comme dans Nautilus."""
-    m = Gio.Menu()
-    s1 = Gio.Menu()
-    s1.append(tr("Nouveau dossier…"), "win.new-folder")
-    s1.append(tr("Nouveau document"), "win.new-file")
-    m.append_section(None, s1)
-    s2 = Gio.Menu()
-    s2.append(tr("Ajouter aux signets"), "win.bookmark")
-    s2.append(tr("Ouvrir dans un terminal"), "win.terminal")
-    s2.append(tr("Copier l'emplacement"), "win.copy-location")
-    m.append_section(None, s2)
-    s3 = Gio.Menu()
-    s3.append(tr("Propriétés"), "win.properties-folder")
-    m.append_section(None, s3)
-    return m
-

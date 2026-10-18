@@ -3334,9 +3334,6 @@ msgstr "Music"
 msgid "Vidéos"
 msgstr "Videos"
 
-#: odysseus/ui/sidebar.py:85
-msgid "Signets"
-msgstr "Bookmarks"
 
 #: odysseus/ui/sidebar.py:86
 msgid "Périphériques"
@@ -3346,9 +3343,6 @@ msgstr "Devices"
 msgid "Renommer le signet"
 msgstr "Rename bookmark"
 
-#: odysseus/ui/sidebar.py:88
-msgid "Système de fichiers"
-msgstr "File system"
 
 #: odysseus/ui/sidebar.py:340
 msgid "Retirer des signets"
@@ -3560,3 +3554,56 @@ msgstr "Mouse side buttons"
 
 msgid "Précédent / suivant"
 msgstr "Back / forward"
+
+msgid "Saisir l'emplacement"
+msgstr "Enter Location"
+
+msgid "{0} / {1} de disponibles"
+msgstr "{0} / {1} available"
+
+msgid "Aucun emplacement réseau trouvé"
+msgstr "No network locations found"
+
+msgid "Saisir l'adresse du serveur…"
+msgstr "Enter server address…"
+
+msgid "Adresses prises en charge : smb://, sftp://, ftp://, dav://, davs://, nfs://, afp://…"
+msgstr "Supported addresses: smb://, sftp://, ftp://, dav://, davs://, nfs://, afp://…"
+
+msgid "Se connecter"
+msgstr "Connect"
+
+msgid "Recherche des emplacements réseau…"
+msgstr "Searching for network locations…"
+
+msgid "Sur cet appareil"
+msgstr "On This Computer"
+
+msgid "Réseaux"
+msgstr "Networks"
+
+msgid "Autres emplacements"
+msgstr "Other Locations"
+
+msgid "Menu du dossier"
+msgstr "Folder menu"
+
+msgid "{0} dossier sélectionné"
+msgid_plural "{0} dossiers sélectionnés"
+msgstr[0] "{0} folder selected"
+msgstr[1] "{0} folders selected"
+
+msgid "{0} autre élément sélectionné"
+msgid_plural "{0} autres éléments sélectionnés"
+msgstr[0] "{0} other item selected"
+msgstr[1] "{0} other items selected"
+
+msgid "(contenant {0} élément)"
+msgid_plural "(contenant {0} éléments)"
+msgstr[0] "(containing {0} item)"
+msgstr[1] "(containing {0} items)"
+
+msgid "(contenant {0} élément au total)"
+msgid_plural "(contenant {0} éléments au total)"
+msgstr[0] "(containing {0} item in total)"
+msgstr[1] "(containing a total of {0} items)"

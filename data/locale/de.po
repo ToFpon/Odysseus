@@ -3334,9 +3334,6 @@ msgstr "Musik"
 msgid "Vidéos"
 msgstr "Videos"
 
-#: odysseus/ui/sidebar.py:85
-msgid "Signets"
-msgstr "Lesezeichen"
 
 #: odysseus/ui/sidebar.py:86
 msgid "Périphériques"
@@ -3346,9 +3343,6 @@ msgstr "Geräte"
 msgid "Renommer le signet"
 msgstr "Lesezeichen umbenennen"
 
-#: odysseus/ui/sidebar.py:88
-msgid "Système de fichiers"
-msgstr "Dateisystem"
 
 #: odysseus/ui/sidebar.py:340
 msgid "Retirer des signets"
@@ -3560,3 +3554,56 @@ msgstr "Seitentasten der Maus"
 
 msgid "Précédent / suivant"
 msgstr "Zurück / vor"
+
+msgid "Saisir l'emplacement"
+msgstr "Ort eingeben"
+
+msgid "{0} / {1} de disponibles"
+msgstr "{0} / {1} verfügbar"
+
+msgid "Aucun emplacement réseau trouvé"
+msgstr "Keine Netzwerkorte gefunden"
+
+msgid "Saisir l'adresse du serveur…"
+msgstr "Serveradresse eingeben …"
+
+msgid "Adresses prises en charge : smb://, sftp://, ftp://, dav://, davs://, nfs://, afp://…"
+msgstr "Unterstützte Adressen: smb://, sftp://, ftp://, dav://, davs://, nfs://, afp:// …"
+
+msgid "Se connecter"
+msgstr "Verbinden"
+
+msgid "Recherche des emplacements réseau…"
+msgstr "Netzwerkorte werden gesucht …"
+
+msgid "Sur cet appareil"
+msgstr "Auf diesem Rechner"
+
+msgid "Réseaux"
+msgstr "Netzwerke"
+
+msgid "Autres emplacements"
+msgstr "Andere Orte"
+
+msgid "Menu du dossier"
+msgstr "Ordnermenü"
+
+msgid "{0} dossier sélectionné"
+msgid_plural "{0} dossiers sélectionnés"
+msgstr[0] "{0} Ordner ausgewählt"
+msgstr[1] "{0} Ordner ausgewählt"
+
+msgid "{0} autre élément sélectionné"
+msgid_plural "{0} autres éléments sélectionnés"
+msgstr[0] "{0} weiteres Element ausgewählt"
+msgstr[1] "{0} weitere Elemente ausgewählt"
+
+msgid "(contenant {0} élément)"
+msgid_plural "(contenant {0} éléments)"
+msgstr[0] "(enthält {0} Element)"
+msgstr[1] "(enthält {0} Elemente)"
+
+msgid "(contenant {0} élément au total)"
+msgid_plural "(contenant {0} éléments au total)"
+msgstr[0] "(enthält insgesamt {0} Element)"
+msgstr[1] "(enthält insgesamt {0} Elemente)"

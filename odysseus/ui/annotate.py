@@ -261,7 +261,11 @@ class AnnotateWindow(Adw.Window):
     # -- dessin --------------------------------------------------------------
     def _draw(self, area, ctx, w, h):
         self.scale = self._fit_scale(w, h) if self.zoom is None else self.zoom
-        self.zoom_lbl.set_label(f"{round(self.scale * 100)} %")
+        # Jamais de changement de widget pendant le dessin : il invaliderait la mise en page de la
+        # barre d'outils en plein rendu (barre vide, « Trying to snapshot GtkRevealer… »).
+        label = f"{round(self.scale * 100)} %"
+        if label != self.zoom_lbl.get_label():
+            GLib.idle_add(lambda: (self.zoom_lbl.set_label(label), False)[1])
         s = self.scale
         self.ox = (w - self.img_w * s) / 2
         self.oy = (h - self.img_h * s) / 2

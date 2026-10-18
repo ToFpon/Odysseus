@@ -18,7 +18,7 @@ from .actions_tools import ToolActions
 from .common import bidir, popup_menu, toast
 from .jobs import OperationsButton, ProgressWindow, manager
 from .pane import TRASH_URI, Pane
-from .pathbar import PathBar, make_folder_menu
+from .pathbar import PathBar
 from .sidebar import Sidebar
 from .views import GRID_ZOOM_LEVELS, ZOOM_LEVELS
 from .workspace import Workspace
@@ -99,7 +99,7 @@ class MainWindow(FileActions, ArchiveActions, ToolActions, Adw.ApplicationWindow
         for icon, action, tip in (("go-previous-symbolic", "win.back", tr("Précédent (Alt+←)")),
                                   ("go-next-symbolic", "win.forward", tr("Suivant (Alt+→)"))):
             bar.append(Gtk.Button(icon_name=icon, action_name=action, tooltip_text=tip))
-        self.pathbar = PathBar(menu_model=make_folder_menu())
+        self.pathbar = PathBar(menu_factory=menus.folder_menu)
         self.pathbar.connect("navigate", self._on_path_navigate)
         self.pathbar.connect("navigate-tab", lambda _b, loc: self.new_tab(loc))
         self.pathbar.connect("drop", lambda _b, paths, target: self.drop_files(paths, target, "auto"))

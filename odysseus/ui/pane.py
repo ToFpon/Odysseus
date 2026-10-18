@@ -21,10 +21,12 @@ from ..settings import session_passwords, settings
 from . import clipboard
 from .columns import MillerView
 from .model import DirModel, Selection, fold
+from .other_locations import OTHER_URI, OtherLocations
 from .views import GRID_ZOOM, ZOOM, GridView, ListView
 
 TRASH_URI = "trash:///"
-SPECIAL_URIS = {"trash:///": tr("Corbeille"), "recent:///": tr("Récents"), "network:///": tr("Réseau")}
+SPECIAL_URIS = {"trash:///": tr("Corbeille"), "recent:///": tr("Récents"), "network:///": tr("Réseau"),
+                OTHER_URI: tr("Autres emplacements")}
 SEARCH_LIMIT = 20000
 SKIP_DIRS = {".git", "node_modules", "__pycache__", ".cache", ".venv", "venv", ".tox"}
 
@@ -54,7 +56,7 @@ class Pane(Gtk.Box):
 
     def __init__(self, location: Optional[str] = None, view_mode: Optional[str] = None):
         super().__init__(orientation=Gtk.Orientation.VERTICAL, css_classes=["file-pane"])
-        self.mode = "fs"              # fs, archive, search, trash, remote
+        self.mode = "fs"              # fs, archive, search, trash, remote, other
         self.location = os.path.expanduser("~")
         self.view_mode = view_mode or settings["view_mode"]
         if self.view_mode == "columns" and not features.enabled("column_view"):
@@ -158,6 +160,7 @@ class Pane(Gtk.Box):
         self.list_view = ListView(self)
         self.grid_view = GridView(self)
         self.miller: Optional[MillerView] = None
+        self.other_page: Optional[OtherLocations] = None
         self.stack.add_named(self.list_view, "list")
         self.stack.add_named(self.grid_view, "grid")
         self.empty = Adw.StatusPage(icon_name="folder-symbolic", title=tr("Dossier vide"), css_classes=["compact"])
@@ -190,7 +193,7 @@ class Pane(Gtk.Box):
         self.overlay = Gtk.Overlay(vexpand=True)
         self.overlay.set_child(self.stack)
         self.floating = Gtk.Label(css_classes=["floating-bar"], halign=Gtk.Align.END, valign=Gtk.Align.END,
-                                  visible=False, ellipsize=3, max_width_chars=60)
+                                  visible=False, ellipsize=3, max_width_chars=90)
         self.floating.set_can_target(False)
         self.overlay.add_overlay(self.floating)
         self.append(self.overlay)
@@ -344,7 +347,9 @@ class Pane(Gtk.Box):
             self.open(parent, select=[child] if child else None)
 
     def refresh(self):
-        if self.mode == "archive":
+        if self.mode == "other":
+            self.other_page.refresh()
+        elif self.mode == "archive":
             self.open_archive(self.archive_path, self.inner, push=False, password=self.password)
         elif self.mode == "search":
             self.start_search(self.search_query, recursive=True)
@@ -361,6 +366,9 @@ class Pane(Gtk.Box):
         loc = os.path.expanduser(location.strip())
         if loc.startswith("file://"):
             loc = Gio.File.new_for_uri(loc).get_path() or loc
+        if loc == OTHER_URI:
+            self._open_other(push)
+            return True
         if is_uri(loc):
             self._open_uri(loc, push, select)
             return True
@@ -385,6 +393,8 @@ class Pane(Gtk.Box):
         return False
 
     def _leave_special(self):
+        if self.other_page is not None:
+            self.other_page.stop()
         self._stop_search()
         self.strip.set_reveal_child(False)
         self.trash_bar.set_reveal_child(False)
@@ -409,6 +419,22 @@ class Pane(Gtk.Box):
         else:
             self.model.load(path)
         self._show_content()
+        self.emit("location-changed")
+
+    def _open_other(self, push: bool):
+        """Page « Autres emplacements » (disques, réseau, connexion à un serveur)."""
+        if push and self.location != OTHER_URI:
+            self._push()
+        self._leave_special()
+        self.mode = "other"
+        self.location = OTHER_URI
+        self.model.set_static(OTHER_URI, [])
+        if self.other_page is None:
+            self.other_page = OtherLocations(self)
+            self.stack.add_named(self.other_page, "other")
+        self.other_page.refresh()
+        self._show_content()
+        self._update_floating()
         self.emit("location-changed")
 
     def _open_uri(self, uri: str, push: bool, select: Optional[list]):
@@ -708,6 +734,9 @@ class Pane(Gtk.Box):
                 view.set_model(target)
 
     def _show_content(self):
+        if self.mode == "other":
+            self.stack.set_visible_child_name("other")
+            return
         self._attach_views()
         if self.stack.get_visible_child_name() == "locked" and self.mode == "archive" and not self.listing:
             return
@@ -962,24 +991,37 @@ class Pane(Gtk.Box):
         self.floating.set_visible(bool(text))
 
     def status_text(self) -> str:
+        """Texte de la barre d'info, repris de Nautilus (nautilus-files-view.c)."""
         sel = self.selected_recs()
         if not sel:
             if self.model.loading:
                 return tr("Chargement…")
             return ""
-        size = sum(r.size for r in sel if not r.is_dir)
-        if len(sel) == 1:
-            r = sel[0]
-            if r.is_dir:
-                n = r.get("count", r.get("children"))
-                extra = ntr("{0} élément", "{0} éléments", n).format(n) if n is not None and n >= 0 else ""
+        dirs = [r for r in sel if r.is_dir]
+        files = [r for r in sel if not r.is_dir]
+        counts = [r.get("count", r.get("children")) for r in dirs]
+        known = all(n is not None and n >= 0 for n in counts)
+        inside = sum(counts) if dirs and known else 0
+        size = human_size(sum(r.size for r in files)) if files else ""
+        parts = []
+        if len(dirs) == 1:
+            text = tr("« {0} » sélectionné").format(dirs[0].name)
+            if known:
+                text += " " + ntr("(contenant {0} élément)", "(contenant {0} éléments)", inside).format(inside)
+            parts.append(text)
+        elif dirs:
+            text = ntr("{0} dossier sélectionné", "{0} dossiers sélectionnés", len(dirs)).format(len(dirs))
+            if known:
+                text += " " + ntr("(contenant {0} élément au total)", "(contenant {0} éléments au total)",
+                                  inside).format(inside)
+            parts.append(text)
+        if files:
+            if dirs:
+                text = ntr("{0} autre élément sélectionné", "{0} autres éléments sélectionnés",
+                           len(files)).format(len(files))
+            elif len(files) == 1:
+                text = tr("« {0} » sélectionné").format(files[0].name)
             else:
-                extra = human_size(r.size)
-            return tr("« {0} » sélectionné").format(r.name) + (f" ({extra})" if extra else "")
-        dirs = sum(1 for r in sel if r.is_dir)
-        text = ntr("{0} élément sélectionné", "{0} éléments sélectionnés", len(sel)).format(len(sel))
-        if size:
-            text += f" ({human_size(size)})"
-        if dirs:
-            text += " · " + ntr("{0} dossier", "{0} dossiers", dirs).format(dirs)
-        return text
+                text = ntr("{0} élément sélectionné", "{0} éléments sélectionnés", len(files)).format(len(files))
+            parts.append(f"{text} ({size})")
+        return ", ".join(parts)
