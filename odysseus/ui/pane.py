@@ -84,6 +84,7 @@ class Pane(Gtk.Box):
         self.model.connect("reset", lambda *_: self._on_reset())
         self._empty_check_id = 0
         self.model.connect("items-changed", self._on_items_changed)
+        self.model.connect("gone", lambda *_: GLib.idle_add(self._on_gone))
 
         self.top = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)     # barre de chemin du double panneau
         self.append(self.top)
@@ -95,7 +96,7 @@ class Pane(Gtk.Box):
         focus.connect("enter", lambda *_: self.emit("focused"))
         self.add_controller(focus)
         click = Gtk.GestureClick(button=0, propagation_phase=Gtk.PropagationPhase.CAPTURE)
-        click.connect("pressed", lambda *_: self.emit("focused"))
+        click.connect("pressed", lambda *_: (self.emit("focused"), self._check_location()))
         self.add_controller(click)
         self._settings_cb = self._on_setting
         settings.connect(self._settings_cb)
@@ -769,10 +770,10 @@ class Pane(Gtk.Box):
         if getattr(self, "_retired", False):
             return
         want = None if (self.view_mode == "columns" and self.mode == "fs") else self.view_mode
-        for name, view in (("list", self.list_view.view), ("grid", self.grid_view.view)):
-            target = self.selection if name == want else None
-            if view.get_model() is not target:
-                view.set_model(target)
+        target = self.selection if want == "list" else None
+        if self.list_view.view.get_model() is not target:
+            self.list_view.view.set_model(target)
+        self.grid_view.attach(self.selection if want == "grid" else None)
 
     def _show_content(self):
         if self.mode == "other":
@@ -844,6 +845,33 @@ class Pane(Gtk.Box):
         if not (removed or added) or self._empty_check_id:
             return
         self._empty_check_id = GLib.idle_add(self._check_empty_page)
+
+    def _on_gone(self):
+        """Dossier affiché supprimé, jeté ou déplacé : remonter au plus proche parent existant."""
+        if getattr(self, "_retired", False) or self.mode != "fs" or not self.location:
+            return False
+        if os.path.isdir(self.location):
+            self.refresh()
+            return False
+        child, up = self.location, os.path.dirname(self.location.rstrip("/"))
+        while up and up != "/" and not os.path.isdir(up):
+            child, up = up, os.path.dirname(up)
+        self.open(up or "/", push=False, select=[os.path.basename(child)] if os.path.lexists(child) else None)
+        return False
+
+    def _check_location(self):
+        """Au clic dans le panneau : un parent renommé ou supprimé par un autre programme n'est pas vu
+        par la surveillance du dossier affiché ; un seul stat, local seulement."""
+        if self.mode == "fs" and self.location and not is_uri(self.location) and not os.path.isdir(self.location):
+            GLib.idle_add(self._on_gone)
+
+    def follow_move(self, old: str, new: str):
+        """Un dossier affiché (ou un de ses parents) a été renommé / déplacé dans Odysseus : suivre."""
+        if getattr(self, "_retired", False) or self.mode != "fs" or not self.location:
+            return
+        old = old.rstrip("/")
+        if self.location == old or self.location.startswith(old + "/"):
+            self.open(new.rstrip("/") + self.location[len(old):], push=False)
 
     def _check_empty_page(self):
         self._empty_check_id = 0

@@ -793,6 +793,39 @@ def precedent_avec_focus_texte(win):
 
 
 @step
+def panneau_suit_le_dossier(win):
+    """Un panneau ouvert dans un dossier renommé (par Odysseus) le suit ; mis à la corbeille, il remonte."""
+    base = os.path.join(D, "suivre")
+    os.makedirs(os.path.join(base, "Projet", "src"))
+    os.makedirs(os.path.join(base, "Vieux"))
+    p = win.pane
+    p.open(base)
+    yield Wait(5, until=lambda: not p.model.loading)
+    win.activate_action("win.dual", None)
+    yield pump(0.6)
+    other = win.workspace.other(p)
+    other.open(os.path.join(base, "Projet", "src"))
+    yield pump(0.6)
+    p.model.select_names(["Projet"])
+    real = win.ask_name
+    win.ask_name = lambda heading, initial, action, callback, *a, **k: callback("Projet 2026")
+    win.activate_action("win.rename", None)
+    win.ask_name = real
+    yield pump(0.8)
+    check(other.location == os.path.join(base, "Projet 2026", "src"), f"renommage suivi ({other.location})")
+    other.open(os.path.join(base, "Vieux"))
+    yield pump(0.6)
+    win._trash_paths([os.path.join(base, "Vieux")])
+    yield wait_jobs()
+    yield pump(1.0)
+    check(other.location == base, f"dossier mis à la corbeille : le panneau remonte ({other.location})")
+    win.activate_action("win.dual", None)
+    yield pump(0.4)
+    p.open(D)
+    yield Wait(5, until=lambda: not p.model.loading)
+
+
+@step
 def fonctionnalites(win):
     from odysseus import features
     features.set_enabled("dual_panel", False)

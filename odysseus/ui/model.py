@@ -59,6 +59,7 @@ class DirModel(GObject.Object, Gio.ListModel):
         # state : "loading", "ready", "error"
         "state": (GObject.SignalFlags.RUN_FIRST, None, (str,)),
         "reset": (GObject.SignalFlags.RUN_FIRST, None, ()),
+        "gone": (GObject.SignalFlags.RUN_FIRST, None, ()),     # le dossier affiché a disparu
     }
 
     def __init__(self):
@@ -392,8 +393,10 @@ class DirModel(GObject.Object, Gio.ListModel):
             self._pending[f.get_path()] = True
         if other is not None and other.get_path():
             self._pending[other.get_path()] = True
-        if event == E.DELETED and f.get_path() == self.location:
-            self.set_error(os.strerror(2))
+        if event in (E.DELETED, E.MOVED_OUT) and f.get_path() == self.location:
+            # dossier affiché supprimé, jeté ou déplacé ailleurs : le panneau remonte (comme Nautilus)
+            # au lieu d'afficher une erreur
+            self.emit("gone")
             return
         if not self._pending_id:
             self._pending_id = GLib.timeout_add(150, self._flush_changes)

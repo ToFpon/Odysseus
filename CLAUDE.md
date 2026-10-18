@@ -38,7 +38,9 @@ Gestionnaire de fichiers GTK4 / libadwaita en Python, look Nautilus, intégrant 
   utiliser `subtract`).
 - Au-delà de 2000 éléments, `items_changed` en deux temps (vider puis remplir) ; le contenu du modèle
   doit être cohérent avec chaque signal, sinon GTK plante (segfault).
-- Seule la vue visible est branchée sur le modèle (`Pane._attach_views`).
+- Seule la vue visible est branchée sur le modèle (`Pane._attach_views`). La grille ne reçoit son
+  modèle qu'une fois dimensionnée (`GridView.attach`) et `max_columns` suit la largeur réelle :
+  sinon Gtk.GridView crée 64 × 32 cases d'un coup (2 s figées sur 20 000 fichiers).
 - Référence : un dossier de 100 500 fichiers est prêt en ~1 s, tout sélectionner ~0,4 s.
 
 ## Tests

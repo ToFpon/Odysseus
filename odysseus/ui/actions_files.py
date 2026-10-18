@@ -400,6 +400,8 @@ class FileActions:
                     elif res.kind not in ("copy", "move"):
                         toast(self, msg)
                     self._select_created(res)
+                    if res.kind == "move":
+                        self._follow_moves(res)
                 if on_done:
                     on_done(job)
             else:
@@ -413,6 +415,12 @@ class FileActions:
         if len(errors) > 15:
             text += "\n" + tr("… et {0} autre(s)").format(len(errors) - 15)
         alert(self, tr("{0} : certains éléments n'ont pas pu être traités").format(title), text)
+
+    def _follow_moves(self, res: fileops.Result):
+        for src, dst in res.moved:
+            if os.path.isdir(dst):
+                for p in self.all_panes():
+                    p.follow_move(src, dst)
 
     def _select_created(self, res: fileops.Result):
         if not res.created or res.kind in ("trash", "delete"):
@@ -530,6 +538,9 @@ class FileActions:
                 alert(self, tr("Renommage impossible"), getattr(e, "strerror", None) or str(e))
                 return
             self._push_undo(("rename", rec.path, target))
+            if rec.is_dir:
+                for other in self.all_panes():           # panneaux ouverts dans ce dossier : suivre
+                    other.follow_move(rec.path, target)
             p.model.connect_once_ready(lambda: p.select_names([new])) if p.model.loading else \
                 GLib.timeout_add(300, lambda: (p.select_names([new]), False)[1])
         self.ask_name(tr("Renommer"), rec.name, tr("Renommer"), apply, folder, select_stem=not rec.is_dir,

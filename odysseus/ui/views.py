@@ -509,7 +509,7 @@ class GridView(Gtk.ScrolledWindow, _CellMixin):
         f.connect("setup", self._setup)
         f.connect("bind", self._bind)
         f.connect("unbind", lambda _f, li: self._untrack(li.get_child()))
-        self.view = Gtk.GridView(model=None, factory=f, max_columns=64, min_columns=1,
+        self.view = Gtk.GridView(model=None, factory=f, max_columns=8, min_columns=1,
                                  enable_rubberband=True, css_classes=["file-grid"])
         self.view.connect("activate", lambda _v, pos: pane.activate_position(pos))
         self.view.set_single_click_activate(settings["single_click"])
@@ -517,6 +517,50 @@ class GridView(Gtk.ScrolledWindow, _CellMixin):
         bg = Gtk.GestureClick(button=3)
         bg.connect("pressed", self._on_bg_click)
         self.view.add_controller(bg)
+        self._pending = None
+        self._pending_id = 0
+        self._cols_id = 0
+
+    def do_size_allocate(self, width, height, baseline):
+        Gtk.ScrolledWindow.do_size_allocate(self, width, height, baseline)
+        # Gtk.GridView remplit d'abord « max_columns » colonnes, sans connaître la largeur des cases :
+        # avec 64, il créait ~2 000 cases (32 rangées × 64). On lui donne le vrai nombre de colonnes.
+        size = self.pane.grid_icon_size
+        cell = max(size, max(10, size // 7) * 8) + 20
+        cols = max(1, min(64, (width - 24) // cell))
+        if cols != self.view.get_max_columns() and not self._cols_id:
+            self._cols_id = GLib.idle_add(self._apply_cols, cols)
+
+    def _apply_cols(self, cols):
+        self._cols_id = 0
+        if self.get_root() is not None:
+            self.view.set_max_columns(cols)
+        return False
+
+    def attach(self, model):
+        """Brancher le modèle seulement quand la grille a une taille : branchée encore invisible (avant
+        le changement de page), Gtk.GridView, sans hauteur connue, créait ~2 000 cases d'un coup
+        (1,3 à 2,6 s figées sur 20 000 fichiers, contre une quarantaine visibles)."""
+        if model is None or (self.get_mapped() and self.get_width() > 0 and self.get_height() > 0):
+            self._pending = None
+            if self.view.get_model() is not model:
+                self.view.set_model(model)
+            return
+        self._pending = model
+        if not self._pending_id:
+            self._pending_id = GLib.timeout_add(30, self._attach_pending)
+
+    def _attach_pending(self):
+        if self._pending is None or self.get_root() is None:
+            self._pending_id = 0
+            return False
+        if not (self.get_mapped() and self.get_width() > 0 and self.get_height() > 0):
+            return True                     # pas encore dimensionnée : on réessaie
+        self._pending_id = 0
+        model, self._pending = self._pending, None
+        if self.view.get_model() is not model:
+            self.view.set_model(model)
+        return False
 
     def _setup(self, _f, li):
         box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=6, css_classes=["grid-cell"],
