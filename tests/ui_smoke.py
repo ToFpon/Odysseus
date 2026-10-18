@@ -871,6 +871,19 @@ def panneau_suit_le_dossier(win):
 
 
 @step
+def focus_une_seule_fois(win):
+    """GLib.idle_add(champ.grab_focus) rappelait grab_focus sans fin (il renvoie True) : le texte du
+    champ était resélectionné en boucle et chaque lettre remplaçait la précédente (annoter, texte)."""
+    from odysseus.ui.common import focus_later
+    e = Gtk.Entry()
+    calls = []
+    e.grab_focus = lambda: (calls.append(1), True)[1]
+    focus_later(e)
+    yield pump(0.5)
+    check(len(calls) == 1, f"focus donné une seule fois ({len(calls)} appels)")
+
+
+@step
 def fichier_cache_choisi(win):
     """Ouvrir le dossier d'un fichier caché pour le sélectionner (ShowItems) : il est montré et choisi ;
     le dossier suivant reprend la préférence (cachés masqués)."""

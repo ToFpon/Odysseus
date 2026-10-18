@@ -19,7 +19,7 @@ from ..backend.scanner import Rec
 from ..i18n import ntr, tr
 from ..settings import session_passwords, settings
 from . import clipboard
-from .common import shown
+from .common import focus_later, shown
 from .columns import MillerView
 from .model import DirModel, Selection, fold
 from .other_locations import OTHER_URI, OtherLocations
@@ -558,7 +558,7 @@ class Pane(Gtk.Box):
             self.strip_details.set_text(tr("Contenu verrouillé"))
             self.strip_lock.set_visible(True)
             self.stack.set_visible_child_name("locked")
-            GLib.idle_add(self.lock_entry.grab_focus)
+            focus_later(self.lock_entry)
             self.emit("location-changed")
             return False
         if err is not None:

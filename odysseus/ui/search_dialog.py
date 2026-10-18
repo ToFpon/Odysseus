@@ -15,7 +15,7 @@ from gi.repository import Adw, Gio, GLib, GObject, Graphene, Gtk, Pango
 
 from ..backend import search
 from ..i18n import ntr, tr
-from .common import alert, choose_folder, copy_to_clipboard, open_with_default, popup_menu, toast
+from .common import alert, choose_folder, copy_to_clipboard, focus_later, open_with_default, popup_menu, toast
 
 
 class ResultItem(GObject.Object):
@@ -125,7 +125,7 @@ class ContentSearchWindow(Adw.Window):
                                           Gtk.CallbackAction.new(lambda *_: self.close() or True)))
         self.add_controller(esc)
         self.connect("close-request", lambda *_: self._cancel.set() or False)
-        GLib.idle_add(self.entry.grab_focus)
+        focus_later(self.entry)
 
     # ------------------------------------------------------------------
     def _set_folder(self, path):

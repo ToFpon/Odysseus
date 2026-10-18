@@ -50,6 +50,13 @@ def toast(widget: Gtk.Widget, text: str, button: str = "", callback: Optional[Ca
 # une vraie fenêtre, passait devant la question « Remplacer ? ».
 # ---------------------------------------------------------------------------
 
+def focus_later(widget: Gtk.Widget):
+    """Donne le focus une fois la fenêtre affichée. Jamais GLib.idle_add(widget.grab_focus) :
+    grab_focus renvoie True, ce qui fait rappeler la fonction sans fin — le champ reprenait le
+    focus en boucle et resélectionnait son texte, chaque lettre tapée remplaçait la précédente."""
+    GLib.idle_add(lambda: (widget.grab_focus(), False)[1])
+
+
 def dialog_parent(widget) -> Optional[Gtk.Window]:
     if widget is None:
         return None
@@ -160,7 +167,7 @@ def ask_password(parent: Gtk.Widget, archive: str, callback: Callable[[Optional[
     row.connect("entry-activated", lambda *_: (d.close(), callback(row.get_text())))
     d.connect("response", lambda _d, r: callback(row.get_text() if r == "ok" else None))
     d.present(parent)
-    GLib.idle_add(row.grab_focus)
+    focus_later(row)
 
 
 def ask_text(parent: Gtk.Widget, heading: str, label: str, initial: str,
@@ -186,7 +193,7 @@ def ask_text(parent: Gtk.Widget, heading: str, label: str, initial: str,
     row.connect("entry-activated", lambda *_: (finish(True), d.close()))
     d.connect("response", lambda _d, r: finish(r == "ok"))
     d.present(parent)
-    GLib.idle_add(row.grab_focus)
+    focus_later(row)
 
 
 def choose_folder(parent: Gtk.Widget, title: str, initial: str, callback: Callable[[str], None]):

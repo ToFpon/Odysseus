@@ -15,7 +15,7 @@ import cairo
 from gi.repository import Adw, Gdk, GdkPixbuf, GLib, Gtk, Pango
 
 from ..i18n import tr
-from .common import AlertDialog, alert, choose_save, toast
+from .common import AlertDialog, alert, choose_save, focus_later, toast
 
 TOOLS = [("rect", "rectangle", tr("Rectangle")), ("ellipse", "ellipse", tr("Ellipse")),
          ("arrow", "arrow", tr("Flèche")), ("line", "line", tr("Trait")), ("pen", "pen", tr("Main levée")),
@@ -362,7 +362,7 @@ class AnnotateWindow(Adw.Window):
         d.connect("response", lambda _d, r: add(r))
         row.connect("entry-activated", lambda *_: (d.close(), add("ok")))
         d.present(self)
-        GLib.idle_add(row.grab_focus)
+        focus_later(row)
 
     def undo(self):
         if self.shapes:

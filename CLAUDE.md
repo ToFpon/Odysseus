@@ -153,6 +153,10 @@ fenêtre de recherche dans le contenu.
   modèle débranché). « destroy » n'arrive pas tant que Python garde une référence.
 - Gestionnaires des cellules : ne capturer ni la cellule ni le Gtk.ListItem dans une fermeture
   (`controller.get_widget()`, `widget._rec`).
+- Jamais `GLib.idle_add(champ.grab_focus)` : grab_focus renvoie True, la source est rappelée sans fin,
+  le texte est resélectionné en boucle (une seule lettre possible dans le champ) et le processeur
+  tourne. `common.focus_later(widget)` ; un test interdit le motif. Toute fonction passée à
+  `idle_add` / `timeout_add` doit renvoyer False (sauf répétition voulue).
 - Ghostscript `pdfimage24` : `-sCompression=JPEG` en majuscules.
 - `view-column-symbolic` n'existe pas dans Adwaita : `icons.first_icon` avec repli.
 - Corbeille / GVfs : au bout d'un moment, gvfsd-trash ne voit plus les `.Trash-1000` des autres disques

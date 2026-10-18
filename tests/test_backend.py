@@ -358,6 +358,20 @@ class PoolTest(unittest.TestCase):
 
 
 class MiscTest(unittest.TestCase):
+    def test_no_idle_grab_focus(self):
+        """idle_add(x.grab_focus) boucle sans fin (grab_focus renvoie True) : common.focus_later."""
+        import re
+        root = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "odysseus")
+        bad = []
+        for d, _dirs, files in os.walk(root):
+            for n in files:
+                if n.endswith(".py"):
+                    with open(os.path.join(d, n), encoding="utf-8") as f:
+                        for i, line in enumerate(f, 1):
+                            if re.search(r"(idle_add|timeout_add)\([^#]*\.grab_focus\)", line) and "Jamais" not in line:
+                                bad.append(f"{n}:{i}")
+        self.assertEqual(bad, [])
+
     def test_7z_error_on_next_line(self):
         """« System ERROR: » / « Error: » suivis de la raison à la ligne suivante : message non vide."""
         from odysseus.backend.engine import ToolError, raise_for_7z
