@@ -337,7 +337,11 @@ class Pane(Gtk.Box):
             else:
                 self.open_archive(e[1], e[2], push=False)
         elif e[0] == "search":
+            # revenir à une recherche la relance (avant : dossier racine non filtré, alors que le champ
+            # affichait encore la recherche)
             self.open(e[1], push=False)
+            if e[2]:
+                self.start_search(e[2], recursive=True, push=False)
         else:
             self.open(e[1], push=False)
 
@@ -631,7 +635,7 @@ class Pane(Gtk.Box):
         self.model.set_filter(text)
         self._update_state()
 
-    def start_search(self, query: str, recursive: bool):
+    def start_search(self, query: str, recursive: bool, push: bool = True):
         """Filtre instantané du dossier, ou recherche récursive des noms dans les sous-dossiers."""
         query = query.strip()
         if not recursive or self.mode not in ("fs", "search") or is_uri(self.location if self.mode == "fs"
@@ -645,7 +649,7 @@ class Pane(Gtk.Box):
                 self.open(self.search_root, push=False)
             return
         root = self.search_root if self.mode == "search" else self.location
-        if self.mode != "search":
+        if self.mode != "search" and push:
             self._push()
         self._stop_search()
         self.mode = "search"

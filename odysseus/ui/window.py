@@ -50,6 +50,10 @@ class MainWindow(FileActions, ArchiveActions, ToolActions, Adw.ApplicationWindow
         nav = Gtk.EventControllerLegacy(propagation_phase=Gtk.PropagationPhase.CAPTURE)
         nav.connect("event", self._on_mouse_nav)
         self.add_controller(nav)
+        # touches qui ont un sens dans un champ de saisie : rendues au texte (voir _TEXT_KEYS)
+        keys = Gtk.EventControllerKey(propagation_phase=Gtk.PropagationPhase.CAPTURE)
+        keys.connect("key-pressed", self._on_text_key)
+        self.add_controller(keys)
 
     # ------------------------------------------------------------------
     # Construction
@@ -631,9 +635,26 @@ class MainWindow(FileActions, ArchiveActions, ToolActions, Adw.ApplicationWindow
             text.select_region(pos, pos)
         return True
 
+    # (touche, Ctrl, Maj) → action dont la touche revient au texte qui a le focus. Interceptée au clavier
+    # et non dans l'action : un clic sur « Précédent » pendant que la recherche a le focus doit naviguer.
+    _TEXT_KEYMAP = {
+        ("BackSpace", False, False): "back", ("Delete", False, False): "trash",
+        ("KP_Delete", False, False): "trash", ("Delete", False, True): "delete",
+        ("slash", False, False): "location-root", ("asciitilde", False, False): "location-home",
+        ("asciitilde", False, True): "location-home",
+        ("a", True, False): "select-all", ("A", True, True): "unselect-all", ("a", True, True): "unselect-all",
+        ("x", True, False): "cut", ("c", True, False): "copy", ("v", True, False): "paste",
+        ("z", True, False): "undo", ("Z", True, True): "redo", ("z", True, True): "redo",
+    }
+
+    def _on_text_key(self, _ctrl, keyval, _code, state):
+        if state & (Gdk.ModifierType.ALT_MASK | Gdk.ModifierType.SUPER_MASK):
+            return False
+        name = self._TEXT_KEYMAP.get((Gdk.keyval_name(keyval) or "", bool(state & Gdk.ModifierType.CONTROL_MASK),
+                                      bool(state & Gdk.ModifierType.SHIFT_MASK)))
+        return bool(name) and self._to_text(name)
+
     def _add(self, name, cb, param: Optional[str] = None):
-        if name in self._TEXT_KEYS and not param:
-            cb = (lambda cb=cb, name=name: None if self._to_text(name) else cb())
         a = Gio.SimpleAction.new(name, GLib.VariantType.new(param) if param else None)
         if param:
             a.connect("activate", lambda _a, v, cb=cb: cb(v.unpack()))

@@ -773,6 +773,26 @@ def noms_non_utf8(win):
 
 
 @step
+def precedent_avec_focus_texte(win):
+    """Le renvoi des touches au champ de saisie se fait au clavier seulement : avec le focus dans la
+    recherche, l'action « Précédent » (bouton, souris) navigue toujours."""
+    p = win.pane
+    p.open(os.path.join(D, "dossier A"))
+    yield Wait(5, until=lambda: not p.model.loading)
+    p.open(D)
+    yield Wait(5, until=lambda: not p.model.loading)
+    win.activate_action("win.search", None)
+    yield pump(0.3)
+    win.search_entry.grab_focus()
+    win.activate_action("win.back", None)
+    yield pump(0.6)
+    check(p.location == os.path.join(D, "dossier A"), f"Précédent navigue malgré le focus texte ({p.location})")
+    win.search_entry.set_text("")
+    p.open(D)
+    yield Wait(5, until=lambda: not p.model.loading)
+
+
+@step
 def fonctionnalites(win):
     from odysseus import features
     features.set_enabled("dual_panel", False)

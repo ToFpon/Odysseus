@@ -110,19 +110,26 @@ class OdysseusApp(Adw.Application):
                 locs.append(f.get_path() or f.get_uri())
         dual = True if opts.get("dual") else None
         win = self._window()
+        pair = locs[1] if dual and len(locs) >= 2 else None    # --dual A B : un seul onglet A | B
         if win is None or opts.get("new-window"):
             win = self._new_window(locs[0] if locs else None, dual=dual)
-            rest = locs[1:]
+            rest = locs[2:] if pair else locs[1:]
         else:
-            rest = locs
-            if dual:
-                win.activate_action("dual", None)
-        for loc in rest:
-            win.new_tab(loc)
-        if dual and len(locs) == 2 and win.is_dual():
+            if dual and locs:
+                win.new_tab(locs[0])
+                rest = locs[2:] if pair else locs[1:]
+            else:
+                rest = locs
+            if dual and not win.is_dual():
+                # pas l'action « dual » : elle bascule un état commun à la fenêtre et pouvait ÉTEINDRE le
+                # double panneau du nouvel onglet ; _set_dual l'active sur l'onglet courant et resynchronise
+                win._set_dual(True)
+        if pair and win.is_dual():
             other = win.other_pane()
             if other:
-                other.open(locs[1])
+                other.open(pair)
+        for loc in rest:
+            win.new_tab(loc)
         win.present()
         if opts.get("search-content"):
             win.content_search(locs[0] if locs else "")

@@ -114,7 +114,8 @@ Les dialogues ouverts (fenêtres posées sur la principale) sont composés au ce
   opaque : rendu transparent dans base.css, `.odysseus-app-chooser`).
 - Raccourcis : GTK 4 traite ceux de l'application AVANT le widget qui a le focus. Ceux qui ont un
   sens dans un champ (Suppr, Retour arrière, `/`, `~`, Ctrl+A/X/C/V/Z…) sont renvoyés au texte qui a
-  le focus (`MainWindow._TEXT_KEYS` / `_to_text`) ; testé avec de vrais appuis dans `ui_mouse.py`.
+  le focus par un contrôleur clavier en capture (`MainWindow._on_text_key`, qui passe avant les
+  raccourcis) — jamais dans l'action : un clic sur « Précédent » doit naviguer ; testé dans `ui_mouse.py`.
 - GTK 4.14 / Gtk.ColumnView : NE JAMAIS changer la visibilité d'une colonne d'une vue remplie (une
   cellule libérée reste dans la liste de la colonne → segfault à la suppression suivante d'une ligne,
   `gtk_column_view_column_queue_resize`). `ListView.update_columns` reconstruit la vue avec les

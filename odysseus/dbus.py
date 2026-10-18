@@ -48,13 +48,20 @@ class FileManager1:
             for i, p in enumerate(paths):
                 win.open_location(p) if i == 0 else win.new_tab(p)
         elif method == "ShowItems":
-            for i, p in enumerate(paths):
-                folder, name = os.path.dirname(p), os.path.basename(p)
+            # un onglet par dossier, avec tous ses éléments sélectionnés (avant : un onglet par
+            # fichier, et la sélection seulement dans le premier)
+            groups: dict = {}
+            for p in paths:
+                groups.setdefault(os.path.dirname(p.rstrip("/")) or "/", []).append(os.path.basename(p.rstrip("/")))
+            for i, (folder, names) in enumerate(groups.items()):
                 if i == 0:
-                    win.pane.open(folder, select=[name])
+                    win.pane.open(folder, select=names)
                 else:
-                    win.new_tab(folder)
+                    ws = win.new_tab(folder)
+                    ws.active.open(folder, push=False, select=names)
         elif method == "ShowItemProperties":
-            win._show_properties([p for p in paths if os.path.exists(p)])
+            existing = [p for p in paths if os.path.lexists(p)]
+            if existing:                 # chemin inexistant : pas de fenêtre de propriétés vide
+                win._show_properties(existing)
         win.present()
         return False
