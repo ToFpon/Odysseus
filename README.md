@@ -71,7 +71,7 @@ Requirements: Python 3.10+, PyGObject, GTK ≥ 4.14, libadwaita ≥ 1.5. Every o
 # Debian / Ubuntu 24.04+ / Zorin OS 18
 sudo apt install python3-gi python3-gi-cairo gir1.2-gtk-4.0 gir1.2-adw-1
 # optional
-sudo apt install 7zip ghostscript qpdf python3-pypdf ffmpeg ffmpegthumbnailer ripgrep gir1.2-poppler-0.18
+sudo apt install 7zip lbzip2 pigz ghostscript qpdf python3-pypdf ffmpeg ffmpegthumbnailer ripgrep gir1.2-poppler-0.18
 ```
 
 ```sh
@@ -170,7 +170,7 @@ Prérequis : Python 3.10+, PyGObject, GTK ≥ 4.14, libadwaita ≥ 1.5. Tous les
 # Debian / Ubuntu 24.04+ / Zorin OS 18
 sudo apt install python3-gi python3-gi-cairo gir1.2-gtk-4.0 gir1.2-adw-1
 # facultatif
-sudo apt install 7zip ghostscript qpdf python3-pypdf ffmpeg ffmpegthumbnailer ripgrep gir1.2-poppler-0.18
+sudo apt install 7zip lbzip2 pigz ghostscript qpdf python3-pypdf ffmpeg ffmpegthumbnailer ripgrep gir1.2-poppler-0.18
 ```
 
 ```sh

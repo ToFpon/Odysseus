@@ -33,7 +33,7 @@ fi
 
 # Programmes facultatifs : chaque fonctionnalité qui en dépend se désactive d'elle-même s'il manque.
 optional=""
-for prog in 7z:7zip gs:ghostscript qpdf:qpdf ffmpeg:ffmpeg ffmpegthumbnailer:ffmpegthumbnailer rg:ripgrep pdftoppm:poppler-utils; do
+for prog in 7z:7zip lbzip2:lbzip2 pigz:pigz gs:ghostscript qpdf:qpdf ffmpeg:ffmpeg ffmpegthumbnailer:ffmpegthumbnailer rg:ripgrep pdftoppm:poppler-utils; do
     command -v "${prog%%:*}" >/dev/null 2>&1 || optional="$optional ${prog#*:}"
 done
 python3 -c "import cairo" 2>/dev/null || optional="$optional python3-cairo python3-gi-cairo"

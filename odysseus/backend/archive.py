@@ -188,6 +188,12 @@ def parse_slt(text: str, default_name: str = "contenu") -> tuple[dict, list[Entr
 # ---------------------------------------------------------------------------
 
 def _decompress_cmd(stream: str) -> list[str]:
+    fast = formats.parallel_tool(stream)
+    if fast:
+        return [fast[0]] + fast[2]
+    if stream == "bz2" and sevenzip_path():
+        # sans lbzip2 : le décodeur bzip2 de 7-Zip est multicœur (mesuré 3× plus rapide que bzip2)
+        return [sevenzip_path(), "x", "-tbzip2", "-si", "-so", "-bd"]
     prog, _, dargs = formats.STREAM_TOOLS[stream]
     exe = shutil.which(prog)
     if not exe:
@@ -196,10 +202,14 @@ def _decompress_cmd(stream: str) -> list[str]:
 
 
 def _compress_cmd(stream: str, level: Optional[int]) -> list[str]:
-    prog, cargs, _ = formats.STREAM_TOOLS[stream]
-    exe = shutil.which(prog)
-    if not exe:
-        raise ToolError(tr('Le programme « {prog} » est nécessaire pour ce format').format(prog=prog))
+    fast = formats.parallel_tool(stream)
+    if fast:
+        exe, cargs = fast[0], fast[1]
+    else:
+        prog, cargs, _ = formats.STREAM_TOOLS[stream]
+        exe = shutil.which(prog)
+        if not exe:
+            raise ToolError(tr('Le programme « {prog} » est nécessaire pour ce format').format(prog=prog))
     argv = [exe] + list(cargs)
     if level is not None:
         lo, hi = formats.STREAM_LEVELS.get(stream, (1, 9))
