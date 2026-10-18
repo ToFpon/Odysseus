@@ -8,6 +8,8 @@ import unittest
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
+from gi.repository import Gio  # noqa: E402
+
 from odysseus.backend import bookmarks, fileops, formats, media, scanner, search, workers  # noqa: E402
 from odysseus.backend.engine import Job  # noqa: E402
 from odysseus.i18n import tr  # noqa: E402
@@ -18,6 +20,26 @@ def run(func):
     if j.state != "done":
         raise AssertionError(f"{j.state}: {j.error}\n{j.log}")
     return j.result
+
+
+class ContentTypeTest(unittest.TestCase):
+    """Types comme Nautilus (standard::content-type de GIO), pas seulement d'après le nom."""
+
+    def test_sniffed_like_nautilus(self):
+        with tempfile.TemporaryDirectory() as d:
+            files = {".bash_aliases": b'alias ll="ls -l"\n', "spotlight.sh.bck1": b"#!/bin/bash\necho hi\n",
+                     "vide.tmp": b"", "odysseus.log": b"", "notes.txt": b"x"}
+            for n, data in files.items():
+                with open(os.path.join(d, n), "wb") as f:
+                    f.write(data)
+            os.mkfifo(os.path.join(d, "tube"))
+            recs = {r.name: r for r in scanner.scan_local(d, threading.Event())}
+            for n in list(files) + ["tube"]:
+                gio = Gio.File.new_for_path(os.path.join(d, n)).query_info(
+                    "standard::content-type", Gio.FileQueryInfoFlags.NONE, None).get_content_type()
+                self.assertEqual(recs[n].content_type, gio, n)
+            self.assertEqual(recs["spotlight.sh.bck1"].content_type, "application/x-shellscript")
+            self.assertEqual(recs["vide.tmp"].content_type, "application/x-zerosize")
 
 
 class ScannerTest(unittest.TestCase):

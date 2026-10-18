@@ -115,6 +115,34 @@ def apply_stat(r: Rec, s: os.stat_result):
     r.mode = s.st_mode
     r.uid = s.st_uid
     r.stat_ok = True
+    if not r.is_dir and r.ctype is None:
+        r.ctype = sniff_type(r.name, r.path, s)
+
+
+_SPECIAL = ((st.S_ISFIFO, "inode/fifo"), (st.S_ISSOCK, "inode/socket"), (st.S_ISCHR, "inode/chardevice"),
+            (st.S_ISBLK, "inode/blockdevice"))
+
+
+def sniff_type(name: str, path: Optional[str], s: os.stat_result) -> Optional[str]:
+    """Type comme Nautilus (attribut standard::content-type de GIO) : fichier vide →
+    application/x-zerosize ; nom qui ne suffit pas (.bashrc, script.sh.bck1, .service…) → le début
+    du fichier est lu. Appelé dans le fil de lecture du dossier, jamais dans l'interface."""
+    for test, ctype in _SPECIAL:
+        if test(s.st_mode):
+            return ctype
+    if not st.S_ISREG(s.st_mode):
+        return None
+    if s.st_size == 0:
+        return "application/x-zerosize"
+    guess, uncertain = Gio.content_type_guess(name, None)
+    if not uncertain or not path:
+        return guess or None
+    try:
+        with open(path, "rb") as fh:
+            data = fh.read(4096)
+    except OSError:
+        return guess or None
+    return Gio.content_type_guess(name, data)[0] or guess or None
 
 
 def read_hidden_file(folder: str) -> set:
