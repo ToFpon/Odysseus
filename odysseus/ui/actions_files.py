@@ -16,7 +16,8 @@ from ..backend.engine import Job, human_size
 from ..i18n import ntr, tr
 from ..settings import settings
 from . import clipboard
-from .common import AlertDialog, alert, choose_folder, copy_to_clipboard, describe_paths, full_date, open_with_default, toast
+from .common import (AlertDialog, alert, choose_folder, copy_to_clipboard, describe_paths, full_date,
+                     launch_default, open_with_default, toast)
 from .jobs import ProgressWindow, finished_toast, manager
 
 TERMINALS = ["x-terminal-emulator", "gnome-terminal", "kgx", "ptyxis", "tilix", "terminator", "konsole",
@@ -172,7 +173,7 @@ class FileActions:
         if path is None:
             uri = rec.get("target_uri") or rec.uri
             if uri:
-                Gtk.FileLauncher.new(Gio.File.new_for_uri(uri)).launch(self, None, None)
+                self._open_uri(uri)
             return
         if features.enabled("archives") and formats.looks_like_archive(rec.name):
             pane.open_archive(path)
@@ -187,7 +188,12 @@ class FileActions:
             elif r.path:
                 open_with_default(self, r.path)
             elif r.uri:
-                Gtk.FileLauncher.new(Gio.File.new_for_uri(r.get("target_uri") or r.uri)).launch(self, None, None)
+                self._open_uri(r.get("target_uri") or r.uri)
+
+    def _open_uri(self, uri: str):
+        f = Gio.File.new_for_uri(uri)
+        if not launch_default(self, f):
+            Gtk.FileLauncher.new(f).launch(self, None, None)
 
     def open_with_app(self, app_id: str):
         app = Gio.DesktopAppInfo.new(app_id) if app_id else None

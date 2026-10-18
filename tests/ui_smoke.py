@@ -632,6 +632,32 @@ def dialogues_fenetres(win):
 
 
 @step
+def application_par_defaut(win):
+    """Ouvrir un fichier lance directement l'application par défaut de son type (comme Nautilus),
+    sans passer par le choix « Ouvrir avec… » du portail."""
+    marker = os.path.join(TMP, "lance.txt")
+    apps = os.path.join(os.environ["XDG_DATA_HOME"], "applications")
+    os.makedirs(apps, exist_ok=True)
+    with open(os.path.join(apps, "visionneuse-test.desktop"), "w") as f:
+        f.write("[Desktop Entry]\nType=Application\nName=Visionneuse test\n"
+                f"Exec=sh -c 'echo \"$1\" > {marker}' sh %f\nMimeType=image/png;\n")
+    with open(os.path.join(os.environ["XDG_CONFIG_HOME"], "mimeapps.list"), "w") as f:
+        f.write("[Default Applications]\nimage/png=visionneuse-test.desktop\n")
+    subprocess.run(["update-desktop-database", apps], capture_output=True)
+    p = win.pane
+    p.open(D)
+    yield Wait(5, until=lambda: not p.model.loading)
+    before = list(Gtk.Window.list_toplevels())
+    rec = [r for r in p.model.items if r.name == "image.png"][0]
+    win._on_activated(p, rec)
+    yield Wait(5, until=lambda: os.path.exists(marker))
+    check(os.path.exists(marker) and open(marker).read().strip() == os.path.join(D, "image.png"),
+          "double-clic : l'application par défaut est lancée directement")
+    new = [w for w in Gtk.Window.list_toplevels() if w not in before and w.get_visible()]
+    check(not new, f"pas de fenêtre « Ouvrir avec… » ({[type(w).__name__ for w in new]})")
+
+
+@step
 def fonctionnalites(win):
     from odysseus import features
     features.set_enabled("dual_panel", False)

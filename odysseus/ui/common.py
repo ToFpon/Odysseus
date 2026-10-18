@@ -242,9 +242,32 @@ def choose_save(parent: Gtk.Widget, title: str, initial_path: str, callback: Cal
     dlg.save(parent.get_root(), None, done)
 
 
+def launch_default(parent: Optional[Gtk.Widget], f: Gio.File) -> bool:
+    """Ouvre f avec l'application par défaut de son type, directement, comme Nautilus.
+    (Gtk.FileLauncher passe par le portail, qui affiche « Ouvrir avec… » sous GNOME même quand une
+    application par défaut existe.) False s'il n'y a pas d'application par défaut."""
+    try:
+        info = f.query_info("standard::content-type,standard::fast-content-type",
+                            Gio.FileQueryInfoFlags.NONE, None)
+        ctype = info.get_content_type() or info.get_attribute_string("standard::fast-content-type")
+        app = Gio.AppInfo.get_default_for_type(ctype, not f.is_native()) if ctype else None
+    except GLib.Error:
+        app = None
+    if app is None:
+        return False
+    win = parent.get_root() if parent else None
+    ctx = win.get_display().get_app_launch_context() if win is not None else None
+    try:
+        return bool(app.launch([f], ctx))
+    except GLib.Error:
+        return False
+
+
 def open_with_default(parent: Gtk.Widget, path: str, folder: bool = False):
     f = Gio.File.new_for_path(path)
-    launcher = Gtk.FileLauncher.new(f)
+    if not folder and launch_default(parent, f):
+        return
+    launcher = Gtk.FileLauncher.new(f)      # pas d'application par défaut : le choix du système
     win = parent.get_root() if parent else None
 
     def done(l, res):
@@ -263,6 +286,8 @@ def open_with_default(parent: Gtk.Widget, path: str, folder: bool = False):
 
 def open_folder(parent: Gtk.Widget, folder: str):
     f = Gio.File.new_for_path(folder)
+    if launch_default(parent, f):
+        return
     launcher = Gtk.FileLauncher.new(f)
 
     def done(l, res):

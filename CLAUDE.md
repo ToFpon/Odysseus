@@ -97,6 +97,9 @@ Les dialogues ouverts (fenêtres posées sur la principale) sont composés au ce
 - D-Bus : `conn.register_object(path, info, method_cb, None, None)` (pas de `register_object_with_closures`).
 - Double panneau : la position du séparateur se calcule avec `paned.get_width()`, et le ratio n'est
   mis à jour que pendant un glisser de l'utilisateur.
+- Ouvrir un fichier : `common.launch_default` (Gio.AppInfo par défaut du type, lancée directement,
+  comme Nautilus). Pas `Gtk.FileLauncher` en premier : il passe par le portail, qui affiche
+  « Ouvrir avec… » sous GNOME même quand une application par défaut existe (repli seulement).
 - Ghostscript `pdfimage24` : `-sCompression=JPEG` en majuscules.
 - `view-column-symbolic` n'existe pas dans Adwaita : `icons.first_icon` avec repli.
 - Boutons latéraux de la souris (8/9) : bug de GTK 4.14 (`gtkmain.c`, `handle_pointing_event`) — le
