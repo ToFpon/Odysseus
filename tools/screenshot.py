@@ -15,7 +15,8 @@ import gi  # noqa: E402
 
 gi.require_version("Gtk", "4.0")
 gi.require_version("Adw", "1")
-from gi.repository import Adw, GLib, Gtk  # noqa: E402
+gi.require_version("Graphene", "1.0")
+from gi.repository import Adw, GLib, Graphene, Gtk  # noqa: E402
 
 from odysseus.app import OdysseusApp  # noqa: E402
 
@@ -36,6 +37,14 @@ def snap(win):
         w, h = target.get_width(), target.get_height()
         snapshot = Gtk.Snapshot()
         paint.snapshot(snapshot, w, h)
+        # les dialogues sont de vraies fenêtres (comme Nautilus 46) : posés au centre, par-dessus
+        for d in Gtk.Window.list_toplevels():
+            if d is not win and d.get_visible() and d.get_transient_for() is win:
+                dw, dh = d.get_width(), d.get_height()
+                snapshot.save()
+                snapshot.translate(Graphene.Point().init(max((w - dw) / 2, 0), max((h - dh) / 2, 0)))
+                Gtk.WidgetPaintable.new(d).snapshot(snapshot, dw, dh)
+                snapshot.restore()
         node = snapshot.to_node()
         tex = target.get_renderer().render_texture(node, None)
         tex.save_to_png(out)
@@ -76,7 +85,8 @@ def on_ready(win):
             d = PreferencesDialog()
             if opts["prefs"]:
                 d.set_visible_page_name(opts["prefs"])
-            d.present(win)
+            d.set_transient_for(win)
+            d.present()
         return False
     GLib.timeout_add(700, later)
     snap(win)

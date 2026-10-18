@@ -1001,10 +1001,6 @@ msgid "Nouveau document"
 msgstr "New document"
 
 #: odysseus/ui/actions_files.py:584
-msgid "Vider la corbeille ?"
-msgstr "Empty the trash?"
-
-#: odysseus/ui/actions_files.py:584
 msgid "Tous les éléments de la corbeille seront définitivement supprimés."
 msgstr "All items in the trash will be permanently deleted."
 
@@ -1059,10 +1055,6 @@ msgstr "Name"
 #: odysseus/ui/actions_files.py:508
 msgid "Mettre à la corbeille ?"
 msgstr "Move to trash?"
-
-#: odysseus/ui/actions_files.py:546 odysseus/ui/actions_files.py:560
-msgid "Supprimer définitivement ?"
-msgstr "Delete permanently?"
 
 #: odysseus/ui/actions_files.py:573
 msgid "Restauration"
@@ -1153,16 +1145,6 @@ msgstr "Cannot rename"
 #: odysseus/ui/actions_files.py:458 odysseus/ui/actions_files.py:477
 msgid "Création impossible"
 msgstr "Cannot create"
-
-#: odysseus/ui/actions_files.py:547
-msgid "{0} sera supprimé sans possibilité de retour."
-msgstr "{0} will be deleted with no way back."
-
-#: odysseus/ui/actions_files.py:561
-msgid "« {name} » sera supprimé définitivement. Cette action est irréversible."
-msgid_plural "Ces {n} éléments seront supprimés définitivement. Cette action est irréversible."
-msgstr[0] "“{name}” will be permanently deleted. This cannot be undone."
-msgstr[1] "These {n} items will be permanently deleted. This cannot be undone."
 
 #: odysseus/ui/actions_files.py:582
 msgid "Corbeille vidée"
@@ -3683,3 +3665,14 @@ msgstr "over 4 GB: too large for a FAT32 drive (exFAT or NTFS allow it)"
 
 msgid "les liens symboliques ne peuvent pas être copiés sur ce support"
 msgstr "symbolic links cannot be copied to this drive"
+
+msgid "Supprimer définitivement « {name} » ?"
+msgid_plural "Supprimer définitivement les {n} éléments sélectionnés ?"
+msgstr[0] "Permanently delete “{name}”?"
+msgstr[1] "Permanently delete the {n} selected items?"
+
+msgid "Les éléments définitivement supprimés ne peuvent pas être restaurés"
+msgstr "Permanently deleted items can not be restored"
+
+msgid "Vider tous les éléments de la corbeille ?"
+msgstr "Empty all items from Trash?"

@@ -16,7 +16,7 @@ from ..backend.engine import Job, human_size
 from ..i18n import ntr, tr
 from ..settings import settings
 from . import clipboard
-from .common import alert, choose_folder, copy_to_clipboard, describe_paths, full_date, open_with_default, toast
+from .common import AlertDialog, alert, choose_folder, copy_to_clipboard, describe_paths, full_date, open_with_default, toast
 from .jobs import ProgressWindow, finished_toast, manager
 
 TERMINALS = ["x-terminal-emulator", "gnome-terminal", "kgx", "ptyxis", "tilix", "terminator", "konsole",
@@ -342,7 +342,7 @@ class FileActions:
             return f"{size} · {full_date(s.st_mtime)}"
         body = (tr("Un élément du même nom existe déjà dans « {0} ».").format(os.path.dirname(c.dst)) + "\n\n" +
                 tr("Existant : {0}").format(describe(c.dst)) + "\n" + tr("Nouveau : {0}").format(describe(c.src)))
-        d = Adw.AlertDialog.new(heading, body)
+        d = AlertDialog.new(heading, body)
         check = Gtk.CheckButton(label=tr("Appliquer à tous les conflits"))
         d.set_extra_child(check)
         d.add_response("cancel", tr("Annuler"))
@@ -353,7 +353,15 @@ class FileActions:
                                   Adw.ResponseAppearance.SUGGESTED if merge else Adw.ResponseAppearance.DESTRUCTIVE)
         d.set_close_response("cancel")
         d.set_default_response("rename")
-        d.connect("response", lambda _d, r: reply(r, check.get_active()))
+        pw = self.progress_window
+        if pw is not None:
+            pw.question_opened()
+
+        def answered(_d, r):
+            if pw is not None:
+                pw.question_closed()
+            reply(r, check.get_active())
+        d.connect("response", answered)
         d.present(self)
 
     def _watch_progress(self, job: Job):
@@ -428,7 +436,7 @@ class FileActions:
         col = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
         col.append(box)
         col.append(msg)
-        d = Adw.AlertDialog.new(heading, None)
+        d = AlertDialog.new(heading, None)
         d.add_response("cancel", tr("Annuler"))
         d.add_response("ok", action)
         d.set_response_appearance("ok", Adw.ResponseAppearance.SUGGESTED)
@@ -635,8 +643,8 @@ class FileActions:
                             res.errors.append((u, e.message))
                     return res
                 self._run(tr("Suppression définitive"), work, on_done=lambda j: p.refresh())
-            alert(self, tr("Supprimer définitivement ?"),
-                  tr("{0} sera supprimé sans possibilité de retour.").format(describe_paths([r.name for r in sel])),
+            alert(self, _delete_question([r.name for r in sel]),
+                  tr("Les éléments définitivement supprimés ne peuvent pas être restaurés"),
                   responses=(("cancel", tr("Annuler")), ("delete", tr("Supprimer"))), destructive="delete",
                   default="cancel", callback=go_trash)
             return
@@ -653,11 +661,8 @@ class FileActions:
             elif r == "delete":
                 self._run(tr("Suppression définitive"), lambda j: fileops.delete(j, paths))
         if settings["confirm_delete"] or gio:
-            n = len(paths)
-            alert(self, tr("Supprimer définitivement ?"),
-                  ntr("« {name} » sera supprimé définitivement. Cette action est irréversible.",
-                      "Ces {n} éléments seront supprimés définitivement. Cette action est irréversible.",
-                      n).format(name=os.path.basename(paths[0]), n=n),
+            alert(self, _delete_question([os.path.basename(p.rstrip("/")) or p for p in paths]),
+                  tr("Les éléments définitivement supprimés ne peuvent pas être restaurés"),
                   responses=(("cancel", tr("Annuler")), ("delete", tr("Supprimer"))), destructive="delete",
                   default="cancel", callback=go)
         else:
@@ -686,7 +691,8 @@ class FileActions:
                             p.refresh()
                     toast(self, tr("Corbeille vidée"))
                 self._run(tr("Vidage de la corbeille"), fileops.empty_trash, on_done=done)
-        alert(self, tr("Vider la corbeille ?"), tr("Tous les éléments de la corbeille seront définitivement supprimés."),
+        alert(self, tr("Vider tous les éléments de la corbeille ?"),
+              tr("Tous les éléments de la corbeille seront définitivement supprimés."),
               responses=(("cancel", tr("Annuler")), ("empty", tr("Vider la corbeille"))), destructive="empty",
               default="cancel", callback=go)
 
@@ -978,3 +984,10 @@ def _delete_gio(f: Gio.File):
         for ci in f.enumerate_children("standard::name", Gio.FileQueryInfoFlags.NOFOLLOW_SYMLINKS, None):
             _delete_gio(f.get_child(ci.get_name()))
     f.delete(None)
+
+
+def _delete_question(names: list[str]) -> str:
+    """Titre de la confirmation, mot pour mot comme Nautilus."""
+    n = len(names)
+    return ntr("Supprimer définitivement « {name} » ?", "Supprimer définitivement les {n} éléments sélectionnés ?",
+               n).format(name=names[0] if names else "", n=n)

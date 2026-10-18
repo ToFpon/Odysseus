@@ -133,10 +133,11 @@ class OdysseusApp(Adw.Application):
         d = PreferencesDialog()
         if page:
             d.set_visible_page_name(page)
-        d.present(self._window())
+        d.set_transient_for(self._window())
+        d.present()
 
     def _about(self):
-        about = Adw.AboutDialog(
+        about = Adw.AboutWindow(transient_for=self._window(), modal=True,
             application_name=APP_NAME, application_icon=APP_ID, version=VERSION,
             developer_name="Tof",
             comments=tr("Gestionnaire de fichiers pour GNOME, inspiré de Nautilus.\n"
@@ -149,7 +150,7 @@ class OdysseusApp(Adw.Application):
                                                   tr("Le moteur d'archives de Pressoir https://github.com/ToFpon/Pressoir")])
         about.add_acknowledgement_section(tr("Moteurs"), ["7-Zip", "Ghostscript", "qpdf", "FFmpeg", "ripgrep",
                                                           "Poppler"])
-        about.present(self._window())
+        about.present()
 
 
 def main(argv=None) -> int:

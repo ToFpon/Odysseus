@@ -581,6 +581,57 @@ def _close_alerts():
 
 
 @step
+def dialogues_fenetres(win):
+    """Les dialogues sont de vraies fenêtres rattachées à la fenêtre principale (comme Nautilus 46 :
+    le thème du système s'y applique), et la question « Remplacer ? » n'est pas cachée par la
+    fenêtre de progression."""
+    p = win.pane
+    p.open(D)
+    yield Wait(5, until=lambda: not p.model.loading)
+
+    def opened(before):
+        return [w for w in Gtk.Window.list_toplevels() if w not in before and w.get_visible()]
+    cases = [("win.properties", ["doc.pdf"]), ("win.compress", ["doc.pdf"]), ("win.pdf-watermark", ["doc.pdf"]),
+             ("win.rename", ["doc.pdf"]), ("win.delete", ["doc.pdf"]), ("win.shortcuts", []),
+             ("app.preferences", []), ("app.about", [])]
+    for action, names in cases:
+        p.model.select_names(names) if names else p.unselect_all()
+        before = list(Gtk.Window.list_toplevels())
+        if action.startswith("app."):
+            app.activate_action(action[4:], None)
+        else:
+            win.activate_action(action, None)
+        yield pump(0.6)
+        new = opened(before)
+        check(len(new) == 1 and new[0].get_transient_for() is win,
+              f"{action} : vraie fenêtre posée sur la fenêtre principale ({[type(w).__name__ for w in new]})")
+        for w in new:
+            w.close()
+        yield pump(0.3)
+    check(os.path.exists(os.path.join(D, "doc.pdf")), "fermer la confirmation ne supprime rien")
+
+    from odysseus.backend import fileops
+    from odysseus.ui.jobs import ProgressWindow
+    if win.progress_window is None:
+        win.progress_window = ProgressWindow(win)
+    pw = win.progress_window
+    pw.present()
+    yield pump(0.3)
+    replies = []
+    c = fileops.Conflict(os.path.join(D, "image.png"), os.path.join(D, "doc.pdf"), False, False, False)
+    before = list(Gtk.Window.list_toplevels())
+    type(win)._conflict_dialog(win, c, lambda r, a: replies.append(r))   # (remplacée plus haut)
+    yield pump(0.4)
+    q = [w for w in opened(before) if w is not pw]
+    check(len(q) == 1 and not pw.get_visible(), "« Remplacer ? » : la fenêtre de progression s'efface")
+    for w in q:
+        w.response("skip")
+    yield pump(0.3)
+    check(replies == ["skip"], f"réponse transmise ({replies})")
+    pw.set_visible(False)
+
+
+@step
 def fonctionnalites(win):
     from odysseus import features
     features.set_enabled("dual_panel", False)

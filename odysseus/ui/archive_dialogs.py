@@ -11,7 +11,7 @@ from ..backend import archive, formats, tools
 from ..backend.engine import human_size, sfx_module
 from ..settings import settings
 from ..i18n import decimal, ntr, tr
-from .common import (choose_folder, choose_save, combo_row, command_group, describe_paths,
+from .common import (DialogWindow, choose_folder, choose_save, combo_row, command_group, describe_paths,
                      dialog_shell, path_row)
 
 LEVEL_LABELS = [tr("Stockage (aucune)"), tr("La plus rapide"), tr("Rapide"), tr("Normale"), tr("Maximale"), tr("Ultra")]
@@ -418,7 +418,7 @@ INFO_KEYS = [
 
 
 def show_archive_info(parent: Gtk.Widget, listing: archive.ArchiveListing):
-    dlg = Adw.Dialog(title=tr("Propriétés de l'archive"), content_width=520, content_height=620)
+    dlg = DialogWindow(title=tr("Propriétés de l'archive"), content_width=520, content_height=620)
     tv = Adw.ToolbarView()
     tv.add_top_bar(Adw.HeaderBar())
     page = Adw.PreferencesPage()

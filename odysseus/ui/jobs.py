@@ -9,7 +9,7 @@ from gi.repository import Adw, GLib, GObject, Gtk
 
 from ..backend.engine import Job
 from ..i18n import tr
-from .common import copy_to_clipboard, open_folder, toast
+from .common import DialogWindow, copy_to_clipboard, open_folder, toast
 
 
 class JobManager(GObject.Object):
@@ -139,7 +139,7 @@ class JobRow(Gtk.ListBoxRow):
             text += tr('\n\nErreur : {0}').format(j.error)
         if j.log:
             text += tr("\n\nSortie :\n") + "\n".join(j.log)[-20000:]
-        dlg = Adw.Dialog(title=tr("Journal — ") + j.title, content_width=640, content_height=420)
+        dlg = DialogWindow(title=tr("Journal — ") + j.title, content_width=640, content_height=420)
         tv = Adw.ToolbarView()
         hb = Adw.HeaderBar()
         copy = Gtk.Button(icon_name="edit-copy-symbolic", tooltip_text=tr("Copier"))
@@ -155,7 +155,7 @@ class JobRow(Gtk.ListBoxRow):
         dlg.present(self)
 
 
-class JobsDialog(Adw.Dialog):
+class JobsDialog(DialogWindow):
     def __init__(self):
         super().__init__(title=tr("Tâches"), content_width=520, content_height=520)
         tv = Adw.ToolbarView()
@@ -297,7 +297,20 @@ class ProgressWindow(Adw.Window):
                                           max_content_height=520, hscrollbar_policy=Gtk.PolicyType.NEVER))
         self.set_content(tv)
         self.rows: dict[int, JobRow] = {}
+        self._questions = 0          # questions (conflit…) ouvertes : la fenêtre s'efface devant elles
         manager.connect("changed", lambda *_: self.refresh())
+
+    def question_opened(self):
+        """Une question « Remplacer ? » s'ouvre : sinon cette fenêtre passerait devant elle."""
+        self._questions += 1
+        self.set_visible(False)
+
+    def question_closed(self):
+        self._questions = max(self._questions - 1, 0)
+        if not self._questions and any(getattr(j, "file_operation", False) and
+                                       getattr(j, "progress_shown", False) for j in manager.running):
+            self.refresh()
+            self.present()
 
     def refresh(self):
         running = [j for j in manager.running if getattr(j, "file_operation", False)]
@@ -318,7 +331,9 @@ class ProgressWindow(Adw.Window):
     def watch(self, job: Job, delay: float):
         def show():
             if job.state in ("pending", "running"):
-                self.refresh()
-                self.present()
+                job.progress_shown = True
+                if not self._questions:
+                    self.refresh()
+                    self.present()
             return False
         GLib.timeout_add(int(max(delay, 0) * 1000), show)

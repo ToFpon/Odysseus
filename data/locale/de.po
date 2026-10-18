@@ -1001,10 +1001,6 @@ msgid "Nouveau document"
 msgstr "Neues Dokument"
 
 #: odysseus/ui/actions_files.py:584
-msgid "Vider la corbeille ?"
-msgstr "Papierkorb leeren?"
-
-#: odysseus/ui/actions_files.py:584
 msgid "Tous les éléments de la corbeille seront définitivement supprimés."
 msgstr "Alle Objekte im Papierkorb werden endgültig gelöscht."
 
@@ -1059,10 +1055,6 @@ msgstr "Name"
 #: odysseus/ui/actions_files.py:508
 msgid "Mettre à la corbeille ?"
 msgstr "In den Papierkorb verschieben?"
-
-#: odysseus/ui/actions_files.py:546 odysseus/ui/actions_files.py:560
-msgid "Supprimer définitivement ?"
-msgstr "Endgültig löschen?"
 
 #: odysseus/ui/actions_files.py:573
 msgid "Restauration"
@@ -1153,16 +1145,6 @@ msgstr "Umbenennen nicht möglich"
 #: odysseus/ui/actions_files.py:458 odysseus/ui/actions_files.py:477
 msgid "Création impossible"
 msgstr "Erstellen nicht möglich"
-
-#: odysseus/ui/actions_files.py:547
-msgid "{0} sera supprimé sans possibilité de retour."
-msgstr "{0} wird ohne Rückweg gelöscht."
-
-#: odysseus/ui/actions_files.py:561
-msgid "« {name} » sera supprimé définitivement. Cette action est irréversible."
-msgid_plural "Ces {n} éléments seront supprimés définitivement. Cette action est irréversible."
-msgstr[0] "„{name}“ wird endgültig gelöscht. Dies kann nicht rückgängig gemacht werden."
-msgstr[1] "Diese {n} Objekte werden endgültig gelöscht. Dies kann nicht rückgängig gemacht werden."
 
 #: odysseus/ui/actions_files.py:582
 msgid "Corbeille vidée"
@@ -3683,3 +3665,14 @@ msgstr "über 4 GB: zu groß für einen FAT32-Datenträger (exFAT oder NTFS erla
 
 msgid "les liens symboliques ne peuvent pas être copiés sur ce support"
 msgstr "symbolische Links können nicht auf diesen Datenträger kopiert werden"
+
+msgid "Supprimer définitivement « {name} » ?"
+msgid_plural "Supprimer définitivement les {n} éléments sélectionnés ?"
+msgstr[0] "»{name}« endgültig löschen?"
+msgstr[1] "Die {n} ausgewählten Objekte endgültig löschen?"
+
+msgid "Les éléments définitivement supprimés ne peuvent pas être restaurés"
+msgstr "Endgültig gelöschte Objekte können nicht wiederhergestellt werden"
+
+msgid "Vider tous les éléments de la corbeille ?"
+msgstr "Alle Objekte im Papierkorb leeren?"

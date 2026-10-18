@@ -10,7 +10,7 @@ from gi.repository import Adw, Gio, GLib, Gtk
 from .. import features
 from ..i18n import LANGUAGE_NAMES, tr
 from ..settings import settings
-from .common import combo_row, toast
+from .common import DialogWindow, combo_row, toast
 
 
 def apply_theme():
@@ -35,9 +35,10 @@ def _choice(title: str, key: str, labels: list[str], values: list, subtitle: str
     return row
 
 
-class PreferencesDialog(Adw.PreferencesDialog):
+class PreferencesDialog(Adw.PreferencesWindow):
     def __init__(self):
-        super().__init__(title=tr("Préférences"), search_enabled=True)
+        # vraie fenêtre comme les préférences de Nautilus 46 : le thème du système s'y applique
+        super().__init__(title=tr("Préférences"), search_enabled=True, default_width=640, default_height=720)
         self.add(self._general())
         self.add(self._features())
         self.add(self._archives())
@@ -196,7 +197,7 @@ SHORTCUTS = [
 
 
 def show_shortcuts(parent):
-    dlg = Adw.Dialog(title=tr("Raccourcis clavier"), content_width=560, content_height=680)
+    dlg = DialogWindow(title=tr("Raccourcis clavier"), content_width=560, content_height=680)
     tv = Adw.ToolbarView()
     tv.add_top_bar(Adw.HeaderBar())
     page = Adw.PreferencesPage()
@@ -223,7 +224,7 @@ def launch_app(app: Gio.AppInfo, files: list, context=None):
         raise GLib.Error(tr("Cette application ne sait pas ouvrir les fichiers distants."))
 
 
-class AppChooser(Adw.Dialog):
+class AppChooser(DialogWindow):
     """« Ouvrir avec… » : applications recommandées, puis toutes les autres."""
 
     def __init__(self, parent, ctype: str, files: list):

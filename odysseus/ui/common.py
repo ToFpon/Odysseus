@@ -30,10 +30,84 @@ def toast(widget: Gtk.Widget, text: str, button: str = "", callback: Optional[Ca
     overlay.add_toast(t)
 
 
+# ---------------------------------------------------------------------------
+# Dialogues : de vraies fenêtres, comme Nautilus 46 (GNOME 46 / libadwaita 1.5). Les feuilles
+# Adw.Dialog / Adw.AlertDialog sont dessinées DANS la fenêtre principale : le thème GTK du système
+# (fond, transparence, bordure de fenêtre) ne s'y applique pas, et la fenêtre de progression, elle
+# une vraie fenêtre, passait devant la question « Remplacer ? ».
+# ---------------------------------------------------------------------------
+
+def dialog_parent(widget) -> Optional[Gtk.Window]:
+    if widget is None:
+        return None
+    root = widget.get_root() if isinstance(widget, Gtk.Widget) else None
+    return root if isinstance(root, Gtk.Window) else None
+
+
+class DialogWindow(Adw.Window):
+    """Remplace Adw.Dialog (même usage : title, content_width/height, set_child, present(parent),
+    close, signal « closed », Échap pour fermer), en fenêtre modale."""
+
+    __gsignals__ = {"closed": (GObject.SignalFlags.RUN_FIRST, None, ())}
+
+    def __init__(self, title: str = "", content_width: int = -1, content_height: int = -1, **kw):
+        super().__init__(title=title, modal=True, **kw)
+        self.set_default_size(content_width, content_height)
+        self.connect("close-request", self._on_close_request)
+        keys = Gtk.ShortcutController()
+        keys.add_shortcut(Gtk.Shortcut(trigger=Gtk.ShortcutTrigger.parse_string("Escape"),
+                                       action=Gtk.CallbackAction.new(lambda *_: (self.close(), True)[1])))
+        self.add_controller(keys)
+
+    def _on_close_request(self, *_):
+        self.emit("closed")
+        return False
+
+    def set_child(self, child):
+        self.set_content(child)
+
+    def get_child(self):
+        return self.get_content()
+
+    def set_content_width(self, width: int):
+        self.set_default_size(width, self.get_default_size()[1])
+
+    def set_content_height(self, height: int):
+        self.set_default_size(self.get_default_size()[0], height)
+
+    def force_close(self):
+        self.close()
+
+    def present(self, parent=None):
+        win = dialog_parent(parent)
+        if win is not None and win is not self:
+            self.set_transient_for(win)
+        super().present()
+
+
+class AlertDialog(Adw.MessageDialog):
+    """Remplace Adw.AlertDialog : Adw.MessageDialog, la boîte de Nautilus 46, large comme elle."""
+
+    def __init__(self, heading: str = "", body: Optional[str] = None, **kw):
+        super().__init__(heading=heading, body=body or "", modal=True, **kw)
+        if len(heading) + len(body or "") > 50:
+            self.set_default_size(600, -1)       # texte sur peu de lignes, comme chez Nautilus
+
+    @classmethod
+    def new(cls, heading: str, body: Optional[str] = None) -> "AlertDialog":
+        return cls(heading, body)
+
+    def present(self, parent=None):
+        win = dialog_parent(parent)
+        if win is not None and win is not self:
+            self.set_transient_for(win)
+        super().present()
+
+
 def alert(parent: Gtk.Widget, heading: str, body: str = "", responses=(("ok", "OK"),),
           default: str = "", destructive: str = "", suggested: str = "",
           callback: Optional[Callable[[str], None]] = None, extra: Optional[Gtk.Widget] = None):
-    d = Adw.AlertDialog.new(heading, body or None)
+    d = AlertDialog.new(heading, body or None)
     for rid, label in responses:
         d.add_response(rid, label)
     if destructive:
@@ -63,7 +137,7 @@ def ask_password(parent: Gtk.Widget, archive: str, callback: Callable[[Optional[
     body = os.path.basename(archive)
     if wrong:
         body = tr("Le mot de passe est incorrect. Réessayez.\n") + body
-    d = Adw.AlertDialog.new(tr("Archive protégée"), body)
+    d = AlertDialog.new(tr("Archive protégée"), body)
     d.add_response("cancel", tr("Annuler"))
     d.add_response("ok", tr("Déverrouiller"))
     d.set_response_appearance("ok", Adw.ResponseAppearance.SUGGESTED)
@@ -81,7 +155,7 @@ def ask_text(parent: Gtk.Widget, heading: str, label: str, initial: str,
     row = Adw.EntryRow(title=label, text=initial)
     box = Gtk.ListBox(css_classes=["boxed-list"], selection_mode=Gtk.SelectionMode.NONE)
     box.append(row)
-    d = Adw.AlertDialog.new(heading, None)
+    d = AlertDialog.new(heading, None)
     d.add_response("cancel", tr("Annuler"))
     d.add_response("ok", action)
     d.set_response_appearance("ok", Adw.ResponseAppearance.SUGGESTED)
@@ -242,8 +316,8 @@ def command_group(title: str = tr("Commande équivalente")) -> tuple[Adw.Prefere
 
 def dialog_shell(title: str, action_label: str, width: int = 560, height: int = 680,
                  destructive: bool = False):
-    """Adw.Dialog avec barre d'en-tête Annuler / Action et page de préférences."""
-    dialog = Adw.Dialog(title=title, content_width=width, content_height=height)
+    """Fenêtre de dialogue avec barre d'en-tête Annuler / Action et page de préférences."""
+    dialog = DialogWindow(title=title, content_width=width, content_height=height)
     tv = Adw.ToolbarView()
     header = Adw.HeaderBar(show_end_title_buttons=False, show_start_title_buttons=False)
     cancel = Gtk.Button(label=tr("Annuler"))

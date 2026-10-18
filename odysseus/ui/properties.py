@@ -13,12 +13,12 @@ from ..backend import scanner, tools
 from ..backend.engine import Job, human_size
 from ..i18n import ntr, tr
 from . import icons
-from .common import combo_row, copy_to_clipboard, full_date, toast
+from .common import DialogWindow, combo_row, copy_to_clipboard, full_date, toast
 
 ACCESS = [tr("Aucun"), tr("Lecture seule"), tr("Lecture et écriture")]
 
 
-class PropertiesDialog(Adw.Dialog):
+class PropertiesDialog(DialogWindow):
     def __init__(self, window, paths: list[str]):
         super().__init__(title=tr("Propriétés"), content_width=480, content_height=640)
         self.window = window

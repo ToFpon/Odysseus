@@ -15,7 +15,7 @@ import cairo
 from gi.repository import Adw, Gdk, GdkPixbuf, GLib, Gtk, Pango
 
 from ..i18n import tr
-from .common import alert, choose_save, toast
+from .common import AlertDialog, alert, choose_save, toast
 
 TOOLS = [("rect", "rectangle", tr("Rectangle")), ("ellipse", "ellipse", tr("Ellipse")),
          ("arrow", "arrow", tr("Flèche")), ("line", "line", tr("Trait")), ("pen", "pen", tr("Main levée")),
@@ -336,7 +336,7 @@ class AnnotateWindow(Adw.Window):
         row = Adw.EntryRow(title=tr("Texte"))
         box = Gtk.ListBox(css_classes=["boxed-list"], selection_mode=Gtk.SelectionMode.NONE)
         box.append(row)
-        d = Adw.AlertDialog.new(tr("Ajouter un texte"), None)
+        d = AlertDialog.new(tr("Ajouter un texte"), None)
         d.add_response("cancel", tr("Annuler"))
         d.add_response("ok", tr("Ajouter"))
         d.set_response_appearance("ok", Adw.ResponseAppearance.SUGGESTED)

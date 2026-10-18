@@ -10,9 +10,10 @@ from gi.repository import Adw, GLib, Gtk, Pango
 
 from ..backend import debpkg
 from ..i18n import tr
+from .common import DialogWindow
 
 
-class DebInstallerDialog(Adw.Dialog):
+class DebInstallerDialog(DialogWindow):
     def __init__(self, window, path: str):
         super().__init__(title=tr("Installer un paquet"), content_width=640, content_height=600)
         self.path = path

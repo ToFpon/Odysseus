@@ -10,6 +10,11 @@ Gestionnaire de fichiers GTK4 / libadwaita en Python, look Nautilus, intégrant 
 - Suivre le thème GTK du système : `data/base.css` ne fait que de la mise en page, aucune couleur fixe.
   La zone des fichiers utilise le fond / texte de la fenêtre (pas `view`), classe `nautilus-list-view`,
   lignes de liste compactes (~35 px).
+- Dialogues : de vraies fenêtres comme Nautilus 46, pour que le thème du système (fond, transparence,
+  bordure) s'y applique — `common.AlertDialog` (Adw.MessageDialog), `common.DialogWindow` (remplace
+  Adw.Dialog, même usage), `Adw.PreferencesWindow`, `Adw.AboutWindow`. Jamais Adw.Dialog /
+  Adw.AlertDialog (feuilles dessinées dans la fenêtre). Libellés des confirmations : ceux de Nautilus.
+  La fenêtre de progression s'efface pendant une question « Remplacer ? ».
 - Barre latérale : l'emplacement courant y est sélectionné ; jamais de bouton d'éjection pour les
   disques fstab ou internes (mêmes règles que Pressoir / Nautilus).
 - Chaque fonctionnalité issue d'une extension est déclarée dans `odysseus/features.py` et doit rester
@@ -83,6 +88,7 @@ Captures (Gtk.WidgetPaintable) : `xvfb-run -a python3.12 tools/screenshot.py SOR
 [--dark] [--delay=S] [--size=LxH]` ; captures de la documentation dans `docs/captures/`, faites sur le
 dossier personnel de démonstration de `tools/demo-home.py` (HOME pointé dessus, LANGUAGE=fr,
 settings.json remis à zéro avant chaque capture : la vue et le double panneau sont mémorisés).
+Les dialogues ouverts (fenêtres posées sur la principale) sont composés au centre de la capture.
 
 ## Pièges connus
 
