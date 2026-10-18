@@ -164,7 +164,13 @@ class PropertiesDialog(DialogWindow):
             return
         g = Adw.PreferencesGroup(title=tr("Droits"))
         mine = s.st_uid == os.getuid()
-        if not mine:
+        link = st.S_ISLNK(s.st_mode)
+        if link:
+            # chmod suit le lien et changerait la cible, alors que les droits lus sont ceux du lien (777)
+            g.set_description(tr("C'est un lien : ses droits sont ceux de sa cible ; ouvrez les propriétés de "
+                                 "la cible pour les modifier."))
+            mine = False
+        elif not mine:
             g.set_description(tr("Vous n'êtes pas le propriétaire : les droits ne peuvent pas être modifiés."))
         g.add(Adw.ActionRow(title=tr("Propriétaire"), subtitle=scanner.owner_name(s.st_uid)))
         try:
@@ -183,25 +189,28 @@ class PropertiesDialog(DialogWindow):
             row = combo_row(label, ACCESS, idx)
             row.set_sensitive(mine)
             row._shift = shift
-            row.connect("notify::selected", lambda *_: self._apply_mode())
+            row.connect("notify::selected", lambda *_: self._apply_mode(False))
             rows.append(row)
             g.add(row)
         self._access_rows = rows
         if not rec.is_dir:
             self.exec_row = Adw.SwitchRow(title=tr("Autoriser l'exécution comme programme"),
                                           active=bool(mode & 0o100), sensitive=mine)
-            self.exec_row.connect("notify::active", lambda *_: self._apply_mode())
+            self.exec_row.connect("notify::active", lambda *_: self._apply_mode(True))
             g.add(self.exec_row)
         else:
             self.exec_row = None
         page.add(g)
 
-    def _apply_mode(self):
+    def _apply_mode(self, exec_changed: bool = False):
         try:
-            mode = st.S_IMODE(os.lstat(self._mode_path).st_mode)
+            s = os.lstat(self._mode_path)
         except OSError:
             return
-        mode &= ~0o777
+        if st.S_ISLNK(s.st_mode):
+            return                      # jamais de chmod à travers un lien
+        old = st.S_IMODE(s.st_mode)
+        mode = old & ~0o777
         for row in self._access_rows:
             sel = row.get_selected()
             bits = 0
@@ -209,11 +218,20 @@ class PropertiesDialog(DialogWindow):
                 bits |= 4
             if sel == 2:
                 bits |= 2
-            if self._is_dir and sel >= 1:
-                bits |= 1
-            elif not self._is_dir and self.exec_row is not None and self.exec_row.get_active() and sel >= 1:
-                bits |= 1
+            if self._is_dir:
+                if sel >= 1:
+                    bits |= 1
+            elif sel >= 1:
+                # fichier : on garde le bit d'exécution de chaque catégorie ; seul l'interrupteur
+                # « Autoriser l'exécution » le pose ou le retire (sinon 0744 → « autres : aucun »
+                # devenait 0750, le groupe gagnant l'exécution)
+                if exec_changed and self.exec_row is not None:
+                    bits |= 1 if self.exec_row.get_active() else 0
+                else:
+                    bits |= (old >> row._shift) & 1
             mode |= bits << row._shift
+        if mode == old:
+            return
         try:
             os.chmod(self._mode_path, mode)
         except OSError as e:

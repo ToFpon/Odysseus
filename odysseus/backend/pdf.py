@@ -23,7 +23,7 @@ from dataclasses import dataclass
 from typing import Optional
 
 from ..i18n import tr
-from .engine import Job, ToolError
+from .engine import Job, ToolError, normal_mode
 
 GS_LEVELS = [("/screen", tr("Écran (72 ppp, le plus léger)")), ("/ebook", tr("Livre numérique (150 ppp)")),
              ("/printer", tr("Impression (300 ppp)")), ("/prepress", tr("Prépresse (couleurs préservées)")),
@@ -159,6 +159,7 @@ def _tmp_near(dst: str, suffix: str = ".pdf") -> str:
 
 
 def _finish(tmp: str, dst: str):
+    normal_mode(tmp, like=dst)        # mkstemp crée en 0600 ; « pivoter » sur place gardait 0600
     os.replace(tmp, dst)
 
 

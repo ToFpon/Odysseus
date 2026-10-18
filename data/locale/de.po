@@ -3688,3 +3688,14 @@ msgstr[1] "{0} Verknüpfungen übersprungen"
 
 msgid "Ces liens de l'archive pointaient hors du dossier d'extraction ; tout le reste a été extrait."
 msgstr "Diese Verknüpfungen im Archiv zeigten aus dem Entpackordner heraus; alles andere wurde entpackt."
+
+msgid "{0} fichier n'a pas pu être lu"
+msgid_plural "{0} fichiers n'ont pas pu être lus"
+msgstr[0] "{0} Datei konnte nicht gelesen werden"
+msgstr[1] "{0} Dateien konnten nicht gelesen werden"
+
+msgid "L'archive a été créée sans eux."
+msgstr "Das Archiv wurde ohne sie erstellt."
+
+msgid "C'est un lien : ses droits sont ceux de sa cible ; ouvrez les propriétés de la cible pour les modifier."
+msgstr "Dies ist eine Verknüpfung: Ihre Rechte sind die ihres Ziels; öffnen Sie die Eigenschaften des Ziels, um sie zu ändern."

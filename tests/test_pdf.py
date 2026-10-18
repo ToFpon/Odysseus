@@ -66,6 +66,18 @@ class PdfTest(unittest.TestCase):
         files = run(lambda j: pdf.split_pages(j, self.b, self.d, 3))
         self.assertEqual(len(files), 2)
 
+    def test_output_permissions(self):
+        """Fichiers produits avec les droits d'un fichier ordinaire (mkstemp crée en 0600), et un
+        original modifié sur place garde les siens."""
+        import stat
+        from odysseus.backend.engine import UMASK
+        out = os.path.join(self.d, "m.pdf")
+        run(lambda j: pdf.merge(j, [(self.a, ""), (self.b, "")], out))
+        self.assertEqual(stat.S_IMODE(os.stat(out).st_mode), 0o666 & ~UMASK)
+        os.chmod(self.a, 0o640)
+        run(lambda j: pdf.rotate_pages(j, self.a, "1", 90, self.a))
+        self.assertEqual(stat.S_IMODE(os.stat(self.a).st_mode), 0o640)
+
     def test_watermark_and_compress(self):
         for opts in (pdf.WatermarkOptions(text="CONFIDENTIEL", position="tiled", pages="1"),
                      pdf.WatermarkOptions(text="Été €", flatten=True, dpi=72)):

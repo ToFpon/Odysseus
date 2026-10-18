@@ -1,4 +1,5 @@
 import os
+import shutil
 import sys
 import tempfile
 import unittest
@@ -102,6 +103,43 @@ class BackendTest(unittest.TestCase):
         self.assertEqual(open(out, "rb").read(), b"ANCIENNE SAUVEGARDE")
         self.assertEqual(os.path.basename(made), "projet (2).tar.gz")
         self.assertIn("projet/lisez-moi.txt", {e.path for e in archive.list_archive(made).entries})
+
+    def test_smart_folder_permissions(self):
+        """Extraction intelligente à plusieurs éléments : dossier en droits ordinaires (pas 0700)."""
+        import stat
+        from odysseus.backend.engine import UMASK
+        arc = os.path.join(self.root, "deux.zip")
+        run(lambda j: archive.create(j, [os.path.join(self.src, "lisez-moi.txt"),
+                                         os.path.join(self.src, "sous dossier")], arc,
+                                     archive.CreateOptions(fmt="zip")))
+        out = os.path.join(self.root, "sortie")
+        os.makedirs(out)
+        dest = run(lambda j: archive.extract(j, arc, archive.ExtractOptions(dest=out, subfolder="smart")))
+        self.assertEqual(stat.S_IMODE(os.stat(dest).st_mode), 0o777 & ~UMASK)
+
+    def test_unreadable_file_reported(self):
+        """Un fichier illisible est sauté : l'archive est gardée et le fichier signalé, en 7z comme en
+        tar.gz (avant : succès silencieux en 7z / zip, échec complet en tar.gz)."""
+        import subprocess as sp
+        if not shutil.which("setpriv") or os.getuid() != 0:
+            self.skipTest("setpriv / root requis pour rendre un fichier illisible")
+        code = ("import sys; sys.path.insert(0, %r)\n"
+                "from odysseus.backend import archive\nfrom odysseus.backend.engine import Job\n"
+                "j = Job('x', lambda j: None)\n"
+                "out = archive.create(j, [%r], %r, archive.CreateOptions(fmt=%r))\n"
+                "print([p.rsplit('/', 1)[-1] for p, _ in j.skipped_files])")
+        secret = os.path.join(self.src, "secret.txt")
+        with open(secret, "w") as f:
+            f.write("x")
+        os.chmod(secret, 0)
+        root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+        for fmt in ("7z", "tar.gz"):
+            out = os.path.join(self.root, "illisible." + fmt)
+            r = sp.run(["setpriv", "--bounding-set", "-dac_override,-dac_read_search,-fowner", sys.executable,
+                        "-c", code % (root, self.src, out, fmt)], capture_output=True, text=True)
+            self.assertEqual(r.returncode, 0, r.stderr[-500:])
+            self.assertEqual(r.stdout.strip(), "['secret.txt']", fmt)
+            self.assertTrue(os.path.exists(out), fmt)
 
     def test_smart_destination(self):
         out = self.roundtrip("7z")

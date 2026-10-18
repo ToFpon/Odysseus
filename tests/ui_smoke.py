@@ -710,6 +710,41 @@ def annuler_sans_ecraser(win):
 
 
 @step
+def droits(win):
+    """Propriétés : un lien ne change jamais les droits de sa cible ; le bit d'exécution d'une
+    catégorie n'est pas ajouté en changeant l'accès d'une autre."""
+    import stat
+    from odysseus.ui.properties import PropertiesDialog
+    base = os.path.join(D, "droits")
+    os.makedirs(base)
+    tgt = os.path.join(base, "secret.txt")
+    with open(tgt, "w") as f:
+        f.write("clé")
+    os.chmod(tgt, 0o600)
+    os.symlink(tgt, os.path.join(base, "lien"))
+    script = os.path.join(base, "script.sh")
+    with open(script, "w") as f:
+        f.write("#!/bin/sh\n")
+    os.chmod(script, 0o744)
+    d = PropertiesDialog(win, [os.path.join(base, "lien")])
+    d.present(win)
+    yield pump(0.8)
+    for r in getattr(d, "_access_rows", []):
+        r.set_selected(2)
+    yield pump(0.3)
+    check(stat.S_IMODE(os.stat(tgt).st_mode) == 0o600, "propriétés d'un lien : la cible garde ses droits")
+    d.close()
+    d = PropertiesDialog(win, [script])
+    d.present(win)
+    yield pump(0.8)
+    d._access_rows[2].set_selected(0)
+    yield pump(0.3)
+    check(stat.S_IMODE(os.stat(script).st_mode) == 0o740,
+          f"0744, « autres : aucun » → 0740 ({oct(stat.S_IMODE(os.stat(script).st_mode))})")
+    d.close()
+
+
+@step
 def fonctionnalites(win):
     from odysseus import features
     features.set_enabled("dual_panel", False)

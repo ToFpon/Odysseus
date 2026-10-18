@@ -84,6 +84,14 @@ class ArchiveActions:
                                if not each else tr("Archives créées"), folder)
                 if o.password and settings["remember_passwords"]:
                     session_passwords[os.path.abspath(made)] = o.password
+                skipped = getattr(job, "skipped_files", [])
+                if skipped:
+                    text = "\n".join(f"{path} : {why}" for path, why in skipped[:15])
+                    if len(skipped) > 15:
+                        text += "\n" + tr("… et {0} autre(s)").format(len(skipped) - 15)
+                    alert(self, ntr("{0} fichier n'a pas pu être lu", "{0} fichiers n'ont pas pu être lus",
+                                    len(skipped)).format(len(skipped)),
+                          tr("L'archive a été créée sans eux.") + "\n\n" + text)
             else:
                 finished_toast(self, job, "")
         self._watch_progress(manager.submit(title, func, done))

@@ -15,7 +15,7 @@ from typing import Optional
 from . import formats
 from ..i18n import tr
 from .engine import (Job, PasswordRequired, ToolError, raise_for_7z, relay,
-                     sevenzip_path, sfx_module, quote_cmd)
+                     normal_mode, sevenzip_path, sfx_module, quote_cmd)
 
 SEVENZ_PROGRESS = ["-bsp1", "-bso0", "-bse1", "-y"]
 
@@ -454,13 +454,51 @@ def _remove_sources(sources: list[str]):
             os.remove(s)
 
 
+_7Z_UNREADABLE = re.compile(r"^(.+?) : errno=\d+ : (.+)$")
+_TAR_UNREADABLE = re.compile(r"^(?:\S*/)?tar: (.+?): Cannot (?:open|stat|read|readlink)[^:]*: (.+)$")
+
+
+def unreadable_from_7z(text: str) -> list:
+    """Fichiers sautés par 7-Zip (« WARNINGS for files: … errno=13 … ») : [(chemin, raison)]."""
+    out, inside = [], False
+    for line in (text or "").splitlines():
+        line = line.strip()
+        if line.startswith("WARNINGS for files"):
+            inside = True
+            continue
+        if inside:
+            m = _7Z_UNREADABLE.match(line)
+            if m:
+                out.append((m.group(1), m.group(2)))
+            elif line.startswith("---"):
+                inside = False
+    return out
+
+
+def unreadable_from_tar(text: str) -> Optional[list]:
+    """tar finit en échec (code 2) quand il n'a pas pu lire un fichier, mais l'archive contient
+    tout le reste. [(chemin, raison)] si ce sont les seules erreurs, sinon None."""
+    out = []
+    for line in (text or "").splitlines():
+        line = line.strip()
+        if not line or re.match(r"^(?:\S*/)?tar: Exiting with failure status", line):
+            continue
+        m = _TAR_UNREADABLE.match(line)
+        if not m:
+            return None
+        out.append((m.group(1), m.group(2)))
+    return out
+
+
 def create(job: Job, sources: list[str], out: str, o: CreateOptions) -> str:
     fmt = formats.FORMATS_BY_KEY[o.fmt]
     if not sources:
         raise ToolError(tr("Aucun fichier à compresser"))
     os.makedirs(os.path.dirname(os.path.abspath(out)) or ".", exist_ok=True)
     if fmt.engine == "7z":
-        job.run_tool(build_7z_create(sources, out, o), label=tr("Compression"))
+        text = job.run_tool(build_7z_create(sources, out, o), label=tr("Compression"))
+        # 7-Zip saute un fichier illisible avec un simple avertissement (code 1) : on le dit
+        job.skipped_files = getattr(job, "skipped_files", []) + unreadable_from_7z(text)
         return out
 
     if os.path.lexists(out):
@@ -487,7 +525,11 @@ def create(job: Job, sources: list[str], out: str, o: CreateOptions) -> str:
                 comp.wait()
             job.check_cancel()
             if tar.returncode not in (0, 1):
-                raise ToolError("tar : " + terr.strip()[-300:], terr, tar.returncode)
+                skipped = unreadable_from_tar(terr) if tar.returncode == 2 else None
+                if not skipped:
+                    raise ToolError("tar : " + terr.strip()[-300:], terr, tar.returncode)
+                # comme en 7z / zip : l'archive est gardée, les fichiers illisibles sont signalés
+                job.skipped_files = getattr(job, "skipped_files", []) + skipped
             if comp.returncode != 0:
                 raise ToolError("compression : " + cerr.strip()[-300:], cerr, comp.returncode)
         else:  # flux d'un seul fichier
@@ -729,6 +771,7 @@ def _extract_smart(job: Job, archive: str, det, o: ExtractOptions) -> str:
             os.rename(src, final)
             return final if os.path.isdir(final) else parent
         final = _unique_path(os.path.join(parent, det.base_name or "archive"))
+        normal_mode(tmp, is_dir=True)     # mkdtemp crée en 0700
         os.rename(tmp, final)
         tmp = ""
         return final

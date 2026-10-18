@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import os
+import stat
 import re
 import shlex
 import shutil
@@ -15,6 +16,27 @@ from typing import Callable, Optional
 from ..i18n import decimal, tr
 
 _PERCENT_RE = re.compile(r"(\d{1,3})%")
+
+
+def _read_umask() -> int:
+    m = os.umask(0o022)
+    os.umask(m)
+    return m
+
+
+UMASK = _read_umask()
+
+
+def normal_mode(path: str, is_dir: bool = False, like: Optional[str] = None):
+    """Droits d'un fichier produit : ceux de « like » (le fichier remplacé) s'il existe, sinon ceux
+    d'un fichier ordinaire (0666 / 0777 moins l'umask). mkstemp / mkdtemp créent en 0600 / 0700."""
+    try:
+        if like and os.path.exists(like):
+            os.chmod(path, stat.S_IMODE(os.stat(like).st_mode))
+        else:
+            os.chmod(path, (0o777 if is_dir else 0o666) & ~UMASK)
+    except OSError:
+        pass
 
 
 def sevenzip_path() -> Optional[str]:
