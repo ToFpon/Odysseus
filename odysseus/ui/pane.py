@@ -13,7 +13,7 @@ from typing import Optional
 from gi.repository import Adw, Gdk, Gio, GLib, GObject, Gtk
 
 from .. import features
-from ..backend import archive, formats, scanner
+from ..backend import archive, formats, scanner, trashwatch
 from ..backend.engine import PasswordRequired, human_size
 from ..backend.scanner import Rec
 from ..i18n import ntr, tr
@@ -835,6 +835,20 @@ class Pane(Gtk.Box):
             names, self._select_after = self._select_after, None
             self.select_names(names)
         self._update_state()
+        if self.mode == "trash" and state == "ready":
+            self._check_trash()
+
+    def _check_trash(self):
+        """Bug de GVfs : gvfsd-trash finit par ne plus voir les corbeilles des autres disques. On compte
+        nous-mêmes (dans un fil : un disque peut être lent) ; s'il en manque, relance et relecture."""
+        shown = len(self.model.all)
+
+        def work():
+            expected = trashwatch.expected_count()
+            if expected > shown and trashwatch.restart_gvfs_trash():
+                GLib.timeout_add(1500, lambda: (self.mode == "trash" and not getattr(self, "_retired", False)
+                                                and self.refresh(), False)[1])
+        threading.Thread(target=work, daemon=True).start()
 
     def _on_items_changed(self, _m, _pos, removed, added):
         """Fichier arrivé dans un dossier vide (copie, surveillance) ou dernier fichier supprimé :

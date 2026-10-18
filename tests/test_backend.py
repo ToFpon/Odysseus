@@ -260,6 +260,48 @@ class ReplaceTest(unittest.TestCase):
         self.assertEqual(open(p + ".bak2").read(), "bonjour\n")
 
 
+class TrashWatchTest(unittest.TestCase):
+    """Comptage des corbeilles (contournement de gvfsd-trash qui « oublie » les autres disques)."""
+
+    def test_counts_home_and_mounted_trash_with_info_only(self):
+        from odysseus.backend import fsinfo, trashwatch
+        with tempfile.TemporaryDirectory() as d:
+            home = os.path.join(d, "data")
+            disk = os.path.join(d, "disque")
+            uid = os.getuid()
+            for root in (os.path.join(home, "Trash"), os.path.join(disk, f".Trash-{uid}")):
+                os.makedirs(os.path.join(root, "files"))
+                os.makedirs(os.path.join(root, "info"))
+                for n in ("a.txt", "b"):
+                    open(os.path.join(root, "files", n), "w").close()
+                    open(os.path.join(root, "info", n + ".trashinfo"), "w").close()
+            open(os.path.join(disk, f".Trash-{uid}", "files", "orphelin"), "w").close()   # sans fiche
+            real_mounts, old_env = fsinfo.mounts, os.environ.get("XDG_DATA_HOME")
+            fsinfo.mounts = lambda: [(disk, "ext4"), ("/proc", "proc")]
+            os.environ["XDG_DATA_HOME"] = home
+            try:
+                self.assertEqual(trashwatch.expected_count(), 4)
+            finally:
+                fsinfo.mounts = real_mounts
+                if old_env is None:
+                    os.environ.pop("XDG_DATA_HOME", None)
+                else:
+                    os.environ["XDG_DATA_HOME"] = old_env
+
+    def test_restart_throttled(self):
+        from odysseus.backend import trashwatch
+        trashwatch._last_restart = 0.0
+        real = trashwatch.subprocess.run
+        calls = []
+        trashwatch.subprocess.run = lambda *a, **k: calls.append(a)
+        try:
+            self.assertTrue(trashwatch.restart_gvfs_trash())
+            self.assertFalse(trashwatch.restart_gvfs_trash())      # moins d'une minute après
+        finally:
+            trashwatch.subprocess.run = real
+        self.assertEqual(len(calls), 1)
+
+
 class PoolTest(unittest.TestCase):
     def test_stuck_workers_do_not_block_others(self):
         """Deux fils coincés (stat sur un montage réseau mort) : une nouvelle tâche passe quand même."""

@@ -826,6 +826,36 @@ def panneau_suit_le_dossier(win):
 
 
 @step
+def corbeille_relance_gvfs(win):
+    """Si trash:/// montre moins d'éléments que les corbeilles n'en contiennent (gvfsd-trash a perdu
+    un disque), Odysseus relance gvfsd-trash puis relit la corbeille ; sinon, rien."""
+    from odysseus.backend import trashwatch
+    calls = []
+    real_count, real_restart = trashwatch.expected_count, trashwatch.restart_gvfs_trash
+    trashwatch.restart_gvfs_trash = lambda: (calls.append(1), True)[1]
+    p = win.pane
+    try:
+        trashwatch.expected_count = lambda: 0
+        p.open("trash:///")
+        yield Wait(5, until=lambda: not p.model.loading)
+        if p.model.error:       # pas de GVfs (session sans gvfsd) : trash:/// illisible
+            print("- corbeille illisible sans GVfs : test de relance sauté")
+        else:
+            yield pump(0.6)
+            check(calls == [], "corbeille cohérente : aucune relance")
+            trashwatch.expected_count = lambda: 10 ** 6
+            p.refresh()
+            yield Wait(5, until=lambda: not p.model.loading)
+            yield pump(0.6)
+            check(len(calls) == 1, f"éléments manquants : gvfsd-trash relancé ({len(calls)})")
+    finally:
+        trashwatch.expected_count, trashwatch.restart_gvfs_trash = real_count, real_restart
+    yield pump(2.0)
+    p.open(D)
+    yield Wait(5, until=lambda: not p.model.loading)
+
+
+@step
 def fonctionnalites(win):
     from odysseus import features
     features.set_enabled("dual_panel", False)

@@ -130,6 +130,12 @@ Les dialogues ouverts (fenêtres posées sur la principale) sont composés au ce
   (`controller.get_widget()`, `widget._rec`).
 - Ghostscript `pdfimage24` : `-sCompression=JPEG` en majuscules.
 - `view-column-symbolic` n'existe pas dans Adwaita : `icons.first_icon` avec repli.
+- Corbeille / GVfs : au bout d'un moment, gvfsd-trash ne voit plus les `.Trash-1000` des autres disques
+  (les fichiers y sont, trash:/// ne les montre plus ; `pkill gvfsd-trash` répare). `backend/trashwatch.py` :
+  à chaque lecture de la corbeille, on compte nous-mêmes (éléments de `files/` ayant leur `.trashinfo`,
+  disques réseau / FUSE exclus) ; s'il en manque, `pkill -u UID -x gvfsd-trash` (une fois par minute au
+  plus) puis relecture. GVfs corrigé → comptes égaux, rien ne se passe. Le smoke test de la corbeille
+  a besoin de GVfs : `dbus-run-session` + `/usr/libexec/gvfsd &` (sinon il est sauté).
 - Boutons latéraux de la souris (8/9) : bug de GTK 4.14 (`gtkmain.c`, `handle_pointing_event`) — le
   verrou implicite du pointeur posé à l'appui n'est levé au relâchement que pour les boutons 1 à 5.
   Il reste accroché au widget visé (clic gauche suivant perdu, « Broken accounting of active state »
