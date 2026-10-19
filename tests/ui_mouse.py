@@ -203,6 +203,32 @@ def steps(win):
         xdo("key", "Escape")
         yield
     subprocess.run(["setxkbmap", "us"], capture_output=True)
+    # Ctrl + molette : zoom de la liste puis de la grille, comme Nautilus ; sans Ctrl, ça défile
+    from odysseus.settings import settings
+    p.open(D)
+    yield
+    win.activate_action("win.view-mode", GLib.Variant.new_string("list"))
+    yield
+    x, y = screen_point(win, p.list_view, 200, 120)
+    before = settings["list_zoom"]
+    xdo("mousemove", x, y, "keydown", "ctrl", "click", 4, "keyup", "ctrl")
+    yield
+    check(settings["list_zoom"] != before, f"Ctrl+molette agrandit la liste ({before} → {settings['list_zoom']})")
+    xdo("keydown", "ctrl", "click", 5, "keyup", "ctrl")
+    yield
+    check(settings["list_zoom"] == before, f"Ctrl+molette réduit la liste ({settings['list_zoom']})")
+    win.activate_action("win.view-mode", GLib.Variant.new_string("grid"))
+    yield
+    yield
+    before = settings["grid_zoom"]
+    x, y = screen_point(win, p.grid_view, 200, 120)
+    xdo("mousemove", x, y, "keydown", "ctrl", "click", 5, "keyup", "ctrl")
+    yield
+    check(settings["grid_zoom"] != before, f"Ctrl+molette réduit la grille ({before} → {settings['grid_zoom']})")
+    xdo("keydown", "ctrl", "click", 4, "keyup", "ctrl")
+    yield
+    win.activate_action("win.view-mode", GLib.Variant.new_string("list"))
+    yield
     # Annoter une image, outil texte : un vrai clic sur l'image, puis plusieurs lettres tapées.
     # Le dialogue s'ouvrait à l'appui du bouton ; le relâchement rendait le clavier à la fenêtre
     # d'annotation et seule la première lettre arrivait dans le champ.

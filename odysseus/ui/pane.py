@@ -179,6 +179,13 @@ class Pane(Gtk.Box):
                                vexpand=True, hexpand=True)
         self.list_view = ListView(self)
         self.grid_view = GridView(self)
+        for v in (self.list_view, self.grid_view):
+            # Ctrl + molette : zoom, comme Nautilus. En capture, avant le défilement de la vue.
+            zc = Gtk.EventControllerScroll(flags=Gtk.EventControllerScrollFlags.VERTICAL,
+                                           propagation_phase=Gtk.PropagationPhase.CAPTURE)
+            zc.connect("scroll", self._on_zoom_scroll)
+            v.add_controller(zc)
+        self._zoom_acc = 0.0
         self.miller: Optional[MillerView] = None
         self.other_page: Optional[OtherLocations] = None
         self.stack.add_named(self.list_view, "list")
@@ -449,6 +456,7 @@ class Pane(Gtk.Box):
         self.mode = "fs"
         self.location = path
         self._select_after = select
+        self._to_top = True              # nouvel emplacement : affiché depuis le début
         self.model.show_hidden = settings["show_hidden"]     # cachés montrés pour un fichier choisi : pas ailleurs
         self.list_view.update_columns()
         self._load_token += 1
@@ -485,6 +493,7 @@ class Pane(Gtk.Box):
         self.mode = "trash" if uri.startswith("trash:") else "remote"
         self.location = uri
         self._select_after = select
+        self._to_top = True              # nouvel emplacement : affiché depuis le début
         self.trash_bar.set_reveal_child(False)     # affichée une fois la corbeille lue, si non vide
         self.list_view.update_columns()
         if self.view_mode == "columns":
@@ -835,6 +844,10 @@ class Pane(Gtk.Box):
         if self._select_after:
             names, self._select_after = self._select_after, None
             self.select_names(names)
+        elif getattr(self, "_to_top", False) and state == "ready":
+            self._scroll_top()
+        if state == "ready":
+            self._to_top = False
         self._update_state()
         if self.mode == "trash" and state == "ready":
             self._check_trash()
@@ -999,6 +1012,28 @@ class Pane(Gtk.Box):
         first = self.model.find_name(names[0])
         if first >= 0:
             self.scroll_to(first)
+
+    def _on_zoom_scroll(self, ctrl, _dx, dy):
+        if not ctrl.get_current_event_state() & Gdk.ModifierType.CONTROL_MASK:
+            return False
+        # pavé tactile : petits pas cumulés ; molette : un cran = un niveau
+        self._zoom_acc += dy
+        steps = int(self._zoom_acc)
+        if steps:
+            self._zoom_acc -= steps
+            win = self.get_root()
+            for _ in range(abs(steps)):
+                win.activate_action("win.zoom-out" if steps > 0 else "win.zoom-in", None)
+        return True
+
+    def _scroll_top(self):
+        """Dossier ouvert : la vue repart du début. Gtk.ListView / GridView gardent sinon la position
+        de défilement du dossier précédent (le modèle est le même, seul son contenu change)."""
+        v = self.active_view
+        adj = v.get_vadjustment() if isinstance(v, Gtk.ScrolledWindow) else None
+        if adj is not None:
+            adj.set_value(0)
+            GLib.idle_add(lambda: (adj.set_value(0), False)[1])     # après la mise en page des lignes
 
     def scroll_to(self, pos: int):
         v = self.active_view

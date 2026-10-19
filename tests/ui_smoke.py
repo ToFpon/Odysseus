@@ -871,6 +871,32 @@ def panneau_suit_le_dossier(win):
 
 
 @step
+def nouveau_dossier_depuis_le_debut(win):
+    """Ouvrir un dossier après avoir défilé dans un autre : la vue repart du début (Gtk.ListView
+    gardait la position de défilement du dossier précédent)."""
+    base = os.path.join(D, "defiler")
+    for sub in ("A", "B"):
+        os.makedirs(os.path.join(base, sub))
+        for i in range(300):
+            open(os.path.join(base, sub, f"f{i:03d}.txt"), "w").close()
+    p = win.pane
+    p.open(os.path.join(base, "A"))
+    yield Wait(5, until=lambda: not p.model.loading)
+    yield pump(0.5)
+    adj = p.list_view.get_vadjustment()
+    adj.set_value(adj.get_upper())
+    yield pump(0.3)
+    check(adj.get_value() > 0, "défilé vers le bas")
+    p.open(os.path.join(base, "B"))
+    yield Wait(5, until=lambda: not p.model.loading)
+    yield pump(0.5)
+    check(p.list_view.get_vadjustment().get_value() == 0,
+          f"nouveau dossier affiché depuis le début ({p.list_view.get_vadjustment().get_value()})")
+    p.open(D)
+    yield Wait(5, until=lambda: not p.model.loading)
+
+
+@step
 def focus_une_seule_fois(win):
     """GLib.idle_add(champ.grab_focus) rappelait grab_focus sans fin (il renvoie True) : le texte du
     champ était resélectionné en boucle et chaque lettre remplaçait la précédente (annoter, texte)."""
