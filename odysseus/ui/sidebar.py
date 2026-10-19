@@ -20,6 +20,8 @@ from .common import alert, ask_text, popup_menu, toast
 
 TRASH = "trash:///"
 
+PRIVACY_SCHEMA = "org.gnome.desktop.privacy"
+
 
 def places() -> list[tuple[str, str, str]]:
     home = GLib.get_home_dir()
@@ -79,8 +81,17 @@ class Sidebar(Gtk.Box):
         self.append(scroll)
         self.lists: list[Gtk.ListBox] = []
         self.places_list = self._section(None)
+        self.recent_row = None
         if _gvfs("recent"):
-            self.places_list.append(SidebarRow("document-open-recent-symbolic", tr("Récents"), "recent:///"))
+            self.recent_row = SidebarRow("document-open-recent-symbolic", tr("Récents"), "recent:///")
+            self.places_list.append(self.recent_row)
+            # comme Nautilus : masqué quand « Historique des fichiers » est désactivé dans les
+            # Paramètres de GNOME (Vie privée), et suivi en direct
+            src = Gio.SettingsSchemaSource.get_default()
+            if src is not None and src.lookup(PRIVACY_SCHEMA, True) is not None:
+                self._privacy = Gio.Settings.new(PRIVACY_SCHEMA)     # gardé : sinon plus de signal
+                self._privacy.connect("changed::remember-recent-files", lambda *_: self._sync_recent())
+                self._sync_recent()
         for icon, label, target in places():
             self.places_list.append(SidebarRow(icon, label, target))
         # comme Nautilus : un simple séparateur avant les signets (masqué s'il n'y en a pas)
@@ -305,6 +316,9 @@ class Sidebar(Gtk.Box):
                 found = True
             else:
                 lb.unselect_all()
+
+    def _sync_recent(self):
+        self.recent_row.set_visible(self._privacy.get_boolean("remember-recent-files"))
 
     def _on_row(self, _lb, row: SidebarRow, where: str = "here"):
         if row.target is None and row.volume is not None:

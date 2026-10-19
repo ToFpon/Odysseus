@@ -982,6 +982,18 @@ def menu_barre_laterale(win):
             w.popdown()
     yield pump(0.3)
     check(win.lookup_action("open-window") is not None, "menu des dossiers : « Ouvrir dans une nouvelle fenêtre »")
+    if sb.recent_row is None or getattr(sb, "_privacy", None) is None:
+        print("- « Récents » ou réglage de GNOME indisponible : test sauté")
+    else:
+        priv = sb._privacy
+        was = priv.get_boolean("remember-recent-files")
+        priv.set_boolean("remember-recent-files", False)
+        yield pump(0.3)
+        check(not sb.recent_row.get_visible(), "« Récents » masqué quand l'historique des fichiers est désactivé")
+        priv.set_boolean("remember-recent-files", True)
+        yield pump(0.3)
+        check(sb.recent_row.get_visible(), "« Récents » réaffiché avec l'historique")
+        priv.set_boolean("remember-recent-files", was)
 
 
 @step
