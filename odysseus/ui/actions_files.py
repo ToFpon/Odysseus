@@ -83,7 +83,7 @@ class FileActions:
     def setup_file_actions(self):
         acts = {
             "open": self.open_selected, "open-default": self.open_default, "open-with": self.open_with_dialog,
-            "open-tab": self.open_in_tab, "open-other": self.open_in_other, "open-location": self.open_item_location,
+            "open-tab": self.open_in_tab, "open-other": self.open_in_other, "open-window": self.open_in_window, "open-location": self.open_item_location,
             "cut": lambda: self.clip(True), "copy": lambda: self.clip(False), "paste": self.paste,
             "paste-into": self.paste_into, "move-to": lambda: self.transfer_to(True),
             "copy-to": lambda: self.transfer_to(False),
@@ -237,6 +237,11 @@ class FileActions:
         for r in self._sel():
             if r.is_dir:
                 self.new_tab(r.path or r.uri, select=False)
+
+    def open_in_window(self):
+        for r in self._sel():
+            if r.is_dir:
+                self.open_location(r.path or r.uri, "window")
 
     def open_in_other(self):
         dirs = [r for r in self._sel() if r.is_dir and r.path]

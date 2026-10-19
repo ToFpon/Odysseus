@@ -31,7 +31,7 @@ import gi  # noqa: E402
 
 gi.require_version("Gtk", "4.0")
 gi.require_version("Adw", "1")
-from gi.repository import Adw, Gio, GLib, Gtk  # noqa: E402
+from gi.repository import Adw, Gio, GLib, Graphene, Gtk  # noqa: E402
 
 errors = []
 
@@ -946,6 +946,42 @@ def executer_comme_programme(win):
     check(tr("Exécuter comme un programme") not in labels(), "pas pour un script non exécutable")
     p.open(D)
     yield Wait(5, until=lambda: not p.model.loading)
+
+
+@step
+def menu_barre_laterale(win):
+    """Menu contextuel de la barre latérale : les entrées n'étaient pas grisées par erreur (actions
+    posées sur la liste, menu attaché à la barre) ; ouvrir dans un onglet / une nouvelle fenêtre."""
+    from odysseus.ui.sidebar import SidebarRow
+    sb = win.sidebar
+    row = sb.places_list.get_first_child()
+    while row is not None and not (isinstance(row, SidebarRow) and row.target and "://" not in row.target):
+        row = row.get_next_sibling()
+
+    class Fake:
+        def set_state(self, _s):
+            pass
+    ok, pt = row.compute_point(sb.places_list, Graphene.Point().init(5, 5))
+    sb._on_menu(Fake(), 1, pt.x, pt.y, sb.places_list)
+    yield pump(0.3)
+    pages = win.tab_view.get_n_pages()
+    check(sb.activate_action("side.tab", None), "barre latérale : « Ouvrir dans un nouvel onglet » actif")
+    yield pump(0.4)
+    check(win.tab_view.get_n_pages() == pages + 1, "nouvel onglet ouvert depuis la barre latérale")
+    win.activate_action("win.close-tab", None)
+    nwin = len(win.get_application().get_windows())
+    check(sb.activate_action("side.window", None), "barre latérale : « Ouvrir dans une nouvelle fenêtre » actif")
+    yield pump(0.6)
+    wins = win.get_application().get_windows()
+    check(len(wins) == nwin + 1, "nouvelle fenêtre ouverte")
+    for w in wins:
+        if w is not win and type(w).__name__ == "MainWindow":
+            w.destroy()
+    for w in Gtk.Window.list_toplevels():
+        if isinstance(w, Gtk.PopoverMenu):
+            w.popdown()
+    yield pump(0.3)
+    check(win.lookup_action("open-window") is not None, "menu des dossiers : « Ouvrir dans une nouvelle fenêtre »")
 
 
 @step

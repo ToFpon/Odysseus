@@ -153,6 +153,7 @@ def context_menu(win, pane, on_item: bool) -> Gio.Menu:
         s.append(tr("Exécuter comme un programme"), "win.run-program")
     if dirs:
         s.append(tr("Ouvrir dans un nouvel onglet"), "win.open-tab")
+        s.append(tr("Ouvrir dans une nouvelle fenêtre"), "win.open-window")
         if features.enabled("dual_panel"):
             s.append(tr("Ouvrir dans l'autre panneau"), "win.open-other")
     if pane.mode in ("search", "remote") and one is not None and one.path:

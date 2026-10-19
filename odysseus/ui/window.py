@@ -440,6 +440,9 @@ class MainWindow(FileActions, ArchiveActions, ToolActions, Adw.ApplicationWindow
         if where == "tab":
             self.new_tab(location)
             return
+        if where == "window":
+            self.get_application()._new_window(location)
+            return
         if where == "other":
             ws = self.workspace
             if ws and not ws.dual and features.enabled("dual_panel"):

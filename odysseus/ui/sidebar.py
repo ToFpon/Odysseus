@@ -12,6 +12,7 @@ from typing import Optional
 
 from gi.repository import Gdk, Gio, GLib, GObject, Graphene, Gtk
 
+from .. import features
 from ..backend import bookmarks, devices
 from ..backend.engine import human_size
 from ..i18n import tr
@@ -333,7 +334,9 @@ class Sidebar(Gtk.Box):
             section.append(label, f"side.{name}")
         add("open", tr("Ouvrir"), lambda: self._on_row(lb, row), s)
         add("tab", tr("Ouvrir dans un nouvel onglet"), lambda: self._on_row(lb, row, "tab"), s)
-        add("other", tr("Ouvrir dans l'autre panneau"), lambda: self._on_row(lb, row, "other"), s)
+        add("window", tr("Ouvrir dans une nouvelle fenêtre"), lambda: self._on_row(lb, row, "window"), s)
+        if features.enabled("dual_panel"):
+            add("other", tr("Ouvrir dans l'autre panneau"), lambda: self._on_row(lb, row, "other"), s)
         menu.append_section(None, s)
         s2 = Gio.Menu()
         if row.kind == "bookmark":
@@ -354,7 +357,9 @@ class Sidebar(Gtk.Box):
             s3 = Gio.Menu()
             s3.append(tr("Propriétés"), "win.properties-path::" + row.target)
             menu.append_section(None, s3)
-        lb.insert_action_group("side", group)
+        # sur la barre latérale elle-même : c'est à elle que le menu est attaché, et un menu ne cherche
+        # ses actions que chez ses parents (posées sur la liste, toutes les entrées étaient grisées)
+        self.insert_action_group("side", group)
         ok, pt = lb.compute_point(self, Graphene.Point().init(x, y))
         popup_menu(self, menu, pt.x if ok else x, pt.y if ok else y)
 
