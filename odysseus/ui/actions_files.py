@@ -94,7 +94,7 @@ class FileActions:
             "copy-path": self.copy_path, "copy-location": self.copy_location, "bookmark": self.bookmark_toggle,
             "properties": self.properties, "properties-folder": self.properties_folder,
             "terminal": self.terminal_here, "terminal-selected": self.terminal_selected,
-            "run-program": self.run_program,
+            "run-program": self.run_program, "email": self.email,
             "edit-text": self.edit_text, "undo": self.undo, "redo": self.redo,
             "open-admin": self.open_admin, "open-admin-folder": self.open_admin_folder,
             "folder-restore": self.folder_restore, "browse-archive": self.browse_archive,
@@ -102,6 +102,7 @@ class FileActions:
         for name, cb in acts.items():
             self._add(name, cb)
         self._add("open-with-app", self.open_with_app, "s")
+        self._add("send-to-device", self.send_to_device, "s")
         self._add("new-from-template", self.new_from_template, "s")
         self._add("properties-path", lambda p: self._show_properties([p]), "s")
         self._add("folder-color", self.folder_color, "s")
@@ -1022,6 +1023,34 @@ class FileActions:
             subprocess.Popen(argv, cwd=folder, start_new_session=True)
         except OSError as e:
             alert(self, tr("Impossible de lancer le terminal"), str(e))
+
+    def _regular_files(self) -> list:
+        return [r.path for r in self._sel() if r.path and not r.is_dir]
+
+    def email(self):
+        """« Courriel… » comme Nautilus : nouveau message du logiciel de courriel par défaut, avec les
+        fichiers en pièces jointes (xdg-email : Thunderbird, Evolution, Geary…)."""
+        paths = self._regular_files()
+        if not paths:
+            return
+        if not shutil.which("xdg-email"):
+            alert(self, tr("Courriel impossible"), tr("Installez xdg-utils (sudo apt install xdg-utils)."))
+            return
+        argv = ["xdg-email"]
+        for p in paths:
+            argv += ["--attach", p]
+        try:
+            subprocess.Popen(argv, start_new_session=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+        except OSError as e:
+            alert(self, tr("Courriel impossible"), str(e))
+
+    def send_to_device(self, path: str):
+        from ..backend import gsconnect
+        uris = [Gio.File.new_for_path(p).get_uri() for p in self._regular_files()]
+        name = dict(gsconnect.devices.capable()).get(path, "")
+        if uris and gsconnect.devices.send(path, uris):
+            toast(self, ntr("{0} fichier envoyé vers {1}", "{0} fichiers envoyés vers {1}", len(uris))
+                  .format(len(uris), name))
 
     def run_program(self):
         """« Exécuter comme un programme », comme Nautilus : dans un terminal, depuis le dossier du

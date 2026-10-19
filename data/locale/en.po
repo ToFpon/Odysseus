@@ -3862,3 +3862,29 @@ msgstr "Run as a Program"
 
 msgid "Ouvrir dans une nouvelle fenêtre"
 msgstr "Open in New Window"
+
+msgid "Envoyer vers un téléphone"
+msgstr "Send to a phone"
+
+msgid "Envoyer des fichiers vers un appareil connecté avec GSConnect, comme dans Nautilus"
+msgstr "Send files to a device connected with GSConnect, as in Nautilus"
+
+msgid "Courriel impossible"
+msgstr "Cannot send email"
+
+msgid "Installez xdg-utils (sudo apt install xdg-utils)."
+msgstr "Install xdg-utils (sudo apt install xdg-utils)."
+
+msgid "{0} fichier envoyé vers {1}"
+msgid_plural "{0} fichiers envoyés vers {1}"
+msgstr[0] "{0} file sent to {1}"
+msgstr[1] "{0} files sent to {1}"
+
+msgid "Courriel…"
+msgstr "Email…"
+
+msgid "Envoyer vers un appareil mobile"
+msgstr "Send To Mobile Device"
+
+msgid "Envoyer vers {0}"
+msgstr "Send to {0}"

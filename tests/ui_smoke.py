@@ -997,6 +997,83 @@ def menu_barre_laterale(win):
 
 
 @step
+def courriel_et_telephone(win):
+    """« Courriel… » (xdg-email avec pièces jointes) pour des fichiers ; « Envoyer vers <téléphone> »
+    avec GSConnect (faux service D-Bus), comme l'extension de GSConnect pour Nautilus."""
+    import odysseus.ui.actions_files as af
+    from odysseus.backend import gsconnect
+    from odysseus.ui import menus
+    base = os.path.join(D, "envoi")
+    os.makedirs(os.path.join(base, "dossier"))
+    for n in ("photo.jpg", "notes.txt"):
+        with open(os.path.join(base, n), "w") as f:
+            f.write("x")
+    p = win.pane
+    p.open(base)
+    yield Wait(5, until=lambda: not p.model.loading)
+
+    def labels():
+        out = []
+
+        def walk(model):
+            for i in range(model.get_n_items()):
+                lbl = model.get_item_attribute_value(i, "label", None)
+                if lbl is not None:
+                    out.append(lbl.unpack())
+                for link in ("section", "submenu"):
+                    sub = model.get_item_link(i, link)
+                    if sub is not None:
+                        walk(sub)
+        walk(menus.context_menu(win, p, True))
+        return out
+    p.model.select_names(["photo.jpg", "notes.txt"])
+    yield pump(0.2)
+    check(tr("Courriel…") in labels(), "menu : « Courriel… » pour des fichiers")
+    launched = []
+    real, real_which = af.subprocess.Popen, af.shutil.which
+    af.subprocess.Popen = lambda argv, **kw: launched.append(argv)
+    af.shutil.which = lambda name: "/usr/bin/" + name      # xdg-email absent du bac à sable
+    try:
+        win.activate_action("win.email", None)
+    finally:
+        af.subprocess.Popen, af.shutil.which = real, real_which
+    check(launched and launched[0][0] == "xdg-email" and launched[0].count("--attach") == 2,
+          f"courriel : xdg-email avec les deux pièces jointes ({launched})")
+    p.model.select_names(["dossier"])
+    yield pump(0.2)
+    check(tr("Courriel…") not in labels(), "pas de « Courriel… » pour un dossier")
+    if not os.environ.get("DBUS_SESSION_BUS_ADDRESS"):
+        print("- pas de bus de session : test GSConnect sauté")
+    else:
+        journal = os.path.join(TMP, "gsconnect.log")
+        fake = subprocess.Popen([sys.executable, os.path.join(ROOT, "tests", "fake_gsconnect.py"), journal])
+        try:
+            yield Wait(8, until=lambda: bool(gsconnect.devices.capable()))
+            check(gsconnect.devices.capable() == [(gsconnect.SERVICE_PATH + "/Device/pixeltest", "Pixel test")],
+                  f"appareil GSConnect détecté en direct ({gsconnect.devices.capable()})")
+            p.model.select_names(["photo.jpg"])
+            yield pump(0.2)
+            check(tr("Envoyer vers {0}").format("Pixel test") in labels(), "menu : « Envoyer vers Pixel test »")
+            win.activate_action("win.send-to-device",
+                                GLib.Variant.new_string(gsconnect.SERVICE_PATH + "/Device/pixeltest"))
+            yield Wait(5, until=lambda: os.path.exists(journal))
+            yield pump(0.3)
+            got = open(journal).read().split() if os.path.exists(journal) else []
+            check(got == [Gio.File.new_for_path(os.path.join(base, "photo.jpg")).get_uri()],
+                  f"fichier envoyé au téléphone ({got})")
+            features_mod = __import__("odysseus.features", fromlist=["x"])
+            features_mod.set_enabled("gsconnect", False)
+            check(tr("Envoyer vers {0}").format("Pixel test") not in labels(), "GSConnect désactivable à chaud")
+            features_mod.set_enabled("gsconnect", True)
+        finally:
+            fake.terminate()
+        yield Wait(5, until=lambda: not gsconnect.devices.capable())
+        check(not gsconnect.devices.capable(), "téléphone parti : plus proposé")
+    p.open(D)
+    yield Wait(5, until=lambda: not p.model.loading)
+
+
+@step
 def focus_une_seule_fois(win):
     """GLib.idle_add(champ.grab_focus) rappelait grab_focus sans fin (il renvoie True) : le texte du
     champ était resélectionné en boucle et chaque lettre remplaçait la précédente (annoter, texte)."""

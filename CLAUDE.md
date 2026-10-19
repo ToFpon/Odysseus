@@ -157,6 +157,10 @@ fenêtre de recherche dans le contenu.
   le texte est resélectionné en boucle (une seule lettre possible dans le champ) et le processeur
   tourne. `common.focus_later(widget)` ; un test interdit le motif. Toute fonction passée à
   `idle_add` / `timeout_add` doit renvoyer False (sauf répétition voulue).
+- GSConnect (`backend/gsconnect.py`) : pas de lien vers nautilus-gsconnect.py ; on suit directement
+  l'ObjectManager D-Bus de GSConnect (appareils en direct) et on envoie par l'action « shareFile »
+  de l'appareil (`Gio.DBusActionGroup`). Testé avec `tests/fake_gsconnect.py` sous dbus-run-session.
+  « Courriel… » : `xdg-email --attach …` (logiciel de courriel par défaut).
 - Ghostscript `pdfimage24` : `-sCompression=JPEG` en majuscules.
 - `view-column-symbolic` n'existe pas dans Adwaita : `icons.first_icon` avec repli.
 - Corbeille / GVfs : au bout d'un moment, gvfsd-trash ne voit plus les `.Trash-1000` des autres disques

@@ -188,6 +188,9 @@ def context_menu(win, pane, on_item: bool) -> Gio.Menu:
         if one is not None and not one.is_dir and formats.readable(one.name):
             s.append(tr("Parcourir l'archive"), "win.browse-archive")
         s.append(tr("Compresser…"), "win.compress")
+    regular = [r for r in sel if r.path and not r.is_dir]
+    if regular and len(regular) == len(sel):
+        s.append(tr("Courriel…"), "win.email")
     m.append_section(None, s)
 
     # Outils issus des extensions
@@ -216,6 +219,17 @@ def context_menu(win, pane, on_item: bool) -> Gio.Menu:
         t.append(tr("Ouvrir avec l'éditeur de texte"), "win.edit-text")
     if one is not None and one.is_dir and features.available("content_search"):
         t.append(tr("Rechercher dans les fichiers…"), "win.content-search-selected")
+    if regular and len(regular) == len(sel) and features.enabled("gsconnect"):
+        from ..backend import gsconnect
+        phones = gsconnect.devices.capable()
+        if len(phones) == 1:          # comme GSConnect : un seul appareil, pas de sous-menu
+            t.append(tr("Envoyer vers {0}").format(phones[0][1]),
+                     "win.send-to-device(" + GLib.Variant.new_string(phones[0][0]).print_(True) + ")")
+        elif phones:
+            sub = Gio.Menu()
+            for path, name in phones:
+                sub.append(name, "win.send-to-device(" + GLib.Variant.new_string(path).print_(True) + ")")
+            t.append_submenu(tr("Envoyer vers un appareil mobile"), sub)
     if features.enabled("folder_colors") and paths:
         t.append_submenu(tr("Couleur et emblème") if dirs and len(dirs) == len(sel) else tr("Emblème"),
                          _colors_menu(paths, bool(dirs) and len(dirs) == len(sel)))

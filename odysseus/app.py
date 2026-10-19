@@ -54,6 +54,8 @@ class OdysseusApp(Adw.Application):
             Gtk.IconTheme.get_for_display(display).add_search_path(icons)
         from .ui.dialogs import apply_theme
         apply_theme()
+        from .backend import gsconnect
+        gsconnect.devices.start()           # appareils GSConnect suivis dès le départ, pour le menu
         for name, cb, accels in (("preferences", self._prefs, ["<Ctrl>comma"]),
                                  ("features", lambda *_: self._prefs(page="features"), []),
                                  ("about", self._about, []),
