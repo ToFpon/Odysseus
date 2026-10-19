@@ -897,6 +897,58 @@ def nouveau_dossier_depuis_le_debut(win):
 
 
 @step
+def executer_comme_programme(win):
+    """Script exécutable : « Exécuter comme un programme » dans le menu, lancé dans un terminal depuis
+    son dossier ; pas pour un fichier non exécutable."""
+    import odysseus.ui.actions_files as af
+    from odysseus.ui import menus
+    base = os.path.join(D, "scripts")
+    os.makedirs(base)
+    script = os.path.join(base, "mon script.sh")
+    with open(script, "w") as f:
+        f.write("#!/bin/sh\necho bonjour\n")
+    os.chmod(script, 0o755)
+    with open(os.path.join(base, "notes.sh"), "w") as f:
+        f.write("#!/bin/sh\n")
+    p = win.pane
+    p.open(base)
+    yield Wait(5, until=lambda: not p.model.loading)
+
+    def labels():
+        m = menus.context_menu(win, p, True)
+        out = []
+        def walk(model):
+            for i in range(model.get_n_items()):
+                lbl = model.get_item_attribute_value(i, "label", None)
+                if lbl is not None:
+                    out.append(lbl.unpack())
+                for link in ("section", "submenu"):
+                    sub = model.get_item_link(i, link)
+                    if sub is not None:
+                        walk(sub)
+        walk(m)
+        return out
+    p.model.select_names(["mon script.sh"])
+    yield pump(0.2)
+    check(tr("Exécuter comme un programme") in labels(), "menu : « Exécuter comme un programme » (script exécutable)")
+    launched = []
+    real_popen, real_find = af.subprocess.Popen, af.find_terminal
+    af.subprocess.Popen = lambda argv, **kw: launched.append((argv, kw))
+    af.find_terminal = lambda: "gnome-terminal"
+    try:
+        win.activate_action("win.run-program", None)
+    finally:
+        af.subprocess.Popen, af.find_terminal = real_popen, real_find
+    check(launched and launched[0][0][:2] == ["gnome-terminal", "--"] and script in launched[0][0]
+          and launched[0][1].get("cwd") == base, f"lancé dans un terminal depuis son dossier ({launched})")
+    p.model.select_names(["notes.sh"])
+    yield pump(0.2)
+    check(tr("Exécuter comme un programme") not in labels(), "pas pour un script non exécutable")
+    p.open(D)
+    yield Wait(5, until=lambda: not p.model.loading)
+
+
+@step
 def focus_une_seule_fois(win):
     """GLib.idle_add(champ.grab_focus) rappelait grab_focus sans fin (il renvoie True) : le texte du
     champ était resélectionné en boucle et chaque lettre remplaçait la précédente (annoter, texte)."""

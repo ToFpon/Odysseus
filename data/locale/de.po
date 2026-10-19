@@ -3853,3 +3853,9 @@ msgstr "Sie wurden nicht gelöscht."
 
 msgid "Créer une nouvelle archive"
 msgstr "Neues Archiv erstellen"
+
+msgid "Terminé (code {0}). Appuyez sur Entrée pour fermer."
+msgstr "Beendet (Code {0}). Eingabetaste drücken zum Schließen."
+
+msgid "Exécuter comme un programme"
+msgstr "Als Programm ausführen"

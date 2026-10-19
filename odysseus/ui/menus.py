@@ -148,6 +148,9 @@ def context_menu(win, pane, on_item: bool) -> Gio.Menu:
              "win.open")
     if files and not dirs:
         s.append(tr("Ouvrir avec…"), "win.open-with")
+    from .actions_files import can_run
+    if can_run(one):
+        s.append(tr("Exécuter comme un programme"), "win.run-program")
     if dirs:
         s.append(tr("Ouvrir dans un nouvel onglet"), "win.open-tab")
         if features.enabled("dual_panel"):

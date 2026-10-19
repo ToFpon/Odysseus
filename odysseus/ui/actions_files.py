@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import os
+import shlex
 import shutil
 import subprocess
 import threading
@@ -32,6 +33,28 @@ def find_terminal() -> Optional[str]:
         if shutil.which(t):
             return t
     return None
+
+
+def terminal_command(term: str, command: list) -> list:
+    """Ligne de commande qui fait exécuter `command` par le terminal `term` : chacun a sa syntaxe."""
+    argv = term.split()
+    name = os.path.basename(argv[0])
+    if name in ("gnome-terminal", "kgx", "ptyxis"):
+        return argv + ["--"] + command
+    if name == "kitty":
+        return argv + command
+    if name in ("xfce4-terminal", "mate-terminal", "terminator"):
+        return argv + ["-x"] + command
+    if name == "lxterminal":
+        return argv + ["-e", shlex.join(command)]
+    return argv + ["-e"] + command          # x-terminal-emulator (Debian / Ubuntu), xterm, konsole, tilix…
+
+
+def can_run(rec) -> bool:
+    """Comme Nautilus : script ou programme exécutable (pas un .desktop, lancé autrement)."""
+    return bool(rec is not None and rec.path and not rec.is_dir and rec.is_executable
+                and not rec.name.endswith(".desktop")
+                and Gio.content_type_can_be_executable(rec.content_type))
 
 
 def find_editor() -> Optional[str]:
@@ -71,6 +94,7 @@ class FileActions:
             "copy-path": self.copy_path, "copy-location": self.copy_location, "bookmark": self.bookmark_toggle,
             "properties": self.properties, "properties-folder": self.properties_folder,
             "terminal": self.terminal_here, "terminal-selected": self.terminal_selected,
+            "run-program": self.run_program,
             "edit-text": self.edit_text, "undo": self.undo, "redo": self.redo,
             "open-admin": self.open_admin, "open-admin-folder": self.open_admin_folder,
             "folder-restore": self.folder_restore, "browse-archive": self.browse_archive,
@@ -991,6 +1015,27 @@ class FileActions:
             argv += ["--working-directory", folder]
         try:
             subprocess.Popen(argv, cwd=folder, start_new_session=True)
+        except OSError as e:
+            alert(self, tr("Impossible de lancer le terminal"), str(e))
+
+    def run_program(self):
+        """« Exécuter comme un programme », comme Nautilus : dans un terminal, depuis le dossier du
+        fichier. Le terminal reste ouvert à la fin pour qu'on puisse lire ce qui s'est passé."""
+        sel = self._sel()
+        rec = sel[0] if len(sel) == 1 else None
+        if not can_run(rec):
+            return
+        term = find_terminal()
+        if not term:
+            alert(self, tr("Aucun terminal trouvé"), tr("Indiquez votre terminal dans les préférences."))
+            return
+        end = tr("Terminé (code {0}). Appuyez sur Entrée pour fermer.")
+        # message traduit passé en argument (jamais dans le script) ; « {0} » remplacé par le code de sortie
+        script = '"$1"; code=$?; printf "\\n%s\\n" "${2//"{0}"/$code}"; read -r _'
+        command = ["bash", "-c", script, "odysseus", rec.path, end]
+        try:
+            subprocess.Popen(terminal_command(term, command), cwd=os.path.dirname(rec.path),
+                             start_new_session=True)
         except OSError as e:
             alert(self, tr("Impossible de lancer le terminal"), str(e))
 
