@@ -223,6 +223,11 @@ class Pane(Gtk.Box):
                                   visible=False, ellipsize=3, max_width_chars=90)
         self.floating.set_can_target(False)
         self.overlay.add_overlay(self.floating)
+        # comme Nautilus : la barre passe de l'autre côté quand le pointeur arrive dessus, pour ne
+        # pas cacher la ligne du dessous
+        motion = Gtk.EventControllerMotion()
+        motion.connect("motion", self._dodge_floating)
+        self.overlay.add_controller(motion)
         self.append(self.overlay)
 
     def _setup_drop(self):
@@ -1130,6 +1135,18 @@ class Pane(Gtk.Box):
         if self.mode == "search":
             return self.search_root
         return self.location
+
+    def _dodge_floating(self, _ctl, x, y):
+        bar = self.floating
+        if not bar.get_visible():
+            return
+        ok, bounds = bar.compute_bounds(self.overlay)
+        if not ok or not (bounds.get_x() <= x <= bounds.get_x() + bounds.get_width()
+                          and bounds.get_y() <= y <= bounds.get_y() + bounds.get_height()):
+            return
+        start = bar.get_halign() == Gtk.Align.END
+        bar.set_halign(Gtk.Align.START if start else Gtk.Align.END)
+        (bar.add_css_class if start else bar.remove_css_class)("start")
 
     def _update_floating(self):
         text = self.status_text()

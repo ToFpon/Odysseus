@@ -312,6 +312,19 @@ def steps(win):
     aw.dirty = False
     aw.destroy()
     yield
+    # Barre d'info du bas : passe de l'autre côté quand le pointeur arrive dessus (comme Nautilus)
+    bar = p.floating
+    bar.set_text("« fichier.txt » sélectionné (206 octets)")
+    bar.set_visible(True)
+    yield
+    for side in (Gtk.Align.START, Gtk.Align.END):
+        x, y = screen_point(win, bar, bar.get_width() // 2, bar.get_height() // 2)
+        xdo("mousemove", x, y)
+        yield
+        yield
+        check(bar.get_halign() == side, f"barre d'info : esquive le pointeur ({side.value_nick})")
+        xdo("mousemove", x, y - 200)            # on s'en va, puis on revient sur sa nouvelle place
+        yield
 
 
 def on_window(_a, win):
