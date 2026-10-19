@@ -10,12 +10,14 @@ SHARE="$PREFIX/share"
 APPDIR="$SHARE/odysseus"
 SRC="$(cd "$(dirname "$0")" && pwd)"
 DESKTOP="io.github.odysseus.Odysseus.desktop"
+SERVICE="io.github.odysseus.Odysseus.service"
 
 if [ "$1" = "--uninstall" ]; then
     if [ "$(xdg-mime query default inode/directory 2>/dev/null)" = "$DESKTOP" ]; then
         xdg-mime default org.gnome.Nautilus.desktop inode/directory 2>/dev/null || true
     fi
     rm -rf "$APPDIR" "$PREFIX/bin/odysseus" "$SHARE/applications/$DESKTOP" \
+        "$SHARE/dbus-1/services/$SERVICE" \
         "$SHARE/icons/hicolor/scalable/apps/io.github.odysseus.Odysseus.svg"
     update-desktop-database "$SHARE/applications" 2>/dev/null || true
     echo "Odysseus a été désinstallé."
@@ -39,7 +41,8 @@ done
 python3 -c "import cairo" 2>/dev/null || optional="$optional python3-cairo python3-gi-cairo"
 python3 -c "import gi; gi.require_version('Poppler','0.18')" 2>/dev/null || optional="$optional gir1.2-poppler-0.18"
 
-mkdir -p "$APPDIR" "$PREFIX/bin" "$SHARE/applications" "$SHARE/icons/hicolor/scalable/apps"
+mkdir -p "$APPDIR" "$PREFIX/bin" "$SHARE/applications" "$SHARE/icons/hicolor/scalable/apps" \
+    "$SHARE/dbus-1/services"
 rm -rf "$APPDIR/odysseus" "$APPDIR/data"
 cp -r "$SRC/odysseus" "$SRC/data" "$APPDIR/"
 find "$APPDIR" -name "__pycache__" -type d -exec rm -rf {} + 2>/dev/null || true
@@ -49,6 +52,13 @@ exec python3 -c 'import sys; sys.path.insert(0, "$APPDIR"); from odysseus.app im
 LAUNCH
 chmod +x "$PREFIX/bin/odysseus"
 sed "s|^Exec=odysseus|Exec=$PREFIX/bin/odysseus|" "$SRC/data/$DESKTOP" > "$SHARE/applications/$DESKTOP"
+# DBusActivatable=true : GIO (dock, gio open, autres applications) demande l'ouverture au bus de
+# session, qui lance Odysseus avec l'environnement de la session graphique
+cat > "$SHARE/dbus-1/services/$SERVICE" <<SERVICE
+[D-BUS Service]
+Name=io.github.odysseus.Odysseus
+Exec=$PREFIX/bin/odysseus --gapplication-service
+SERVICE
 cp "$SRC/data/icons/hicolor/scalable/apps/io.github.odysseus.Odysseus.svg" "$SHARE/icons/hicolor/scalable/apps/"
 update-desktop-database "$SHARE/applications" 2>/dev/null || true
 gtk-update-icon-cache -f -t "$SHARE/icons/hicolor" 2>/dev/null || true

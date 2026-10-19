@@ -15,6 +15,7 @@ Keywords=folder;manager;explore;disk;filesystem;nautilus;dual;panel;columns;
 Keywords[fr]=dossier;gestionnaire;fichiers;explorer;disque;nautilus;double;panneau;colonnes;
 Keywords[de]=Ordner;Dateiverwaltung;Dateien;Explorer;Datenträger;nautilus;Zwei;Fenster;Spalten;
 StartupNotify=true
+DBusActivatable=true
 MimeType=inode/directory;
 Actions=new-window;dual;
 

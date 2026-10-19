@@ -56,7 +56,10 @@ class OdysseusApp(Adw.Application):
         apply_theme()
         from .backend import gsconnect
         gsconnect.devices.start()           # appareils GSConnect suivis dès le départ, pour le menu
-        for name, cb, accels in (("preferences", self._prefs, ["<Ctrl>comma"]),
+        # new-window / dual : actions du .desktop, activées par leur nom (DBusActivatable)
+        for name, cb, accels in (("new-window", self._new_window, []),
+                                 ("dual", lambda: self._new_window(dual=True), []),
+                                 ("preferences", self._prefs, ["<Ctrl>comma"]),
                                  ("features", lambda *_: self._prefs(page="features"), []),
                                  ("about", self._about, []),
                                  ("quit", self._quit, ["<Ctrl>q"])):

@@ -124,6 +124,10 @@ fenêtre de recherche dans le contenu.
 ## Pièges connus
 
 - Actions de fenêtre : préfixe `win.` ; l'application gère la ligne de commande (`HANDLES_COMMAND_LINE`).
+- `.desktop` en `DBusActivatable=true` : GIO (dock, `gio open`, autres applications) passe par D-Bus et
+  le bus lance Odysseus (`--gapplication-service`, fichier de service écrit par `install.sh`) avec
+  l'environnement de la session — un lanceur hors session (script udev) n'a plus besoin de DISPLAY /
+  XAUTHORITY. Les actions du .desktop sont alors activées par leur nom : `app.new-window`, `app.dual`.
 - `Adw.TabView` capte Ctrl+Tab : `remove_shortcuts(...)` pour l'utiliser entre panneaux.
 - D-Bus : `conn.register_object(path, info, method_cb, None, None)` (pas de `register_object_with_closures`).
 - Double panneau : la position du séparateur se calcule avec `paned.get_width()`, et le ratio n'est
