@@ -108,6 +108,20 @@ def drag(a, b):
     threading.Thread(target=run, daemon=True).start()
 
 
+def _all_popovers(win):
+    out = []
+
+    def walk(w):
+        if isinstance(w, Gtk.Popover):
+            out.append(w)
+        c = w.get_first_child()
+        while c is not None:
+            walk(c)
+            c = c.get_next_sibling()
+    walk(win)
+    return out
+
+
 def steps(win):
     p = win.pane
     for d in ("un", "vide", "deux"):
@@ -228,6 +242,48 @@ def steps(win):
     xdo("keydown", "ctrl", "click", 4, "keyup", "ctrl")
     yield
     win.activate_action("win.view-mode", GLib.Variant.new_string("list"))
+    yield
+    # Menu contextuel au clic droit (liste, autre panneau, barre latérale), fermé par Échap la souris
+    # dessus, puis la fenêtre remise en page : le menu détruit à la fermeture restait le widget « sous
+    # le pointeur » pour GTK 4.14, qui plantait (gtk_window_native_layout, surface nulle). Les menus
+    # sont gardés et réutilisés (common.popup_menu). Clic droit maintenu puis relâché sur une entrée :
+    # avertissement bénin de GTK (« Broken accounting of active state »), pas testé ici.
+    p.open(D)
+    yield
+    win.activate_action("win.view-mode", GLib.Variant.new_string("list"))
+    yield
+
+    def menu_open():
+        return any(isinstance(w, Gtk.PopoverMenu) and w.get_visible() for w in _all_popovers(win))
+    x, y = screen_point(win, p.list_view, 200, 60)
+    xdo("mousemove", x, y, "click", 3)
+    yield
+    check(menu_open(), "clic droit : menu contextuel ouvert")
+    xdo("key", "Escape")
+    yield
+    # double panneau : menu de l'autre panneau, puis panneau retiré (menu détaché avec lui)
+    win.activate_action("win.dual", None)
+    yield
+    other = win.workspace.other(p)
+    ox, oy = screen_point(win, other, other.get_width() / 2, 80)
+    xdo("mousemove", ox, oy, "click", 3)
+    yield
+    check(menu_open(), "clic droit dans l'autre panneau : menu ouvert")
+    xdo("key", "Escape")
+    yield
+    win.activate_action("win.dual", None)
+    yield
+    p = win.pane
+    win.activate_action("win.view-mode", GLib.Variant.new_string("grid"))
+    yield
+    win.activate_action("win.view-mode", GLib.Variant.new_string("list"))
+    yield
+    row = win.sidebar.places_list.get_first_child()
+    sx, sy = screen_point(win, row, 30, 10)
+    xdo("mousemove", sx, sy, "click", 3)
+    yield
+    check(menu_open(), "barre latérale : menu au clic droit")
+    xdo("key", "Escape")
     yield
     # Annoter une image, outil texte : un vrai clic sur l'image, puis plusieurs lettres tapées.
     # Le dialogue s'ouvrait à l'appui du bouton ; le relâchement rendait le clavier à la fenêtre

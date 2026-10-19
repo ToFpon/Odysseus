@@ -153,6 +153,14 @@ fenêtre de recherche dans le contenu.
   modèle débranché). « destroy » n'arrive pas tant que Python garde une référence.
 - Gestionnaires des cellules : ne capturer ni la cellule ni le Gtk.ListItem dans une fermeture
   (`controller.get_widget()`, `widget._rec`).
+- Menus contextuels (`common.popup_menu`) : un seul Gtk.PopoverMenu par widget, gardé et réutilisé,
+  jamais détruit à la fermeture. Détruit après Échap (souris dessus), GTK 4.14 gardait une de ses
+  entrées comme widget sous le pointeur et la mise en page suivante de la fenêtre plantait
+  (`gtk_window_native_layout` → `gdk_surface_request_motion(NULL)`) ; testé dans `ui_mouse.py`.
+  Menu ouvert à l'appui du clic droit (comme Nautilus) : l'ouvrir au relâchement laissait le glisser
+  du clic droit lancer un lasso (GtkColumnListView) que GTK ne retirait plus. Clic droit maintenu puis
+  relâché sur une entrée : « Broken accounting of active state » — bénin, bug de GTK 4.14 reproduit
+  sans Odysseus.
 - Jamais `GLib.idle_add(champ.grab_focus)` : grab_focus renvoie True, la source est rappelée sans fin,
   le texte est resélectionné en boucle (une seule lettre possible dans le champ) et le processeur
   tourne. `common.focus_later(widget)` ; un test interdit le motif. Toute fonction passée à

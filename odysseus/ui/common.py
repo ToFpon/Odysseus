@@ -429,16 +429,34 @@ def clear_box(box: Gtk.Widget):
 
 
 def popup_menu(parent: Gtk.Widget, model, x: float, y: float) -> Gtk.PopoverMenu:
-    pop = Gtk.PopoverMenu.new_from_model(model)
-    pop.set_parent(parent)
-    pop.set_has_arrow(False)
-    pop.set_halign(Gtk.Align.START)
+    """Menu contextuel. Un seul menu par widget, gardé et réutilisé (comme Nautilus), jamais détruit à
+    la fermeture : fermé par Échap, la souris encore dessus, GTK 4.14 gardait une entrée du menu
+    détruit comme widget sous le pointeur, et la mise en page suivante de la fenêtre plantait
+    (gtk_window_native_layout → gdk_surface_request_motion sur une surface nulle)."""
+    pop = getattr(parent, "_odysseus_popover", None)
+    if pop is None or pop.get_parent() is not parent:
+        pop = Gtk.PopoverMenu.new_from_model(model)
+        pop.set_parent(parent)
+        pop.set_has_arrow(False)
+        pop.set_halign(Gtk.Align.START)
+        parent._odysseus_popover = pop
+        # widget retiré pour de bon (panneau fermé, ligne de résultats supprimée) : menu détaché avec
+        # lui, sinon GTK signale un enfant encore attaché quand il le libère
+        parent.connect("unrealize", _drop_popover)
+    else:
+        pop.set_menu_model(model)
     r = Gdk.Rectangle()
     r.x, r.y, r.width, r.height = int(x), int(y), 1, 1
     pop.set_pointing_to(r)
-    pop.connect("closed", lambda p_: GLib.idle_add(p_.unparent))
     pop.popup()
     return pop
+
+
+def _drop_popover(parent: Gtk.Widget):
+    pop = getattr(parent, "_odysseus_popover", None)
+    if pop is not None and pop.get_parent() is parent:
+        pop.unparent()
+    parent._odysseus_popover = None
 
 
 def bidir():
