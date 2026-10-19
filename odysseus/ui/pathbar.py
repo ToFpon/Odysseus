@@ -15,6 +15,21 @@ from ..i18n import tr
 from .common import shown as _shown
 
 
+
+def mount_roots() -> dict:
+    """Racines des disques montés montrés dans la barre latérale (Périphériques) : chemin → (nom,
+    icône). Moniteur de volumes de GNOME, plus les disques fstab qu'il masque."""
+    from ..backend import devices
+    out = {}
+    for disk in devices.mounted_disks():
+        out[disk.path] = (disk.name, "drive-harddisk-symbolic")
+    for mount in Gio.VolumeMonitor.get().get_mounts():
+        root = mount.get_root()
+        path = root.get_path() if root is not None else None
+        if path and path != "/" and not mount.is_shadowed():
+            out[path] = (mount.get_name(), mount.get_symbolic_icon())
+    return out
+
 class PathBar(Gtk.Box):
     __gtype_name__ = "OdysseusPathBar"
     __gsignals__ = {
@@ -92,10 +107,16 @@ class PathBar(Gtk.Box):
             return segs
         home = os.path.expanduser("~")
         segs = []
-        if display == home or display.startswith(home + "/"):
-            segs.append((tr("Dossier personnel"), home, "user-home-symbolic"))
-            rest = display[len(home):].strip("/")
-            base = home
+        # comme Nautilus : un disque monté (/mnt/…, /media/…) commence le chemin, avec son nom et son
+        # icône, au lieu de « Zorin OS / mnt / Stockage_Linux » ; le plus profond l'emporte
+        starts = {home: (tr("Dossier personnel"), "user-home-symbolic")}
+        starts.update(mount_roots())
+        inside = [r for r in starts if r != "/" and (display == r or display.startswith(r.rstrip("/") + "/"))]
+        if inside:
+            base = max(inside, key=len)
+            label, icon = starts[base]
+            segs.append((label, base, icon))
+            rest = display[len(base):].strip("/")
         else:
             # comme Nautilus : la racine porte le nom du système (« Zorin OS »)
             segs.append((GLib.get_os_info("NAME") or "", "/", "drive-harddisk-symbolic"))
@@ -119,7 +140,9 @@ class PathBar(Gtk.Box):
                 self.crumbs.append(Gtk.Label(label="/", css_classes=["path-sep", "dim-label"]))
             btn = Gtk.Button(css_classes=["flat", "path-button"] + (["current"] if last else []))
             box = Gtk.Box(spacing=6)
-            if icon:
+            if isinstance(icon, Gio.Icon):
+                box.append(Gtk.Image(gicon=icon))
+            elif icon:
                 box.append(Gtk.Image(icon_name=icon))
             if label:
                 # Pas d'abréviation automatique : le fil d'Ariane défile plutôt que de rogner

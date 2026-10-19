@@ -1074,6 +1074,26 @@ def courriel_et_telephone(win):
 
 
 @step
+def chemin_depuis_le_disque(win):
+    """Comme Nautilus : un disque monté commence la barre de chemin (son nom, son icône), au lieu de
+    « Zorin OS / mnt / Stockage_Linux »."""
+    from odysseus.ui import pathbar
+    disk = os.path.join(D, "mnt", "Stockage_Linux")
+    os.makedirs(os.path.join(disk, "Images"))
+    real = pathbar.mount_roots
+    pathbar.mount_roots = lambda: {disk: ("Stockage_Linux", "drive-harddisk-symbolic")}
+    try:
+        segs = win.pathbar._segments(os.path.join(disk, "Images"), "")
+    finally:
+        pathbar.mount_roots = real
+    check([(lbl, tgt) for lbl, tgt, _i in segs] == [("Stockage_Linux", disk), ("Images", os.path.join(disk, "Images"))],
+          f"chemin d'un disque monté : Stockage_Linux / Images ({[s[0] for s in segs]})")
+    segs = win.pathbar._segments(os.path.join(D, "mnt"), "")
+    check(segs[0][1] in ("/", os.path.expanduser("~")), "hors disque monté : chemin habituel")
+    yield pump(0.1)
+
+
+@step
 def focus_une_seule_fois(win):
     """GLib.idle_add(champ.grab_focus) rappelait grab_focus sans fin (il renvoie True) : le texte du
     champ était resélectionné en boucle et chaque lettre remplaçait la précédente (annoter, texte)."""
