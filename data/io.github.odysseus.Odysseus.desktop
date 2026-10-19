@@ -16,6 +16,7 @@ Keywords[fr]=dossier;gestionnaire;fichiers;explorer;disque;nautilus;double;panne
 Keywords[de]=Ordner;Dateiverwaltung;Dateien;Explorer;Datenträger;nautilus;Zwei;Fenster;Spalten;
 StartupNotify=true
 DBusActivatable=true
+StartupWMClass=io.github.odysseus.Odysseus
 MimeType=inode/directory;
 Actions=new-window;dual;
 

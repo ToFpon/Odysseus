@@ -200,5 +200,8 @@ def main(argv=None) -> int:
     # En cas de plantage natif (GTK, GLib, Poppler…), afficher la pile Python de chaque fil
     import faulthandler
     faulthandler.enable(all_threads=True)
+    # lanceur installé : « python3 -c … », le nom du programme valait « -c » (WM_CLASS sous X11,
+    # préfixe des messages GTK) ; comme Nautilus (org.gnome.Nautilus), l'identifiant de l'application
+    GLib.set_prgname(APP_ID)
     app = OdysseusApp()
     return app.run(argv if argv is not None else sys.argv)
