@@ -70,10 +70,21 @@ class OdysseusApp(Adw.Application):
                 self.set_accels_for_action(f"app.{name}", accels)
 
         from .settings import settings
-        if settings["dbus_file_manager"]:
-            from .dbus import FileManager1
-            self._fm1 = FileManager1(self)
+        self._fm1 = None
+        self._file_manager1(settings["dbus_file_manager"])
+        settings.connect(lambda key, value: key == "dbus_file_manager" and self._file_manager1(value))
+
+    def _file_manager1(self, enabled: bool):
+        """« Afficher dans le dossier » : nom D-Bus pris ou rendu tout de suite, fichier de service
+        (lancement d'Odysseus fermé) écrit ou retiré."""
+        from . import dbus
+        dbus.sync_service(enabled)
+        if enabled and self._fm1 is None:
+            self._fm1 = dbus.FileManager1(self)
             self._fm1.start()
+        elif not enabled and self._fm1 is not None:
+            self._fm1.stop()
+            self._fm1 = None
 
     def _quit(self):
         for w in list(self.get_windows()):

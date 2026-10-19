@@ -128,6 +128,10 @@ fenêtre de recherche dans le contenu.
   le bus lance Odysseus (`--gapplication-service`, fichier de service écrit par `install.sh`) avec
   l'environnement de la session — un lanceur hors session (script udev) n'a plus besoin de DISPLAY /
   XAUTHORITY. Les actions du .desktop sont alors activées par leur nom : `app.new-window`, `app.dual`.
+- « Afficher dans le dossier » (org.freedesktop.FileManager1, option `dbus_file_manager`) : Odysseus
+  fermé, le bus lançait Nautilus (son service dans /usr/share). Option active, `dbus.sync_service`
+  écrit le nôtre dans ~/.local/share/dbus-1/services (prioritaire, 1re ligne `# Odysseus`) ; option
+  coupée, il est retiré et le nom rendu, sans redémarrage. Un fichier qui n'est pas à nous : jamais touché.
 - `Adw.TabView` capte Ctrl+Tab : `remove_shortcuts(...)` pour l'utiliser entre panneaux.
 - D-Bus : `conn.register_object(path, info, method_cb, None, None)` (pas de `register_object_with_closures`).
 - Double panneau : la position du séparateur se calcule avec `paned.get_width()`, et le ratio n'est

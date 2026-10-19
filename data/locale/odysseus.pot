@@ -23,27 +23,27 @@ msgstr ""
 msgid "Afficher la version"
 msgstr ""
 
-#: odysseus/app.py:178
+#: odysseus/app.py:192
 msgid "Basé sur"
 msgstr ""
 
-#: odysseus/app.py:180
+#: odysseus/app.py:194
 msgid "Moteurs"
 msgstr ""
 
-#: odysseus/app.py:172
+#: odysseus/app.py:186
 msgid "Gestionnaire de fichiers pour GNOME, inspiré de Nautilus.\nDouble panneau, colonnes, aperçu, archives, outils PDF et bien plus, intégrés."
 msgstr ""
 
-#: odysseus/app.py:178
+#: odysseus/app.py:192
 msgid "Les extensions Nautilus de Tof https://github.com/ToFpon/Nautilus-Extensions"
 msgstr ""
 
-#: odysseus/app.py:179
+#: odysseus/app.py:193
 msgid "Le moteur d'archives de Pressoir https://github.com/ToFpon/Pressoir"
 msgstr ""
 
-#: odysseus/app.py:154 odysseus/app.py:126 odysseus/ui/pane.py:439
+#: odysseus/app.py:168 odysseus/app.py:140 odysseus/ui/pane.py:439
 msgid "Emplacement introuvable : {0}"
 msgstr ""
 
@@ -2280,7 +2280,7 @@ msgid "Répondre à « Afficher dans le dossier »"
 msgstr ""
 
 #: odysseus/ui/dialogs.py:104
-msgid "Firefox, téléchargements… ouvrent Odysseus au lieu de Nautilus (au prochain démarrage)"
+msgid "Firefox, téléchargements… ouvrent Odysseus au lieu de Nautilus, même s'il est fermé"
 msgstr ""
 
 #: odysseus/ui/dialogs.py:110 odysseus/ui/menus.py:298
@@ -2315,7 +2315,7 @@ msgstr ""
 msgid "Ctrl+L"
 msgstr ""
 
-#: odysseus/ui/dialogs.py:176 odysseus/ui/pathbar.py:54
+#: odysseus/ui/dialogs.py:176 odysseus/ui/pathbar.py:69
 msgid "Saisir un emplacement"
 msgstr ""
 
@@ -2355,7 +2355,7 @@ msgstr ""
 msgid "Alt+Origine"
 msgstr ""
 
-#: odysseus/ui/dialogs.py:178 odysseus/ui/pane.py:1117 odysseus/ui/pathbar.py:96 odysseus/ui/sidebar.py:28
+#: odysseus/ui/dialogs.py:178 odysseus/ui/pane.py:1117 odysseus/ui/pathbar.py:112 odysseus/ui/sidebar.py:28
 msgid "Dossier personnel"
 msgstr ""
 
@@ -3013,19 +3013,19 @@ msgstr ""
 msgid "Cliquez pour monter"
 msgstr ""
 
-#: odysseus/ui/pane.py:29 odysseus/ui/pane.py:1109 odysseus/ui/pane.py:169 odysseus/ui/pathbar.py:79
+#: odysseus/ui/pane.py:29 odysseus/ui/pane.py:1109 odysseus/ui/pane.py:169 odysseus/ui/pathbar.py:94
 msgid "Corbeille"
 msgstr ""
 
-#: odysseus/ui/pane.py:29 odysseus/ui/pathbar.py:80 odysseus/ui/sidebar.py:86
+#: odysseus/ui/pane.py:29 odysseus/ui/pathbar.py:95 odysseus/ui/sidebar.py:86
 msgid "Récents"
 msgstr ""
 
-#: odysseus/ui/pane.py:29 odysseus/ui/pathbar.py:81
+#: odysseus/ui/pane.py:29 odysseus/ui/pathbar.py:96
 msgid "Réseau"
 msgstr ""
 
-#: odysseus/ui/pane.py:30 odysseus/ui/pathbar.py:82 odysseus/ui/sidebar.py:103
+#: odysseus/ui/pane.py:30 odysseus/ui/pathbar.py:97 odysseus/ui/sidebar.py:103
 msgid "Autres emplacements"
 msgstr ""
 
@@ -3145,11 +3145,11 @@ msgid_plural "(contenant {0} éléments au total)"
 msgstr[0] ""
 msgstr[1] ""
 
-#: odysseus/ui/pathbar.py:44
+#: odysseus/ui/pathbar.py:59
 msgid "Menu du dossier"
 msgstr ""
 
-#: odysseus/ui/pathbar.py:83 odysseus/ui/window.py:308
+#: odysseus/ui/pathbar.py:98 odysseus/ui/window.py:308
 msgid "Administrateur"
 msgstr ""
 

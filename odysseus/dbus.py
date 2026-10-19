@@ -1,6 +1,10 @@
 """Interface D-Bus org.freedesktop.FileManager1 : « Afficher dans le dossier » depuis Firefox,
 Thunderbird, le gestionnaire de téléchargements… Activée seulement si l'utilisateur le demande
 (Préférences), car elle prend la place de Nautilus pour ces demandes.
+
+Odysseus fermé, le bus lance le programme du fichier de service de ce nom : celui de Nautilus
+(/usr/share/dbus-1/services). Option active, on écrit le nôtre dans ~/.local/share/dbus-1/services,
+qui passe avant ; on le retire quand l'option est coupée.
 """
 
 from __future__ import annotations
@@ -8,6 +12,8 @@ from __future__ import annotations
 import os
 
 from gi.repository import Gio, GLib
+
+from . import APP_ID
 
 NAME = "org.freedesktop.FileManager1"
 PATH = "/org/freedesktop/FileManager1"
@@ -20,6 +26,61 @@ XML = """<node>
 </node>"""
 
 
+SERVICE_DIR = os.path.join(os.environ.get("XDG_DATA_HOME") or os.path.expanduser("~/.local/share"),
+                           "dbus-1", "services")
+SERVICE_FILE = os.path.join(SERVICE_DIR, NAME + ".service")
+MARK = "# Odysseus"
+
+
+def _launcher() -> str:
+    """Commande qui lance Odysseus : celle du service D-Bus écrit par install.sh, sinon bin/odysseus
+    du dépôt."""
+    try:
+        with open(os.path.join(SERVICE_DIR, APP_ID + ".service"), encoding="utf-8") as fh:
+            for line in fh:
+                if line.startswith("Exec="):
+                    return line[5:].strip()
+    except OSError:
+        pass
+    here = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "bin", "odysseus")
+    return f"{here} --gapplication-service" if os.access(here, os.X_OK) else ""
+
+
+def _ours() -> bool:
+    try:
+        with open(SERVICE_FILE, encoding="utf-8") as fh:
+            return fh.readline().strip() == MARK
+    except OSError:
+        return False
+
+
+def sync_service(enabled: bool):
+    """Fichier de service FileManager1 présent si et seulement si l'option est active. Un fichier
+    qui n'est pas le nôtre n'est jamais touché."""
+    exists = os.path.lexists(SERVICE_FILE)
+    if not enabled:
+        if exists and _ours():
+            try:
+                os.unlink(SERVICE_FILE)
+            except OSError:
+                pass
+        return
+    if exists and not _ours():
+        return
+    command = _launcher()
+    if not command:
+        return
+    text = f"{MARK}\n[D-BUS Service]\nName={NAME}\nExec={command}\n"
+    try:
+        os.makedirs(SERVICE_DIR, exist_ok=True)
+        tmp = SERVICE_FILE + ".tmp"
+        with open(tmp, "w", encoding="utf-8") as fh:
+            fh.write(text)
+        os.replace(tmp, SERVICE_FILE)
+    except OSError:
+        pass
+
+
 class FileManager1:
     def __init__(self, app):
         self.app = app
@@ -30,6 +91,15 @@ class FileManager1:
         self.owner_id = Gio.bus_own_name(Gio.BusType.SESSION, NAME,
                                          Gio.BusNameOwnerFlags.ALLOW_REPLACEMENT | Gio.BusNameOwnerFlags.REPLACE,
                                          self._acquired, None, None)
+
+    def stop(self):
+        if self.owner_id:
+            Gio.bus_unown_name(self.owner_id)
+            self.owner_id = 0
+        if self.reg_id:
+            conn = Gio.bus_get_sync(Gio.BusType.SESSION, None)
+            conn.unregister_object(self.reg_id)
+            self.reg_id = 0
 
     def _acquired(self, conn, _name):
         info = Gio.DBusNodeInfo.new_for_xml(XML).interfaces[0]

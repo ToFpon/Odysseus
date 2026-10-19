@@ -1999,8 +1999,8 @@ msgid "Répondre à « Afficher dans le dossier »"
 msgstr "„Im Ordner anzeigen“ übernehmen"
 
 #: odysseus/ui/dialogs.py:103
-msgid "Firefox, téléchargements… ouvrent Odysseus au lieu de Nautilus (au prochain démarrage)"
-msgstr "Firefox, Downloads … öffnen Odysseus statt Nautilus (beim nächsten Start)"
+msgid "Firefox, téléchargements… ouvrent Odysseus au lieu de Nautilus, même s'il est fermé"
+msgstr "Firefox, Downloads … öffnen Odysseus statt Nautilus, auch wenn es geschlossen ist"
 
 #: odysseus/ui/dialogs.py:109 odysseus/ui/menus.py:37
 msgid "Fonctionnalités"

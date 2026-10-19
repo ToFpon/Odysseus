@@ -19,6 +19,9 @@ if [ "$1" = "--uninstall" ]; then
     rm -rf "$APPDIR" "$PREFIX/bin/odysseus" "$SHARE/applications/$DESKTOP" \
         "$SHARE/dbus-1/services/$SERVICE" \
         "$SHARE/icons/hicolor/scalable/apps/io.github.odysseus.Odysseus.svg"
+    # « Afficher dans le dossier » rendu à Nautilus (fichier écrit par Odysseus, marqué en 1re ligne)
+    FM1="$SHARE/dbus-1/services/org.freedesktop.FileManager1.service"
+    if [ "$(head -n1 "$FM1" 2>/dev/null)" = "# Odysseus" ]; then rm -f "$FM1"; fi
     update-desktop-database "$SHARE/applications" 2>/dev/null || true
     echo "Odysseus a été désinstallé."
     exit 0

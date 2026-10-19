@@ -414,5 +414,29 @@ class MiscTest(unittest.TestCase):
             self.assertEqual(os.path.basename(media.audio_output(v, "mp3")), "film (2).mp3")
 
 
+class FileManager1ServiceTest(unittest.TestCase):
+    """« Afficher dans le dossier » Odysseus fermé : fichier de service D-Bus suivi de l'option."""
+
+    def test_service_follows_option(self):
+        from unittest import mock
+        from odysseus import dbus
+        with tempfile.TemporaryDirectory() as d:
+            svc = os.path.join(d, dbus.NAME + ".service")
+            with open(os.path.join(d, dbus.APP_ID + ".service"), "w") as f:
+                f.write("[D-BUS Service]\nName=x\nExec=/opt/bin/odysseus --gapplication-service\n")
+            with mock.patch.object(dbus, "SERVICE_DIR", d), mock.patch.object(dbus, "SERVICE_FILE", svc):
+                dbus.sync_service(True)
+                with open(svc) as f:
+                    self.assertIn("Exec=/opt/bin/odysseus --gapplication-service", f.read())
+                dbus.sync_service(False)
+                self.assertFalse(os.path.exists(svc))
+                with open(svc, "w") as f:           # fichier d'un autre programme : jamais touché
+                    f.write("[D-BUS Service]\nName=org.freedesktop.FileManager1\nExec=autre\n")
+                dbus.sync_service(True)
+                dbus.sync_service(False)
+                with open(svc) as f:
+                    self.assertIn("Exec=autre", f.read())
+
+
 if __name__ == "__main__":
     unittest.main()
