@@ -387,6 +387,8 @@ class MainWindow(FileActions, ArchiveActions, ToolActions, Adw.ApplicationWindow
                     a.set_state(GLib.Variant.new_boolean(col in settings["list_columns"]))
         elif key == "features":
             self._apply_features()
+        elif key in ("sidebar_desktop", "sidebar_this_pc"):
+            self.sidebar.fill_places()
 
     def _apply_features(self):
         self.dual_btn.set_visible(features.enabled("dual_panel"))

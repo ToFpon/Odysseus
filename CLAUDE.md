@@ -17,6 +17,9 @@ Gestionnaire de fichiers GTK4 / libadwaita en Python, look Nautilus, intégrant 
   La fenêtre de progression s'efface pendant une question « Remplacer ? ».
 - Barre latérale : l'emplacement courant y est sélectionné ; jamais de bouton d'éjection pour les
   disques fstab ou internes (mêmes règles que Pressoir / Nautilus).
+  Bureau et « Ce PC » en option (`sidebar_desktop`, `sidebar_this_pc`, suivis en direct par
+  `Sidebar.fill_places`). « Ce PC » (`ui/this_pc.py`, `computer:///`) : page spéciale comme « Autres
+  emplacements » (`pane.PAGES`, mode « other ») ; espace des disques lu par GIO en asynchrone.
 - Chaque fonctionnalité issue d'une extension est déclarée dans `odysseus/features.py` et doit rester
   désactivable sans redémarrage (`features.enabled(id)` au moment de l'usage, pas à l'import).
 - Tout texte visible passe par `tr()` / `ntr()` (jamais `_`). Après modification :

@@ -95,6 +95,7 @@ class PathBar(Gtk.Box):
                        "recent:///": (tr("Récents"), "document-open-recent-symbolic"),
                        "network:///": (tr("Réseau"), "network-workgroup-symbolic"),
                        "other-locations:///": (tr("Autres emplacements"), "list-add-symbolic"),
+                       "computer:///": (tr("Ce PC"), "computer-symbolic"),
                        "admin:///": (tr("Administrateur"), "dialog-password-symbolic")}
             while f is not None:
                 name = f.get_basename() or f.get_uri()

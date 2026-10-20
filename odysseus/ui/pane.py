@@ -23,11 +23,14 @@ from .common import focus_later, shown
 from .columns import MillerView
 from .model import DirModel, Selection, fold
 from .other_locations import OTHER_URI, OtherLocations
+from .this_pc import COMPUTER_URI, ThisPC
 from .views import DRAG_PATHS, GRID_ZOOM, ZOOM, GridView, ListView
 
 TRASH_URI = "trash:///"
 SPECIAL_URIS = {"trash:///": tr("Corbeille"), "recent:///": tr("Récents"), "network:///": tr("Réseau"),
-                OTHER_URI: tr("Autres emplacements")}
+                OTHER_URI: tr("Autres emplacements"), COMPUTER_URI: tr("Ce PC")}
+# pages qui ne sont pas des dossiers : adresse → (classe, nom dans la pile)
+PAGES = {OTHER_URI: (OtherLocations, "other"), COMPUTER_URI: (ThisPC, "computer")}
 SEARCH_LIMIT = 20000
 SKIP_DIRS = {".git", "node_modules", "__pycache__", ".cache", ".venv", "venv", ".tox"}
 
@@ -187,7 +190,7 @@ class Pane(Gtk.Box):
             v.add_controller(zc)
         self._zoom_acc = 0.0
         self.miller: Optional[MillerView] = None
-        self.other_page: Optional[OtherLocations] = None
+        self.pages: dict = {}             # pages spéciales créées à la demande (PAGES)
         self.stack.add_named(self.list_view, "list")
         self.stack.add_named(self.grid_view, "grid")
         self.empty = Adw.StatusPage(icon_name="folder-symbolic", title=tr("Dossier vide"), css_classes=["compact"])
@@ -401,7 +404,7 @@ class Pane(Gtk.Box):
 
     def refresh(self):
         if self.mode == "other":
-            self.other_page.refresh()
+            self.pages[self.location].refresh()
         elif self.mode == "archive":
             self.open_archive(self.archive_path, self.inner, push=False, password=self.password)
         elif self.mode == "search":
@@ -419,8 +422,8 @@ class Pane(Gtk.Box):
         loc = os.path.expanduser(location.strip())
         if loc.startswith("file://"):
             loc = Gio.File.new_for_uri(loc).get_path() or loc
-        if loc == OTHER_URI:
-            self._open_other(push)
+        if loc in PAGES:
+            self._open_other(loc, push)
             return True
         if is_uri(loc):
             self._open_uri(loc, push, select)
@@ -446,8 +449,8 @@ class Pane(Gtk.Box):
         return False
 
     def _leave_special(self):
-        if self.other_page is not None:
-            self.other_page.stop()
+        for page in self.pages.values():
+            page.stop()
         self._stop_search()
         self.strip.set_reveal_child(False)
         self.trash_bar.set_reveal_child(False)
@@ -476,18 +479,21 @@ class Pane(Gtk.Box):
         self._show_content()
         self.emit("location-changed")
 
-    def _open_other(self, push: bool):
-        """Page « Autres emplacements » (disques, réseau, connexion à un serveur)."""
-        if push and self.location != OTHER_URI:
+    def _open_other(self, uri: str, push: bool):
+        """Page spéciale : « Autres emplacements » (disques, réseau, connexion à un serveur) ou
+        « Ce PC » (dossiers et disques, comme sous Windows)."""
+        if push and self.location != uri:
             self._push()
         self._leave_special()
         self.mode = "other"
-        self.location = OTHER_URI
-        if self.other_page is None:       # avant set_static, qui affiche déjà la page
-            self.other_page = OtherLocations(self)
-            self.stack.add_named(self.other_page, "other")
-        self.model.set_static(OTHER_URI, [])
-        self.other_page.refresh()
+        self.location = uri
+        page = self.pages.get(uri)
+        if page is None:                  # avant set_static, qui affiche déjà la page
+            cls, name = PAGES[uri]
+            page = self.pages[uri] = cls(self)
+            self.stack.add_named(page, name)
+        self.model.set_static(uri, [])
+        page.refresh()
         self._show_content()
         self._update_floating()
         self.emit("location-changed")
@@ -793,7 +799,7 @@ class Pane(Gtk.Box):
 
     def _show_content(self):
         if self.mode == "other":
-            self.stack.set_visible_child_name("other")
+            self.stack.set_visible_child_name(PAGES[self.location][1])
             return
         self._attach_views()
         if self.stack.get_visible_child_name() == "locked" and self.mode == "archive" and not self.listing:

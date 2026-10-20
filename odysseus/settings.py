@@ -32,6 +32,8 @@ DEFAULTS: dict[str, Any] = {
     "preview_visible": False,
     "preview_width": 340,
     "dual_panel": False,
+    "sidebar_desktop": False,       # Bureau dans la barre latérale
+    "sidebar_this_pc": False,       # « Ce PC » dans la barre latérale (dossiers et disques, comme Windows)
     # Comportement
     "confirm_trash": False,
     "confirm_delete": True,

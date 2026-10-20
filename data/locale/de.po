@@ -3894,3 +3894,21 @@ msgid "{0} archive extraite"
 msgid_plural "{0} archives extraites"
 msgstr[0] "{0} Archiv entpackt"
 msgstr[1] "{0} Archive entpackt"
+
+msgid "Afficher « Ce PC »"
+msgstr "„Dieser PC“ anzeigen"
+
+msgid "Dossiers et disques avec leur espace libre sur une seule page, comme sous Windows"
+msgstr "Ordner und Laufwerke mit ihrem freien Speicher auf einer Seite, wie unter Windows"
+
+msgid "Afficher le Bureau"
+msgstr "Schreibtisch anzeigen"
+
+msgid "Ce PC"
+msgstr "Dieser PC"
+
+msgid "Périphériques et lecteurs"
+msgstr "Geräte und Laufwerke"
+
+msgid "Emplacements réseau"
+msgstr "Netzwerkadressen"

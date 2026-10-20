@@ -16,6 +16,7 @@ from .. import features
 from ..backend import bookmarks, devices
 from ..backend.engine import human_size
 from ..i18n import tr
+from ..settings import settings
 from .common import alert, ask_text, popup_menu, toast
 
 TRASH = "trash:///"
@@ -23,7 +24,10 @@ TRASH = "trash:///"
 PRIVACY_SCHEMA = "org.gnome.desktop.privacy"
 
 
-def places() -> list[tuple[str, str, str]]:
+COMPUTER = "computer:///"
+
+
+def places(desktop: bool = True, trash: bool = True) -> list[tuple[str, str, str]]:
     home = GLib.get_home_dir()
     out = [("user-home-symbolic", tr("Dossier personnel"), home)]
     for d, icon, label in (
@@ -33,10 +37,13 @@ def places() -> list[tuple[str, str, str]]:
             (GLib.UserDirectory.DIRECTORY_MUSIC, "folder-music-symbolic", tr("Musique")),
             (GLib.UserDirectory.DIRECTORY_PICTURES, "folder-pictures-symbolic", tr("Images")),
             (GLib.UserDirectory.DIRECTORY_VIDEOS, "folder-videos-symbolic", tr("Vidéos"))):
+        if d == GLib.UserDirectory.DIRECTORY_DESKTOP and not desktop:
+            continue
         p = GLib.get_user_special_dir(d)
         if p and p != home and os.path.isdir(p):
             out.append((icon, label, p))
-    out.append(("user-trash-symbolic", tr("Corbeille"), TRASH))
+    if trash:
+        out.append(("user-trash-symbolic", tr("Corbeille"), TRASH))
     return out
 
 
@@ -92,8 +99,7 @@ class Sidebar(Gtk.Box):
                 self._privacy = Gio.Settings.new(PRIVACY_SCHEMA)     # gardé : sinon plus de signal
                 self._privacy.connect("changed::remember-recent-files", lambda *_: self._sync_recent())
                 self._sync_recent()
-        for icon, label, target in places():
-            self.places_list.append(SidebarRow(icon, label, target))
+        self.fill_places()
         # comme Nautilus : un simple séparateur avant les signets (masqué s'il n'y en a pas)
         self.bm_list = self._section(None)
         self.bm_label = self.bm_list.get_prev_sibling()
@@ -104,6 +110,21 @@ class Sidebar(Gtk.Box):
         self._fill_bookmarks()
         self._watch_bookmarks()
         self._watch_devices()
+
+    def fill_places(self):
+        """Emplacements : « Ce PC » (option, comme sous Windows), Récents, dossier personnel et
+        dossiers de l'utilisateur (Bureau en option), Corbeille. Suit les Préférences en direct."""
+        row = self.places_list.get_first_child()
+        while row is not None:
+            nxt = row.get_next_sibling()
+            if row is not self.recent_row:
+                self.places_list.remove(row)
+            row = nxt
+        if settings["sidebar_this_pc"]:
+            self.places_list.prepend(SidebarRow("computer-symbolic", tr("Ce PC"), COMPUTER))
+        for icon, label, target in places(desktop=settings["sidebar_desktop"]):
+            self.places_list.append(SidebarRow(icon, label, target))
+        self.select(self.current)
 
     def _section(self, title, with_label=False):
         label = None

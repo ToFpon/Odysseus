@@ -81,6 +81,12 @@ class PreferencesDialog(Adw.PreferencesWindow):
                       tr("Sinon, double-clic comme dans Nautilus")))
         page.add(g)
 
+        g = Adw.PreferencesGroup(title=tr("Barre latérale"))
+        g.add(_switch(tr("Afficher « Ce PC »"), "sidebar_this_pc",
+                      tr("Dossiers et disques avec leur espace libre sur une seule page, comme sous Windows")))
+        g.add(_switch(tr("Afficher le Bureau"), "sidebar_desktop"))
+        page.add(g)
+
         g = Adw.PreferencesGroup(title=tr("Comportement"))
         g.add(_switch(tr("Confirmer la mise à la corbeille"), "confirm_trash"))
         g.add(_switch(tr("Confirmer la suppression définitive"), "confirm_delete"))

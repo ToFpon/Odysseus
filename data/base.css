@@ -168,6 +168,14 @@ levelbar.ratio-bar block.filled, levelbar.ratio-bar block.empty { border-radius:
 .other-list { background: transparent; border-top: 1px solid @borders; }
 .other-list > row { padding: 0 6px; }
 .other-status { margin: 6px 18px; }
+/* Page « Ce PC » : tuiles comme l'Explorateur de Windows, couleurs du thème */
+.thispc-content { padding-bottom: 24px; }
+.thispc-flow { margin: 0 12px; }
+.thispc-tile { padding: 10px 12px; border-radius: 8px; min-width: 220px; }
+.thispc-tile levelbar { min-width: 120px; }
+.thispc-tile levelbar block { min-height: 6px; border-radius: 3px; }
+.thispc-tile levelbar block.disk-ok { background-color: @accent_bg_color; }
+.thispc-tile levelbar block.disk-full { background-color: @error_color; }
 .other-connect { padding: 6px; border-top: 1px solid @borders; }
 
 /* Fenêtre administrateur : bandeau aux couleurs d'avertissement du thème */

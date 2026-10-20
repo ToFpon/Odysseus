@@ -415,7 +415,7 @@ def autres_emplacements_et_barre_info(win):
     p.open("other-locations:///")
     yield pump(0.8)
     check(p.mode == "other" and p.stack.get_visible_child_name() == "other", "page Autres emplacements")
-    check(p.other_page.dev_list.get_first_child() is not None, "Autres emplacements : disques listés")
+    check(p.pages["other-locations:///"].dev_list.get_first_child() is not None, "Autres emplacements : disques listés")
     win.activate_action("win.back", None)
     yield pump(0.6)
     check(p.mode == "fs" and p.location == D, "retour depuis Autres emplacements")
@@ -495,6 +495,54 @@ def archives(win):
     check(os.path.isdir(os.path.join(D, "paquet")) or os.path.isdir(os.path.join(D, "dossier A (2)"))
           or any(n.startswith("paquet") and os.path.isdir(os.path.join(D, n)) for n in os.listdir(D))
           or os.path.exists(os.path.join(D, "dossier A", "sous", "profond.md")), "extraire ici")
+
+
+@step
+def ce_pc_et_bureau(win):
+    """Barre latérale : Bureau et « Ce PC » en option, suivis en direct ; la page « Ce PC »
+    montre dossiers et disques, avec l'espace libre lu en asynchrone."""
+    from odysseus.settings import settings
+    from odysseus.ui.sidebar import SidebarRow
+
+    def targets():
+        out, row = [], win.sidebar.places_list.get_first_child()
+        while row is not None:
+            if isinstance(row, SidebarRow) and row.get_visible():
+                out.append(row.target)
+            row = row.get_next_sibling()
+        return out
+    desktop = GLib.get_user_special_dir(GLib.UserDirectory.DIRECTORY_DESKTOP)
+    check("computer:///" not in targets() and desktop not in targets(), "par défaut : ni « Ce PC » ni Bureau")
+    settings["sidebar_this_pc"] = True
+    settings["sidebar_desktop"] = True
+    yield pump(0.3)
+    t = targets()
+    check(t and t[0] == "computer:///", f"« Ce PC » en tête de la barre latérale ({t[:2]})")
+    check(desktop in t or not os.path.isdir(desktop or "/nulle/part"), "Bureau affiché sur demande")
+    p = win.pane
+    p.open("computer:///")
+    yield pump(1.0)
+    check(p.stack.get_visible_child_name() == "computer", "page « Ce PC » affichée")
+    page = p.pages["computer:///"]
+    folders = page.sections["folders"][1]
+    drives = page.sections["drives"][1]
+    n_folders = 0
+    c = folders.get_first_child()
+    while c is not None:
+        n_folders += 1
+        c = c.get_next_sibling()
+    root = drives.get_first_child()
+    check(n_folders >= 1 and root is not None and root.place.target == "/", "Ce PC : dossiers et disque système")
+    check(root.bar.get_visible() and 0 < root.bar.get_value() <= 1,
+          f"Ce PC : espace du disque système ({root.info.get_text()})")
+    check(win.sidebar.current == "computer:///", "barre latérale : « Ce PC » sélectionné")
+    folders.emit("child-activated", folders.get_first_child())
+    yield pump(0.5)
+    check(p.mode == "fs" and p.location == os.path.expanduser("~"), "Ce PC : clic sur un dossier l'ouvre")
+    settings["sidebar_this_pc"] = False
+    settings["sidebar_desktop"] = False
+    yield pump(0.3)
+    check("computer:///" not in targets() and desktop not in targets(), "options coupées : retirés en direct")
 
 
 @step
