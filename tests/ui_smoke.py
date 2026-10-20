@@ -636,9 +636,9 @@ def ce_pc_et_bureau(win):
         m = menus._background_menu(win, p)
     finally:
         features.available = real
-    actions = [m.get_item_link(i, "section").get_item_attribute_value(j, "action").unpack()
-               for i in range(m.get_n_items())
-               for j in range(m.get_item_link(i, "section").get_n_items())]
+    actions = [a.unpack() for i in range(m.get_n_items())
+               for j in range(m.get_item_link(i, "section").get_n_items())
+               if (a := m.get_item_link(i, "section").get_item_attribute_value(j, "action")) is not None]
     check("win.open-admin-folder" in actions, "menu de l'espace vide : « Ouvrir en tant qu'administrateur »")
     settings["sidebar_this_pc"] = False
     settings["sidebar_desktop"] = False
