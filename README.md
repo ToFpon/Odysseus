@@ -15,9 +15,9 @@
 |---|---|---|
 | ![Archive](docs/captures/archive.png) | ![Watermark](docs/captures/filigrane.png) | ![Other locations](docs/captures/autres-emplacements.png) |
 
-| Features / Fonctionnalités | Dark mode / Mode sombre |
-|---|---|
-| ![Features](docs/captures/fonctionnalites.png) | ![Dark](docs/captures/sombre.png) |
+| This PC / Ce PC | Features / Fonctionnalités | Dark mode / Mode sombre |
+|---|---|---|
+| ![This PC](docs/captures/ce-pc.png) | ![Features](docs/captures/fonctionnalites.png) | ![Dark](docs/captures/sombre.png) |
 
 ---
 
@@ -38,21 +38,38 @@ Huge folders open almost instantly: a folder of **100,000 files is displayed in 
 ### Features
 
 #### Views (from Dual Panel, Column Browser, Preview Panel…)
-- **List** (compact 35 px rows like Nautilus, optional columns: size, type, date, permissions, owner, duration), **grid** (64 to 256 px) and **columns** (Miller columns, resizable, ← / → between columns). Ctrl+1 / 2 / 3, Ctrl+plus / minus / 0.
+- **List** (compact 35 px rows like Nautilus, optional columns: size, type, date, permissions, owner, duration), **grid** (64 to 256 px) and **columns** (Miller columns, resizable, ← / → between columns). Ctrl+1 / 2 / 3, Ctrl+plus / minus / 0 or Ctrl+mouse wheel.
 - **Dual panel** (F3): two locations side by side, F6 / Shift+F6 copy or move to the other panel, Ctrl+Tab switches panels.
 - **Preview panel** (F4): images, videos, PDF pages, text, detailed information.
 - **Thumbnails** shared with Nautilus (freedesktop cache).
 - Hidden files dimmed (icon only or icon and name), cut items dimmed until pasted, a colored bar in front of copied items.
 - **Folder colors and emblems**, compatible with Folder Color.
 - **Duration column** for audio and video files (ffprobe, cached).
+- File types detected like Nautilus: when the name is not enough (`.bashrc`, `script.sh.bak`…), the start of the file is read. The view follows files replaced in the background (a finished download gets its real icon).
+- The status bar at the bottom fades out under the pointer, and lists keep some room below the last item, like Nautilus.
 
 #### Files
-- Tabs, history, breadcrumb path bar with Tab completion, bookmarks shared with GTK, Recent, Trash (restore, empty), Network, devices with the same eject rules as Nautilus (no eject button for fstab and internal disks).
+- Tabs, history, breadcrumb path bar with Tab completion (a mounted disk starts the path, like Nautilus), bookmarks shared with GTK, Recent (shown or hidden with GNOME's file history setting), Trash (restore, empty), Network, devices with the same eject rules as Nautilus (no eject button for fstab and internal disks).
+- **This PC** (optional, Preferences → General → Sidebar): for those coming from Windows, your folders and all your drives on one page, with a usage bar and the free space of each drive. The Desktop entry of the sidebar is optional too.
 - Copy / move with conflict dialog (skip, rename, merge, replace, apply to all), **progress window** for long operations, undo (Ctrl+Z), drag and drop, clipboard compatible with Nautilus.
 - **Archives** (F7): browse 50+ formats like folders, extract here, extract to, compress, drag files out of an archive (Pressoir engine, 7-Zip).
 - **Content search** (F8): search and replace text in files with ripgrep or grep, with preview and backups. Recursive file name search.
-- Open in text editor, open terminal here (Ctrl+Alt+T).
-- Optional `org.freedesktop.FileManager1` D-Bus service, so “Show in folder” from other applications opens Odysseus.
+- Open in text editor, open terminal here (Ctrl+Alt+T), **run executable scripts** in a terminal that stays open, like Nautilus.
+- **Send by email** (your default mail client, files attached) and **send to your phone** with GSConnect: connected devices appear live in the context menu.
+- Several archives extracted at once: one notification at the end, not one per archive.
+
+#### Desktop integration
+- Odysseus is D-Bus activatable, like Nautilus: the dock, `gio open` or a script started outside the session (udev rule, USB notification…) open it with the session's environment, even when it is closed.
+- Optional `org.freedesktop.FileManager1` service: “Show in folder” from Firefox, Thunderbird and other applications opens Odysseus, even when it is closed. Turned off, Nautilus gets these requests back, without restarting.
+
+#### Your files come first
+Every destructive operation is tested on throwaway trees, next to a “precious” folder that must never change, including real FAT USB keys and booby-trapped archives.
+- **Replace is atomic**: the new copy is written under a temporary name, synced to disk, then swapped in. If anything fails, the old file is still there.
+- **A move only removes what was copied**: skipped, failed or cancelled items stay at the source, between disks too.
+- **USB keys understood**: FAT, exFAT, NTFS — forbidden characters cleaned, case clashes renamed, files over 4 GB refused before writing.
+- **Nothing is overwritten silently**: archives, PDF outputs, backups get “name (2)”.
+- **Trapped archives defused**: `../` paths, absolute paths and links pointing outside never escape the destination folder.
+- **Undo that doesn't bite**: undo and redo never overwrite a file created in the meantime.
 
 #### PDF (rewritten and improved)
 - **Compress** with Ghostscript: real page-by-page progress, before/after sizes, original kept if smaller.
@@ -110,8 +127,9 @@ French (source), English and German. The language follows the system (`LANGUAGE`
 ### Tests
 
 ```sh
-python3 -m unittest discover -s tests       # back end
+python3 -m unittest discover -s tests       # back end, destructive operations, trapped archives
 xvfb-run -a python3 tests/ui_smoke.py       # interface
+xvfb-run -a -s "-screen 0 1600x1000x24" python3 tests/ui_mouse.py   # real clicks (xdotool)
 ```
 
 ### License
@@ -137,21 +155,38 @@ Les très gros dossiers s'ouvrent quasi instantanément : un dossier de **100 00
 ### Fonctionnalités
 
 #### Affichage (Dual Panel, Column Browser, Preview Panel…)
-- **Liste** (lignes compactes de 35 px comme Nautilus, colonnes facultatives : taille, type, date, permissions, propriétaire, durée), **grille** (64 à 256 px) et **colonnes** (colonnes de Miller redimensionnables, ← / → d'une colonne à l'autre). Ctrl+1 / 2 / 3, Ctrl+plus / moins / 0.
+- **Liste** (lignes compactes de 35 px comme Nautilus, colonnes facultatives : taille, type, date, permissions, propriétaire, durée), **grille** (64 à 256 px) et **colonnes** (colonnes de Miller redimensionnables, ← / → d'une colonne à l'autre). Ctrl+1 / 2 / 3, Ctrl+plus / moins / 0 ou Ctrl+molette.
 - **Double panneau** (F3) : deux emplacements côte à côte, F6 / Maj+F6 pour copier ou déplacer vers l'autre panneau, Ctrl+Tab pour changer de panneau.
 - **Panneau d'aperçu** (F4) : images, vidéos, pages PDF, textes, informations détaillées.
 - **Miniatures** partagées avec Nautilus (cache freedesktop).
 - Fichiers cachés estompés (icône seule ou icône et nom), éléments coupés estompés jusqu'au collage, barre colorée devant les éléments copiés.
 - **Couleurs et emblèmes de dossiers**, compatibles avec Folder Color.
 - **Colonne Durée** des fichiers audio et vidéo (ffprobe, avec cache).
+- Types de fichiers reconnus comme dans Nautilus : quand le nom ne suffit pas (`.bashrc`, `script.sh.bak`…), le début du fichier est lu. La vue suit les fichiers remplacés en arrière-plan (un téléchargement terminé prend sa vraie icône).
+- La barre d'information du bas s'efface sous le pointeur, et les listes gardent de la place sous le dernier élément, comme dans Nautilus.
 
 #### Fichiers
-- Onglets, historique, fil d'Ariane avec complétion par Tab, signets partagés avec GTK, Récents, Corbeille (restaurer, vider), Réseau, périphériques avec les mêmes règles d'éjection que Nautilus (jamais de bouton d'éjection pour les disques fstab et internes).
+- Onglets, historique, fil d'Ariane avec complétion par Tab (un disque monté commence le chemin, comme dans Nautilus), signets partagés avec GTK, Récents (affichés ou non selon l'historique des fichiers de GNOME), Corbeille (restaurer, vider), Réseau, périphériques avec les mêmes règles d'éjection que Nautilus (jamais de bouton d'éjection pour les disques fstab et internes).
+- **Ce PC** (en option, Préférences → Général → Barre latérale) : pour ceux qui viennent de Windows, tes dossiers et tous tes disques sur une seule page, avec une barre d'occupation et l'espace libre de chacun. Le Bureau de la barre latérale est lui aussi en option.
 - Copie / déplacement avec gestion des conflits (ignorer, renommer, fusionner, remplacer, appliquer à tous), **fenêtre de progression** pour les opérations longues, annulation (Ctrl+Z), glisser-déposer, presse-papiers compatible avec Nautilus.
 - **Archives** (F7) : parcourir plus de 50 formats comme des dossiers, extraire ici, extraire vers, compresser, glisser des fichiers hors d'une archive (moteur Pressoir, 7-Zip).
 - **Recherche dans le contenu** (F8) : rechercher et remplacer du texte dans les fichiers avec ripgrep ou grep, avec aperçu et sauvegardes. Recherche récursive par nom.
-- Ouvrir avec l'éditeur de texte, terminal ici (Ctrl+Alt+T).
-- Service D-Bus `org.freedesktop.FileManager1` facultatif : « Afficher dans le dossier » depuis les autres applications ouvre Odysseus.
+- Ouvrir avec l'éditeur de texte, terminal ici (Ctrl+Alt+T), **exécuter les scripts exécutables** dans un terminal qui reste ouvert, comme dans Nautilus.
+- **Envoyer par courriel** (logiciel de courriel par défaut, fichiers joints) et **envoyer vers ton téléphone** avec GSConnect : les appareils connectés apparaissent en direct dans le menu contextuel.
+- Plusieurs archives extraites d'un coup : une seule notification à la fin, pas une par archive.
+
+#### Intégration au bureau
+- Odysseus se lance par D-Bus, comme Nautilus : le dock, `gio open` ou un script lancé hors de la session (règle udev, notification USB…) l'ouvrent avec l'environnement de la session, même quand il est fermé.
+- Service `org.freedesktop.FileManager1` facultatif : « Afficher dans le dossier » depuis Firefox, Thunderbird et les autres applications ouvre Odysseus, même fermé. Option coupée, Nautilus reprend ces demandes, sans redémarrage.
+
+#### Tes fichiers d'abord
+Chaque opération destructrice est testée sur des arborescences jetables, à côté d'un dossier « précieux » qui ne doit jamais changer, y compris sur de vraies clés FAT et des archives piégées.
+- **Remplacer est atomique** : la nouvelle copie est écrite sous un nom temporaire, synchronisée sur le disque, puis échangée. Si quelque chose échoue, l'ancien fichier est toujours là.
+- **Un déplacement ne supprime que ce qui a été copié** : les éléments ignorés, en échec ou annulés restent à la source, entre deux disques aussi.
+- **Clés USB comprises** : FAT, exFAT, NTFS — caractères interdits nettoyés, conflits de casse renommés, fichiers de plus de 4 Go refusés avant d'écrire.
+- **Rien n'est écrasé en silence** : archives, PDF produits, sauvegardes reçoivent « nom (2) ».
+- **Archives piégées désamorcées** : chemins `../`, chemins absolus et liens vers l'extérieur ne sortent jamais du dossier de destination.
+- **Annuler sans risque** : annuler et rétablir n'écrasent jamais un fichier créé entre-temps.
 
 #### PDF (réécrits et améliorés)
 - **Compresser** avec Ghostscript : vraie progression page par page, tailles avant / après, original conservé s'il est plus petit.
@@ -209,8 +244,9 @@ Français (langue source), anglais et allemand. La langue suit le système (`LAN
 ### Tests
 
 ```sh
-python3 -m unittest discover -s tests       # moteur
+python3 -m unittest discover -s tests       # moteur, opérations destructrices, archives piégées
 xvfb-run -a python3 tests/ui_smoke.py       # interface
+xvfb-run -a -s "-screen 0 1600x1000x24" python3 tests/ui_mouse.py   # vrais clics (xdotool)
 ```
 
 ### Licence
