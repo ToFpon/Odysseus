@@ -3888,3 +3888,9 @@ msgstr "An Mobilgerät senden"
 
 msgid "Envoyer vers {0}"
 msgstr "An {0} senden"
+
+#: odysseus/ui/actions_archives.py:45
+msgid "{0} archive extraite"
+msgid_plural "{0} archives extraites"
+msgstr[0] "{0} Archiv entpackt"
+msgstr[1] "{0} Archive entpackt"

@@ -14,10 +14,42 @@ from ..backend import archive, formats
 from ..backend.engine import human_size
 from ..i18n import ntr, tr
 from ..settings import session_passwords, settings
-from .common import alert, ask_password, choose_files, describe_paths, open_with_default, shown, toast
+from .common import (alert, ask_password, choose_files, describe_paths, open_folder, open_with_default, shown,
+                     toast)
 from .jobs import finished_toast, manager
 
 PREVIEW_LIMIT = 512 * 1024 * 1024
+
+
+class _Batch:
+    """Extractions lancées ensemble : un seul toast quand la dernière se termine, au lieu d'un
+    par archive. Erreurs et mots de passe restent traités archive par archive."""
+
+    def __init__(self, window, count: int):
+        self.window = window
+        self.pending = count
+        self.done: list[tuple[str, str]] = []        # (archive, dossier de sortie)
+
+    def finish(self, arch: str = "", dest: str = ""):
+        if arch:
+            self.done.append((arch, dest))
+        self.pending -= 1
+        if self.pending > 0 or not self.done:
+            return
+        if len(self.done) == 1:
+            arch, dest = self.done[0]
+            text = tr("{0} extraite").format(os.path.basename(arch))
+            folder = dest
+        else:
+            n = len(self.done)
+            text = ntr("{0} archive extraite", "{0} archives extraites", n).format(n)
+            # même dossier pour toutes (« Extraire ici ») : bouton « Ouvrir » sur ce dossier
+            parents = {os.path.dirname(d.rstrip("/")) for _a, d in self.done if d}
+            folder = parents.pop() if len(parents) == 1 else ""
+        if folder:
+            toast(self.window, text, tr("Ouvrir"), lambda: open_folder(self.window, folder), timeout=6)
+        else:
+            toast(self.window, text)
 
 
 class ArchiveActions:
@@ -130,19 +162,23 @@ class ArchiveActions:
         p = self.pane
         arcs = self._selected_archives()
         files = [r.get("inner", r.name) for r in p.selected_recs()] if p.mode == "archive" else []
+        batch = _Batch(self, len(arcs))
         for a in arcs:
             o = archive.ExtractOptions(dest=os.path.dirname(a), subfolder="never" if files else subfolder,
                                        overwrite=settings["extract_overwrite"], files=files,
                                        password=(p.password if p.mode == "archive" else "")
                                        or session_passwords.get(a, ""),
                                        open_after=settings["open_after_extract"])
-            self.run_extract([a], o)
+            self._extract_one(a, o, batch)
 
     def run_extract(self, archives: list[str], o: archive.ExtractOptions):
+        batch = _Batch(self, len(archives))
         for a in archives:
-            self._extract_one(a, o)
+            self._extract_one(a, o, batch)
 
-    def _extract_one(self, arch: str, o: archive.ExtractOptions):
+    def _extract_one(self, arch: str, o: archive.ExtractOptions, batch: Optional[_Batch] = None):
+        if batch is None:
+            batch = _Batch(self, 1)
         o = archive.ExtractOptions(**{**o.__dict__})
         if not o.password:
             o.password = session_passwords.get(arch, "")
@@ -152,7 +188,7 @@ class ArchiveActions:
                 dest = job.result
                 if o.password and settings["remember_passwords"]:
                     session_passwords[arch] = o.password
-                finished_toast(self, job, tr("{0} extraite").format(os.path.basename(arch)), dest)
+                batch.finish(arch, dest)
                 links = getattr(job, "skipped_links", [])
                 if links:
                     # 7-Zip a refusé des liens qui pointaient hors du dossier d'extraction
@@ -168,6 +204,7 @@ class ArchiveActions:
                 if o.open_after and dest:
                     self.open_location(dest, "tab")
             else:
+                batch.finish()           # erreur, annulation ou mot de passe : signalé à part
                 def retry(pw):
                     o.password = pw
                     self._extract_one(arch, o)

@@ -498,6 +498,35 @@ def archives(win):
 
 
 @step
+def extractions_un_seul_toast(win):
+    """Plusieurs archives extraites d'un coup : un seul toast à la fin, pas un par archive."""
+    import zipfile
+    from odysseus.ui import actions_archives
+    folder = tempfile.mkdtemp(dir=D, prefix="lot archives ")
+    names = [f"archive {i}.zip" for i in range(1, 4)]
+    for n in names:
+        with zipfile.ZipFile(os.path.join(folder, n), "w") as z:
+            z.writestr("a.txt", "a")
+            z.writestr("b.txt", "b")
+    p = win.pane
+    p.open(folder)
+    yield Wait(5, until=lambda: not p.model.loading)
+    shown_toasts = []
+    real = actions_archives.toast
+    actions_archives.toast = lambda _w, text, *a, **k: shown_toasts.append(text)
+    try:
+        p.model.select_names(names)
+        win.activate_action("win.extract-here", None)
+        yield wait_jobs()
+        yield pump(0.5)
+    finally:
+        actions_archives.toast = real
+    dirs = sorted(n for n in os.listdir(folder) if os.path.isdir(os.path.join(folder, n)))
+    check(dirs == ["archive 1", "archive 2", "archive 3"], f"extraire ici × 3 ({dirs})")
+    check(len(shown_toasts) == 1, f"extractions : un seul toast ({shown_toasts})")
+
+
+@step
 def corbeille(win):
     p = win.pane
     p.open(D)
@@ -541,6 +570,30 @@ def outils(win):
     yield pump(0.5)
     win.activate_action("win.shortcuts", None)
     yield pump(0.3)
+@step
+def telechargement_change_de_type(win):
+    """Firefox : « x.zip » vide d'abord, puis « x.zip.part » renommé par-dessus. La ligne doit
+    prendre le type (et l'icône) du vrai fichier, pas rester « fichier vide »."""
+    import zipfile
+    folder = tempfile.mkdtemp(dir=D, prefix="telechargements ")
+    p = win.pane
+    p.open(folder)
+    yield Wait(5, until=lambda: not p.model.loading)
+    open(os.path.join(folder, "paquet.zip"), "w").close()
+    part = os.path.join(folder, "paquet.zip.part")
+    with zipfile.ZipFile(part, "w") as z:
+        z.writestr("lisezmoi.txt", "bonjour")
+    yield pump(1.0)
+    rec = next((r for r in p.model.items if r.name == "paquet.zip"), None)
+    check(rec is not None and rec.content_type == "application/x-zerosize", "téléchargement : zip vide d'abord")
+    os.replace(part, os.path.join(folder, "paquet.zip"))
+    yield pump(1.0)
+    rec = next((r for r in p.model.items if r.name == "paquet.zip"), None)
+    names = sorted(r.name for r in p.model.items)
+    check(rec is not None and rec.content_type == "application/zip" and names == ["paquet.zip"],
+          f"téléchargement terminé : type du zip ({rec and rec.content_type}, {names})")
+
+
 @step
 def copie_partielle_rafraichit(win):
     """Copie / déplacement terminés avec des erreurs (ici un fichier spécial) : la vue de la
