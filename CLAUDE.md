@@ -182,6 +182,10 @@ fenêtre de recherche dans le contenu.
   « Courriel… » : `xdg-email --attach …` (logiciel de courriel par défaut).
 - Ghostscript `pdfimage24` : `-sCompression=JPEG` en majuscules.
 - `view-column-symbolic` n'existe pas dans Adwaita : `icons.first_icon` avec repli.
+- Emblèmes comme Nautilus (lien, `emblem-readonly`, `emblem-unreadable`, puis Folder Color), à la suite
+  après le nom en liste, sur l'icône en grille. Droits calculés depuis mode / uid / gid du `stat`
+  (`icons._access`, aucun appel système à l'affichage). Le bac à sable tourne en root (aucun
+  emblème) : les tests posent `icons._ids = (1000, {1000})`.
 - Corbeille / GVfs : au bout d'un moment, gvfsd-trash ne voit plus les `.Trash-1000` des autres disques
   (les fichiers y sont, trash:/// ne les montre plus ; `pkill gvfsd-trash` répare). `backend/trashwatch.py` :
   à chaque lecture de la corbeille, on compte nous-mêmes (éléments de `files/` ayant leur `.trashinfo`,

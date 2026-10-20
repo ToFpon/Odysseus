@@ -50,7 +50,7 @@ ATTRS = ("standard::name,standard::display-name,standard::type,standard::size,st
 class Rec:
     """Un élément de dossier, sans aucun objet GTK."""
     __slots__ = ("name", "path", "uri", "is_dir", "is_link", "size", "mtime", "mode", "uid", "hidden",
-                 "key", "ctype", "stat_ok", "extra", "obj")
+                 "key", "ctype", "stat_ok", "extra", "obj", "gid")
 
     def __init__(self, name: str, path: Optional[str], is_dir: bool, is_link: bool = False):
         self.name = name
@@ -62,6 +62,7 @@ class Rec:
         self.mtime = 0.0
         self.mode = 0
         self.uid = -1
+        self.gid = -1
         self.hidden = name.startswith(".") or name.endswith("~")
         self.key = None
         self.ctype = None
@@ -114,6 +115,7 @@ def apply_stat(r: Rec, s: os.stat_result):
     r.mtime = s.st_mtime
     r.mode = s.st_mode
     r.uid = s.st_uid
+    r.gid = s.st_gid
     r.stat_ok = True
     if not r.is_dir and r.ctype is None:
         r.ctype = sniff_type(r.name, r.path, s)

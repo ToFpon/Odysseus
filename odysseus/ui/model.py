@@ -484,7 +484,7 @@ class DirModel(GObject.Object, Gio.ListModel):
                 self.select_recs(self.selected_recs() + [new])
             return
         old.ctype, old.is_link = new.ctype, new.is_link
-        old.size, old.mtime, old.mode, old.uid = new.size, new.mtime, new.mode, new.uid
+        old.size, old.mtime, old.mode, old.uid, old.gid = new.size, new.mtime, new.mode, new.uid, new.gid
         old.stat_ok = True
         if old.extra:
             for k in ("thumb", "thumb_fail", "duration", "count", "meta"):

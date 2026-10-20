@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import os
+import stat as st
 from collections import OrderedDict
 from typing import Optional
 
@@ -84,10 +85,37 @@ def gicon_for(rec: Rec) -> Gio.Icon:
     return ctype_icon(ctype)
 
 
+_ids: Optional[tuple] = None
+
+
+def _access(rec: Rec) -> tuple[bool, bool]:
+    """(lisible, modifiable) d'après les droits de l'élément, sans appel système (comme le
+    test d'accès de Nautilus, ACL mises à part). Inconnu (GIO, archive) : pas d'emblème."""
+    global _ids
+    if _ids is None:
+        _ids = (os.geteuid(), set(os.getgroups()) | {os.getegid()})
+    uid, groups = _ids
+    if uid == 0 or not rec.stat_ok or not rec.mode or rec.uid < 0 or not rec.path:
+        return True, True
+    m = rec.mode
+    if rec.uid == uid:
+        return bool(m & st.S_IRUSR), bool(m & st.S_IWUSR)
+    if rec.gid in groups:
+        return bool(m & st.S_IRGRP), bool(m & st.S_IWGRP)
+    return bool(m & st.S_IROTH), bool(m & st.S_IWOTH)
+
+
 def emblems_for(rec: Rec) -> list[str]:
+    """Emblèmes comme Nautilus : lien, puis non modifiable (cadenas), non lisible (croix), puis ceux
+    choisis par l'utilisateur (Folder Color)."""
     out = []
     if rec.is_link:
         out.append("emblem-symbolic-link")
+    readable, writable = _access(rec)
+    if not writable:
+        out.append("emblem-readonly")
+    if not readable:
+        out.append("emblem-unreadable")
     meta = rec.get("meta")
     if meta and meta.get("emblems"):
         out.extend(meta["emblems"])

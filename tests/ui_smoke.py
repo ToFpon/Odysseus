@@ -498,6 +498,53 @@ def archives(win):
 
 
 @step
+def emblemes_droits(win):
+    """Comme Nautilus : cadenas (non modifiable), croix (non lisible), lien — plusieurs à la suite,
+    après le nom. Le bac à sable tourne en root (qui a tous les droits) : on se fait passer pour
+    l'utilisateur 1000."""
+    from odysseus.ui import icons
+    folder = tempfile.mkdtemp(dir=D, prefix="droits ")
+    for name, mode, owner in (("a moi.txt", 0o644, 1000), ("systeme", 0o755, 0), ("lost+found", 0o700, 0)):
+        path = os.path.join(folder, name)
+        if name.endswith(".txt"):
+            open(path, "w").close()
+        else:
+            os.mkdir(path)
+        os.chmod(path, mode)
+        os.chown(path, owner, owner)
+    os.symlink("systeme", os.path.join(folder, "lien"))
+    saved = icons._ids
+    icons._ids = (1000, {1000})
+    try:
+        p = win.pane
+        p.open(folder)
+        yield Wait(5, until=lambda: not p.model.loading)
+        yield pump(0.5)
+        shown_ems = {}
+
+        def walk(w):
+            if w.has_css_class("name-cell") and getattr(w, "_rec", None) is not None:
+                box = w.get_last_child()
+                names, c = [], box.get_first_child()
+                while c is not None:
+                    if c.get_visible():
+                        names.append(c.get_icon_name())
+                    c = c.get_next_sibling()
+                shown_ems[w._rec.name] = names if box.get_visible() else []
+            c = w.get_first_child()
+            while c is not None:
+                walk(c)
+                c = c.get_next_sibling()
+        walk(p.list_view.view)
+        expected = {"a moi.txt": [], "systeme": ["emblem-readonly"],
+                    "lost+found": ["emblem-readonly", "emblem-unreadable"],
+                    "lien": ["emblem-symbolic-link", "emblem-readonly"]}
+        check(shown_ems == expected, f"emblèmes des droits comme Nautilus ({shown_ems})")
+    finally:
+        icons._ids = saved
+
+
+@step
 def quitter_double_panneau_focus(win):
     """Sortie du double panneau, focus dans la recherche alors qu'un panneau l'avait avant
     (« Error finding last focus widget of GtkPaned ») : le focus reste dans le champ, sans

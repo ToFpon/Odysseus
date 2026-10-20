@@ -136,7 +136,8 @@ class _CellMixin:
         self._track(widget, None, None)
         widget._rec = None
 
-    def _fill_icon(self, image: Gtk.Image, emblem: Gtk.Image, rec: Rec, size: int, allow_thumb: bool):
+    def _fill_icon(self, image: Gtk.Image, emblems: Gtk.Box, rec: Rec, size: int, allow_thumb: bool,
+                   emblem_size: int = 0):
         image.set_pixel_size(size)
         tex = icons.request_thumbnail(rec, size, self.pane.model) if (allow_thumb and icons.thumbnails_wanted(rec)) else None
         if tex is not None:
@@ -146,13 +147,24 @@ class _CellMixin:
             image.set_from_gicon(icons.gicon_for(rec))
             image.remove_css_class("thumbnail")
         icons.request_meta(rec, self.pane.model)
-        ems = icons.emblems_for(rec)
-        if ems:
-            emblem.set_from_icon_name(ems[-1])
-            emblem.set_pixel_size(max(10, min(24, size // 3)))
-            emblem.set_visible(True)
-        else:
-            emblem.set_visible(False)
+        self._fill_emblems(emblems, icons.emblems_for(rec), emblem_size or max(10, min(24, size // 3)))
+
+    @staticmethod
+    def _fill_emblems(box: Gtk.Box, names: list[str], size: int):
+        """Emblèmes à la suite (lien, cadenas, croix…), comme Nautilus ; images réutilisées."""
+        child = box.get_first_child()
+        for name in names:
+            if child is None:
+                child = Gtk.Image(css_classes=["emblem"])
+                box.append(child)
+            child.set_from_icon_name(name)
+            child.set_pixel_size(size)
+            child.set_visible(True)
+            child = child.get_next_sibling()
+        while child is not None:
+            child.set_visible(False)
+            child = child.get_next_sibling()
+        box.set_visible(bool(names))
 
     @staticmethod
     def _apply_copy_mark(mark: Gtk.Widget, rec: Rec):
@@ -438,13 +450,11 @@ class ListView(Gtk.ScrolledWindow, _CellMixin):
     def _setup_name(self, _f, li):
         box = Gtk.Box(spacing=10, css_classes=["name-cell"])
         box.append(Gtk.Box(css_classes=["copy-mark"], visible=False))
-        ov = Gtk.Overlay()
-        img = Gtk.Image()
-        ov.set_child(img)
-        emb = Gtk.Image(halign=Gtk.Align.END, valign=Gtk.Align.END, visible=False, css_classes=["emblem"])
-        ov.add_overlay(emb)
-        box.append(ov)
-        box.append(Gtk.Label(xalign=0, ellipsize=Pango.EllipsizeMode.MIDDLE, hexpand=True))
+        box.append(Gtk.Image())
+        box.append(Gtk.Label(xalign=0, ellipsize=Pango.EllipsizeMode.MIDDLE))
+        # emblèmes juste après le nom, comme Nautilus
+        box.append(Gtk.Box(spacing=4, hexpand=True, halign=Gtk.Align.START, visible=False,
+                           css_classes=["emblems"]))
         li.set_child(box)
         self._attach_menu_gesture(box, li)
         self._attach_drag(box, li)
@@ -459,11 +469,11 @@ class ListView(Gtk.ScrolledWindow, _CellMixin):
 
     def _fill_name(self, box, rec: Rec):
         mark = box.get_first_child()
-        ov = mark.get_next_sibling()
-        img, emb = ov.get_child(), ov.get_last_child()
-        label = box.get_last_child()
+        img = mark.get_next_sibling()
+        label = img.get_next_sibling()
+        emb = box.get_last_child()
         size, _compact = self.pane.list_zoom
-        self._fill_icon(img, emb, rec, size, size >= 32)
+        self._fill_icon(img, emb, rec, size, size >= 32, emblem_size=16)
         label.set_text(shown(rec.name))
         label.set_tooltip_text(shown(rec.name) if len(rec.name) > 50 else None)
         self._apply_copy_mark(mark, rec)
@@ -568,8 +578,8 @@ class GridView(Gtk.ScrolledWindow, _CellMixin):
         ov = Gtk.Overlay(halign=Gtk.Align.CENTER)
         img = Gtk.Image()
         ov.set_child(img)
-        ov.add_overlay(Gtk.Image(halign=Gtk.Align.END, valign=Gtk.Align.END, visible=False,
-                                 css_classes=["emblem"]))
+        ov.add_overlay(Gtk.Box(halign=Gtk.Align.END, valign=Gtk.Align.END, visible=False, spacing=2,
+                               css_classes=["emblems"]))
         ov.add_overlay(Gtk.Box(halign=Gtk.Align.START, css_classes=["copy-mark"], visible=False))
         box.append(ov)
         box.append(Gtk.Label(wrap=True, wrap_mode=Pango.WrapMode.WORD_CHAR, lines=3,

@@ -65,7 +65,7 @@ columnview.file-view { margin: 0 12px; }
 columnview.file-view > listview { padding-bottom: 36px; }
 listview.miller-list { padding-bottom: 36px; }
 .numeric { font-feature-settings: "tnum"; }
-.name-cell .emblem, .grid-cell .emblem { -gtk-icon-shadow: 0 0 2px alpha(black, 0.4); }
+.grid-cell .emblem { -gtk-icon-shadow: 0 0 2px alpha(black, 0.4); }
 
 /* Vue grille */
 .file-grid { padding: 12px 12px 48px; }
