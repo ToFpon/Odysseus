@@ -60,11 +60,15 @@ columnview.file-view { margin: 0 12px; }
 .file-view > header > button:last-child { padding-right: 12px; }
 .file-view.compact > listview > row > cell { padding-top: 8px; padding-bottom: 7px; }
 .file-view > header > button { font-weight: 700; font-size: 0.85em; }
+/* Comme Nautilus : espace sous le dernier élément, la barre d'info du bas ne le cache jamais
+   une fois la liste défilée tout en bas */
+columnview.file-view > listview { padding-bottom: 36px; }
+listview.miller-list { padding-bottom: 36px; }
 .numeric { font-feature-settings: "tnum"; }
 .name-cell .emblem, .grid-cell .emblem { -gtk-icon-shadow: 0 0 2px alpha(black, 0.4); }
 
 /* Vue grille */
-.file-grid { padding: 12px; }
+.file-grid { padding: 12px 12px 48px; }
 .file-grid > child { border-radius: 12px; padding: 8px 4px; margin: 2px; }
 image.thumbnail { border-radius: 4px; }
 

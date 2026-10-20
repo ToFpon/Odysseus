@@ -498,6 +498,52 @@ def archives(win):
 
 
 @step
+def espace_sous_le_dernier(win):
+    """Comme Nautilus : défilé tout en bas, il reste sous le dernier élément de quoi loger la
+    barre d'info (elle ne cache pas la dernière ligne)."""
+    folder = tempfile.mkdtemp(dir=D, prefix="beaucoup ")
+    for i in range(150):
+        open(os.path.join(folder, f"fichier {i:03}.txt"), "w").close()
+    p = win.pane
+    p.open(folder)
+    yield Wait(5, until=lambda: not p.model.loading)
+    for mode, cls in (("list", "row"), ("grid", "child"), ("columns", "row")):
+        win.activate_action("win.view-mode", GLib.Variant.new_string(mode))
+        yield pump(0.6)
+        sws = []
+
+        def walk(w):
+            if isinstance(w, Gtk.ScrolledWindow) and w.get_mapped():
+                sws.append(w)
+            c = w.get_first_child()
+            while c is not None:
+                walk(c)
+                c = c.get_next_sibling()
+        walk(p)
+        sw = max(sws, key=lambda w: w.get_vadjustment().get_upper())
+        adj = sw.get_vadjustment()
+        adj.set_value(adj.get_upper() - adj.get_page_size())
+        yield pump(0.6)
+        bottom = 0
+
+        def rows(w):
+            nonlocal bottom
+            if w.get_css_name() == cls and w.get_mapped():
+                ok, b = w.compute_bounds(sw)
+                if ok:
+                    bottom = max(bottom, b.get_y() + b.get_height())
+            c = w.get_first_child()
+            while c is not None:
+                rows(c)
+                c = c.get_next_sibling()
+        rows(sw)
+        gap = sw.get_height() - bottom
+        check(gap >= 30, f"vue {mode} : espace sous le dernier élément ({gap:.0f} px)")
+    win.activate_action("win.view-mode", GLib.Variant.new_string("list"))
+    yield pump(0.3)
+
+
+@step
 def extractions_un_seul_toast(win):
     """Plusieurs archives extraites d'un coup : un seul toast à la fin, pas un par archive."""
     import zipfile
