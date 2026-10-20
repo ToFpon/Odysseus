@@ -41,7 +41,7 @@ class Tile(Gtk.FlowBoxChild):
         super().__init__(css_classes=["thispc-tile"])
         self.place = place
         box = Gtk.Box(spacing=12)
-        img = Gtk.Image(pixel_size=48 if drive else 32)
+        img = Gtk.Image(pixel_size=48)
         if isinstance(gicon, str):
             img.set_from_icon_name(gicon)
         elif gicon is not None:
