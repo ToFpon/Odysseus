@@ -17,6 +17,7 @@ from .. import features
 from ..backend import devices
 from ..backend.engine import human_size
 from ..i18n import tr
+from ..settings import settings
 from .common import popup_menu
 
 if TYPE_CHECKING:
@@ -88,11 +89,13 @@ class ThisPC(Gtk.Box):
         for key, title in (("folders", tr("Dossiers")), ("drives", tr("Périphériques et lecteurs")),
                            ("network", tr("Emplacements réseau"))):
             label = Gtk.Label(label=title, xalign=0, css_classes=["other-heading"])
-            box = Gtk.FlowBox(selection_mode=Gtk.SelectionMode.NONE, homogeneous=True, min_children_per_line=1,
+            # comme les fichiers : survol, sélection, ouverture au double-clic (ou au simple clic si
+            # c'est le réglage) ; une seule tuile sélectionnée pour toute la page
+            box = Gtk.FlowBox(selection_mode=Gtk.SelectionMode.SINGLE, homogeneous=True, min_children_per_line=1,
                               max_children_per_line=6, column_spacing=6, row_spacing=6,
                               css_classes=["thispc-flow"], valign=Gtk.Align.START)
-            box.set_activate_on_single_click(True)
             box.connect("child-activated", lambda _b, tile: self._activate(tile))
+            box.connect("selected-children-changed", self._only_one_selected)
             menu = Gtk.GestureClick(button=3)
             menu.connect("pressed", self._on_menu, box)
             box.add_controller(menu)
@@ -108,8 +111,17 @@ class ThisPC(Gtk.Box):
         self._pending = 0
         self._cancel: Optional[Gio.Cancellable] = None
 
+    def _only_one_selected(self, box: Gtk.FlowBox):
+        if box.get_selected_children():
+            for _label, other in self.sections.values():
+                if other is not box:
+                    other.unselect_all()
+
     # ------------------------------------------------------------------
     def refresh(self):
+        single = bool(settings["single_click"])
+        for _label, box in self.sections.values():
+            box.set_activate_on_single_click(single)
         if not self._ids:
             self._ids = [self.monitor.connect(sig, lambda *_: self._queue())
                          for sig in ("mount-added", "mount-removed", "mount-changed", "volume-added",
@@ -231,6 +243,7 @@ class ThisPC(Gtk.Box):
         if tile is None:
             return
         gesture.set_state(Gtk.EventSequenceState.CLAIMED)
+        box.select_child(tile)              # comme pour un fichier : le clic droit sélectionne
         place = tile.place
         group = Gio.SimpleActionGroup()
         menu = Gio.Menu()

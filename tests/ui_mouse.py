@@ -326,6 +326,20 @@ def steps(win):
     yield
     yield
     check(not bar.has_css_class("hidden"), "barre d'info : revenue quand le pointeur s'en va")
+    # « Ce PC » : comme les fichiers, un clic sélectionne (sans ouvrir), un double-clic ouvre
+    p.open("computer:///")
+    yield
+    yield
+    tile = p.pages["computer:///"].sections["drives"][1].get_first_child()
+    x, y = screen_point(win, tile, 40, 30)
+    xdo("mousemove", x, y, "click", 1)
+    yield
+    yield
+    check(tile.is_selected() and p.location == "computer:///", "Ce PC : un clic sélectionne sans ouvrir")
+    xdo("click", "--repeat", "2", "--delay", "80", 1)
+    yield
+    yield
+    check(p.location == "/", f"Ce PC : double-clic ouvre ({p.location})")
 
 
 def on_window(_a, win):

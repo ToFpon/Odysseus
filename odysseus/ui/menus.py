@@ -270,6 +270,8 @@ def _background_menu(win, pane) -> Gio.Menu:
     s = Gio.Menu()
     s.append(tr("Ajouter aux signets"), "win.bookmark")
     s.append(tr("Copier l'emplacement"), "win.copy-location")
+    if pane.mode == "fs" and features.available("admin") and not win.is_admin():
+        s.append(tr("Ouvrir en tant qu'administrateur"), "win.open-admin-folder")
     s.append(tr("Propriétés"), "win.properties-folder")
     m.append_section(None, s)
     return m

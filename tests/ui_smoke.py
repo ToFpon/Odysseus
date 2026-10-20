@@ -626,6 +626,20 @@ def ce_pc_et_bureau(win):
     folders.emit("child-activated", folders.get_first_child())
     yield pump(0.5)
     check(p.mode == "fs" and p.location == os.path.expanduser("~"), "Ce PC : clic sur un dossier l'ouvre")
+    # menu de l'espace vide : « Ouvrir en tant qu'administrateur » (admin:// absent du bac à sable :
+    # la fonctionnalité est déclarée disponible le temps du test)
+    from odysseus.ui import menus
+    from odysseus import features
+    real = features.available
+    features.available = lambda fid: True if fid == "admin" else real(fid)
+    try:
+        m = menus._background_menu(win, p)
+    finally:
+        features.available = real
+    actions = [m.get_item_link(i, "section").get_item_attribute_value(j, "action").unpack()
+               for i in range(m.get_n_items())
+               for j in range(m.get_item_link(i, "section").get_n_items())]
+    check("win.open-admin-folder" in actions, "menu de l'espace vide : « Ouvrir en tant qu'administrateur »")
     settings["sidebar_this_pc"] = False
     settings["sidebar_desktop"] = False
     yield pump(0.3)
