@@ -37,9 +37,21 @@ class _Place:
         self.ejectable = ejectable
 
 
+class TileGrid(Gtk.FlowBox):
+    """Grille de tuiles qui porte en CSS le nom de la grille des fichiers (« gridview »), et ses
+    tuiles celui de ses cases (« child.activatable ») : survol, appui et sélection viennent du
+    thème, exactement comme dans la vue grille."""
+    __gtype_name__ = "OdysseusTileGrid"
+
+
+TileGrid.set_css_name("gridview")
+
+
 class Tile(Gtk.FlowBoxChild):
+    __gtype_name__ = "OdysseusTile"
+
     def __init__(self, place: _Place, gicon, name: str, drive: bool, tooltip: str = ""):
-        super().__init__(css_classes=["thispc-tile"])
+        super().__init__(css_classes=["thispc-tile", "activatable"])
         self.place = place
         box = Gtk.Box(spacing=12)
         img = Gtk.Image(pixel_size=48)
@@ -77,6 +89,9 @@ class Tile(Gtk.FlowBoxChild):
         self.info.set_text(tr("{0} libres sur {1}").format(human_size(free), human_size(total)))
 
 
+Tile.set_css_name("child")
+
+
 class ThisPC(Gtk.Box):
     __gtype_name__ = "OdysseusThisPC"
 
@@ -91,7 +106,7 @@ class ThisPC(Gtk.Box):
             label = Gtk.Label(label=title, xalign=0, css_classes=["other-heading"])
             # comme les fichiers : survol, sélection, ouverture au double-clic (ou au simple clic si
             # c'est le réglage) ; une seule tuile sélectionnée pour toute la page
-            box = Gtk.FlowBox(selection_mode=Gtk.SelectionMode.SINGLE, homogeneous=True, min_children_per_line=1,
+            box = TileGrid(selection_mode=Gtk.SelectionMode.SINGLE, homogeneous=True, min_children_per_line=1,
                               max_children_per_line=6, column_spacing=6, row_spacing=6,
                               css_classes=["thispc-flow"], valign=Gtk.Align.START)
             box.connect("child-activated", lambda _b, tile: self._activate(tile))

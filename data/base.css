@@ -172,7 +172,6 @@ levelbar.ratio-bar block.filled, levelbar.ratio-bar block.empty { border-radius:
 .thispc-content { padding-bottom: 24px; }
 .thispc-flow { margin: 0 12px; }
 .thispc-tile { padding: 10px 12px; border-radius: 8px; min-width: 220px; }
-.thispc-tile:hover { background-color: alpha(currentColor, 0.07); }
 .thispc-tile levelbar { min-width: 120px; }
 .thispc-tile levelbar block { min-height: 6px; border-radius: 3px; }
 .thispc-tile levelbar block.disk-ok { background-color: @accent_bg_color; }

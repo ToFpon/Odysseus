@@ -20,6 +20,8 @@ Gestionnaire de fichiers GTK4 / libadwaita en Python, look Nautilus, intégrant 
   Bureau et « Ce PC » en option (`sidebar_desktop`, `sidebar_this_pc`, suivis en direct par
   `Sidebar.fill_places`). « Ce PC » (`ui/this_pc.py`, `computer:///`) : page spéciale comme « Autres
   emplacements » (`pane.PAGES`, mode « other ») ; espace des disques lu par GIO en asynchrone.
+  Ses tuiles portent les noms CSS de la grille des fichiers (`gridview > child.activatable`,
+  `set_css_name`) : survol / sélection viennent du thème, comme dans la vue grille.
 - Chaque fonctionnalité issue d'une extension est déclarée dans `odysseus/features.py` et doit rester
   désactivable sans redémarrage (`features.enabled(id)` au moment de l'usage, pas à l'import).
 - Tout texte visible passe par `tr()` / `ntr()` (jamais `_`). Après modification :
