@@ -73,10 +73,15 @@ class MainWindow(FileActions, ArchiveActions, ToolActions, Adw.ApplicationWindow
     def _build_sidebar(self):
         tv = Adw.ToolbarView(css_classes=["sidebar-pane"])
         hb = Adw.HeaderBar(show_end_title_buttons=False)
-        brand = Gtk.Box(spacing=8)
-        brand.append(Gtk.Image(icon_name=APP_ID, pixel_size=20))
+        # icône et nom à gauche, alignés sur les icônes et les textes de la barre latérale
+        # (en titre, AdwHeaderBar les centrait)
+        # (icône de 20 px centrée sur celles de 16 px des lignes, nom au niveau de leurs textes)
+        brand = Gtk.Box(spacing=10, margin_start=14)
+        self.brand_icon = Gtk.Image(icon_name=APP_ID, pixel_size=20)
+        brand.append(self.brand_icon)
         brand.append(Gtk.Label(label=APP_NAME, css_classes=["heading"]))
-        hb.set_title_widget(brand)
+        hb.pack_start(brand)
+        hb.set_title_widget(Gtk.Box())
         self.main_menu_btn = Gtk.MenuButton(icon_name="open-menu-symbolic",
                                             tooltip_text=tr("Menu principal (F10)"), primary=True)
         # reconstruit à chaque ouverture : libellés « Annuler … / Rétablir … » à jour
