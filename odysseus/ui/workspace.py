@@ -83,6 +83,14 @@ class Workspace(Gtk.Box):
             GLib.idle_add(self._center)
         else:
             keep = self.active
+            # Défaire le séparateur fait chercher à GtkPaned le widget qui a le focus ; s'il est
+            # ailleurs (champ de recherche…) alors que le séparateur garde la trace d'un ancien focus
+            # dans un panneau : « Error finding last focus widget ». Focus vidé le temps de la
+            # reconstruction, puis rendu là où il était (au panneau gardé s'il était dans un panneau).
+            root = self.get_root()
+            focus = root.get_focus() if root is not None else None
+            if focus is not None:
+                root.set_focus(None)
             for p in list(self.panes):
                 if p is not keep:
                     p.retire()
@@ -90,6 +98,13 @@ class Workspace(Gtk.Box):
             self.paned.set_start_child(None)
             self.paned.set_end_child(None)
             self.paned.set_start_child(keep)
+            if focus is not None:
+                if focus.is_ancestor(self.paned) or focus.get_root() is not root:
+                    GLib.idle_add(keep.focus_view)
+                elif isinstance(focus, Gtk.Text):
+                    focus.grab_focus_without_selecting()      # le texte tapé reste tel quel
+                else:
+                    focus.grab_focus()
             for p in self.panes:
                 p.remove_css_class("active-pane")
                 if getattr(p, "pathbar", None) is not None:

@@ -498,6 +498,46 @@ def archives(win):
 
 
 @step
+def quitter_double_panneau_focus(win):
+    """Sortie du double panneau, focus dans la recherche alors qu'un panneau l'avait avant
+    (« Error finding last focus widget of GtkPaned ») : le focus reste dans le champ, sans
+    resélectionner le texte ; focus dans le panneau retiré → rendu au panneau gardé."""
+    p = win.pane
+    p.open(D)
+    yield Wait(5, until=lambda: not p.model.loading)
+    if not win.is_dual():
+        win.activate_action("win.dual", None)
+        yield pump(0.5)
+    win.workspace.other(win.pane).focus_view()
+    yield pump(0.2)
+    win.search_bar.set_search_mode(True)
+    win.search_entry.set_text("abc")
+    win.search_entry.grab_focus()
+    win.search_entry.select_region(3, 3)
+    yield pump(0.3)
+    win.activate_action("win.dual", None)
+    yield pump(0.5)
+    focus = win.get_focus()
+    check(not win.is_dual() and focus is not None and focus.is_ancestor(win.search_entry),
+          f"sortie du double panneau : focus gardé dans la recherche ({type(focus).__name__})")
+    bounds = win.search_entry.get_selection_bounds()
+    check(not bounds or bounds[0] == bounds[1], f"texte de la recherche non resélectionné ({bounds})")
+    win.search_entry.set_text("")
+    win.search_bar.set_search_mode(False)
+    yield pump(0.3)
+    win.activate_action("win.dual", None)
+    yield pump(0.5)
+    other = win.workspace.other(win.pane)
+    other.focus_view()
+    win.workspace.set_active(win.pane)
+    yield pump(0.2)
+    win.activate_action("win.dual", None)
+    yield pump(0.5)
+    focus = win.get_focus()
+    check(focus is not None and focus.is_ancestor(win.pane), "focus du panneau retiré rendu au panneau gardé")
+
+
+@step
 def ce_pc_et_bureau(win):
     """Barre latérale : Bureau et « Ce PC » en option, suivis en direct ; la page « Ce PC »
     montre dossiers et disques, avec l'espace libre lu en asynchrone."""
