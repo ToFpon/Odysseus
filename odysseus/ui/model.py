@@ -474,10 +474,16 @@ class DirModel(GObject.Object, Gio.ListModel):
             self.items_changed(i, 1, 0)
 
     def _update_rec(self, old: Rec, new: Rec):
-        if old.is_dir != new.is_dir:
+        # type changé (fichier vide remplacé par le vrai, ex. « x.zip » de Firefox écrasé par
+        # « x.zip.part ») : l'icône suit ; trié par type, la ligne change de place
+        if old.is_dir != new.is_dir or (old.ctype != new.ctype and self.sort_key == "type"):
+            sel = old in self.selected_recs()
             self._remove_rec(old)
             self._insert_rec(new)
+            if sel:
+                self.select_recs(self.selected_recs() + [new])
             return
+        old.ctype, old.is_link = new.ctype, new.is_link
         old.size, old.mtime, old.mode, old.uid = new.size, new.mtime, new.mode, new.uid
         old.stat_ok = True
         if old.extra:
