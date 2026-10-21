@@ -129,6 +129,11 @@ fenêtre de recherche dans le contenu.
 ## Pièges connus
 
 - Actions de fenêtre : préfixe `win.` ; l'application gère la ligne de commande (`HANDLES_COMMAND_LINE`).
+- Nom du processus : `app._process_name` (prctl PR_SET_NAME) → « odysseus » dans le Moniteur
+  système, `ps`, `killall` (sinon « python3 », le lanceur étant `python3 -c …`). WM_CLASS :
+  `GLib.set_prgname(APP_ID)`.
+- Fenêtre de progression : `ProgressWindow._fit` recalcule la hauteur quand le nombre d'opérations
+  change ou à la réouverture (GTK garde la taille d'une fenêtre masquée).
 - `.desktop` en `DBusActivatable=true` : GIO (dock, `gio open`, autres applications) passe par D-Bus et
   le bus lance Odysseus (`--gapplication-service`, fichier de service écrit par `install.sh`) avec
   l'environnement de la session — un lanceur hors session (script udev) n'a plus besoin de DISPLAY /

@@ -312,9 +312,15 @@ class ProgressWindow(Adw.Window):
             self.refresh()
             self.present()
 
+    def _fit(self):
+        """Hauteur ajustée au nombre d'opérations (jusqu'à 520 px, puis défilement). GTK garde la
+        taille d'une fenêtre masquée puis rouverte : sans ça, elle restait haute pour une seule."""
+        self.set_default_size(self.get_width() or 460, -1)
+
     def refresh(self):
         running = [j for j in manager.running if getattr(j, "file_operation", False)]
         ids = {id(j) for j in running}
+        count = len(self.rows)
         for jid in list(self.rows):
             if jid not in ids:
                 self.list.remove(self.rows.pop(jid))
@@ -327,6 +333,8 @@ class ProgressWindow(Adw.Window):
             row.update()
         if not running and self.get_visible():
             self.set_visible(False)
+        elif len(self.rows) != count or not self.get_visible():
+            self._fit()
 
     def watch(self, job: Job, delay: float):
         def show():

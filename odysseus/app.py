@@ -196,7 +196,19 @@ class OdysseusApp(Adw.Application):
         about.present()
 
 
+def _process_name(name: str):
+    """Nom du processus pour le noyau (/proc/PID/comm) : le Moniteur système, top, killall…
+    affichaient « python3 ». Linux seulement ; ailleurs, rien ne change."""
+    try:
+        import ctypes
+        libc = ctypes.CDLL(None, use_errno=True)
+        libc.prctl(15, ctypes.c_char_p(name.encode()[:15]), 0, 0, 0)     # 15 = PR_SET_NAME
+    except (OSError, AttributeError):
+        pass
+
+
 def main(argv=None) -> int:
+    _process_name("odysseus")
     # En cas de plantage natif (GTK, GLib, Poppler…), afficher la pile Python de chaque fil
     import faulthandler
     faulthandler.enable(all_threads=True)
