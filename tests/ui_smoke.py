@@ -513,8 +513,14 @@ def emblemes_droits(win):
         os.chmod(path, mode)
         os.chown(path, owner, owner)
     os.symlink("systeme", os.path.join(folder, "lien"))
+    os.chown(folder, 1000, 1000)             # dossier à l'utilisateur : comme Stockage_Linux
+    # dans un dossier de root (comme /) : pas de cadenas, seulement la croix sur l'illisible
+    for name, mode in (("usr", 0o755), ("secret", 0o700)):
+        os.mkdir(os.path.join(folder, "systeme", name))
+        os.chmod(os.path.join(folder, "systeme", name), mode)
     saved = icons._ids
     icons._ids = (1000, {1000})
+    icons._parent_cache.clear()
     try:
         p = win.pane
         p.open(folder)
@@ -540,8 +546,16 @@ def emblemes_droits(win):
                     "lost+found": ["emblem-readonly", "emblem-unreadable"],
                     "lien": ["emblem-symbolic-link", "emblem-readonly"]}
         check(shown_ems == expected, f"emblèmes des droits comme Nautilus ({shown_ems})")
+        p.open(os.path.join(folder, "systeme"))
+        yield Wait(5, until=lambda: not p.model.loading)
+        yield pump(0.5)
+        shown_ems.clear()
+        walk(p.list_view.view)
+        check(shown_ems == {"usr": [], "secret": ["emblem-unreadable"]},
+              f"dossier de root : pas de cadenas, croix sur l'illisible ({shown_ems})")
     finally:
         icons._ids = saved
+        icons._parent_cache.clear()
 
 
 @step

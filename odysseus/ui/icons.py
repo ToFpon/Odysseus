@@ -86,33 +86,59 @@ def gicon_for(rec: Rec) -> Gio.Icon:
 
 
 _ids: Optional[tuple] = None
+_parent_cache: "OrderedDict[str, tuple[float, bool]]" = OrderedDict()
 
 
-def _access(rec: Rec) -> tuple[bool, bool]:
-    """(lisible, modifiable) d'après les droits de l'élément, sans appel système (comme le
-    test d'accès de Nautilus, ACL mises à part). Inconnu (GIO, archive) : pas d'emblème."""
+def _rights(mode: int, owner: int, group: int) -> tuple[bool, bool]:
+    """(lisible, modifiable) d'après les bits de droits, sans appel système (ACL mises à part)."""
     global _ids
     if _ids is None:
         _ids = (os.geteuid(), set(os.getgroups()) | {os.getegid()})
     uid, groups = _ids
-    if uid == 0 or not rec.stat_ok or not rec.mode or rec.uid < 0 or not rec.path:
+    if uid == 0:
         return True, True
-    m = rec.mode
-    if rec.uid == uid:
-        return bool(m & st.S_IRUSR), bool(m & st.S_IWUSR)
-    if rec.gid in groups:
-        return bool(m & st.S_IRGRP), bool(m & st.S_IWGRP)
-    return bool(m & st.S_IROTH), bool(m & st.S_IWOTH)
+    if owner == uid:
+        return bool(mode & st.S_IRUSR), bool(mode & st.S_IWUSR)
+    if group in groups:
+        return bool(mode & st.S_IRGRP), bool(mode & st.S_IWGRP)
+    return bool(mode & st.S_IROTH), bool(mode & st.S_IWOTH)
+
+
+def _access(rec: Rec) -> tuple[bool, bool]:
+    """(lisible, modifiable) de l'élément. Inconnu (GIO, archive) : pas d'emblème."""
+    if not rec.stat_ok or not rec.mode or rec.uid < 0 or not rec.path:
+        return True, True
+    return _rights(rec.mode, rec.uid, rec.gid)
+
+
+def _parent_writable(path: str) -> bool:
+    """Dossier parent modifiable ? Lu une fois par dossier (gardé 5 s), pas une fois par ligne."""
+    folder = os.path.dirname(path.rstrip("/")) or "/"
+    now = GLib.get_monotonic_time() / 1e6
+    hit = _parent_cache.get(folder)
+    if hit is not None and now - hit[0] < 5:
+        return hit[1]
+    try:
+        s = os.stat(folder)
+        writable = _rights(s.st_mode, s.st_uid, s.st_gid)[1]
+    except OSError:
+        writable = False
+    _parent_cache[folder] = (now, writable)
+    _parent_cache.move_to_end(folder)
+    while len(_parent_cache) > 64:
+        _parent_cache.popitem(last=False)
+    return writable
 
 
 def emblems_for(rec: Rec) -> list[str]:
-    """Emblèmes comme Nautilus : lien, puis non modifiable (cadenas), non lisible (croix), puis ceux
-    choisis par l'utilisateur (Folder Color)."""
+    """Emblèmes comme Nautilus : lien ; cadenas si l'élément n'est pas modifiable ALORS QUE son
+    dossier l'est (dans / ou /usr, où rien ne l'est, aucun cadenas) ; croix si illisible ; puis
+    ceux choisis par l'utilisateur (Folder Color)."""
     out = []
     if rec.is_link:
         out.append("emblem-symbolic-link")
     readable, writable = _access(rec)
-    if not writable:
+    if not writable and _parent_writable(rec.path):
         out.append("emblem-readonly")
     if not readable:
         out.append("emblem-unreadable")
