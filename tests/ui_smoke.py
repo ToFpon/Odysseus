@@ -150,8 +150,9 @@ def run_all(win):
 
 @step
 def ouverture(win):
-    yield pump(0.8)
     p = win.pane
+    # attendre la fin du chargement, pas un délai fixe : machine chargée, la liste était encore vide
+    yield Wait(10, until=lambda: not p.model.loading and len(p.model.items) > 0)
     check(p.location == D, "ouverture du dossier")
     names = [r.name for r in p.model.items]
     check("dossier A" == names[0] and "dossier B" == names[1], "dossiers en premier")
