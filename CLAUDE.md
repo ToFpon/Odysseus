@@ -90,6 +90,11 @@ renommé d'un coup une fois complet (`copy_file`), jamais de fichier tronqué so
 compression « supprimer après » : jamais `-sdel` (7-Zip supprimait avant que l'archive soit posée),
 sources retirées par `archive._delete_sources_after` une fois l'archive en place. `KilledTest` tue
 un vrai processus au pire moment.
+Coupure de courant (le cache du noyau est perdu, pas seulement le processus) : un original n'est
+supprimé qu'après `fileops.flush_to_disk` (syncfs du disque de destination) — déplacement vers un
+autre disque (par lots de 64 éléments : un syncfs par élément coûtait cher sur une clé), « supprimer
+après » de la compression, de l'extraction et du découpage en volumes. `PowerLossOrderTest` vérifie
+l'ordre : mise sur disque, puis suppression.
 
 Supports amovibles (`backend/fsinfo.py`, type lu dans `/proc/self/mountinfo`, sans `stat`) : vers
 FAT / exFAT / NTFS, noms nettoyés (`: ? * " < > | \\`, points et espaces finaux → `safe_name`),

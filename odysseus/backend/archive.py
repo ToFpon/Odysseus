@@ -575,7 +575,7 @@ def create(job: Job, sources: list[str], out: str, o: CreateOptions) -> str:
                 os.remove(target)
         # 7-Zip saute un fichier illisible avec un simple avertissement (code 1) : on le dit
         job.skipped_files = getattr(job, "skipped_files", []) + unreadable_from_7z(text)
-        _delete_sources_after(job, sources, o)
+        _delete_sources_after(job, sources, o, out)
         return out
 
     from .fileops import _tmp_name
@@ -629,15 +629,17 @@ def create(job: Job, sources: list[str], out: str, o: CreateOptions) -> str:
     if o.volume_size:
         from .tools import split_file, parse_size
         split_file(job, out, parse_size(o.volume_size), remove_original=True)
-    _delete_sources_after(job, sources, o)
+    _delete_sources_after(job, sources, o, out)
     return out
 
 
-def _delete_sources_after(job: Job, sources: list[str], o: CreateOptions):
-    """« Supprimer après » : seulement une fois l'archive posée sous son vrai nom, et jamais les
-    fichiers que l'outil n'a pas pu lire (absents de l'archive)."""
+def _delete_sources_after(job: Job, sources: list[str], o: CreateOptions, out: str):
+    """« Supprimer après » : seulement une fois l'archive posée sous son vrai nom ET écrite sur le
+    disque (coupure de courant), et jamais les fichiers que l'outil n'a pas pu lire."""
     if not o.delete_after:
         return
+    from .fileops import flush_to_disk
+    flush_to_disk(out)
     skipped = getattr(job, "skipped_files", [])
     keep = _skipped_paths(sources, skipped) if skipped else frozenset()
     if keep is not None:          # un fichier sauté introuvable : on ne supprime rien
@@ -939,6 +941,8 @@ def extract(job: Job, archive: str, o: ExtractOptions) -> str:
         if getattr(job, "extract_skipped", False):
             job.archive_kept = True     # des éléments ont été ignorés : l'archive en est la seule copie
         else:
+            from .fileops import flush_to_disk
+            flush_to_disk(dest)          # le contenu extrait sur le disque AVANT de retirer l'archive
             for v in volume_set(archive):
                 os.remove(v)
     return dest

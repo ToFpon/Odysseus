@@ -644,6 +644,101 @@ class KilledTest(unittest.TestCase):
         self.assertEqual(tree(srcdir), snap, "sources supprimées alors que l'archive n'est pas en place")
 
 
+class PowerLossOrderTest(unittest.TestCase):
+    """Coupure de courant : ce qui n'est que dans le cache du noyau est perdu. Un original n'est
+    supprimé qu'APRÈS que sa nouvelle version a été forcée sur le disque (flush_to_disk / syncfs)."""
+
+    def setUp(self):
+        self.tmp = tempfile.TemporaryDirectory()
+        self.d = self.tmp.name
+        self.events = []
+        real_flush = fileops.flush_to_disk
+
+        def flush(path):
+            self.events.append("flush")
+            real_flush(path)
+        p = mock.patch.object(fileops, "flush_to_disk", flush)
+        p.start()
+        self.addCleanup(p.stop)
+
+    def tearDown(self):
+        self.tmp.cleanup()
+
+    def test_move_across_filesystems_flushes_before_removing_source(self):
+        other = "/dev/shm" if os.path.isdir("/dev/shm") and \
+            os.stat("/dev/shm").st_dev != os.stat(self.d).st_dev else None
+        if other is None:
+            self.skipTest("pas de second système de fichiers")
+        src = os.path.join(self.d, "photo.jpg")
+        write(src, os.urandom(1 << 20))
+        dest = tempfile.mkdtemp(dir=other)
+        real_prune = fileops._prune_moved
+        with mock.patch.object(fileops, "_prune_moved",
+                               lambda *a: (self.events.append("suppression source"), real_prune(*a))[1]):
+            try:
+                run(lambda j: fileops.transfer(j, [src], dest, ask("cancel"), move=True))
+            finally:
+                import shutil
+                shutil.rmtree(dest, ignore_errors=True)
+        self.assertEqual(self.events, ["flush", "suppression source"])
+
+    def test_many_items_moved_with_few_flushes(self):
+        other = "/dev/shm" if os.path.isdir("/dev/shm") and \
+            os.stat("/dev/shm").st_dev != os.stat(self.d).st_dev else None
+        if other is None:
+            self.skipTest("pas de second système de fichiers")
+        srcs = []
+        for i in range(150):
+            srcs.append(os.path.join(self.d, f"f{i:03}.txt"))
+            write(srcs[-1], f"fichier {i}")
+        dest = tempfile.mkdtemp(dir=other)
+        real_prune = fileops._prune_moved
+        with mock.patch.object(fileops, "_prune_moved",
+                               lambda *a: (self.events.append("suppression"), real_prune(*a))[1]):
+            try:
+                run(lambda j: fileops.transfer(j, srcs, dest, ask("cancel"), move=True))
+                self.assertEqual(len(os.listdir(dest)), 150)
+            finally:
+                import shutil
+                shutil.rmtree(dest, ignore_errors=True)
+        self.assertFalse(any(os.path.exists(s_) for s_ in srcs))
+        self.assertEqual(self.events, (["flush"] + ["suppression"] * 64) * 2 + ["flush"] + ["suppression"] * 22)
+
+    def test_compress_delete_after_flushes_first(self):
+        from odysseus.backend import archive
+        src = os.path.join(self.d, "doc.txt")
+        write(src, "contenu")
+        real = archive._remove_sources
+        for fmt in ("7z", "tar.gz"):
+            self.events.clear()
+            if not os.path.exists(src):
+                write(src, "contenu")
+            with mock.patch.object(archive, "_remove_sources",
+                                   lambda *a, **k: (self.events.append("suppression source"), real(*a, **k))[1]):
+                run(lambda j: archive.create(j, [src], os.path.join(self.d, f"a.{fmt}"),
+                                             archive.CreateOptions(fmt=fmt, delete_after=True)))
+            self.assertEqual(self.events, ["flush", "suppression source"], fmt)
+            self.assertFalse(os.path.exists(src))
+
+    def test_extract_delete_archive_after_flushes_first(self):
+        from odysseus.backend import archive
+        src = os.path.join(self.d, "doc.txt")
+        write(src, "contenu")
+        arch = run(lambda j: archive.create(j, [src], os.path.join(self.d, "a.zip"),
+                                            archive.CreateOptions(fmt="zip")))
+        real_remove = os.remove
+
+        def remove(p, *a, **k):
+            if os.fspath(p) == arch:
+                self.events.append("suppression archive")
+            return real_remove(p, *a, **k)
+        with mock.patch("os.remove", remove):
+            run(lambda j: archive.extract(j, arch, archive.ExtractOptions(
+                dest=os.path.join(self.d, "sortie"), delete_after=True)))
+        self.assertEqual(self.events, ["flush", "suppression archive"])
+        self.assertFalse(os.path.exists(arch))
+
+
 class FatKeyTest(unittest.TestCase):
     """Copie vers une « clé USB » FAT32 : vraie image mkfs.vfat montée avec fusefat (sans droits
     root ni module noyau). Ignoré si les outils manquent."""

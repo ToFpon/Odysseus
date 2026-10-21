@@ -336,6 +336,8 @@ def split_file(job: Job, path: str, chunk: int, out_dir: str = "", remove_origin
         with open(base + ".sha256", "w") as fh:
             fh.write(f"{sha.hexdigest()}  {os.path.basename(path)}\n")
     if remove_original:
+        from .fileops import flush_to_disk
+        flush_to_disk(parts[0] if parts else path)     # volumes sur le disque avant de retirer l'original
         os.remove(path)
     return parts
 

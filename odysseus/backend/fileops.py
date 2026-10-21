@@ -478,6 +478,34 @@ def _rename_new(src: str, dst: str):
     os.rename(src, dst)
 
 
+_syncfs = None
+
+
+def flush_to_disk(path: str):
+    """Force sur le disque tout ce qui a été écrit sur le système de fichiers de path (syncfs), à
+    appeler AVANT de supprimer un original (déplacement vers un autre disque, « supprimer après »).
+    Sans ça, une coupure de courant pouvait laisser la suppression écrite et la copie encore dans
+    le cache du noyau : ni l'original ni la copie. Un seul appel par élément, pas par fichier."""
+    global _syncfs
+    if _syncfs is None:
+        try:
+            _syncfs = ctypes.CDLL(None, use_errno=True).syncfs
+            _syncfs.argtypes = [ctypes.c_int]
+        except (OSError, AttributeError):
+            _syncfs = False
+    folder = path if os.path.isdir(path) else (os.path.dirname(path) or ".")
+    try:
+        fd = os.open(folder, os.O_RDONLY)
+    except OSError:
+        os.sync()
+        return
+    try:
+        if not _syncfs or _syncfs(fd) != 0:
+            os.sync()
+    finally:
+        os.close(fd)
+
+
 def place_new(tmp: str, dst: str) -> str:
     """Pose tmp (fichier ou dossier terminé) sous le nom dst sans jamais rien écraser : si le nom
     a été pris entre-temps (autre opération lancée en même temps), « nom (2) ». Renvoie le chemin
@@ -685,24 +713,40 @@ def transfer(job: Job, sources: list[str], dest_dir: str, ask: Asker, move: bool
         total, files = measure(job, [s for s, _d, _m in to_copy])
         copier.total, copier.files = max(total, 1), files
         copier.started = time.monotonic()
-        for src, dst, merge in to_copy:
-            job.check_cancel()
-            before = len(copier.errors)
-            if merge:
-                copier.copy_tree(src, dst)
-                final = dst
-            else:
-                final = copier.place(src, dst)
-            if final is None:
-                continue
-            res.created.append(final)
-            if move:
+        # déplacement : une source n'est retirée qu'une fois sa copie forcée sur le disque
+        # (flush_to_disk). Par lots de 64 éléments : un syncfs par élément coûtait cher sur une
+        # clé ou un disque lent quand on déplace des centaines de fichiers choisis un à un.
+        pending: list = []
+
+        def settle():
+            if not pending:
+                return
+            flush_to_disk(pending[-1][1])
+            for s_, final_ in pending:
                 try:
-                    _prune_moved(src, copier.copied)
-                    if not os.path.lexists(src):
-                        res.moved.append((src, final))
+                    _prune_moved(s_, copier.copied)
+                    if not os.path.lexists(s_):
+                        res.moved.append((s_, final_))
                 except OSError as e:
-                    copier.errors.append((src, e.strerror or str(e)))
+                    copier.errors.append((s_, e.strerror or str(e)))
+            pending.clear()
+        try:
+            for src, dst, merge in to_copy:
+                job.check_cancel()
+                if merge:
+                    copier.copy_tree(src, dst)
+                    final = dst
+                else:
+                    final = copier.place(src, dst)
+                if final is None:
+                    continue
+                res.created.append(final)
+                if move:
+                    pending.append((src, final))
+                    if len(pending) >= 64:
+                        settle()
+        finally:
+            settle()          # annulation, erreur : les éléments entièrement copiés sont bien déplacés
         copier.tick(force=True)
     res.new_items = [d for _s, d in direct] + [d for _s, d in copier.roots]
     if move:
