@@ -28,6 +28,11 @@ from .engine import Cancelled, Job, ToolError, human_size
 CHUNK = 8 * 1024 * 1024
 
 
+class _Taken(Exception):
+    """Le nom visé a été pris entre la vérification du conflit et la création (autre copie lancée
+    en même temps, depuis une autre fenêtre…) : le conflit est alors posé, rien n'est écrasé."""
+
+
 @dataclass
 class Conflict:
     src: str
@@ -237,7 +242,12 @@ class _Copier:
         tmp_created = False
         try:
             with open(src, "rb") as fin:
-                fd = os.open(dst, os.O_WRONLY | os.O_CREAT | os.O_TRUNC, st.S_IMODE(s.st_mode) | 0o200)
+                # O_EXCL : jamais par-dessus un fichier apparu entre-temps (deux copies simultanées
+                # écrivaient dans le même fichier : contenus mélangés, ou effacé par celle annulée)
+                try:
+                    fd = os.open(dst, os.O_WRONLY | os.O_CREAT | os.O_EXCL, st.S_IMODE(s.st_mode) | 0o200)
+                except FileExistsError:
+                    raise _Taken(dst) from None
                 tmp_created = True
                 try:
                     use_cfr = hasattr(os, "copy_file_range")
@@ -292,6 +302,8 @@ class _Copier:
             if st.S_ISLNK(s.st_mode):
                 try:
                     os.symlink(os.readlink(src), dst)
+                except FileExistsError:
+                    raise _Taken(dst) from None
                 except OSError as e:
                     if self.windows:
                         raise OSError(e.errno, tr("les liens symboliques ne peuvent pas être copiés sur ce support"))
@@ -326,7 +338,19 @@ class _Copier:
             self.errors.append((src, e.strerror or str(e)))
 
     def place(self, src: str, dst: str, nested: bool = False) -> Optional[str]:
-        """Copie src vers dst en réglant un éventuel conflit ; renvoie le chemin final."""
+        """Copie src vers dst en réglant un éventuel conflit ; renvoie le chemin final. Si le nom
+        est pris pendant la copie (création exclusive refusée), le conflit est posé à ce moment-là."""
+        for _attempt in range(4):
+            try:
+                return self._place(src, dst, nested)
+            except _Taken:
+                continue
+        # toujours refusé alors que le nom paraît libre (clé FAT : même nom, autre casse) : signalé,
+        # rien n'est écrasé ; pour un déplacement, la source reste
+        self.errors.append((src, os.strerror(errno.EEXIST)))
+        return None
+
+    def _place(self, src: str, dst: str, nested: bool) -> Optional[str]:
         src_is_dir = os.path.isdir(src) and not os.path.islink(src)
         exists = os.path.lexists(dst)
         if self.windows:
@@ -426,6 +450,7 @@ def _fsync_dir(folder: str):
         os.close(fd)
 
 
+_RENAME_NOREPLACE = 1
 _RENAME_EXCHANGE = 2
 _renameat2 = None
 
@@ -433,6 +458,46 @@ _renameat2 = None
 def _exchange(a: str, b: str) -> bool:
     """Échange atomique de deux chemins (renameat2 RENAME_EXCHANGE, dossiers compris). False si le
     système de fichiers ne sait pas faire (FAT, certains FUSE, NFS…) : rien n'a alors bougé."""
+    return _rename2(a, b, _RENAME_EXCHANGE)
+
+
+def _rename_new(src: str, dst: str):
+    """os.rename qui n'écrase jamais : FileExistsError si dst existe, même apparu à l'instant
+    (renameat2 RENAME_NOREPLACE ; là où ce n'est pas géré, vérification juste avant)."""
+    if _rename2(src, dst, _RENAME_NOREPLACE):
+        return
+    if os.path.lexists(dst):
+        raise FileExistsError(errno.EEXIST, os.strerror(errno.EEXIST), dst)
+    os.rename(src, dst)
+
+
+def place_new(tmp: str, dst: str) -> str:
+    """Pose tmp (fichier ou dossier terminé) sous le nom dst sans jamais rien écraser : si le nom
+    a été pris entre-temps (autre opération lancée en même temps), « nom (2) ». Renvoie le chemin
+    final. Pour les sorties censées être nouvelles (archives, PDF, extraction…)."""
+    folder = os.path.dirname(dst) or "."
+    for _attempt in range(20):
+        try:
+            _rename_new(tmp, dst)
+            return dst
+        except FileExistsError:
+            dst = os.path.join(folder, unique_name(folder, os.path.basename(dst), os.path.isdir(tmp)))
+    raise FileExistsError(errno.EEXIST, os.strerror(errno.EEXIST), dst)
+
+
+def move_new(src: str, dst: str):
+    """Déplace src vers dst (autre disque compris) sans jamais écraser : FileExistsError sinon."""
+    try:
+        _rename_new(src, dst)
+    except OSError as e:
+        if e.errno != errno.EXDEV:
+            raise
+        if os.path.lexists(dst):
+            raise FileExistsError(errno.EEXIST, os.strerror(errno.EEXIST), dst) from None
+        shutil.move(src, dst)
+
+
+def _rename2(a: str, b: str, flags: int) -> bool:
     global _renameat2
     if _renameat2 is None:
         try:
@@ -444,7 +509,7 @@ def _exchange(a: str, b: str) -> bool:
     if not _renameat2:
         return False
     at_fdcwd = -100
-    if _renameat2(at_fdcwd, os.fsencode(a), at_fdcwd, os.fsencode(b), _RENAME_EXCHANGE) == 0:
+    if _renameat2(at_fdcwd, os.fsencode(a), at_fdcwd, os.fsencode(b), flags) == 0:
         return True
     err = ctypes.get_errno()
     if err in (errno.EINVAL, errno.ENOSYS, errno.ENOTSUP, errno.EOPNOTSUPP):
@@ -523,6 +588,48 @@ def _is_inside(child: str, parent: str) -> bool:
     return child == parent or child.startswith(parent.rstrip("/") + "/")
 
 
+def _move_same_disk(src: str, dst: str, dest_dir: str, name: str, copier: "_Copier", res: Result,
+                    direct: list, to_copy: list):
+    """Déplacement par simple renommage. Le renommage n'écrase jamais (_rename_new) : si le nom est
+    pris entre la vérification et le renommage (autre déplacement lancé en même temps), le conflit
+    est posé à nouveau au lieu de remplacer en silence l'élément arrivé entre-temps."""
+    for _attempt in range(4):
+        if os.path.lexists(dst) and _real_location(dst) == _real_location(src):
+            return
+        if os.path.lexists(dst):
+            src_is_dir = os.path.isdir(src) and not os.path.islink(src)
+            dst_is_dir = os.path.isdir(dst) and not os.path.islink(dst)
+            choice = copier.decide(Conflict(src, dst, src_is_dir, dst_is_dir, True))
+            if choice == "skip":
+                return
+            if choice == "rename":
+                dst = os.path.join(dest_dir, unique_name(dest_dir, name, src_is_dir))
+            elif choice == "merge" and src_is_dir and dst_is_dir:
+                to_copy.append((src, dst, True))
+                return
+            else:
+                try:
+                    _swap_into(src, dst)
+                    res.moved.append((src, dst))
+                    res.created.append(dst)
+                    direct.append((src, dst))
+                except OSError as e:
+                    res.errors.append((dst, e.strerror or str(e)))
+                return
+        try:
+            _rename_new(src, dst)
+        except FileExistsError:
+            continue                          # pris à l'instant : on repose la question
+        except OSError as e:
+            res.errors.append((src, e.strerror or str(e)))
+            return
+        res.moved.append((src, dst))
+        res.created.append(dst)
+        direct.append((src, dst))
+        return
+    res.errors.append((src, os.strerror(errno.EEXIST)))     # nom refusé sans fin (voir _Copier.place)
+
+
 def transfer(job: Job, sources: list[str], dest_dir: str, ask: Asker, move: bool = False) -> Result:
     """Copie ou déplace des éléments dans dest_dir."""
     res = Result("move" if move else "copy")
@@ -558,35 +665,7 @@ def transfer(job: Job, sources: list[str], dest_dir: str, ask: Asker, move: bool
                 res.errors.append((src, e.strerror or str(e)))
                 continue
             if same:
-                if os.path.lexists(dst) and _real_location(dst) == _real_location(src):
-                    continue
-                if os.path.lexists(dst):
-                    src_is_dir = os.path.isdir(src) and not os.path.islink(src)
-                    dst_is_dir = os.path.isdir(dst) and not os.path.islink(dst)
-                    choice = copier.decide(Conflict(src, dst, src_is_dir, dst_is_dir, True))
-                    if choice == "skip":
-                        continue
-                    if choice == "rename":
-                        dst = os.path.join(dest_dir, unique_name(dest_dir, name, src_is_dir))
-                    elif choice == "merge" and src_is_dir and dst_is_dir:
-                        to_copy.append((src, dst, True))
-                        continue
-                    else:
-                        try:
-                            _swap_into(src, dst)
-                            res.moved.append((src, dst))
-                            res.created.append(dst)
-                            direct.append((src, dst))
-                        except OSError as e:
-                            res.errors.append((dst, e.strerror or str(e)))
-                        continue
-                try:
-                    os.rename(src, dst)
-                    res.moved.append((src, dst))
-                    res.created.append(dst)
-                    direct.append((src, dst))
-                except OSError as e:
-                    res.errors.append((src, e.strerror or str(e)))
+                _move_same_disk(src, dst, dest_dir, name, copier, res, direct, to_copy)
                 continue
         else:
             if _real_location(dst) == _real_location(src):

@@ -361,7 +361,8 @@ def join_files(job: Job, first: str, out: str = "") -> str:
         raise ToolError(tr('Le fichier existe déjà : {out}').format(out=out))
     total = sum(os.path.getsize(v) for v in vols) or 1
     done = 0
-    part = out + ".part"
+    from .fileops import _tmp_name
+    part = _tmp_name(os.path.dirname(os.path.abspath(out)), "volumes")   # jamais un « X.part » existant
     try:
         with open(part, "wb") as fout:
             for v in vols:
@@ -371,7 +372,8 @@ def join_files(job: Job, first: str, out: str = "") -> str:
                         fout.write(b)
                         done += len(b)
                         job.progress(done / total, os.path.basename(v))
-        os.replace(part, out)
+        from .fileops import place_new
+        out = place_new(part, out)
     finally:
         if os.path.exists(part):
             os.remove(part)

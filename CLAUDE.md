@@ -77,6 +77,14 @@ Même élément vu à travers un lien symbolique (`Docs-lien → Documents`) : c
 (parent résolu + nom), jamais par `abspath` — sinon déplacer « sur lui-même » vidait le dossier.
 Remplacement abandonné (erreur dans la copie temporaire) : `_Copier._forget` retire ses fichiers de
 `copied`, sinon `_prune_moved` les supprimait de la source alors qu'ils n'existaient plus nulle part.
+Opérations simultanées (une par fenêtre) vers le même nom : vérifier puis créer laissait une course.
+Création exclusive (`O_EXCL`, liens compris) → `_Taken` → `_Copier.place` repose le conflit ;
+renommages par `_rename_new` (renameat2 `RENAME_NOREPLACE`) ; sorties nouvelles (archives, 7z
+compris via un nom temporaire, PDF, extraction, volumes) posées par `fileops.place_new` (« nom (2) »
+si pris entre-temps) ; `os.replace` seulement pour un remplacement voulu (choix « Remplacer », PDF
+modifié sur place). Boucles de reprise bornées (vfat : lexists dit libre, le noyau dit pris).
+Testé par `ConcurrentTest` / `ConcurrentArchiveTest` : barrière après la vérification « libre »
+(avant : contenus mélangés, premier fichier écrasé, sources de déplacement supprimées).
 
 Supports amovibles (`backend/fsinfo.py`, type lu dans `/proc/self/mountinfo`, sans `stat`) : vers
 FAT / exFAT / NTFS, noms nettoyés (`: ? * " < > | \\`, points et espaces finaux → `safe_name`),

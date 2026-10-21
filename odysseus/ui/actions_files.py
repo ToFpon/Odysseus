@@ -891,7 +891,7 @@ class FileActions:
                         if os.path.lexists(dst):
                             raise OSError(17, tr("« {0} » existe déjà").format(os.path.basename(dst)))
                         os.makedirs(os.path.dirname(dst), exist_ok=True)
-                        shutil.move(src, dst)
+                        fileops.move_new(src, dst)          # jamais par-dessus un élément arrivé entre-temps
                         res.created.append(dst)
                         res.moved.append((src, dst))
                     except OSError as e:
@@ -948,7 +948,7 @@ class FileActions:
                         if os.path.lexists(src):
                             raise OSError(17, tr("« {0} » existe déjà").format(os.path.basename(src)))
                         os.makedirs(os.path.dirname(src), exist_ok=True)   # dossier vidé puis retiré
-                        shutil.move(dst, src)
+                        fileops.move_new(dst, src)
                         res.created.append(src)
                         res.moved.append((dst, src))
                     except OSError as e:

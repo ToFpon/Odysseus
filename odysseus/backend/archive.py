@@ -556,7 +556,22 @@ def create(job: Job, sources: list[str], out: str, o: CreateOptions) -> str:
         # l'archive existante (une sauvegarde…) : on garde les deux, comme Nautilus
         out = free_output(out, volumes=bool(o.volume_size))
     if fmt.engine == "7z":
-        text = job.run_tool(build_7z_create(sources, out, o), label=tr("Compression"))
+        # nouvelle archive : écrite sous un nom temporaire puis posée sans écraser. Écrite sous son
+        # nom final, une autre compression lancée en même temps vers ce nom y AJOUTAIT ses fichiers
+        # (« a » met à jour une archive existante). Volumes (.001…) : nommés par 7-Zip, à part.
+        fresh = o.update_mode == "new" and not o.volume_size
+        target = out
+        if fresh:
+            from .fileops import _tmp_name, split_ext
+            target = _tmp_name(os.path.dirname(os.path.abspath(out)), "archive") + split_ext(out)[1]
+        try:
+            text = job.run_tool(build_7z_create(sources, target, o), label=tr("Compression"))
+            if fresh:
+                from .fileops import place_new
+                out = place_new(target, out)
+        finally:
+            if fresh and os.path.lexists(target):
+                os.remove(target)
         # 7-Zip saute un fichier illisible avec un simple avertissement (code 1) : on le dit
         job.skipped_files = getattr(job, "skipped_files", []) + unreadable_from_7z(text)
         return out
@@ -604,7 +619,8 @@ def create(job: Job, sources: list[str], out: str, o: CreateOptions) -> str:
             job.check_cancel()
             if comp.returncode != 0:
                 raise ToolError("compression : " + cerr.strip()[-300:], cerr, comp.returncode)
-        os.replace(tmp_out, out)
+        from .fileops import place_new
+        out = place_new(tmp_out, out)      # nom pris entre-temps : « nom (2) », jamais d'écrasement
     finally:
         if os.path.exists(tmp_out):
             os.remove(tmp_out)
@@ -704,6 +720,16 @@ def describe_extract(archive: str, o: ExtractOptions) -> str:
         return str(e)
 
 
+def _place(src: str, dst: str) -> str:
+    from .fileops import place_new
+    return place_new(src, dst)
+
+
+def _rename_new(src: str, dst: str):
+    from .fileops import _rename_new as rn
+    rn(src, dst)
+
+
 def _unique_path(path: str) -> str:
     """« projet (2) », « notes (2).txt »… comme partout ailleurs (et comme Nautilus)."""
     if not os.path.lexists(path):
@@ -785,11 +811,16 @@ def _extract_raw(job: Job, archive: str, det, o: ExtractOptions, dest: str):
                 target = _unique_path(target)
             elif o.overwrite == "rename_existing":
                 os.replace(target, _unique_path(target))
-        part = target + ".part"
+        from .fileops import _tmp_name
+        part = _tmp_name(dest, "extrait")              # jamais un « X.part » existant
         try:
             with open(part, "wb") as fout:
                 _run_decompress_into(job, archive, det.stream, [], tr("Extraction") + " ", consumer_stdout=fout)
-            os.replace(part, target)
+            if o.overwrite == "overwrite" and os.path.lexists(target):
+                os.replace(part, target)                # remplacer : choisi explicitement
+            else:
+                from .fileops import place_new
+                place_new(part, target)
         finally:
             if os.path.exists(part):
                 os.remove(part)
@@ -829,14 +860,14 @@ def _extract_smart(job: Job, archive: str, det, o: ExtractOptions) -> str:
                 if o.overwrite == "overwrite" and not os.path.isdir(final):
                     os.remove(final)
                 elif o.overwrite == "rename_existing":
-                    os.replace(final, _unique_path(final))
+                    _place(final, _unique_path(final))
                 else:
                     final = _unique_path(final)
-            os.rename(src, final)
+            final = _place(src, final)
             return final if os.path.isdir(final) else parent
         final = _unique_path(os.path.join(parent, det.base_name or "archive"))
         normal_mode(tmp, is_dir=True)     # mkdtemp crée en 0700
-        os.rename(tmp, final)
+        final = _place(tmp, final)
         tmp = ""
         return final
     finally:
@@ -866,10 +897,10 @@ def _extract_selected(job: Job, archive: str, det, o: ExtractOptions) -> str:
                 if o.overwrite == "overwrite" and not os.path.isdir(final):
                     os.remove(final)
                 elif o.overwrite == "rename_existing":
-                    os.replace(final, _unique_path(final))
+                    _place(final, _unique_path(final))
                 else:
                     final = _unique_path(final)
-            os.rename(src, final)
+            _place(src, final)
     finally:
         shutil.rmtree(tmp, ignore_errors=True)
     return dest
@@ -913,23 +944,26 @@ def _merge_into(src_dir: str, dest_dir: str, overwrite: str) -> bool:
         src, dst = os.path.join(src_dir, name), os.path.join(dest_dir, name)
         src_dir_real = os.path.isdir(src) and not os.path.islink(src)
         if not os.path.lexists(dst):
-            os.rename(src, dst)
-            continue
+            try:
+                _rename_new(src, dst)
+                continue
+            except FileExistsError:
+                pass                     # arrivé à l'instant (autre extraction) : traité comme existant
         if src_dir_real and os.path.isdir(dst) and not os.path.islink(dst):
             skipped |= _merge_into(src, dst, overwrite)
             continue
         if overwrite == "skip":
             skipped = True
         elif overwrite == "overwrite" and os.path.isdir(dst) and not os.path.islink(dst):
-            os.rename(src, _unique_path(dst))     # un fichier ne remplace jamais tout un dossier
+            _place(src, _unique_path(dst))        # un fichier ne remplace jamais tout un dossier
         elif overwrite == "overwrite":
             from .fileops import _swap_into
             _swap_into(src, dst)
         elif overwrite == "rename_existing":
-            os.rename(dst, _unique_path(dst))
-            os.rename(src, dst)
+            _place(dst, _unique_path(dst))
+            _place(src, dst)
         else:
-            os.rename(src, _unique_path(dst))
+            _place(src, _unique_path(dst))
     return skipped
 
 

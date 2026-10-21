@@ -161,9 +161,16 @@ def _tmp_near(dst: str, suffix: str = ".pdf") -> str:
     return tmp
 
 
-def _finish(tmp: str, dst: str):
+def _finish(tmp: str, dst: str, src: str = "") -> str:
+    """Pose le résultat. Sur place (sortie = entrée) : remplacement voulu. Sinon nouvelle sortie,
+    jamais par-dessus un fichier apparu entre-temps (autre opération lancée en même temps) :
+    « nom (2) ». Renvoie le chemin final."""
     normal_mode(tmp, like=dst)        # mkstemp crée en 0600 ; « pivoter » sur place gardait 0600
-    os.replace(tmp, dst)
+    if src and os.path.realpath(dst) == os.path.realpath(src):
+        os.replace(tmp, dst)
+        return dst
+    from .fileops import place_new
+    return place_new(tmp, dst)
 
 
 def _run(job: Job, argv: list[str], label: str = "", total_pages: int = 0, base=(0.0, 1.0)) -> str:
@@ -227,9 +234,10 @@ def compress(job: Job, src: str, dst: str, level: str = "/ebook", grayscale: boo
         if keep_if_bigger and after >= before:
             os.remove(tmp)
             if os.path.abspath(dst) != os.path.abspath(src):
-                shutil.copy2(src, dst)
+                shutil.copy2(src, tmp)
+                dst = _finish(tmp, dst, src)
             return CompressResult(src, dst, before, before, kept_original=True)
-        _finish(tmp, dst)
+        dst = _finish(tmp, dst, src)
         return CompressResult(src, dst, before, after)
     except BaseException:
         if os.path.exists(tmp):
@@ -292,8 +300,7 @@ def merge(job: Job, items: list[tuple[str, str]], dst: str) -> str:
                        f"-sOutputFile={tmp}"] + [p for p, _i, _n in selections], tr("Fusion"), total)
         else:
             raise ToolError(tr("Installez qpdf pour fusionner des PDF (sudo apt install qpdf)"))
-        _finish(tmp, dst)
-        return dst
+        return _finish(tmp, dst)
     except BaseException:
         if os.path.exists(tmp):
             os.remove(tmp)
@@ -477,10 +484,10 @@ def watermark(job: Job, src: str, dst: str, o: WatermarkOptions) -> str:
                 raise ToolError(tr("L'aplatissement demande Ghostscript (sudo apt install ghostscript)"))
             _run(job, [exe, "-sDEVICE=pdfimage24", f"-r{int(o.dpi)}", "-sCompression=JPEG", "-dJPEGQ=90",
                        "-dNOPAUSE", "-dBATCH", f"-sOutputFile={flat}", tmp], tr("Aplatissement"), n, (0.5, 0.5))
-            _finish(flat, dst)
+            dst = _finish(flat, dst, src)
             os.remove(tmp)
         else:
-            _finish(tmp, dst)
+            dst = _finish(tmp, dst, src)
         return dst
     finally:
         for f in (wm, tmp, flat):
@@ -524,8 +531,7 @@ def _select(job: Job, src: str, idx: list[int], dst: str) -> str:
                 w.write(fh)
         else:
             raise ToolError(tr("Installez qpdf (sudo apt install qpdf)"))
-        _finish(tmp, dst)
-        return dst
+        return _finish(tmp, dst, src)
     except BaseException:
         if os.path.exists(tmp):
             os.remove(tmp)
@@ -555,8 +561,7 @@ def rotate_pages(job: Job, src: str, ranges: str, angle: int, dst: str) -> str:
                 w.write(fh)
         else:
             raise ToolError(tr("Installez qpdf (sudo apt install qpdf)"))
-        _finish(tmp, dst)
-        return dst
+        return _finish(tmp, dst, src)
     except BaseException:
         if os.path.exists(tmp):
             os.remove(tmp)

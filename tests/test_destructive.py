@@ -12,6 +12,7 @@ import tempfile
 import threading
 import time
 import unittest
+from unittest import mock
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
@@ -434,6 +435,158 @@ class DestructiveTest(unittest.TestCase):
         self.assertEqual(open(p).read(), "nouvelle version", "la restauration a écrasé le nouveau fichier")
         restored = [n for n in os.listdir(self.d) if n.startswith("doc") and n != "doc.txt"]
         self.assertTrue(restored, "l'élément jeté n'a pas été restauré à côté")
+
+
+class ConcurrentTest(unittest.TestCase):
+    """Deux opérations lancées en même temps (une par fenêtre) vers le même nom. Une barrière
+    retient chaque opération juste après sa vérification « le nom est libre » jusqu'à ce que
+    l'autre ait vérifié aussi : les deux croient le nom libre. Avant : contenus mélangés dans un
+    même fichier, ou premier fichier écrasé par le second renommage — et, pour un déplacement, les
+    sources supprimées ensuite."""
+
+    def setUp(self):
+        self.tmp = tempfile.TemporaryDirectory()
+        self.d = self.tmp.name
+        self.dest = os.path.join(self.d, "dest")
+        os.makedirs(self.dest)
+        # deux fichiers DIFFÉRENTS du même nom, assez gros pour que les écritures se chevauchent
+        self.contents = {"un": os.urandom(3 << 20), "deux": os.urandom(3 << 20)}
+        self.sources = []
+        for folder, data in self.contents.items():
+            path = os.path.join(self.d, folder, "rapport.pdf")
+            write(path, data)
+            self.sources.append(path)
+
+    def tearDown(self):
+        self.tmp.cleanup()
+
+    def _race(self, dest, move, checks):
+        target = os.path.join(dest, "rapport.pdf")
+        barrier = threading.Barrier(2, timeout=5)
+        real = os.path.lexists
+        seen: dict = {}
+        lock = threading.Lock()
+
+        def lexists(p):
+            if os.fspath(p) != target:
+                return real(p)
+            me = threading.get_ident()
+            with lock:
+                n = seen[me] = seen.get(me, 0) + 1
+            if n <= checks:                        # vérifications d'avant la création : « libre »
+                if n == checks:
+                    try:
+                        barrier.wait()
+                    except threading.BrokenBarrierError:
+                        pass
+                return False
+            return real(p)
+
+        errors = []
+
+        def go(src):
+            try:
+                run(lambda j: fileops.transfer(j, [src], dest, ask("rename", False), move=move))
+            except Exception as e:  # noqa: BLE001
+                errors.append(e)
+        with mock.patch("os.path.lexists", lexists):
+            threads = [threading.Thread(target=go, args=(s,)) for s in self.sources]
+            for t in threads:
+                t.start()
+            for t in threads:
+                t.join(30)
+        self.assertEqual(errors, [])
+        got = sorted(tree(dest).values())
+        self.assertEqual(got, sorted(self.contents.values()), "un fichier a été écrasé ou mélangé")
+        self.assertEqual(sorted(os.listdir(dest)), ["rapport (2).pdf", "rapport.pdf"])
+
+    def test_two_copies_same_name(self):
+        self._race(self.dest, move=False, checks=1)
+        for src in self.sources:
+            self.assertTrue(os.path.exists(src))
+
+    def test_two_moves_same_disk(self):
+        self._race(self.dest, move=True, checks=2)
+        for src in self.sources:
+            self.assertFalse(os.path.exists(src))
+
+    def test_two_moves_across_filesystems(self):
+        other = "/dev/shm" if os.path.isdir("/dev/shm") and \
+            os.stat("/dev/shm").st_dev != os.stat(self.d).st_dev else None
+        if other is None:
+            self.skipTest("pas de second système de fichiers")
+        dest = tempfile.mkdtemp(dir=other)
+        try:
+            self._race(dest, move=True, checks=1)
+            for src in self.sources:
+                self.assertFalse(os.path.exists(src))
+        finally:
+            import shutil
+            shutil.rmtree(dest, ignore_errors=True)
+
+
+class ConcurrentArchiveTest(unittest.TestCase):
+    """Deux compressions lancées en même temps vers le même nom d'archive : avant, la seconde
+    écrasait la première (tar.gz…) ou AJOUTAIT ses fichiers dedans (7z, commande « a »)."""
+
+    def setUp(self):
+        self.tmp = tempfile.TemporaryDirectory()
+        self.d = self.tmp.name
+        self.sources = []
+        for folder in ("un", "deux"):
+            path = os.path.join(self.d, folder, f"fichier-{folder}.txt")
+            write(path, folder * 1000)
+            self.sources.append(path)
+
+    def tearDown(self):
+        self.tmp.cleanup()
+
+    def _race(self, fmt):
+        from odysseus.backend import archive
+        out = os.path.join(self.d, "sauvegarde." + fmt)
+        barrier = threading.Barrier(2, timeout=5)
+        real = os.path.lexists
+        seen: dict = {}
+        lock = threading.Lock()
+
+        def lexists(p):
+            if os.fspath(p) != out:
+                return real(p)
+            me = threading.get_ident()
+            with lock:
+                first = me not in seen
+                seen[me] = True
+            if first:
+                try:
+                    barrier.wait()
+                except threading.BrokenBarrierError:
+                    pass
+                return False
+            return real(p)
+        made, errors = [], []
+
+        def go(src):
+            try:
+                made.append(run(lambda j: archive.create(j, [src], out, archive.CreateOptions(fmt=fmt))))
+            except Exception as e:  # noqa: BLE001
+                errors.append(e)
+        with mock.patch("os.path.lexists", lexists):
+            threads = [threading.Thread(target=go, args=(s,)) for s in self.sources]
+            for t in threads:
+                t.start()
+            for t in threads:
+                t.join(60)
+        self.assertEqual(errors, [])
+        self.assertEqual(len(set(made)), 2, f"les deux compressions ont visé la même archive : {made}")
+        contents = sorted(sorted(e.path for e in archive.list_archive(m).entries if not e.is_dir) for m in made)
+        self.assertEqual(contents, [["fichier-deux.txt"], ["fichier-un.txt"]])
+        self.assertEqual(sorted(n for n in os.listdir(self.d) if n.startswith(".")), [], "temporaire oublié")
+
+    def test_two_7z_same_name(self):
+        self._race("7z")
+
+    def test_two_tar_gz_same_name(self):
+        self._race("tar.gz")
 
 
 class FatKeyTest(unittest.TestCase):
