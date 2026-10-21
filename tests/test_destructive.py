@@ -6,6 +6,7 @@ liens symboliques (ne jamais toucher la cible), renommer sur un nom pris, corbei
 import hashlib
 import os
 import shutil
+import signal
 import subprocess
 import sys
 import tempfile
@@ -587,6 +588,60 @@ class ConcurrentArchiveTest(unittest.TestCase):
 
     def test_two_tar_gz_same_name(self):
         self._race("tar.gz")
+
+
+class KilledTest(unittest.TestCase):
+    """Odysseus tué net (SIGKILL : AppArmor, OOM, fin de session) au pire moment, dans un vrai
+    processus séparé : rien de tronqué sous un vrai nom, aucune source supprimée sans que son
+    résultat soit en place."""
+
+    def setUp(self):
+        self.tmp = tempfile.TemporaryDirectory()
+        self.d = self.tmp.name
+
+    def tearDown(self):
+        self.tmp.cleanup()
+
+    def _killed(self, code):
+        root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+        prog = ("import os, signal, sys\n"
+                f"sys.path.insert(0, {root!r})\n"
+                "from odysseus.backend import fileops, archive\n"
+                "from odysseus.backend.engine import Job\n"
+                "def die(*a, **k):\n    os.kill(os.getpid(), signal.SIGKILL)\n" + code)
+        r = subprocess.run([sys.executable, "-c", prog], capture_output=True, timeout=120)
+        self.assertEqual(r.returncode, -signal.SIGKILL, r.stderr.decode()[-500:])
+
+    def test_copy_killed_midway_leaves_no_truncated_file(self):
+        src = os.path.join(self.d, "src", "film.mkv")
+        write(src, os.urandom(40 << 20))
+        before = digest(src)
+        dest = os.path.join(self.d, "dest")
+        os.makedirs(dest)
+        # tué après 16 Mo écrits sur 40
+        self._killed(
+            "real = fileops._Copier.tick\n"
+            "def tick(self, force=False):\n"
+            "    if self.done > (16 << 20):\n        die()\n"
+            "    return real(self, force)\n"
+            "fileops._Copier.tick = tick\n"
+            f"Job('t', lambda j: fileops.transfer(j, [{src!r}], {dest!r}, lambda c: ('skip', True))).run_sync()\n")
+        self.assertEqual(digest(src), before)
+        visible = [n for n in os.listdir(dest) if not n.startswith(".")]
+        self.assertEqual(visible, [], "fichier tronqué laissé sous son vrai nom")
+
+    def test_7z_delete_after_killed_before_placing_keeps_sources(self):
+        srcdir = os.path.join(self.d, "photos")
+        for i in range(3):
+            write(os.path.join(srcdir, f"img{i}.jpg"), os.urandom(4096))
+        snap = tree(srcdir)
+        out = os.path.join(self.d, "photos.7z")
+        # tué juste avant que l'archive terminée soit posée sous son vrai nom
+        self._killed(
+            "fileops.place_new = die\n"
+            f"o = archive.CreateOptions(fmt='7z', delete_after=True)\n"
+            f"Job('t', lambda j: archive.create(j, [{srcdir!r}], {out!r}, o)).run_sync()\n")
+        self.assertEqual(tree(srcdir), snap, "sources supprimées alors que l'archive n'est pas en place")
 
 
 class FatKeyTest(unittest.TestCase):

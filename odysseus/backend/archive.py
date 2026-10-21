@@ -405,8 +405,9 @@ def build_7z_create(sources: list[str], out: str, o: CreateOptions) -> list[str]
         if not mod:
             raise ToolError(tr("Module auto-extractible (7zCon.sfx) introuvable"))
         argv.append("-sfx" + mod)
-    if o.delete_after:
-        argv.append("-sdel")
+    # « supprimer après » : jamais -sdel. 7-Zip supprimait les sources dès l'archive écrite, avant
+    # qu'elle soit posée sous son vrai nom ; Odysseus tué entre les deux : sources perdues, archive
+    # restée sous un nom caché. Les sources sont retirées par create(), une fois l'archive en place.
     for pat in o.excludes:
         pat = pat.strip()
         if pat:
@@ -574,6 +575,7 @@ def create(job: Job, sources: list[str], out: str, o: CreateOptions) -> str:
                 os.remove(target)
         # 7-Zip saute un fichier illisible avec un simple avertissement (code 1) : on le dit
         job.skipped_files = getattr(job, "skipped_files", []) + unreadable_from_7z(text)
+        _delete_sources_after(job, sources, o)
         return out
 
     from .fileops import _tmp_name
@@ -627,14 +629,21 @@ def create(job: Job, sources: list[str], out: str, o: CreateOptions) -> str:
     if o.volume_size:
         from .tools import split_file, parse_size
         split_file(job, out, parse_size(o.volume_size), remove_original=True)
-    if o.delete_after:
-        skipped = getattr(job, "skipped_files", [])
-        keep = _skipped_paths(sources, skipped) if skipped else frozenset()
-        if keep is not None:          # un fichier sauté introuvable : on ne supprime rien
-            _remove_sources(sources, keep)
-        else:
-            job.sources_kept = True
+    _delete_sources_after(job, sources, o)
     return out
+
+
+def _delete_sources_after(job: Job, sources: list[str], o: CreateOptions):
+    """« Supprimer après » : seulement une fois l'archive posée sous son vrai nom, et jamais les
+    fichiers que l'outil n'a pas pu lire (absents de l'archive)."""
+    if not o.delete_after:
+        return
+    skipped = getattr(job, "skipped_files", [])
+    keep = _skipped_paths(sources, skipped) if skipped else frozenset()
+    if keep is not None:          # un fichier sauté introuvable : on ne supprime rien
+        _remove_sources(sources, keep)
+    else:
+        job.sources_kept = True
 
 
 def create_each(job: Job, sources: list[str], out_dir: str, o: CreateOptions) -> list[str]:

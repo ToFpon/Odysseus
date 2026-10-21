@@ -85,6 +85,11 @@ si pris entre-temps) ; `os.replace` seulement pour un remplacement voulu (choix 
 modifié sur place). Boucles de reprise bornées (vfat : lexists dit libre, le noyau dit pris).
 Testé par `ConcurrentTest` / `ConcurrentArchiveTest` : barrière après la vérification « libre »
 (avant : contenus mélangés, premier fichier écrasé, sources de déplacement supprimées).
+Odysseus tué net (SIGKILL) : un fichier copié est écrit sous un nom caché (`_tmp_name`) puis
+renommé d'un coup une fois complet (`copy_file`), jamais de fichier tronqué sous le vrai nom ;
+compression « supprimer après » : jamais `-sdel` (7-Zip supprimait avant que l'archive soit posée),
+sources retirées par `archive._delete_sources_after` une fois l'archive en place. `KilledTest` tue
+un vrai processus au pire moment.
 
 Supports amovibles (`backend/fsinfo.py`, type lu dans `/proc/self/mountinfo`, sans `stat`) : vers
 FAT / exFAT / NTFS, noms nettoyés (`: ? * " < > | \\`, points et espaces finaux → `safe_name`),

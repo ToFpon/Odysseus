@@ -239,15 +239,17 @@ class _Copier:
         if self.fat and s.st_size > fsinfo.FAT_MAX_FILE:
             # refusé d'avance plutôt qu'après avoir écrit 4 Go
             raise OSError(errno.EFBIG, tr("plus de 4 Go : trop gros pour une clé FAT32 (exFAT ou NTFS le permettent)"))
+        # Écrit sous un nom caché puis renommé d'un coup une fois complet : Odysseus tué en pleine
+        # copie (SIGKILL, plantage, fin de session) ne laisse jamais un fichier tronqué sous le vrai
+        # nom, qu'on croirait copié. Le renommage final n'écrase pas (_rename_new) : un nom pris
+        # entre-temps par une autre opération repose le conflit au lieu de mélanger deux fichiers.
+        if os.path.lexists(dst):
+            raise _Taken(dst)
+        tmp = _tmp_name(os.path.dirname(dst) or ".", "copie")
         tmp_created = False
         try:
             with open(src, "rb") as fin:
-                # O_EXCL : jamais par-dessus un fichier apparu entre-temps (deux copies simultanées
-                # écrivaient dans le même fichier : contenus mélangés, ou effacé par celle annulée)
-                try:
-                    fd = os.open(dst, os.O_WRONLY | os.O_CREAT | os.O_EXCL, st.S_IMODE(s.st_mode) | 0o200)
-                except FileExistsError:
-                    raise _Taken(dst) from None
+                fd = os.open(tmp, os.O_WRONLY | os.O_CREAT | os.O_EXCL, st.S_IMODE(s.st_mode) | 0o200)
                 tmp_created = True
                 try:
                     use_cfr = hasattr(os, "copy_file_range")
@@ -274,14 +276,19 @@ class _Copier:
                 finally:
                     os.close(fd)
             try:
-                shutil.copystat(src, dst)
+                shutil.copystat(src, tmp)
             except OSError:
                 pass
+            try:
+                _rename_new(tmp, dst)
+            except FileExistsError:
+                raise _Taken(dst) from None
+            tmp_created = False
         except BaseException:
-            # annulation, disque plein, clé retirée… : pas de fichier à moitié copié
+            # annulation, disque plein, clé retirée, nom pris… : pas de fichier à moitié copié
             if tmp_created:
                 try:
-                    os.remove(dst)
+                    os.remove(tmp)
                 except OSError:
                     pass
             raise
