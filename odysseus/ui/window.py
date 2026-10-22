@@ -27,6 +27,9 @@ from .workspace import Workspace
 COLUMNS_ICON = "odysseus-view-columns-symbolic"
 
 
+SIDEBAR_MAX = 360
+
+
 class MainWindow(FileActions, ArchiveActions, ToolActions, Adw.ApplicationWindow):
     __gtype_name__ = "OdysseusWindow"
 
@@ -66,6 +69,10 @@ class MainWindow(FileActions, ArchiveActions, ToolActions, Adw.ApplicationWindow
         self.split.set_content(self._build_content())
         self.toast_overlay.set_child(self.split)
         self.set_content(self.toast_overlay)
+        self.connect("map", lambda *_: self.fit_sidebar())
+        # police ou mise à l'échelle du texte changée dans les Paramètres : les libellés aussi
+        Gtk.Settings.get_default().connect("notify::gtk-font-name", lambda *_: self.fit_sidebar())
+        Gtk.Settings.get_default().connect("notify::gtk-xft-dpi", lambda *_: self.fit_sidebar())
         bp = Adw.Breakpoint.new(Adw.BreakpointCondition.parse("max-width: 640sp"))
         bp.add_setter(self.split, "collapsed", True)
         self.add_breakpoint(bp)
@@ -394,6 +401,14 @@ class MainWindow(FileActions, ArchiveActions, ToolActions, Adw.ApplicationWindow
             self._apply_features()
         elif key in ("sidebar_desktop", "sidebar_this_pc"):
             self.sidebar.fill_places()
+            self.fit_sidebar()
+
+    def fit_sidebar(self):
+        """Barre latérale assez large pour ses emplacements fixes dans la langue choisie
+        (« Autres emplacements » en français…), sans dépasser SIDEBAR_MAX."""
+        need = min(self.sidebar.fixed_width() + 8, SIDEBAR_MAX)     # + barre de défilement superposée
+        self.split.set_min_sidebar_width(max(200, need))
+        self.split.set_max_sidebar_width(max(280, need))
 
     def _apply_features(self):
         self.dual_btn.set_visible(features.enabled("dual_panel"))

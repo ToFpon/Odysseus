@@ -168,7 +168,7 @@ Les très gros dossiers s'ouvrent quasi instantanément : un dossier de **100 00
 
 #### Fichiers
 - Onglets, historique, fil d'Ariane avec complétion par Tab (un disque monté commence le chemin, comme dans Nautilus), signets partagés avec GTK, Récents (affichés ou non selon l'historique des fichiers de GNOME), Corbeille (restaurer, vider), Réseau, périphériques avec les mêmes règles d'éjection que Nautilus (jamais de bouton d'éjection pour les disques fstab et internes).
-- **Ce PC** (en option, Préférences → Général → Barre latérale) : pour ceux qui viennent de Windows, tes dossiers et tous tes disques sur une seule page, avec une barre d'occupation et l'espace libre de chacun. Le Bureau de la barre latérale est lui aussi en option.
+- **Ce PC** (en option, Préférences → Général → Barre latérale) : pour ceux qui viennent de Windows, tes dossiers et tous tes disques sur une seule page, avec une barre d'occupation et l'espace libre de chacun. Il montre aussi les emplacements réseau et la connexion à un serveur : « Autres emplacements » quitte alors la barre latérale (il revient si l'option est coupée). Le Bureau de la barre latérale est lui aussi en option.
 - Copie / déplacement avec gestion des conflits (ignorer, renommer, fusionner, remplacer, appliquer à tous), **fenêtre de progression** pour les opérations longues, annulation (Ctrl+Z), glisser-déposer, presse-papiers compatible avec Nautilus.
 - **Archives** (F7) : parcourir plus de 50 formats comme des dossiers, extraire ici, extraire vers, compresser, glisser des fichiers hors d'une archive (moteur Pressoir, 7-Zip).
 - **Recherche dans le contenu** (F8) : rechercher et remplacer du texte dans les fichiers avec ripgrep ou grep, avec aperçu et sauvegardes. Recherche récursive par nom.

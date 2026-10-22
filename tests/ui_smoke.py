@@ -749,6 +749,30 @@ def ce_pc_et_bureau(win):
     check(root.bar.get_visible() and 0 < root.bar.get_value() <= 1,
           f"Ce PC : espace du disque système ({root.info.get_text()})")
     check(win.sidebar.current == "computer:///", "barre latérale : « Ce PC » sélectionné")
+    check(not win.sidebar.other_list.get_visible(), "« Ce PC » affiché : « Autres emplacements » masqué")
+    check(hasattr(page, "address") and page.address.get_ancestor(type(page)) is page,
+          "Ce PC : barre « Se connecter à un serveur »")
+    # emplacement réseau découvert (Freebox…) : tuile dans « Emplacements réseau », un clic l'ouvre
+    from odysseus.backend.scanner import Rec
+    rec = Rec("Freebox", None, True)
+    rec.uri = "smb://freebox/"
+    opened = []
+    real_open = p.open
+    p.open = lambda loc, *a, **k: opened.append(loc)
+    try:
+        page._net_recs = [rec]
+        page._fill()
+        net = page.sections["network"][1]
+        tile = net.get_first_child()
+        while tile is not None and tile.place.target != "smb://freebox/":
+            tile = tile.get_next_sibling()
+        check(tile is not None and page.sections["network"][0].get_visible(), "Ce PC : réseau découvert affiché")
+        if tile is not None:
+            page._activate(tile)
+        check(opened == ["smb://freebox/"], f"Ce PC : clic sur un emplacement réseau ({opened})")
+    finally:
+        p.open = real_open
+        page._net_recs = []
     folders.emit("child-activated", folders.get_first_child())
     yield pump(0.5)
     check(p.mode == "fs" and p.location == os.path.expanduser("~"), "Ce PC : clic sur un dossier l'ouvre")
@@ -770,6 +794,23 @@ def ce_pc_et_bureau(win):
     settings["sidebar_desktop"] = False
     yield pump(0.3)
     check("computer:///" not in targets() and desktop not in targets(), "options coupées : retirés en direct")
+    check(win.sidebar.other_list.get_visible(), "« Ce PC » coupé : « Autres emplacements » revient")
+    # libellés fixes lisibles en entier, quelle que soit la langue (« Autres emplacements »…), même
+    # avec une police plus grande (Zorin : texte agrandi), et suivis en direct
+    gs = Gtk.Settings.get_default()
+    font = gs.get_property("gtk-font-name")
+    gs.set_property("gtk-font-name", "Sans 15")
+    yield pump(0.6)
+    short = []
+    for lb in (win.sidebar.places_list, win.sidebar.other_list):
+        r = lb.get_first_child()
+        while r is not None:
+            if hasattr(r, "label") and r.label.get_layout().is_ellipsized():
+                short.append(r.label.get_text())
+            r = r.get_next_sibling()
+    check(not short, f"barre latérale : libellés fixes en entier ({short or 'aucun abrégé'})")
+    gs.set_property("gtk-font-name", font)
+    yield pump(0.3)
 
 
 @step

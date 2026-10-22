@@ -57,6 +57,43 @@ class LocationRow(Gtk.ListBoxRow):
             self.set_tooltip_text(tooltip)
 
 
+def connect_bar(owner, pane: "Pane") -> Gtk.Box:
+    """Barre « Se connecter à un serveur » (bas d'« Autres emplacements » et de « Ce PC ») ;
+    pose owner.address et owner.connect_btn."""
+    bar = Gtk.Box(spacing=6, css_classes=["other-connect"])
+    owner.address = Gtk.Entry(hexpand=True, placeholder_text=tr("Saisir l'adresse du serveur…"),
+                              secondary_icon_name="dialog-question-symbolic",
+                              secondary_icon_tooltip_text=tr("Adresses prises en charge : smb://, sftp://, "
+                                                             "ftp://, dav://, davs://, nfs://, afp://…"))
+    owner.connect_btn = Gtk.Button(label=tr("Se connecter"), sensitive=False)
+
+    def go(*_):
+        text = owner.address.get_text().strip()
+        if not text:
+            return
+        if "://" not in text:
+            text = "smb://" + text.lstrip("/")
+        pane.open(text)
+    owner.address.connect("activate", go)
+    owner.address.connect("changed", lambda e: owner.connect_btn.set_sensitive(bool(e.get_text().strip())))
+    owner.connect_btn.connect("clicked", go)
+    bar.append(owner.address)
+    bar.append(owner.connect_btn)
+    return bar
+
+
+def discover_network(callback) -> None:
+    """Emplacements réseau découverts par GVfs (network:///), lus dans un fil ; callback(recs)
+    appelé dans la boucle GTK."""
+    def work():
+        try:
+            recs = scanner.scan_gio(Gio.File.new_for_uri(NETWORK_URI), threading.Event())
+        except Exception:  # noqa: BLE001 — réseau indisponible (GVfs absent…)
+            recs = []
+        GLib.idle_add(lambda: (callback(recs), False)[1])
+    threading.Thread(target=work, daemon=True).start()
+
+
 class OtherLocations(Gtk.Box):
     __gtype_name__ = "OdysseusOtherLocations"
 
@@ -74,19 +111,7 @@ class OtherLocations(Gtk.Box):
         self.net_status = Gtk.Label(xalign=0, css_classes=["dim-label", "other-status"])
         content.append(self.net_status)
         self.append(Gtk.ScrolledWindow(child=content, vexpand=True, hscrollbar_policy=Gtk.PolicyType.NEVER))
-        # se connecter à un serveur
-        bar = Gtk.Box(spacing=6, css_classes=["other-connect"])
-        self.address = Gtk.Entry(hexpand=True, placeholder_text=tr("Saisir l'adresse du serveur…"),
-                                 secondary_icon_name="dialog-question-symbolic",
-                                 secondary_icon_tooltip_text=tr("Adresses prises en charge : smb://, sftp://, "
-                                                                "ftp://, dav://, davs://, nfs://, afp://…"))
-        self.address.connect("activate", lambda *_: self._connect())
-        self.address.connect("changed", lambda e: self.connect_btn.set_sensitive(bool(e.get_text().strip())))
-        bar.append(self.address)
-        self.connect_btn = Gtk.Button(label=tr("Se connecter"), sensitive=False)
-        self.connect_btn.connect("clicked", lambda *_: self._connect())
-        bar.append(self.connect_btn)
-        self.append(bar)
+        self.append(connect_bar(self, pane))
 
         self.monitor = Gio.VolumeMonitor.get()
         self._ids = [self.monitor.connect(sig, lambda *_: self._queue_devices())
@@ -189,13 +214,7 @@ class OtherLocations(Gtk.Box):
         if not self._net_items:
             self.net_status.set_text(tr("Recherche des emplacements réseau…"))
 
-        def work():
-            try:
-                recs = scanner.scan_gio(Gio.File.new_for_uri(NETWORK_URI), threading.Event())
-            except Exception:  # noqa: BLE001 — réseau indisponible (GVfs absent…)
-                recs = []
-            GLib.idle_add(self._network_loaded, token, recs)
-        threading.Thread(target=work, daemon=True).start()
+        discover_network(lambda recs: self._network_loaded(token, recs))
         return False
 
     def _network_loaded(self, token, recs):
@@ -228,12 +247,3 @@ class OtherLocations(Gtk.Box):
         self.net_status.set_visible(n == 0)
         self.net_status.set_text(tr("Aucun emplacement réseau trouvé"))
         return False
-
-    # -- Se connecter --------------------------------------------------------
-    def _connect(self):
-        text = self.address.get_text().strip()
-        if not text:
-            return
-        if "://" not in text:
-            text = "smb://" + text.lstrip("/")
-        self.pane.open(text)

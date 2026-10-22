@@ -30,11 +30,12 @@ FULL = 0.9                      # au-delà, la barre passe à la couleur d'alert
 class _Place:
     """Ce qu'il faut à Sidebar.mount_volume / eject : cible, montage, volume."""
 
-    def __init__(self, target: Optional[str], mount=None, volume=None, ejectable=False):
+    def __init__(self, target: Optional[str], mount=None, volume=None, ejectable=False, action=None):
         self.target = target
         self.mount = mount
         self.volume = volume
         self.ejectable = ejectable
+        self.action = action        # emplacement réseau découvert : l'ouvrir peut demander un montage
 
 
 class TileGrid(Gtk.FlowBox):
@@ -121,10 +122,18 @@ class ThisPC(Gtk.Box):
             content.append(box)
             self.sections[key] = (label, box)
         self.append(Gtk.ScrolledWindow(child=content, vexpand=True, hscrollbar_policy=Gtk.PolicyType.NEVER))
+        # « Ce PC » affiché, « Autres emplacements » quitte la barre latérale : le réseau découvert
+        # et la connexion à un serveur doivent donc être ici aussi
+        from .other_locations import connect_bar
+        self.append(connect_bar(self, pane))
         self.monitor = Gio.VolumeMonitor.get()
         self._ids = []
         self._pending = 0
         self._cancel: Optional[Gio.Cancellable] = None
+        self._net_monitor: Optional[Gio.FileMonitor] = None
+        self._net_pending = 0
+        self._net_token = 0
+        self._net_recs: list = []
 
     def _only_one_selected(self, box: Gtk.FlowBox):
         if box.get_selected_children():
@@ -142,11 +151,20 @@ class ThisPC(Gtk.Box):
                          for sig in ("mount-added", "mount-removed", "mount-changed", "volume-added",
                                      "volume-removed", "volume-changed")]
         self._fill()
+        self._watch_network()
+        self._load_network()
 
     def stop(self):
         for i in self._ids:
             self.monitor.disconnect(i)
         self._ids = []
+        if self._net_monitor is not None:
+            self._net_monitor.cancel()
+            self._net_monitor = None
+        if self._net_pending:
+            GLib.source_remove(self._net_pending)
+            self._net_pending = 0
+        self._net_token += 1
         if self._cancel is not None:
             self._cancel.cancel()
             self._cancel = None
@@ -206,9 +224,49 @@ class ThisPC(Gtk.Box):
                 seen.add(disk.path)
                 self._add_drive(drives, _Place(disk.path), Gio.ThemedIcon.new("drive-harddisk"), disk.name,
                                 Gio.File.new_for_path(disk.path), disk.path)
+        # emplacements découverts sur le réseau (Freebox, partages smb, dns-sd…), comme dans
+        # « Autres emplacements » ; un clic monte puis ouvre
+        from ..backend import scanner
+        for rec in scanner.sort_recs(self._net_recs, "name"):
+            target = rec.get("target_uri") or rec.uri
+            if rec.get("mountable"):
+                action = (lambda r=rec: self.pane._mount_and_open(r))
+            else:
+                action = (lambda t=target: self.pane.open(t))
+            network.append(Tile(_Place(target, action=action), rec.get("gicon") or "network-server", rec.name,
+                                False, GLib.uri_unescape_string(target, None) if target else ""))
         has_net = network.get_first_child() is not None
         for w in self.sections["network"]:
             w.set_visible(has_net)
+        return False
+
+    # -- réseau ----------------------------------------------------------
+    def _watch_network(self):
+        if self._net_monitor is not None:
+            return
+        from .other_locations import NETWORK_URI
+        try:
+            self._net_monitor = Gio.File.new_for_uri(NETWORK_URI).monitor_directory(Gio.FileMonitorFlags.NONE, None)
+        except GLib.Error:
+            return
+        self._net_monitor.set_rate_limit(500)
+        self._net_monitor.connect("changed", lambda *_: self._queue_network())
+
+    def _queue_network(self):
+        if not self._net_pending:
+            self._net_pending = GLib.timeout_add(400, self._load_network)
+
+    def _load_network(self):
+        from .other_locations import discover_network
+        self._net_pending = 0
+        self._net_token += 1
+        token = self._net_token
+
+        def loaded(recs):
+            if token == self._net_token:
+                self._net_recs = recs
+                self._queue()
+        discover_network(loaded)
         return False
 
     def _add_drive(self, box: Gtk.FlowBox, place: _Place, gicon, name: str, f: Gio.File, tooltip: str):
@@ -231,6 +289,9 @@ class ThisPC(Gtk.Box):
 
     def _activate(self, tile: Tile, where: str = "here"):
         place = tile.place
+        if place.action is not None:
+            place.action()
+            return
         if place.target is None:
             sb = self._sidebar()
             if sb is not None and place.volume is not None:
@@ -271,6 +332,8 @@ class ThisPC(Gtk.Box):
             section.append(label, f"pc.{name}")
         if place.target is None:
             add("mount", tr("Monter"), lambda: self._activate(tile), s)
+        elif place.action is not None:
+            add("open", tr("Ouvrir"), lambda: self._activate(tile), s)
         else:
             add("open", tr("Ouvrir"), lambda: self._activate(tile), s)
             add("tab", tr("Ouvrir dans un nouvel onglet"), lambda: self._activate(tile, "tab"), s)

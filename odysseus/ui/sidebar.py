@@ -113,6 +113,7 @@ class Sidebar(Gtk.Box):
         self.other_list = self._section(None)
         # disques, réseau et connexion à un serveur : page « Autres emplacements », comme Nautilus
         self.other_list.append(SidebarRow("list-add-symbolic", tr("Autres emplacements"), "other-locations:///"))
+        self._sync_other()
         self._fill_bookmarks()
         self._watch_bookmarks()
         self._watch_devices()
@@ -131,6 +132,24 @@ class Sidebar(Gtk.Box):
         for icon, label, target in places(desktop=settings["sidebar_desktop"]):
             self.places_list.append(SidebarRow(icon, label, target))
         self.select(self.current)
+        self._sync_other()
+
+    def fixed_width(self) -> int:
+        """Largeur qu'il faut pour lire en entier les emplacements fixes (« Autres emplacements »,
+        « Ce PC », dossiers de l'utilisateur…), selon la langue. Les signets et les disques, de
+        longueur libre, restent abrégés au besoin."""
+        lists = [self.places_list] + [lb for lb in (getattr(self, "other_list", None),)
+                                      if lb is not None and lb.get_visible()]
+        return max(lb.measure(Gtk.Orientation.HORIZONTAL, -1)[1] for lb in lists)
+
+    def _sync_other(self):
+        """« Ce PC » affiché : il montre aussi le réseau et la connexion à un serveur, « Autres
+        emplacements » ferait doublon (et réciproquement)."""
+        other = getattr(self, "other_list", None)
+        if other is not None:
+            shown = not settings["sidebar_this_pc"]
+            other.set_visible(shown)
+            other.get_prev_sibling().set_visible(shown)
 
     def _section(self, title, with_label=False):
         label = None
