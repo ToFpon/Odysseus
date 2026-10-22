@@ -3281,21 +3281,9 @@ msgid_plural "{0} résultats…"
 msgstr[0] "{0} result…"
 msgstr[1] "{0} results…"
 
-#: odysseus/ui/sidebar.py:27
-msgid "Bureau"
-msgstr "Desktop"
 
-#: odysseus/ui/sidebar.py:29
-msgid "Téléchargements"
-msgstr "Downloads"
 
-#: odysseus/ui/sidebar.py:30
-msgid "Musique"
-msgstr "Music"
 
-#: odysseus/ui/sidebar.py:32
-msgid "Vidéos"
-msgstr "Videos"
 
 
 #: odysseus/ui/sidebar.py:86

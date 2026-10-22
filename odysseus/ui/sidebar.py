@@ -28,20 +28,26 @@ COMPUTER = "computer:///"
 
 
 def places(desktop: bool = True, trash: bool = True) -> list[tuple[str, str, str]]:
+    """Dossier personnel, puis les dossiers de l'utilisateur comme Nautilus : sous leur vrai nom sur
+    le disque (« Music », « Telechargements »… s'ils s'appellent ainsi) et par ordre alphabétique,
+    puis la Corbeille."""
     home = GLib.get_home_dir()
     out = [("user-home-symbolic", tr("Dossier personnel"), home)]
-    for d, icon, label in (
-            (GLib.UserDirectory.DIRECTORY_DESKTOP, "user-desktop-symbolic", tr("Bureau")),
-            (GLib.UserDirectory.DIRECTORY_DOCUMENTS, "folder-documents-symbolic", tr("Documents")),
-            (GLib.UserDirectory.DIRECTORY_DOWNLOAD, "folder-download-symbolic", tr("Téléchargements")),
-            (GLib.UserDirectory.DIRECTORY_MUSIC, "folder-music-symbolic", tr("Musique")),
-            (GLib.UserDirectory.DIRECTORY_PICTURES, "folder-pictures-symbolic", tr("Images")),
-            (GLib.UserDirectory.DIRECTORY_VIDEOS, "folder-videos-symbolic", tr("Vidéos"))):
+    dirs = []
+    for d, icon in (
+            (GLib.UserDirectory.DIRECTORY_DESKTOP, "user-desktop-symbolic"),
+            (GLib.UserDirectory.DIRECTORY_DOCUMENTS, "folder-documents-symbolic"),
+            (GLib.UserDirectory.DIRECTORY_DOWNLOAD, "folder-download-symbolic"),
+            (GLib.UserDirectory.DIRECTORY_MUSIC, "folder-music-symbolic"),
+            (GLib.UserDirectory.DIRECTORY_PICTURES, "folder-pictures-symbolic"),
+            (GLib.UserDirectory.DIRECTORY_VIDEOS, "folder-videos-symbolic")):
         if d == GLib.UserDirectory.DIRECTORY_DESKTOP and not desktop:
             continue
         p = GLib.get_user_special_dir(d)
         if p and p != home and os.path.isdir(p):
-            out.append((icon, label, p))
+            dirs.append((icon, GLib.filename_display_basename(p), p))
+    dirs.sort(key=lambda e: GLib.utf8_collate_key_for_filename(e[1], -1))
+    out.extend(dirs)
     if trash:
         out.append(("user-trash-symbolic", tr("Corbeille"), TRASH))
     return out

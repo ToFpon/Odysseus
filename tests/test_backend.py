@@ -438,5 +438,30 @@ class FileManager1ServiceTest(unittest.TestCase):
                     self.assertIn("Exec=autre", f.read())
 
 
+class SidebarPlacesTest(unittest.TestCase):
+    """Dossiers de l'utilisateur comme Nautilus : leur vrai nom sur le disque, triés par ordre
+    alphabétique (les noms de Tof : Music, Telechargements, Video…)."""
+
+    def test_real_names_alphabetical(self):
+        import subprocess
+        with tempfile.TemporaryDirectory() as home:
+            names = {"DESKTOP": "Bureau", "DOCUMENTS": "Documents", "DOWNLOAD": "Telechargements",
+                     "MUSIC": "Music", "PICTURES": "Images", "VIDEOS": "Video"}
+            os.makedirs(os.path.join(home, ".config"))
+            with open(os.path.join(home, ".config", "user-dirs.dirs"), "w") as f:
+                for key, name in names.items():
+                    os.makedirs(os.path.join(home, name))
+                    f.write(f'XDG_{key}_DIR="$HOME/{name}"\n')
+            root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+            code = ("import sys; sys.path.insert(0, %r)\n"
+                    "from odysseus.ui.sidebar import places\n"
+                    "print('|'.join(label for _i, label, _p in places(desktop=False)))") % root
+            env = dict(os.environ, HOME=home, XDG_CONFIG_HOME=os.path.join(home, ".config"), LANGUAGE="fr")
+            out = subprocess.run([sys.executable, "-c", code], env=env, capture_output=True, text=True)
+            labels = out.stdout.strip().split("|")
+            self.assertEqual(labels[1:-1], ["Documents", "Images", "Music", "Telechargements", "Video"],
+                             out.stderr[-500:])
+
+
 if __name__ == "__main__":
     unittest.main()
