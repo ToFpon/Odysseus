@@ -141,7 +141,7 @@ GPL-3.0-or-later.
 
 ## Français
 
-Odysseus est un gestionnaire de fichiers qui ressemble à Fichiers (Nautilus) et se comporte comme lui, en intégrant nativement toutes les fonctionnalités des extensions [nautilus-extensions](https://github.com/ToFpon/nautilus-extensions). Chacune se désactive dans **Préférences → Fonctionnalités**, sans redémarrer. Il suit le thème GTK4 du bureau (Adwaita, clair/sombre, couleur d'accentuation ou thème installé dans `~/.config/gtk-4.0/`). Le moteur d'archives vient de [Pressoir](https://github.com/ToFpon/Pressoir).
+Odysseus est un gestionnaire de fichiers qui ressemble à Fichiers (Nautilus) et se comporte comme lui, en intégrant nativement toutes les fonctionnalités des extensions [nautilus-extensions](https://github.com/ToFpon/nautilus-extensions). Chacune se désactive dans **Préférences → Fonctionnalités**, sans redémarrer. Les programmes externes qu'elles utilisent (7-Zip, qpdf, FFmpeg…) sont listés dans **Préférences → Composants**, avec la commande qui installe ceux qui manquent. Il suit le thème GTK4 du bureau (Adwaita, clair/sombre, couleur d'accentuation ou thème installé dans `~/.config/gtk-4.0/`). Le moteur d'archives vient de [Pressoir](https://github.com/ToFpon/Pressoir).
 
 ### Rapidité
 

@@ -101,7 +101,7 @@ FEATURES = [
     Feature("pdf_merge", tr("Fusionner des PDF"),
             tr("Assembler plusieurs PDF dans l'ordre voulu, avec choix des pages"),
             "list-add-symbolic", "pdf",
-            tools=(("qpdf", "gs", "ghostscript"),), packages="qpdf", python=("pypdf",)),
+            tools=(("qpdf", "gs", "ghostscript"),), packages="qpdf"),
     Feature("pdf_watermark", tr("Filigrane PDF"),
             tr("Texte ou image en filigrane, position, pages, aplatissement de sécurité"),
             "security-high-symbolic", "pdf",
@@ -143,21 +143,99 @@ def set_enabled(fid: str, value: bool):
     settings["features"] = feats
 
 
-def missing_tools(fid: str) -> list[str]:
-    """Programmes manquants (un par groupe d'alternatives non satisfait)."""
+# Programme ou module Python → paquet Ubuntu 24.04 qui le fournit
+PACKAGE_OF = {"7zz": "7zip", "7z": "7zip", "7za": "7zip", "gs": "ghostscript", "ghostscript": "ghostscript",
+              "qpdf": "qpdf", "ffmpeg": "ffmpeg", "ffprobe": "ffmpeg", "ffmpegthumbnailer": "ffmpegthumbnailer",
+              "rg": "ripgrep", "grep": "grep", "pdftoppm": "poppler-utils", "zstd": "zstd", "brotli": "brotli",
+              "lz4": "lz4", "dpkg-deb": "dpkg", "pkexec": "pkexec", "py:pypdf": "python3-pypdf",
+              "py:cairo": "python3-cairo python3-gi-cairo", "gir:Poppler": "gir1.2-poppler-0.18"}
+
+
+def present(name: str) -> bool:
+    """Programme dans le PATH, module Python (« py:cairo ») ou bibliothèque GObject (« gir:Poppler »)."""
+    if name.startswith("py:"):
+        import importlib.util
+        return importlib.util.find_spec(name[3:]) is not None
+    if name.startswith("gir:"):
+        import gi
+        try:
+            gi.require_version(name[4:], {"Poppler": "0.18"}.get(name[4:], "1.0"))
+            return True
+        except ValueError:
+            return False
+    return shutil.which(name) is not None
+
+
+def _missing(fid: str) -> list[tuple[str, str]]:
+    """(élément manquant, paquet qui l'apporte), un par groupe d'alternatives non satisfait."""
     f = BY_ID[fid]
     out = []
     for group in f.tools:
         if not any(shutil.which(t) for t in group):
-            out.append(" / ".join(group))
+            out.append((" / ".join(group), PACKAGE_OF.get(group[0], f.packages)))
     if f.uri_scheme and f.uri_scheme not in Gio.Vfs.get_default().get_supported_uri_schemes():
-        out.append("gvfs-backends")
+        out.append(("gvfs-backends", "gvfs-backends"))
     for mod in f.python:
-        try:
-            __import__(mod)
-        except ImportError:
-            out.append("python3-" + mod)
+        if not present("py:" + mod):
+            out.append(("python3-" + mod, PACKAGE_OF.get("py:" + mod, "python3-" + mod)))
     return out
+
+
+def missing_tools(fid: str) -> list[str]:
+    """Programmes manquants (un par groupe d'alternatives non satisfait)."""
+    return [name for name, _pkg in _missing(fid)]
+
+
+def install_command(fid: str) -> str:
+    """« sudo apt install … » pour ce qui manque à cette fonctionnalité (vide si rien ne manque)."""
+    return apt_command(pkg for _name, pkg in _missing(fid))
+
+
+def apt_command(packages) -> str:
+    pkgs = []
+    for p in packages:
+        for one in p.split():
+            if one not in pkgs:
+                pkgs.append(one)
+    return "sudo apt install " + " ".join(pkgs) if pkgs else ""
+
+
+# Onglet « Composants » des préférences : programmes externes, groupés par usage.
+# (nom affiché, alternatives — l'une suffit —, à quoi il sert)
+COMPONENTS = [
+    (tr("Archives"), [
+        ("7-Zip", ("7zz", "7z", "7za"), tr("Compresser, extraire et parcourir les archives (indispensable)")),
+        ("Zstandard", ("zstd",), tr("Archives .tar.zst")),
+        ("Brotli", ("brotli",), tr("Archives .tar.br")),
+        ("LZ4", ("lz4",), tr("Archives .tar.lz4")),
+    ]),
+    (tr("PDF"), [
+        ("Ghostscript", ("gs",), tr("Compresser un PDF ; fusion en secours")),
+        ("qpdf", ("qpdf",), tr("Fusionner, filigrane, pages d'un PDF")),
+        ("Poppler", ("gir:Poppler", "pdftoppm"), tr("Aperçu et miniatures des PDF")),
+    ]),
+    (tr("Multimédia"), [
+        ("FFmpeg", ("ffmpeg",), tr("Vidéo vers audio, miniatures des vidéos")),
+        ("ffprobe", ("ffprobe",), tr("Colonne Durée")),
+        ("ffmpegthumbnailer", ("ffmpegthumbnailer",), tr("Miniatures des vidéos, plus rapides qu'avec FFmpeg seul")),
+        ("Cairo (Python)", ("py:cairo",), tr("Annoter une image, filigrane PDF")),
+    ]),
+    (tr("Recherche"), [
+        ("ripgrep", ("rg",), tr("Recherche rapide dans le contenu des fichiers (sinon grep, plus lent)")),
+    ]),
+]
+
+
+def component_path(alternatives) -> str:
+    """Chemin (ou nom) de la première alternative présente, vide si aucune."""
+    for a in alternatives:
+        if present(a):
+            if a.startswith("py:"):
+                return "Python : " + a[3:]
+            if a.startswith("gir:"):
+                return a[4:] + " (GObject Introspection)"
+            return shutil.which(a)
+    return ""
 
 
 def available(fid: str) -> bool:

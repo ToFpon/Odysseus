@@ -870,6 +870,21 @@ def outils(win):
     win.activate_action("app.preferences", None)
     app.activate_action("preferences", None)
     yield pump(0.5)
+    # onglet Composants : programmes groupés par usage, une commande pour tout ce qui manque
+    from odysseus import features
+    from odysseus.ui.dialogs import PreferencesDialog
+    real = features.present
+    features.present = lambda name: name not in ("qpdf", "lz4") and real(name)
+    try:
+        prefs = PreferencesDialog()
+        cmd = getattr(prefs, "install_command", "")
+        check("qpdf" in cmd and "lz4" in cmd and cmd.startswith("sudo apt install "),
+              f"composants : commande d'installation de ce qui manque ({cmd})")
+        prefs.destroy()
+    finally:
+        features.present = real
+    check(features.install_command("pdf_merge") == "" or "qpdf" in features.install_command("pdf_merge"),
+          f"fusion PDF : jamais « python3-pypdf » réclamé ({features.install_command('pdf_merge')})")
     win.activate_action("win.shortcuts", None)
     yield pump(0.3)
 @step

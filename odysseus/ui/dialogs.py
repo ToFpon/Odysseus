@@ -3,7 +3,6 @@ raccourcis clavier et choix d'une application."""
 
 from __future__ import annotations
 
-import shutil
 
 from gi.repository import Adw, Gio, GLib, Gtk
 
@@ -38,10 +37,11 @@ def _choice(title: str, key: str, labels: list[str], values: list, subtitle: str
 class PreferencesDialog(Adw.PreferencesWindow):
     def __init__(self):
         # vraie fenêtre comme les préférences de Nautilus 46 : le thème du système s'y applique
-        super().__init__(title=tr("Préférences"), search_enabled=True, default_width=640, default_height=720)
+        super().__init__(title=tr("Préférences"), search_enabled=True, default_width=720, default_height=720)
         self.add(self._general())
         self.add(self._features())
         self.add(self._archives())
+        self.add(self._components())
 
     # ------------------------------------------------------------------
     def _general(self):
@@ -127,8 +127,8 @@ class PreferencesDialog(Adw.PreferencesWindow):
                 if f.shortcut:
                     sub += "  ·  " + f.shortcut
                 missing = features.missing_tools(f.id)
-                if missing:
-                    sub += "\n" + tr("⚠ Manquant : {0} (sudo apt install {1})").format(", ".join(missing), f.packages)
+                if missing:     # la commande d'installation est dans l'onglet Composants
+                    sub += "\n" + tr("⚠ Manquant : {0} (voir l'onglet Composants)").format(", ".join(missing))
                 row.set_subtitle(sub)
                 from .icons import first_icon
                 row.add_prefix(Gtk.Image(icon_name=first_icon(f.icon, "view-dual-symbolic"
@@ -160,20 +160,46 @@ class PreferencesDialog(Adw.PreferencesWindow):
         g.add(_switch(tr("Mémoriser les mots de passe pendant la session"), "remember_passwords",
                       tr("Jamais enregistrés sur le disque")))
         page.add(g)
-        g = Adw.PreferencesGroup(title=tr("Programmes utilisés"))
-        from ..backend.engine import sevenzip_path, sevenzip_version
-        rows = [("7-Zip", sevenzip_path(), sevenzip_version())]
-        for prog, label in (("gs", "Ghostscript"), ("qpdf", "qpdf"), ("ffmpeg", "FFmpeg"), ("ffprobe", "ffprobe"),
-                            ("ffmpegthumbnailer", "ffmpegthumbnailer"), ("rg", "ripgrep"), ("pdftoppm", "Poppler"),
-                            ("zstd", "Zstandard"), ("brotli", "Brotli"), ("lz4", "LZ4")):
-            rows.append((label, shutil.which(prog), ""))
-        for label, path, ver in rows:
-            r = Adw.ActionRow(title=label, subtitle=(ver + " — " if ver else "") + (path or tr("non installé")))
-            img = Gtk.Image.new_from_icon_name("emblem-ok-symbolic" if path else "dialog-warning-symbolic")
-            img.add_css_class("success" if path else "warning")
-            r.add_suffix(img)
-            g.add(r)
         page.add(g)
+        return page
+
+    # ------------------------------------------------------------------
+    def _components(self):
+        """Programmes externes, groupés par usage, et la commande qui installe tout ce qui manque."""
+        from ..backend.engine import sevenzip_version
+        from .icons import first_icon
+        page = Adw.PreferencesPage(title=tr("Composants"), name="components",
+                                   icon_name=first_icon("application-x-executable-symbolic", "system-run-symbolic"),
+                                   description=tr("Programmes externes utilisés par Odysseus. S'il en manque un, "
+                                                  "seules les fonctions qui en ont besoin sont touchées."))
+        missing = [alts[0] for _cat, comps in features.COMPONENTS for _n, alts, _u in comps
+                   if not features.component_path(alts)]
+        if missing:
+            cmd = features.apt_command(features.PACKAGE_OF.get(m, m) for m in missing)
+            g = Adw.PreferencesGroup(title=tr("Installer ce qui manque"),
+                                     description=tr("À copier dans un terminal (mot de passe administrateur demandé)"))
+            row = Adw.ActionRow(title=cmd, title_selectable=True)
+            row.add_css_class("monospace")
+            copy = Gtk.Button(icon_name="edit-copy-symbolic", valign=Gtk.Align.CENTER, css_classes=["flat"],
+                              tooltip_text=tr("Copier"))
+            copy.connect("clicked", lambda b: (b.get_clipboard().set(cmd), self.add_toast(Adw.Toast(title=tr("Copié")))))
+            row.add_suffix(copy)
+            g.add(row)
+            page.add(g)
+            self.install_command = cmd
+        for cat, comps in features.COMPONENTS:
+            g = Adw.PreferencesGroup(title=cat)
+            for name, alts, usage in comps:
+                path = features.component_path(alts)
+                ver = sevenzip_version() if name == "7-Zip" and path else ""
+                state = (ver + " — " if ver else "") + path if path else \
+                    tr("non installé — paquet {0}").format(features.PACKAGE_OF.get(alts[0], alts[0]))
+                r = Adw.ActionRow(title=name, subtitle=usage + "\n" + state)
+                img = Gtk.Image.new_from_icon_name("emblem-ok-symbolic" if path else "dialog-warning-symbolic")
+                img.add_css_class("success" if path else "warning")
+                r.add_suffix(img)
+                g.add(r)
+            page.add(g)
         return page
 
 

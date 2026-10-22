@@ -32,8 +32,8 @@ class ToolActions:
         if missing and not features.available(fid):
             f = features.BY_ID[fid]
             alert(self, tr("Programme manquant"),
-                  tr("« {0} » a besoin de : {1}.\nInstallez-le avec :\nsudo apt install {2}").format(
-                      f.title, ", ".join(missing), f.packages))
+                  tr("« {0} » a besoin de : {1}.\nInstallez-le avec :\n{2}").format(
+                      f.title, ", ".join(missing), features.install_command(fid)))
             return False
         return True
 
