@@ -163,8 +163,42 @@ def _guess_algo(checksum_file: str, digest: str) -> str:
     return _LEN_TO_ALGO.get(len(digest), "SHA-256")
 
 
+# Longueur de l'empreinte (en hexadécimal) → algorithmes possibles, du plus courant au plus rare
+_DIGEST_CANDIDATES = {8: ["CRC32"], 32: ["MD5"], 40: ["SHA-1"], 56: ["SHA-224"],
+                      64: ["SHA-256", "SHA3-256", "BLAKE2s"], 96: ["SHA-384"],
+                      128: ["SHA-512", "SHA3-512", "BLAKE2b"]}
+_HEX = re.compile(r"[0-9a-fA-F]+")
+_CHECKSUM_NAME = re.compile(r"^(MD5|SHA\d*|SHA3-\d+|B2|BLAKE2B?)SUMS(\.txt)?$", re.I)
+
+
+def expected_digest(text: str) -> Optional[str]:
+    """Empreinte collée par l'utilisateur, telle que les sites la publient : seule, suivie du nom
+    du fichier (« a3f…  zorin.iso »), au format BSD (« SHA256 (zorin.iso) = a3f… »), ou découpée
+    en groupes séparés par des espaces. None si aucune longueur d'empreinte connue."""
+    text = (text or "").strip()
+    found = [h for candidate in (text, re.sub(r"\s+", "", text))
+             for h in _HEX.findall(candidate) if len(h) in _DIGEST_CANDIDATES]
+    return max(found, key=len).lower() if found else None
+
+
+def compare_digest(job: Job, path: str, expected: str) -> tuple[Optional[str], dict]:
+    """Calcule en UNE lecture du fichier tous les algorithmes possibles pour cette longueur
+    d'empreinte ; renvoie (algorithme qui correspond ou None, empreintes calculées)."""
+    algos = _DIGEST_CANDIDATES[len(expected)]
+    res = hash_files(job, [path], algos)[0]
+    match = next((a for a in algos if res[a].lower() == expected.lower()), None)
+    return match, res
+
+
+def is_checksum_file(name: str) -> bool:
+    """Fichier d'empreintes à vérifier : .sha256, .md5, .sfv… ou SHA256SUMS, MD5SUMS…"""
+    ext = name.lower().rsplit(".", 1)[-1] if "." in name else ""
+    return ext in HASH_FILE_EXT.values() or bool(_CHECKSUM_NAME.match(name))
+
+
 def verify_hash_file(job: Job, checksum_file: str) -> list[dict]:
-    """Vérifie un fichier .md5/.sha256/.sfv… Renvoie une ligne par fichier."""
+    """Vérifie un fichier .md5/.sha256/.sfv… Une ligne par fichier listé, avec « status » :
+    ok, mismatch (différent : abîmé ou modifié), missing (absent), unreadable (illisible)."""
     base = os.path.dirname(os.path.abspath(checksum_file))
     todo = []
     with open(checksum_file, encoding="utf-8", errors="replace") as fh:
@@ -193,16 +227,21 @@ def verify_hash_file(job: Job, checksum_file: str) -> list[dict]:
         path = name if os.path.isabs(name) else os.path.join(base, name)
         job.progress(i / n, name)
         if not os.path.isfile(path):
-            out.append({"path": path, "algo": algo, "expected": expected, "actual": "", "status": tr("absent")})
+            out.append({"path": path, "algo": algo, "expected": expected, "actual": "", "status": "missing"})
             continue
         h = HASH_ALGOS[algo]()
-        with open(path, "rb") as fh:
-            for b in iter(lambda: fh.read(1 << 20), b""):
-                job.check_cancel()
-                h.update(b)
+        try:
+            with open(path, "rb") as fh:
+                for b in iter(lambda: fh.read(1 << 20), b""):
+                    job.check_cancel()
+                    h.update(b)
+        except OSError:
+            out.append({"path": path, "algo": algo, "expected": expected, "actual": "", "status": "unreadable"})
+            continue
         actual = h.hexdigest()
         out.append({"path": path, "algo": algo, "expected": expected, "actual": actual,
-                    "status": "ok" if actual == expected else tr("différent")})
+                    "status": "ok" if actual.lower() == expected.lower() else "mismatch"})
+    job.progress(1.0, "")
     return out
 
 

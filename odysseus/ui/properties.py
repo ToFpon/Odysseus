@@ -9,6 +9,7 @@ import time
 
 from gi.repository import Adw, Gio, GLib, Gtk
 
+from .. import features
 from ..backend import scanner, tools
 from ..backend.engine import Job, human_size
 from ..i18n import ntr, tr
@@ -235,6 +236,8 @@ class PropertiesDialog(DialogWindow):
             toast(self, e.strerror or str(e))
 
     def _checksums(self, page, rec):
+        if not features.enabled("checksums"):
+            return
         g = Adw.PreferencesGroup(title=tr("Sommes de contrôle"))
         row = Adw.ActionRow(title="MD5 · SHA-256", subtitle=tr("Non calculées"), subtitle_selectable=True)
         btn = Gtk.Button(label=tr("Calculer"), valign=Gtk.Align.CENTER)
@@ -256,4 +259,71 @@ class PropertiesDialog(DialogWindow):
         row.add_suffix(copy)
         row.add_suffix(btn)
         g.add(row)
+        self._compare_row(g, rec)
         page.add(g)
+
+    def _compare_row(self, group, rec):
+        """Comparer à l'empreinte publiée (site de téléchargement…) : l'algorithme se déduit de la
+        longueur, le fichier n'est lu qu'une fois même si plusieurs algorithmes sont possibles."""
+        entry = Adw.EntryRow(title=tr("Comparer avec l'empreinte publiée"), show_apply_button=True)
+        result = Adw.ActionRow(visible=False, subtitle_selectable=True)
+        icon = Gtk.Image()
+        result.add_prefix(icon)
+        bar = Gtk.ProgressBar(valign=Gtk.Align.CENTER, hexpand=True, visible=False)
+        result.add_suffix(bar)
+        self.compare_entry, self.compare_result = entry, result
+        state = {"job": None}
+
+        def show(title, subtitle="", ok=None):
+            result.set_visible(True)
+            result.set_title(title)
+            result.set_subtitle(subtitle)
+            for c in ("success", "error"):
+                result.remove_css_class(c)
+            icon.set_visible(ok is not None)
+            if ok is not None:
+                icon.set_from_icon_name("emblem-ok-symbolic" if ok else "dialog-error-symbolic")
+                result.add_css_class("success" if ok else "error")
+            self.compare_ok = ok
+
+        def apply(*_):
+            expected = tools.expected_digest(entry.get_text())
+            if expected is None:
+                show(tr("Empreinte non reconnue"),
+                     tr("Collez l'empreinte publiée (MD5, SHA-1, SHA-256, SHA-512…), seule ou avec le nom du fichier"))
+                return
+            if state["job"] is not None:
+                state["job"].cancel()
+            show(tr("Calcul…"))
+            bar.set_visible(True)
+            bar.set_fraction(0)
+            job = Job("hash", lambda j: tools.compare_digest(j, rec.path, expected))
+            state["job"] = job
+            job.subscribe(lambda j: GLib.idle_add(lambda: (bar.set_fraction(j.fraction), False)[1]))
+
+            def work():
+                job.run_sync()
+
+                def done():
+                    if state["job"] is not job:
+                        return False
+                    bar.set_visible(False)
+                    if job.state != "done":
+                        if job.state != "cancelled":
+                            show(tr("Calcul impossible"), job.error or "", False)
+                        return False
+                    match, res = job.result
+                    if match:
+                        show(tr("Correspond ({0})").format(match), expected, True)
+                    else:
+                        algo = [k for k in res if k not in ("path", "size")][0]     # le plus courant
+                        show(tr("Ne correspond pas : le fichier est différent ou abîmé"),
+                             tr("{0} calculé : {1}").format(algo, res[algo]), False)
+                    return False
+                GLib.idle_add(done)
+            threading.Thread(target=work, daemon=True).start()
+        entry.connect("apply", apply)
+        entry.connect("entry-activated", apply)
+        self.connect("closed", lambda *_: state["job"] and state["job"].cancel())
+        group.add(entry)
+        group.add(result)

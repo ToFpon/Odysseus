@@ -636,13 +636,7 @@ msgstr "Stark"
 msgid "Très fort"
 msgstr "Sehr stark"
 
-#: odysseus/backend/tools.py:196
-msgid "absent"
-msgstr "fehlt"
 
-#: odysseus/backend/tools.py:205
-msgid "différent"
-msgstr "abweichend"
 
 #: odysseus/backend/tools.py:294
 msgid "Taille invalide : {text}"
@@ -3900,3 +3894,58 @@ msgstr "Geräte und Laufwerke"
 
 msgid "Emplacements réseau"
 msgstr "Netzwerkadressen"
+
+msgid "Absent"
+msgstr "Fehlt"
+
+msgid "Attendu : {0}\nCalculé : {1}"
+msgstr "Erwartet: {0}\nBerechnet: {1}"
+
+msgid "Aucune empreinte trouvée dans ce fichier"
+msgstr "Keine Prüfsumme in dieser Datei gefunden"
+
+msgid "Calcul impossible"
+msgstr "Berechnung nicht möglich"
+
+msgid "Calculer l'empreinte d'un fichier, la comparer à celle publiée (Propriétés), vérifier les fichiers .sha256 / .md5 / .sfv"
+msgstr "Prüfsumme einer Datei berechnen, mit der veröffentlichten vergleichen (Eigenschaften), .sha256- / .md5- / .sfv-Dateien prüfen"
+
+msgid "Collez l'empreinte publiée (MD5, SHA-1, SHA-256, SHA-512…), seule ou avec le nom du fichier"
+msgstr "Veröffentlichte Prüfsumme einfügen (MD5, SHA-1, SHA-256, SHA-512 …), allein oder mit dem Dateinamen"
+
+msgid "Comparer avec l'empreinte publiée"
+msgstr "Mit veröffentlichter Prüfsumme vergleichen"
+
+msgid "Correct"
+msgstr "Korrekt"
+
+msgid "Correspond ({0})"
+msgstr "Stimmt überein ({0})"
+
+msgid "Différent : fichier abîmé ou modifié"
+msgstr "Abweichend: Datei beschädigt oder verändert"
+
+msgid "Empreinte non reconnue"
+msgstr "Prüfsumme nicht erkannt"
+
+msgid "Ne correspond pas : le fichier est différent ou abîmé"
+msgstr "Stimmt nicht überein: Die Datei ist anders oder beschädigt"
+
+msgid "Vérification de {0}"
+msgstr "Prüfung von {0}"
+
+msgid "Vérifier les sommes de contrôle…"
+msgstr "Prüfsummen prüfen …"
+
+msgid "{0} calculé : {1}"
+msgstr "{0} berechnet: {1}"
+
+msgid "{0} fichier vérifié : intact"
+msgid_plural "{0} fichiers vérifiés : tous intacts"
+msgstr[0] "{0} Datei geprüft: unversehrt"
+msgstr[1] "{0} Dateien geprüft: alle unversehrt"
+
+msgid "{0} problème sur {1} fichier"
+msgid_plural "{0} problèmes sur {1} fichiers"
+msgstr[0] "{0} Problem bei {1} Datei"
+msgstr[1] "{0} Probleme bei {1} Dateien"

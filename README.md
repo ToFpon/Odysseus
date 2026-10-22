@@ -57,6 +57,7 @@ Huge folders open almost instantly: a folder of **100,000 files is displayed in 
 - Open in text editor, open terminal here (Ctrl+Alt+T), **run executable scripts** in a terminal that stays open, like Nautilus.
 - **Send by email** (your default mail client, files attached) and **send to your phone** with GSConnect: connected devices appear live in the context menu.
 - Several archives extracted at once: one notification at the end, not one per archive.
+- **Checksums**: in Properties, paste the checksum published on a download page (MD5, SHA-1, SHA-256, SHA-512…, alone or with the file name) to check the file; right-click a `.sha256` / `.md5` / `.sfv` / `SHA256SUMS` file to verify every file it lists.
 
 #### Desktop integration
 - Odysseus is D-Bus activatable, like Nautilus: the dock, `gio open` or a script started outside the session (udev rule, USB notification…) open it with the session's environment, even when it is closed.
@@ -174,6 +175,7 @@ Les très gros dossiers s'ouvrent quasi instantanément : un dossier de **100 00
 - Ouvrir avec l'éditeur de texte, terminal ici (Ctrl+Alt+T), **exécuter les scripts exécutables** dans un terminal qui reste ouvert, comme dans Nautilus.
 - **Envoyer par courriel** (logiciel de courriel par défaut, fichiers joints) et **envoyer vers ton téléphone** avec GSConnect : les appareils connectés apparaissent en direct dans le menu contextuel.
 - Plusieurs archives extraites d'un coup : une seule notification à la fin, pas une par archive.
+- **Sommes de contrôle** : dans Propriétés, colle l'empreinte publiée sur la page de téléchargement (MD5, SHA-1, SHA-256, SHA-512…, seule ou avec le nom du fichier) pour contrôler le fichier ; clic droit sur un fichier `.sha256` / `.md5` / `.sfv` / `SHA256SUMS` pour vérifier tous les fichiers qu'il liste.
 
 #### Intégration au bureau
 - Odysseus se lance par D-Bus, comme Nautilus : le dock, `gio open` ou un script lancé hors de la session (règle udev, notification USB…) l'ouvrent avec l'environnement de la session, même quand il est fermé.

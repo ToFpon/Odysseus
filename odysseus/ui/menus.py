@@ -213,6 +213,10 @@ def context_menu(win, pane, on_item: bool) -> Gio.Menu:
         t.append(tr("Extraire l'audio…"), "win.video-to-audio")
     if one is not None and not one.is_dir and one.content_type.startswith("image/") and features.available("annotate"):
         t.append(tr("Annoter l'image…"), "win.annotate")
+    if one is not None and not one.is_dir and features.enabled("checksums"):
+        from ..backend.tools import is_checksum_file
+        if is_checksum_file(one.name):
+            t.append(tr("Vérifier les sommes de contrôle…"), "win.verify-checksums")
     if one is not None and one.name.lower().endswith(".deb") and features.available("deb_installer"):
         t.append(tr("Installer le paquet…"), "win.deb-install")
     if files and len(files) == len(sel) and all(_is_text(r) for r in files) and features.enabled("text_editor"):

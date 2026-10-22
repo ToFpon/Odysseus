@@ -10,7 +10,7 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from gi.repository import Gio  # noqa: E402
 
-from odysseus.backend import bookmarks, fileops, formats, media, scanner, search, workers  # noqa: E402
+from odysseus.backend import bookmarks, fileops, formats, media, scanner, search, tools, workers  # noqa: E402
 from odysseus.backend.engine import Job  # noqa: E402
 from odysseus.i18n import tr  # noqa: E402
 
@@ -436,6 +436,70 @@ class FileManager1ServiceTest(unittest.TestCase):
                 dbus.sync_service(False)
                 with open(svc) as f:
                     self.assertIn("Exec=autre", f.read())
+
+
+class ChecksumTest(unittest.TestCase):
+    """Comparer à l'empreinte publiée, vérifier un fichier .sha256 / SHA256SUMS."""
+
+    def setUp(self):
+        import hashlib
+        self.tmp = tempfile.TemporaryDirectory()
+        self.d = self.tmp.name
+        self.iso = os.path.join(self.d, "zorin.iso")
+        with open(self.iso, "wb") as f:
+            f.write(b"image disque" * 1000)
+        data = open(self.iso, "rb").read()
+        self.sha256 = hashlib.sha256(data).hexdigest()
+        self.md5 = hashlib.md5(data).hexdigest()
+
+    def tearDown(self):
+        self.tmp.cleanup()
+
+    def _run(self, fn):
+        j = Job("t", fn).run_sync()
+        self.assertEqual(j.state, "done", j.error)
+        return j.result
+
+    def test_expected_digest_formats(self):
+        h = self.sha256
+        for text in (h, h.upper(), f"{h}  zorin.iso", f"SHA256 (zorin.iso) = {h}",
+                     " ".join(h[i:i + 8] for i in range(0, 64, 8)), f"\n  {h}\n"):
+            self.assertEqual(tools.expected_digest(text), h, text)
+        self.assertIsNone(tools.expected_digest("bonjour"))
+        self.assertIsNone(tools.expected_digest("abc123"))
+
+    def test_compare_match_and_mismatch(self):
+        match, _res = self._run(lambda j: tools.compare_digest(j, self.iso, self.sha256))
+        self.assertEqual(match, "SHA-256")
+        match, _res = self._run(lambda j: tools.compare_digest(j, self.iso, self.md5))
+        self.assertEqual(match, "MD5")
+        wrong = ("0" if self.sha256[0] != "0" else "1") + self.sha256[1:]
+        match, res = self._run(lambda j: tools.compare_digest(j, self.iso, wrong))
+        self.assertIsNone(match)
+        self.assertEqual(res["SHA-256"], self.sha256)
+
+    def test_verify_sums_file_statuses(self):
+        for name in ("abime.bin", "secret.bin"):
+            with open(os.path.join(self.d, name), "wb") as f:
+                f.write(b"x")
+        sums = os.path.join(self.d, "SHA256SUMS")
+        with open(sums, "w") as f:
+            f.write(f"{self.sha256}  zorin.iso\n{'0' * 64}  abime.bin\n{'1' * 64}  absent.bin\n"
+                    f"{'2' * 64}  secret.bin\n")
+        os.chmod(os.path.join(self.d, "secret.bin"), 0)
+        try:
+            res = {os.path.basename(r["path"]): r["status"] for r in self._run(lambda j: tools.verify_hash_file(j, sums))}
+        finally:
+            os.chmod(os.path.join(self.d, "secret.bin"), 0o644)
+        expected = {"zorin.iso": "ok", "abime.bin": "mismatch", "absent.bin": "missing",
+                    "secret.bin": "unreadable" if os.geteuid() != 0 else "mismatch"}   # root lit tout
+        self.assertEqual(res, expected)
+
+    def test_is_checksum_file(self):
+        for n in ("x.sha256", "x.md5", "x.sfv", "SHA256SUMS", "MD5SUMS", "SHA512SUMS.txt"):
+            self.assertTrue(tools.is_checksum_file(n), n)
+        for n in ("x.iso", "SHA256SUMS.gpg", "notes.txt"):
+            self.assertFalse(tools.is_checksum_file(n), n)
 
 
 class SidebarPlacesTest(unittest.TestCase):

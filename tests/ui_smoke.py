@@ -560,6 +560,64 @@ def emblemes_droits(win):
 
 
 @step
+def sommes_de_controle(win):
+    """Propriétés : coller l'empreinte publiée → « Correspond » / « Ne correspond pas » ; clic droit
+    sur SHA256SUMS → « Vérifier les sommes de contrôle… » et fenêtre de résultats."""
+    import hashlib
+    from odysseus.ui import menus
+    from odysseus.ui.properties import PropertiesDialog
+    folder = tempfile.mkdtemp(dir=D, prefix="empreintes ")
+    iso = os.path.join(folder, "zorin.iso")
+    with open(iso, "wb") as f:
+        f.write(os.urandom(2 << 20))
+    sha = hashlib.sha256(open(iso, "rb").read()).hexdigest()
+    d = PropertiesDialog(win, [iso])
+    d.present()
+    yield pump(0.5)
+    for text, want in ((f"SHA256 (zorin.iso) = {sha}", True), ("0" * 64, False)):
+        d.compare_ok = None
+        d.compare_entry.set_text(text)
+        d.compare_entry.emit("apply")
+        yield Wait(10, until=lambda: d.compare_ok is not None)
+        check(d.compare_ok is want, f"Propriétés : comparaison {'correcte' if want else 'refusée'} "
+                                    f"({d.compare_result.get_title()})")
+    d.close()
+    yield pump(0.3)
+    with open(os.path.join(folder, "SHA256SUMS"), "w") as f:
+        f.write(f"{sha}  zorin.iso\n{'0' * 64}  absent.iso\n")
+    p = win.pane
+    p.open(folder)
+    yield Wait(5, until=lambda: not p.model.loading)
+    p.model.select_names(["SHA256SUMS"])
+    yield pump(0.2)
+    m = menus.context_menu(win, p, True)
+    actions = [m.get_item_link(i, "section").get_item_attribute_value(j, "action").unpack()
+               for i in range(m.get_n_items())
+               for j in range(m.get_item_link(i, "section").get_n_items())
+               if m.get_item_link(i, "section").get_item_attribute_value(j, "action") is not None]
+    check("win.verify-checksums" in actions, "menu : « Vérifier les sommes de contrôle… » sur SHA256SUMS")
+    before = list(Gtk.Window.list_toplevels())
+    win.activate_action("win.verify-checksums", None)
+    yield wait_jobs()
+    yield pump(0.5)
+    res = [w for w in Gtk.Window.list_toplevels() if w not in before and type(w).__name__ == "ChecksumResults"]
+    check(len(res) == 1 and [r["status"] for r in res[0].results] == ["ok", "missing"],
+          f"vérification : fenêtre de résultats ({[r['status'] for r in res[0].results] if res else None})")
+    for w in res:
+        w.close()
+    from odysseus import features
+    features.set_enabled("checksums", False)
+    m = menus.context_menu(win, p, True)
+    actions = [m.get_item_link(i, "section").get_item_attribute_value(j, "action").unpack()
+               for i in range(m.get_n_items())
+               for j in range(m.get_item_link(i, "section").get_n_items())
+               if m.get_item_link(i, "section").get_item_attribute_value(j, "action") is not None]
+    check("win.verify-checksums" not in actions, "sommes de contrôle désactivables")
+    features.set_enabled("checksums", True)
+    yield pump(0.2)
+
+
+@step
 def quitter_double_panneau_focus(win):
     """Sortie du double panneau, focus dans la recherche alors qu'un panneau l'avait avant
     (« Error finding last focus widget of GtkPaned ») : le focus reste dans le champ, sans

@@ -636,13 +636,7 @@ msgstr "Strong"
 msgid "Très fort"
 msgstr "Very strong"
 
-#: odysseus/backend/tools.py:196
-msgid "absent"
-msgstr "missing"
 
-#: odysseus/backend/tools.py:205
-msgid "différent"
-msgstr "different"
 
 #: odysseus/backend/tools.py:294
 msgid "Taille invalide : {text}"
@@ -3900,3 +3894,58 @@ msgstr "Devices and drives"
 
 msgid "Emplacements réseau"
 msgstr "Network locations"
+
+msgid "Absent"
+msgstr "Missing"
+
+msgid "Attendu : {0}\nCalculé : {1}"
+msgstr "Expected: {0}\nComputed: {1}"
+
+msgid "Aucune empreinte trouvée dans ce fichier"
+msgstr "No checksum found in this file"
+
+msgid "Calcul impossible"
+msgstr "Could not compute"
+
+msgid "Calculer l'empreinte d'un fichier, la comparer à celle publiée (Propriétés), vérifier les fichiers .sha256 / .md5 / .sfv"
+msgstr "Compute a file's checksum, compare it with the published one (Properties), verify .sha256 / .md5 / .sfv files"
+
+msgid "Collez l'empreinte publiée (MD5, SHA-1, SHA-256, SHA-512…), seule ou avec le nom du fichier"
+msgstr "Paste the published checksum (MD5, SHA-1, SHA-256, SHA-512…), alone or with the file name"
+
+msgid "Comparer avec l'empreinte publiée"
+msgstr "Compare with the published checksum"
+
+msgid "Correct"
+msgstr "Correct"
+
+msgid "Correspond ({0})"
+msgstr "Matches ({0})"
+
+msgid "Différent : fichier abîmé ou modifié"
+msgstr "Different: file damaged or modified"
+
+msgid "Empreinte non reconnue"
+msgstr "Checksum not recognised"
+
+msgid "Ne correspond pas : le fichier est différent ou abîmé"
+msgstr "Does not match: the file is different or damaged"
+
+msgid "Vérification de {0}"
+msgstr "Verifying {0}"
+
+msgid "Vérifier les sommes de contrôle…"
+msgstr "Verify Checksums…"
+
+msgid "{0} calculé : {1}"
+msgstr "{0} computed: {1}"
+
+msgid "{0} fichier vérifié : intact"
+msgid_plural "{0} fichiers vérifiés : tous intacts"
+msgstr[0] "{0} file verified: intact"
+msgstr[1] "{0} files verified: all intact"
+
+msgid "{0} problème sur {1} fichier"
+msgid_plural "{0} problèmes sur {1} fichiers"
+msgstr[0] "{0} problem out of {1} file"
+msgstr[1] "{0} problems out of {1} files"

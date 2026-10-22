@@ -205,6 +205,10 @@ fenêtre de recherche dans le contenu.
   l'ObjectManager D-Bus de GSConnect (appareils en direct) et on envoie par l'action « shareFile »
   de l'appareil (`Gio.DBusActionGroup`). Testé avec `tests/fake_gsconnect.py` sous dbus-run-session.
   « Courriel… » : `xdg-email --attach …` (logiciel de courriel par défaut).
+- Sommes de contrôle (fonctionnalité `checksums`) : `tools.expected_digest` lit l'empreinte collée
+  (seule, avec le nom, format BSD, en groupes) ; `compare_digest` calcule en une lecture tous les
+  algorithmes de cette longueur (64 : SHA-256, SHA3-256, BLAKE2s…). `verify_hash_file` renvoie des
+  états (ok, mismatch, missing, unreadable) traduits par `checksum_dialog`.
 - Ghostscript `pdfimage24` : `-sCompression=JPEG` en majuscules.
 - `view-column-symbolic` n'existe pas dans Adwaita : `icons.first_icon` avec repli.
 - Emblèmes comme Nautilus (lien, `emblem-readonly`, `emblem-unreadable`, puis Folder Color), à la suite

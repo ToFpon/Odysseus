@@ -17,6 +17,7 @@ class ToolActions:
             "pdf-compress": lambda: self._pdf("compress"), "pdf-merge": lambda: self._pdf("merge"),
             "pdf-watermark": lambda: self._pdf("watermark"), "pdf-pages": lambda: self._pdf("pages"),
             "video-to-audio": self.video_to_audio, "annotate": self.annotate, "deb-install": self.deb_install,
+            "verify-checksums": self.verify_checksums,
         }
         for name, cb in acts.items():
             self._add(name, cb)
@@ -86,6 +87,28 @@ class ToolActions:
         if sel:
             from .annotate import AnnotateWindow
             AnnotateWindow(self, sel[0].path).present()
+
+    def verify_checksums(self):
+        """Fichier .sha256 / .md5 / .sfv / SHA256SUMS… : vérifie chaque fichier qu'il liste, en
+        arrière-plan (progression dans les opérations), puis montre le résultat ligne par ligne."""
+        if not features.enabled("checksums"):
+            return
+        from ..backend import tools
+        sel = [r for r in self.pane.selected_recs() if r.path and tools.is_checksum_file(r.name)]
+        if not sel:
+            return
+        path = sel[0].path
+        from .jobs import finished_toast, manager
+
+        def done(job):
+            if job.state != "done":
+                finished_toast(self, job, "")
+                return
+            from .checksum_dialog import ChecksumResults
+            ChecksumResults(path, job.result).present(self)
+        job = manager.submit(tr("Vérification de {0}").format(os.path.basename(path)),
+                             lambda j: tools.verify_hash_file(j, path), done)
+        self._watch_progress(job)
 
     def deb_install(self):
         if not self._need("deb_installer"):
