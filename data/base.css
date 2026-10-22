@@ -187,9 +187,3 @@ banner.admin-banner > revealer > widget { background-color: @warning_bg_color; c
 .odysseus-app-chooser scrolledwindow,
 .odysseus-app-chooser treeview.view:not(:selected) { background: transparent; }
 .odysseus-app-chooser treeview.view { -gtk-icon-size: 32px; }
-
-/* Propriétés : bouton de comparaison d'empreinte, verdict aux couleurs du thème */
-.compare-button.busy { background-color: alpha(currentColor, 0.15); }
-.compare-button.ok { background-color: @success_bg_color; color: @success_fg_color; }
-.compare-button.ko { background-color: @error_bg_color; color: @error_fg_color; }
-.compare-button.unknown { background-color: @warning_bg_color; color: @warning_fg_color; }

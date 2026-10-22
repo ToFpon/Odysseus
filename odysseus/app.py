@@ -18,6 +18,14 @@ from .i18n import tr  # noqa: E402
 DATA_DIR = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "data")
 
 
+def _cwd() -> str:
+    """Dossier courant, ou le dossier personnel si celui du terminal a été supprimé entre-temps."""
+    try:
+        return os.getcwd()
+    except OSError:
+        return os.path.expanduser("~")
+
+
 def _inside_archive(path: str) -> bool:
     """« /chemin/archive.7z/dossier » : chemin dans une archive, ouvert par le panneau."""
     probe = os.path.dirname(path)
@@ -49,6 +57,10 @@ class OdysseusApp(Adw.Application):
         css = Gtk.CssProvider()
         css.load_from_path(os.path.join(DATA_DIR, "base.css"))
         Gtk.StyleContext.add_provider_for_display(display, css, Gtk.STYLE_PROVIDER_PRIORITY_APPLICATION)
+        # verdicts colorés (comparaison d'empreinte) : au-dessus du thème de l'utilisateur
+        verdict = Gtk.CssProvider()
+        verdict.load_from_path(os.path.join(DATA_DIR, "verdict.css"))
+        Gtk.StyleContext.add_provider_for_display(display, verdict, Gtk.STYLE_PROVIDER_PRIORITY_USER + 1)
         icons = os.path.join(DATA_DIR, "icons")
         if os.path.isdir(icons):
             Gtk.IconTheme.get_for_display(display).add_search_path(icons)
@@ -125,7 +137,7 @@ class OdysseusApp(Adw.Application):
         if opts.get("version"):
             cmd.print_literal(f"{APP_NAME} {VERSION}\n")
             return 0
-        cwd = cmd.get_cwd() or os.getcwd()
+        cwd = cmd.get_cwd() or _cwd()
         args = cmd.get_arguments()[1:]
         locs, missing = [], []
         for a in args:

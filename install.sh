@@ -51,7 +51,9 @@ cp -r "$SRC/odysseus" "$SRC/data" "$APPDIR/"
 find "$APPDIR" -name "__pycache__" -type d -exec rm -rf {} + 2>/dev/null || true
 cat > "$PREFIX/bin/odysseus" <<LAUNCH
 #!/bin/sh
-exec python3 -c 'import sys; sys.path.insert(0, "$APPDIR"); from odysseus.app import main; sys.exit(main(sys.argv))' "\$@"
+# -P : pas de dossier courant dans les chemins d'import (un dossier supprimé faisait planter le
+# démarrage, et un « gi.py » posé dans le dossier courant aurait été exécuté)
+exec python3 -P -c 'import sys; sys.path.insert(0, "$APPDIR"); from odysseus.app import main; sys.exit(main(sys.argv))' "\$@"
 LAUNCH
 chmod +x "$PREFIX/bin/odysseus"
 sed "s|^Exec=odysseus|Exec=$PREFIX/bin/odysseus|" "$SRC/data/$DESKTOP" > "$SHARE/applications/$DESKTOP"

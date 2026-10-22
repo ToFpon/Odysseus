@@ -147,6 +147,11 @@ fenêtre de recherche dans le contenu.
 ## Pièges connus
 
 - Actions de fenêtre : préfixe `win.` ; l'application gère la ligne de commande (`HANDLES_COMMAND_LINE`).
+- Lanceur installé : `python3 -P -c …` (sans -P, le dossier courant était dans les chemins d'import :
+  lancé depuis un dossier supprimé, l'import de gi plantait ; un « gi.py » du dossier courant aurait
+  été exécuté). Ligne de commande : `app._cwd()` (dossier personnel si le dossier courant n'existe plus).
+- Verdict de comparaison d'empreinte : `data/verdict.css`, priorité USER+1 (au-dessus du gtk.css du
+  thème), `background-image: none` (thèmes à boutons en dégradé).
 - Nom du processus : `app._process_name` (prctl PR_SET_NAME) → « odysseus » dans le Moniteur
   système, `ps`, `killall` (sinon « python3 », le lanceur étant `python3 -c …`). WM_CLASS :
   `GLib.set_prgname(APP_ID)`.
