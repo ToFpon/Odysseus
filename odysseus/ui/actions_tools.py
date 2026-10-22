@@ -17,7 +17,7 @@ class ToolActions:
             "pdf-compress": lambda: self._pdf("compress"), "pdf-merge": lambda: self._pdf("merge"),
             "pdf-watermark": lambda: self._pdf("watermark"), "pdf-pages": lambda: self._pdf("pages"),
             "video-to-audio": self.video_to_audio, "annotate": self.annotate, "deb-install": self.deb_install,
-            "verify-checksums": self.verify_checksums,
+            "verify-checksums": self.verify_checksums, "checksums": self.checksums,
         }
         for name, cb in acts.items():
             self._add(name, cb)
@@ -87,6 +87,16 @@ class ToolActions:
         if sel:
             from .annotate import AnnotateWindow
             AnnotateWindow(self, sel[0].path).present()
+
+    def checksums(self):
+        """Empreintes du fichier sélectionné et comparaison avec celle publiée, dans une fenêtre
+        à part (non modale) : on peut continuer à naviguer pendant le calcul."""
+        if not features.enabled("checksums"):
+            return
+        sel = [r for r in self.pane.selected_recs() if r.path and not r.is_dir]
+        if len(sel) == 1 and os.path.isfile(sel[0].path):
+            from .checksum_window import ChecksumWindow
+            ChecksumWindow(self, sel[0].path).present()
 
     def verify_checksums(self):
         """Fichier .sha256 / .md5 / .sfv / SHA256SUMS… : vérifie chaque fichier qu'il liste, en

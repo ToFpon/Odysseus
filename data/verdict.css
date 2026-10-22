@@ -1,8 +1,9 @@
-/* Verdict de la comparaison d'empreinte (Propriétés), aux couleurs du THÈME (succès / erreur /
-   avertissement). Chargé avec une priorité au-dessus de celle du thème de l'utilisateur
-   (~/.config/gtk-4.0/gtk.css) : sinon une règle du thème sur les boutons masquait le verdict.
-   background-image : les thèmes qui dessinent les boutons en dégradé le peignent par-dessus. */
-.compare-button.busy { background-color: alpha(currentColor, 0.15); background-image: none; }
-.compare-button.ok { background-color: @success_bg_color; color: @success_fg_color; background-image: none; }
-.compare-button.ko { background-color: @error_bg_color; color: @error_fg_color; background-image: none; }
-.compare-button.unknown { background-color: @warning_bg_color; color: @warning_fg_color; background-image: none; }
+/* Verdict de la comparaison d'empreinte (fenêtre « Empreintes »), aux couleurs du THÈME (succès /
+   erreur / avertissement). Chargé avec une priorité au-dessus de celle du thème de l'utilisateur
+   (~/.config/gtk-4.0/gtk.css) : une règle du thème ne peut pas masquer le verdict.
+   background-image : les thèmes qui dessinent en dégradé le peindraient par-dessus. */
+.verdict-badge { padding: 8px; border-radius: 9999px; background-image: none; }
+.verdict-badge.busy { background-color: alpha(currentColor, 0.15); }
+.verdict-badge.ok { background-color: @success_bg_color; color: @success_fg_color; }
+.verdict-badge.ko { background-color: @error_bg_color; color: @error_fg_color; }
+.verdict-badge.unknown { background-color: @warning_bg_color; color: @warning_fg_color; }

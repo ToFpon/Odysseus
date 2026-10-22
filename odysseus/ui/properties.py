@@ -9,12 +9,11 @@ import time
 
 from gi.repository import Adw, Gio, GLib, Gtk
 
-from .. import features
-from ..backend import scanner, tools
-from ..backend.engine import Job, human_size
+from ..backend import scanner
+from ..backend.engine import human_size
 from ..i18n import ntr, tr
 from . import icons
-from .common import DialogWindow, combo_row, copy_to_clipboard, full_date, shown, toast
+from .common import DialogWindow, combo_row, full_date, shown, toast
 
 ACCESS = [tr("Aucun"), tr("Lecture seule"), tr("Lecture et écriture")]
 
@@ -90,8 +89,6 @@ class PropertiesDialog(DialogWindow):
             self._open_with(page, one)
         if one:
             self._permissions(page, one)
-            if not one.is_dir:
-                self._checksums(page, one)
         self._compute_size()
 
     # ------------------------------------------------------------------
@@ -234,138 +231,3 @@ class PropertiesDialog(DialogWindow):
             os.chmod(self._mode_path, mode)
         except OSError as e:
             toast(self, e.strerror or str(e))
-
-    def _checksums(self, page, rec):
-        if not features.enabled("checksums"):
-            return
-        g = Adw.PreferencesGroup(title=tr("Sommes de contrôle"))
-        row = Adw.ActionRow(title="MD5 · SHA-256", subtitle=tr("Non calculées"), subtitle_selectable=True)
-        btn = Gtk.Button(label=tr("Calculer"), valign=Gtk.Align.CENTER)
-        copy = Gtk.Button(icon_name="edit-copy-symbolic", valign=Gtk.Align.CENTER, css_classes=["flat"],
-                          visible=False, tooltip_text=tr("Copier"))
-        copy.connect("clicked", lambda *_: (copy_to_clipboard(self, row.get_subtitle()), toast(self, tr("Copié"))))
-
-        def run(*_):
-            btn.set_sensitive(False)
-            row.set_subtitle(tr("Calcul…"))
-
-            def work():
-                job = Job("hash", lambda j: tools.hash_files(j, [rec.path], ["MD5", "SHA-256"])).run_sync()
-                res = job.result[0] if job.state == "done" and job.result else None
-                text = "\n".join(f"{k} : {res[k]}" for k in ("MD5", "SHA-256")) if res else job.error
-                GLib.idle_add(lambda: (row.set_subtitle(text), copy.set_visible(True), False)[2])
-            threading.Thread(target=work, daemon=True).start()
-        btn.connect("clicked", run)
-        row.add_suffix(copy)
-        row.add_suffix(btn)
-        g.add(row)
-        self._compare_row(g, rec)
-        page.add(g)
-
-    def _compare_row(self, group, rec):
-        """Comparer à l'empreinte publiée (site de téléchargement…) : l'algorithme se déduit de la
-        longueur, le fichier n'est lu qu'une fois même si plusieurs algorithmes sont possibles."""
-        entry = Adw.EntryRow(title=tr("Comparer avec l'empreinte publiée"))
-        # notre propre bouton (celui d'Adw.EntryRow ne se colore pas) : le verdict se lit dessus,
-        # sans faire défiler jusqu'au détail — gris pendant le calcul, vert / rouge / orange ensuite
-        # focus_on_click=False : le champ garde le focus (sa sortie de focus réveille la méthode de
-        # saisie — IBus sous Zorin —, qui pouvait émettre « changed » et effacer le verdict)
-        button = Gtk.Button(icon_name="object-select-symbolic", valign=Gtk.Align.CENTER, sensitive=False,
-                            css_classes=["circular", "suggested-action", "compare-button"],
-                            tooltip_text=tr("Comparer"), focus_on_click=False)
-        entry.add_suffix(button)
-        self.compare_button = button
-        result = Adw.ActionRow(visible=False, subtitle_selectable=True)
-        icon = Gtk.Image()
-        result.add_prefix(icon)
-        bar = Gtk.ProgressBar(valign=Gtk.Align.CENTER, hexpand=True, visible=False)
-        result.add_suffix(bar)
-        self.compare_entry, self.compare_result = entry, result
-        state = {"job": None, "text": None}
-
-        verdicts = {None: ("object-select-symbolic", "suggested-action"), "busy": ("content-loading-symbolic", "busy"),
-                    True: ("object-select-symbolic", "ok"), False: ("window-close-symbolic", "ko"),
-                    "unknown": ("dialog-question-symbolic", "unknown")}
-
-        def paint(verdict):
-            icon_name, cls = verdicts[verdict]
-            for c in ("suggested-action", "busy", "ok", "ko", "unknown"):
-                button.remove_css_class(c)
-            button.add_css_class(cls)
-            button.set_icon_name(icon_name)
-            button.set_sensitive(verdict != "busy" and bool(entry.get_text().strip()))
-
-        def show(title, subtitle="", ok=None):
-            result.set_visible(True)
-            result.set_title(title)
-            result.set_subtitle(subtitle)
-            for c in ("success", "error"):
-                result.remove_css_class(c)
-            icon.set_visible(ok is not None)
-            if ok is not None:
-                icon.set_from_icon_name("emblem-ok-symbolic" if ok else "dialog-error-symbolic")
-                result.add_css_class("success" if ok else "error")
-            self.compare_ok = ok
-            if ok is not None:
-                paint(ok)
-
-        def apply(*_):
-            expected = tools.expected_digest(entry.get_text())
-            if expected is None:
-                show(tr("Empreinte non reconnue"),
-                     tr("Collez l'empreinte publiée (MD5, SHA-1, SHA-256, SHA-512…), seule ou avec le nom du fichier"))
-                paint("unknown")
-                return
-            if state["job"] is not None:
-                state["job"].cancel()
-            state["text"] = entry.get_text()
-            show(tr("Calcul…"))
-            paint("busy")
-            bar.set_visible(True)
-            bar.set_fraction(0)
-            job = Job("hash", lambda j: tools.compare_digest(j, rec.path, expected))
-            state["job"] = job
-            job.subscribe(lambda j: GLib.idle_add(lambda: (bar.set_fraction(j.fraction), False)[1]))
-
-            def work():
-                job.run_sync()
-
-                def done():
-                    if state["job"] is not job:
-                        return False
-                    bar.set_visible(False)
-                    if job.state != "done":
-                        if job.state != "cancelled":
-                            show(tr("Calcul impossible"), job.error or "", False)
-                        else:
-                            paint(None)
-                        return False
-                    match, res = job.result
-                    if match:
-                        show(tr("Correspond ({0})").format(match), expected, True)
-                    else:
-                        algo = [k for k in res if k not in ("path", "size")][0]     # le plus courant
-                        show(tr("Ne correspond pas : le fichier est différent ou abîmé"),
-                             tr("{0} calculé : {1}").format(algo, res[algo]), False)
-                    return False
-                GLib.idle_add(done)
-            threading.Thread(target=work, daemon=True).start()
-        def edited(*_):
-            # texte modifié : le verdict précédent ne vaut plus, un calcul en cours non plus. Un
-            # « changed » sans vrai changement (méthode de saisie, focus) ne touche à rien.
-            if entry.get_text() == state["text"]:
-                return
-            state["text"] = None
-            if state["job"] is not None:
-                state["job"].cancel()
-                state["job"] = None
-                bar.set_visible(False)
-            result.set_visible(False)
-            self.compare_ok = None
-            paint(None)
-        button.connect("clicked", apply)
-        entry.connect("entry-activated", apply)
-        entry.connect("changed", edited)
-        self.connect("closed", lambda *_: state["job"] and state["job"].cancel())
-        group.add(entry)
-        group.add(result)

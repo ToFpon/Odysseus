@@ -561,44 +561,63 @@ def emblemes_droits(win):
 
 @step
 def sommes_de_controle(win):
-    """Propriétés : coller l'empreinte publiée → « Correspond » / « Ne correspond pas » ; clic droit
-    sur SHA256SUMS → « Vérifier les sommes de contrôle… » et fenêtre de résultats."""
+    """Fenêtre « Empreintes » (clic droit) : empreintes calculées en une lecture ; coller l'empreinte
+    publiée → verdict automatique sur la pastille ; clic droit sur SHA256SUMS → « Vérifier les
+    sommes de contrôle… » et fenêtre de résultats."""
     import hashlib
     from odysseus.ui import menus
-    from odysseus.ui.properties import PropertiesDialog
     folder = tempfile.mkdtemp(dir=D, prefix="empreintes ")
     iso = os.path.join(folder, "zorin.iso")
     with open(iso, "wb") as f:
         f.write(os.urandom(2 << 20))
-    sha = hashlib.sha256(open(iso, "rb").read()).hexdigest()
-    d = PropertiesDialog(win, [iso])
-    d.present()
-    yield pump(0.5)
-    for text, want in ((f"SHA256 (zorin.iso) = {sha}", True), ("0" * 64, False)):
-        d.compare_ok = None
-        d.compare_entry.set_text(text)
-        check(d.compare_button.get_sensitive(), "bouton de comparaison actif dès qu'une empreinte est saisie")
-        d.compare_button.emit("clicked")
-        busy = d.compare_button.has_css_class("busy")
-        yield Wait(10, until=lambda: d.compare_ok is not None)
-        check(d.compare_ok is want, f"Propriétés : comparaison {'correcte' if want else 'refusée'} "
-                                    f"({d.compare_result.get_title()})")
-        check(busy and d.compare_button.has_css_class("ok" if want else "ko"),
-              f"bouton : gris pendant le calcul, puis {'vert' if want else 'rouge'} ({d.compare_button.get_css_classes()})")
-        # « changed » sans changement de texte (IBus à la sortie du focus) : le verdict reste
-        d.compare_entry.emit("changed")
-        check(d.compare_button.has_css_class("ok" if want else "ko") and d.compare_ok is want,
-              f"verdict gardé après un « changed » sans changement ({d.compare_button.get_css_classes()})")
-    d.compare_entry.set_text("bonjour")
-    check(d.compare_button.has_css_class("suggested-action") and d.compare_result.get_visible() is False,
-          "texte modifié : verdict effacé")
-    d.compare_button.emit("clicked")
-    check(d.compare_button.has_css_class("unknown"), "empreinte non reconnue : bouton orange")
-    d.close()
+    data = open(iso, "rb").read()
+    sha, md5 = hashlib.sha256(data).hexdigest(), hashlib.md5(data).hexdigest()
+    p = win.pane
+    p.open(folder)
+    yield Wait(5, until=lambda: not p.model.loading)
+    p.model.select_names(["zorin.iso"])
+    yield pump(0.2)
+    m = menus.context_menu(win, p, True)
+    actions = [m.get_item_link(i, "section").get_item_attribute_value(j, "action").unpack()
+               for i in range(m.get_n_items())
+               for j in range(m.get_item_link(i, "section").get_n_items())
+               if m.get_item_link(i, "section").get_item_attribute_value(j, "action") is not None]
+    check("win.checksums" in actions, "menu : « Empreintes et comparaison… » sur un fichier")
+    before = list(Gtk.Window.list_toplevels())
+    win.activate_action("win.checksums", None)
+    yield pump(0.2)
+    cw = [w for w in Gtk.Window.list_toplevels() if w not in before and type(w).__name__ == "ChecksumWindow"]
+    check(len(cw) == 1 and not cw[0].get_modal(), "fenêtre « Empreintes » à part, non modale")
+    w = cw[0]
+    # collée avant la fin du calcul : pastille grise, puis verdict quand les empreintes arrivent
+    w.entry.set_text(f"SHA256 (zorin.iso) = {sha}")
+    yield Wait(10, until=lambda: w.verdict is True)
+    check(w.verdict is True and w.badge.has_css_class("ok") and w.rows["SHA-256"].has_css_class("success"),
+          f"empreinte publiée collée : verdict vert sans clic ({w.result.get_title()}, {w.badge.get_css_classes()})")
+    check(w.digests.get("MD5") == md5 and w.rows["MD5"].get_subtitle() == md5,
+          "empreintes MD5 / SHA-1 / SHA-256 / SHA-512 affichées")
+    w.entry.emit("changed")
+    yield pump(0.4)
+    check(w.verdict is True and w.badge.has_css_class("ok"), "verdict gardé après un « changed » sans changement")
+    w.entry.set_text(md5.upper())
+    yield Wait(2, until=lambda: w.verdict is True and w.rows["MD5"].has_css_class("success"))
+    check(w.rows["MD5"].has_css_class("success") and not w.rows["SHA-256"].has_css_class("success"),
+          "MD5 en majuscules reconnu, ligne MD5 mise en avant")
+    # 64 caractères faux : SHA3-256 et BLAKE2s sont calculés en plus avant de conclure
+    w.entry.set_text("0" * 64)
+    yield Wait(10, until=lambda: w.verdict is False)
+    check(w.verdict is False and w.badge.has_css_class("ko") and "SHA3-256" in w.digests,
+          f"empreinte fausse : verdict rouge ({w.result.get_title()})")
+    w.entry.set_text("bonjour")
+    yield pump(0.4)
+    check(w.verdict == "unknown" and w.badge.has_css_class("unknown"), "empreinte non reconnue : pastille orange")
+    w.entry.set_text("")
+    yield pump(0.4)
+    check(w.verdict is None and not w.result.get_visible(), "champ vidé : verdict effacé")
+    w.close()
     yield pump(0.3)
     with open(os.path.join(folder, "SHA256SUMS"), "w") as f:
         f.write(f"{sha}  zorin.iso\n{'0' * 64}  absent.iso\n")
-    p = win.pane
     p.open(folder)
     yield Wait(5, until=lambda: not p.model.loading)
     p.model.select_names(["SHA256SUMS"])
@@ -625,7 +644,7 @@ def sommes_de_controle(win):
                for i in range(m.get_n_items())
                for j in range(m.get_item_link(i, "section").get_n_items())
                if m.get_item_link(i, "section").get_item_attribute_value(j, "action") is not None]
-    check("win.verify-checksums" not in actions, "sommes de contrôle désactivables")
+    check("win.verify-checksums" not in actions and "win.checksums" not in actions, "sommes de contrôle désactivables")
     features.set_enabled("checksums", True)
     yield pump(0.2)
 

@@ -88,8 +88,8 @@ FEATURES = [
             tr("Envoyer des fichiers vers un appareil connecté avec GSConnect, comme dans Nautilus"),
             "phone-symbolic", "files"),
     Feature("checksums", tr("Sommes de contrôle"),
-            tr("Calculer l'empreinte d'un fichier, la comparer à celle publiée (Propriétés), vérifier "
-               "les fichiers .sha256 / .md5 / .sfv"),
+            tr("Calculer l'empreinte d'un fichier et la comparer à celle publiée, vérifier les "
+               "fichiers .sha256 / .md5 / .sfv (menu du clic droit)"),
             "security-high-symbolic", "files"),
     Feature("progress_window", tr("Fenêtre de progression"),
             tr("Une fenêtre suit les copies et déplacements longs ; les opérations courtes restent discrètes"),

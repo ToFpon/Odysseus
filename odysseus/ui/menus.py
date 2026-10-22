@@ -217,6 +217,7 @@ def context_menu(win, pane, on_item: bool) -> Gio.Menu:
         from ..backend.tools import is_checksum_file
         if is_checksum_file(one.name):
             t.append(tr("Vérifier les sommes de contrôle…"), "win.verify-checksums")
+        t.append(tr("Empreintes et comparaison…"), "win.checksums")
     if one is not None and one.name.lower().endswith(".deb") and features.available("deb_installer"):
         t.append(tr("Installer le paquet…"), "win.deb-install")
     if files and len(files) == len(sel) and all(_is_text(r) for r in files) and features.enabled("text_editor"):

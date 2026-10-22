@@ -175,7 +175,7 @@ Les très gros dossiers s'ouvrent quasi instantanément : un dossier de **100 00
 - Ouvrir avec l'éditeur de texte, terminal ici (Ctrl+Alt+T), **exécuter les scripts exécutables** dans un terminal qui reste ouvert, comme dans Nautilus.
 - **Envoyer par courriel** (logiciel de courriel par défaut, fichiers joints) et **envoyer vers ton téléphone** avec GSConnect : les appareils connectés apparaissent en direct dans le menu contextuel.
 - Plusieurs archives extraites d'un coup : une seule notification à la fin, pas une par archive.
-- **Sommes de contrôle** : dans Propriétés, colle l'empreinte publiée sur la page de téléchargement (MD5, SHA-1, SHA-256, SHA-512…, seule ou avec le nom du fichier) pour contrôler le fichier ; clic droit sur un fichier `.sha256` / `.md5` / `.sfv` / `SHA256SUMS` pour vérifier tous les fichiers qu'il liste.
+- **Sommes de contrôle** : clic droit sur un fichier → « Empreintes et comparaison… » ouvre une fenêtre à part qui calcule MD5, SHA-1, SHA-256 et SHA-512 en une seule lecture (chacune copiable) ; colle l'empreinte publiée sur la page de téléchargement (seule ou avec le nom du fichier) et le verdict s'affiche aussitôt : pastille verte, rouge, ou grise pendant le calcul. Clic droit sur un fichier `.sha256` / `.md5` / `.sfv` / `SHA256SUMS` pour vérifier tous les fichiers qu'il liste.
 
 #### Intégration au bureau
 - Odysseus se lance par D-Bus, comme Nautilus : le dock, `gio open` ou un script lancé hors de la session (règle udev, notification USB…) l'ouvrent avec l'environnement de la session, même quand il est fermé.
