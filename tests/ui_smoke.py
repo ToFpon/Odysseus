@@ -577,10 +577,19 @@ def sommes_de_controle(win):
     for text, want in ((f"SHA256 (zorin.iso) = {sha}", True), ("0" * 64, False)):
         d.compare_ok = None
         d.compare_entry.set_text(text)
-        d.compare_entry.emit("apply")
+        check(d.compare_button.get_sensitive(), "bouton de comparaison actif dès qu'une empreinte est saisie")
+        d.compare_button.emit("clicked")
+        busy = d.compare_button.has_css_class("busy")
         yield Wait(10, until=lambda: d.compare_ok is not None)
         check(d.compare_ok is want, f"Propriétés : comparaison {'correcte' if want else 'refusée'} "
                                     f"({d.compare_result.get_title()})")
+        check(busy and d.compare_button.has_css_class("ok" if want else "ko"),
+              f"bouton : gris pendant le calcul, puis {'vert' if want else 'rouge'} ({d.compare_button.get_css_classes()})")
+    d.compare_entry.set_text("bonjour")
+    check(d.compare_button.has_css_class("suggested-action") and d.compare_result.get_visible() is False,
+          "texte modifié : verdict effacé")
+    d.compare_button.emit("clicked")
+    check(d.compare_button.has_css_class("unknown"), "empreinte non reconnue : bouton orange")
     d.close()
     yield pump(0.3)
     with open(os.path.join(folder, "SHA256SUMS"), "w") as f:

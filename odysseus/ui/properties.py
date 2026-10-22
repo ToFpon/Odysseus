@@ -265,7 +265,14 @@ class PropertiesDialog(DialogWindow):
     def _compare_row(self, group, rec):
         """Comparer à l'empreinte publiée (site de téléchargement…) : l'algorithme se déduit de la
         longueur, le fichier n'est lu qu'une fois même si plusieurs algorithmes sont possibles."""
-        entry = Adw.EntryRow(title=tr("Comparer avec l'empreinte publiée"), show_apply_button=True)
+        entry = Adw.EntryRow(title=tr("Comparer avec l'empreinte publiée"))
+        # notre propre bouton (celui d'Adw.EntryRow ne se colore pas) : le verdict se lit dessus,
+        # sans faire défiler jusqu'au détail — gris pendant le calcul, vert / rouge / orange ensuite
+        button = Gtk.Button(icon_name="object-select-symbolic", valign=Gtk.Align.CENTER, sensitive=False,
+                            css_classes=["circular", "suggested-action", "compare-button"],
+                            tooltip_text=tr("Comparer"))
+        entry.add_suffix(button)
+        self.compare_button = button
         result = Adw.ActionRow(visible=False, subtitle_selectable=True)
         icon = Gtk.Image()
         result.add_prefix(icon)
@@ -273,6 +280,18 @@ class PropertiesDialog(DialogWindow):
         result.add_suffix(bar)
         self.compare_entry, self.compare_result = entry, result
         state = {"job": None}
+
+        verdicts = {None: ("object-select-symbolic", "suggested-action"), "busy": ("content-loading-symbolic", "busy"),
+                    True: ("object-select-symbolic", "ok"), False: ("window-close-symbolic", "ko"),
+                    "unknown": ("dialog-question-symbolic", "unknown")}
+
+        def paint(verdict):
+            icon_name, cls = verdicts[verdict]
+            for c in ("suggested-action", "busy", "ok", "ko", "unknown"):
+                button.remove_css_class(c)
+            button.add_css_class(cls)
+            button.set_icon_name(icon_name)
+            button.set_sensitive(verdict != "busy" and bool(entry.get_text().strip()))
 
         def show(title, subtitle="", ok=None):
             result.set_visible(True)
@@ -285,16 +304,20 @@ class PropertiesDialog(DialogWindow):
                 icon.set_from_icon_name("emblem-ok-symbolic" if ok else "dialog-error-symbolic")
                 result.add_css_class("success" if ok else "error")
             self.compare_ok = ok
+            if ok is not None:
+                paint(ok)
 
         def apply(*_):
             expected = tools.expected_digest(entry.get_text())
             if expected is None:
                 show(tr("Empreinte non reconnue"),
                      tr("Collez l'empreinte publiée (MD5, SHA-1, SHA-256, SHA-512…), seule ou avec le nom du fichier"))
+                paint("unknown")
                 return
             if state["job"] is not None:
                 state["job"].cancel()
             show(tr("Calcul…"))
+            paint("busy")
             bar.set_visible(True)
             bar.set_fraction(0)
             job = Job("hash", lambda j: tools.compare_digest(j, rec.path, expected))
@@ -311,6 +334,8 @@ class PropertiesDialog(DialogWindow):
                     if job.state != "done":
                         if job.state != "cancelled":
                             show(tr("Calcul impossible"), job.error or "", False)
+                        else:
+                            paint(None)
                         return False
                     match, res = job.result
                     if match:
@@ -322,8 +347,18 @@ class PropertiesDialog(DialogWindow):
                     return False
                 GLib.idle_add(done)
             threading.Thread(target=work, daemon=True).start()
-        entry.connect("apply", apply)
+        def edited(*_):
+            # texte modifié : le verdict précédent ne vaut plus, un calcul en cours non plus
+            if state["job"] is not None:
+                state["job"].cancel()
+                state["job"] = None
+                bar.set_visible(False)
+            result.set_visible(False)
+            self.compare_ok = None
+            paint(None)
+        button.connect("clicked", apply)
         entry.connect("entry-activated", apply)
+        entry.connect("changed", edited)
         self.connect("closed", lambda *_: state["job"] and state["job"].cancel())
         group.add(entry)
         group.add(result)

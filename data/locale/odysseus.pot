@@ -3655,7 +3655,7 @@ msgstr ""
 msgid "Lecture et écriture"
 msgstr ""
 
-#: odysseus/ui/properties.py:57 odysseus/ui/properties.py:250 odysseus/ui/properties.py:297
+#: odysseus/ui/properties.py:57 odysseus/ui/properties.py:250 odysseus/ui/properties.py:319
 msgid "Calcul…"
 msgstr ""
 
@@ -3707,6 +3707,10 @@ msgstr ""
 msgid "Comparer avec l'empreinte publiée"
 msgstr ""
 
+#: odysseus/ui/properties.py:273
+msgid "Comparer"
+msgstr ""
+
 #: odysseus/ui/properties.py:175
 msgid "Vous n'êtes pas le propriétaire : les droits ne peuvent pas être modifiés."
 msgstr ""
@@ -3719,11 +3723,11 @@ msgstr ""
 msgid "Autoriser l'exécution comme programme"
 msgstr ""
 
-#: odysseus/ui/properties.py:292
+#: odysseus/ui/properties.py:313
 msgid "Empreinte non reconnue"
 msgstr ""
 
-#: odysseus/ui/properties.py:293
+#: odysseus/ui/properties.py:314
 msgid "Collez l'empreinte publiée (MD5, SHA-1, SHA-256, SHA-512…), seule ou avec le nom du fichier"
 msgstr ""
 
@@ -3751,7 +3755,7 @@ msgstr ""
 msgid "Type MIME"
 msgstr ""
 
-#: odysseus/ui/properties.py:320
+#: odysseus/ui/properties.py:345
 msgid "Ne correspond pas : le fichier est différent ou abîmé"
 msgstr ""
 
@@ -3759,15 +3763,15 @@ msgstr ""
 msgid "{0} libres sur {1}"
 msgstr ""
 
-#: odysseus/ui/properties.py:313
+#: odysseus/ui/properties.py:336
 msgid "Calcul impossible"
 msgstr ""
 
-#: odysseus/ui/properties.py:317
+#: odysseus/ui/properties.py:342
 msgid "Correspond ({0})"
 msgstr ""
 
-#: odysseus/ui/properties.py:321
+#: odysseus/ui/properties.py:346
 msgid "{0} calculé : {1}"
 msgstr ""
 

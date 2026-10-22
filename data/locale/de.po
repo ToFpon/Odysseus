@@ -3949,3 +3949,6 @@ msgid "{0} problème sur {1} fichier"
 msgid_plural "{0} problèmes sur {1} fichiers"
 msgstr[0] "{0} Problem bei {1} Datei"
 msgstr[1] "{0} Probleme bei {1} Dateien"
+
+msgid "Comparer"
+msgstr "Vergleichen"
