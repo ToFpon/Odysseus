@@ -160,7 +160,6 @@ class PreferencesDialog(Adw.PreferencesWindow):
         g.add(_switch(tr("Mémoriser les mots de passe pendant la session"), "remember_passwords",
                       tr("Jamais enregistrés sur le disque")))
         page.add(g)
-        page.add(g)
         return page
 
     # ------------------------------------------------------------------

@@ -100,6 +100,25 @@ def wait_jobs(timeout=20):
     return Wait(timeout, until=lambda: not manager.running)
 
 
+# Les « Gtk-CRITICAL » (widget ajouté deux fois…) ne lèvent pas d'exception Python : on relit
+# notre propre sortie d'erreur pour les compter comme des échecs.
+CRITICALS = []
+_err_r, _err_w = os.pipe()
+_err_orig = os.dup(2)
+os.dup2(_err_w, 2)
+
+
+def _tee_stderr():
+    with os.fdopen(_err_r, "rb", 0) as f:
+        for line in iter(f.readline, b""):
+            os.write(_err_orig, line)
+            if b"-CRITICAL **" in line:
+                CRITICALS.append(line.decode("utf-8", "replace").strip())
+
+
+threading.Thread(target=_tee_stderr, daemon=True).start()
+
+
 def check(cond, msg):
     if not cond:
         errors.append("ÉCHEC : " + msg)
@@ -1578,5 +1597,9 @@ app.run([sys.argv[0], D])
 if GVFSD is not None:
     GVFSD.terminate()
 shutil.rmtree(TMP, ignore_errors=True)
+sys.stderr.flush()
+time.sleep(0.2)                 # le fil de relecture finit de lire la sortie d'erreur
+for line in CRITICALS:
+    errors.append("ÉCHEC : avertissement critique de GTK / GLib : " + line)
 print("\n".join(errors) if errors else "\nAucune erreur.")
 sys.exit(1 if errors else 0)
