@@ -585,6 +585,10 @@ def sommes_de_controle(win):
                                     f"({d.compare_result.get_title()})")
         check(busy and d.compare_button.has_css_class("ok" if want else "ko"),
               f"bouton : gris pendant le calcul, puis {'vert' if want else 'rouge'} ({d.compare_button.get_css_classes()})")
+        # « changed » sans changement de texte (IBus à la sortie du focus) : le verdict reste
+        d.compare_entry.emit("changed")
+        check(d.compare_button.has_css_class("ok" if want else "ko") and d.compare_ok is want,
+              f"verdict gardé après un « changed » sans changement ({d.compare_button.get_css_classes()})")
     d.compare_entry.set_text("bonjour")
     check(d.compare_button.has_css_class("suggested-action") and d.compare_result.get_visible() is False,
           "texte modifié : verdict effacé")

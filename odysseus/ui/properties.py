@@ -268,9 +268,11 @@ class PropertiesDialog(DialogWindow):
         entry = Adw.EntryRow(title=tr("Comparer avec l'empreinte publiée"))
         # notre propre bouton (celui d'Adw.EntryRow ne se colore pas) : le verdict se lit dessus,
         # sans faire défiler jusqu'au détail — gris pendant le calcul, vert / rouge / orange ensuite
+        # focus_on_click=False : le champ garde le focus (sa sortie de focus réveille la méthode de
+        # saisie — IBus sous Zorin —, qui pouvait émettre « changed » et effacer le verdict)
         button = Gtk.Button(icon_name="object-select-symbolic", valign=Gtk.Align.CENTER, sensitive=False,
                             css_classes=["circular", "suggested-action", "compare-button"],
-                            tooltip_text=tr("Comparer"))
+                            tooltip_text=tr("Comparer"), focus_on_click=False)
         entry.add_suffix(button)
         self.compare_button = button
         result = Adw.ActionRow(visible=False, subtitle_selectable=True)
@@ -279,7 +281,7 @@ class PropertiesDialog(DialogWindow):
         bar = Gtk.ProgressBar(valign=Gtk.Align.CENTER, hexpand=True, visible=False)
         result.add_suffix(bar)
         self.compare_entry, self.compare_result = entry, result
-        state = {"job": None}
+        state = {"job": None, "text": None}
 
         verdicts = {None: ("object-select-symbolic", "suggested-action"), "busy": ("content-loading-symbolic", "busy"),
                     True: ("object-select-symbolic", "ok"), False: ("window-close-symbolic", "ko"),
@@ -316,6 +318,7 @@ class PropertiesDialog(DialogWindow):
                 return
             if state["job"] is not None:
                 state["job"].cancel()
+            state["text"] = entry.get_text()
             show(tr("Calcul…"))
             paint("busy")
             bar.set_visible(True)
@@ -348,7 +351,11 @@ class PropertiesDialog(DialogWindow):
                 GLib.idle_add(done)
             threading.Thread(target=work, daemon=True).start()
         def edited(*_):
-            # texte modifié : le verdict précédent ne vaut plus, un calcul en cours non plus
+            # texte modifié : le verdict précédent ne vaut plus, un calcul en cours non plus. Un
+            # « changed » sans vrai changement (méthode de saisie, focus) ne touche à rien.
+            if entry.get_text() == state["text"]:
+                return
+            state["text"] = None
             if state["job"] is not None:
                 state["job"].cancel()
                 state["job"] = None
