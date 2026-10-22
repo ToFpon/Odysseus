@@ -53,7 +53,11 @@ class ChecksumWindow(Adw.Window):
         head.add(info)
         page.add(head)
 
-        cmp = Adw.PreferencesGroup(title=tr("Comparer avec l'empreinte publiée"))
+        # textes d'aide : à l'ouverture, un novice ne sait pas ce que la fenêtre calcule déjà
+        cmp = Adw.PreferencesGroup(
+            title=tr("Comparer avec l'empreinte publiée"),
+            description=tr("Copiez l'empreinte indiquée sur le site où vous avez téléchargé ce fichier, "
+                           "puis collez-la ci-dessous : le verdict s'affiche tout seul."))
         self.entry = Adw.EntryRow(title=tr("Collez ici l'empreinte du site de téléchargement"))
         self.entry.connect("changed", self._on_changed)
         self.entry.connect("entry-activated", lambda *_: self._compare())
@@ -66,7 +70,9 @@ class ChecksumWindow(Adw.Window):
         cmp.add(self.result)
         page.add(cmp)
 
-        sums = Adw.PreferencesGroup(title=tr("Empreintes du fichier"))
+        sums = Adw.PreferencesGroup(title=tr("Empreintes du fichier"),
+                                    description=tr("Lecture du fichier pour calculer ses empreintes…"))
+        self.sums = sums
         self.bar = Gtk.ProgressBar(valign=Gtk.Align.CENTER, width_request=140)
         sums.set_header_suffix(self.bar)
         self.rows: dict[str, Adw.ActionRow] = {}
@@ -124,6 +130,8 @@ class ChecksumWindow(Adw.Window):
             return
         self._job = None
         self.bar.set_visible(False)
+        self.sums.set_description(tr("Calculées à partir du fichier sur ce disque. Celle qui correspond "
+                                     "à l'empreinte collée passe en vert.") if job.state == "done" else "")
         if job.state != "done":
             for row in self.rows.values():
                 row.set_subtitle(job.error or tr("Annulé"))

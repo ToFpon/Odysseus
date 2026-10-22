@@ -179,7 +179,7 @@ msgstr "Done"
 msgid "Mot de passe manquant ou incorrect"
 msgstr "Missing or wrong password"
 
-#: odysseus/backend/engine.py:182 odysseus/ui/checksum_window.py:128
+#: odysseus/backend/engine.py:182 odysseus/ui/checksum_window.py:137
 msgid "Annulé"
 msgstr "Cancelled"
 
@@ -851,7 +851,9 @@ msgstr "Checksums"
 msgid ""
 "Calculer l'empreinte d'un fichier et la comparer à celle publiée, vérifier "
 "les fichiers .sha256 / .md5 / .sfv (menu du clic droit)"
-msgstr "Compute a file's checksum and compare it with the published one, verify .sha256 / .md5 / .sfv files (right-click menu)"
+msgstr ""
+"Compute a file's checksum and compare it with the published one, verify ."
+"sha256 / .md5 / .sfv files (right-click menu)"
 
 #: odysseus/features.py:94
 msgid "Fenêtre de progression"
@@ -2165,12 +2167,12 @@ msgstr ""
 "Expected: {0}\n"
 "Computed: {1}"
 
-#: odysseus/ui/checksum_window.py:201 odysseus/ui/checksum_window.py:194
-#: odysseus/ui/checksum_window.py:73 odysseus/ui/properties.py:56
+#: odysseus/ui/checksum_window.py:210 odysseus/ui/checksum_window.py:203
+#: odysseus/ui/checksum_window.py:80 odysseus/ui/properties.py:56
 msgid "Calcul…"
 msgstr "Computing…"
 
-#: odysseus/ui/checksum_window.py:221
+#: odysseus/ui/checksum_window.py:230
 msgid "Ne correspond pas : le fichier est différent ou abîmé"
 msgstr "Does not match: the file is different or damaged"
 
@@ -2178,23 +2180,39 @@ msgstr "Does not match: the file is different or damaged"
 msgid "Empreintes"
 msgstr "Checksums"
 
-#: odysseus/ui/checksum_window.py:55
+#: odysseus/ui/checksum_window.py:58
 msgid "Comparer avec l'empreinte publiée"
 msgstr "Compare with the published checksum"
 
-#: odysseus/ui/checksum_window.py:56
+#: odysseus/ui/checksum_window.py:59
+msgid ""
+"Copiez l'empreinte indiquée sur le site où vous avez téléchargé ce fichier, "
+"puis collez-la ci-dessous : le verdict s'affiche tout seul."
+msgstr "Copy the checksum shown on the site you downloaded this file from, then paste it below: the verdict appears on its own."
+
+#: odysseus/ui/checksum_window.py:61
 msgid "Collez ici l'empreinte du site de téléchargement"
 msgstr "Paste the checksum from the download site here"
 
-#: odysseus/ui/checksum_window.py:68
+#: odysseus/ui/checksum_window.py:73
 msgid "Empreintes du fichier"
 msgstr "File Checksums"
 
-#: odysseus/ui/checksum_window.py:184
+#: odysseus/ui/checksum_window.py:74
+msgid "Lecture du fichier pour calculer ses empreintes…"
+msgstr "Reading the file to compute its checksums…"
+
+#: odysseus/ui/checksum_window.py:133
+msgid ""
+"Calculées à partir du fichier sur ce disque. Celle qui correspond à "
+"l'empreinte collée passe en vert."
+msgstr "Computed from the file on this disk. The one matching the pasted checksum turns green."
+
+#: odysseus/ui/checksum_window.py:193
 msgid "Empreinte non reconnue"
 msgstr "Checksum not recognised"
 
-#: odysseus/ui/checksum_window.py:185
+#: odysseus/ui/checksum_window.py:194
 msgid ""
 "Collez l'empreinte publiée (MD5, SHA-1, SHA-256, SHA-512…), seule ou avec le "
 "nom du fichier"
@@ -2202,28 +2220,28 @@ msgstr ""
 "Paste the published checksum (MD5, SHA-1, SHA-256, SHA-512…), alone or with "
 "the file name"
 
-#: odysseus/ui/checksum_window.py:191
+#: odysseus/ui/checksum_window.py:200
 msgid "Le fichier est intact"
 msgstr "The file is intact"
 
-#: odysseus/ui/checksum_window.py:76 odysseus/ui/common.py:354
+#: odysseus/ui/checksum_window.py:83 odysseus/ui/common.py:354
 #: odysseus/ui/jobs.py:145 odysseus/ui/menus.py:169
 msgid "Copier"
 msgstr "Copy"
 
-#: odysseus/ui/checksum_window.py:130 odysseus/ui/checksum_window.py:211
+#: odysseus/ui/checksum_window.py:139 odysseus/ui/checksum_window.py:220
 msgid "Calcul impossible"
 msgstr "Could not compute"
 
-#: odysseus/ui/checksum_window.py:141
+#: odysseus/ui/checksum_window.py:150
 msgid "{0} copié"
 msgstr "{0} copied"
 
-#: odysseus/ui/checksum_window.py:222
+#: odysseus/ui/checksum_window.py:231
 msgid "{0} calculé : {1}"
 msgstr "{0} computed: {1}"
 
-#: odysseus/ui/checksum_window.py:191
+#: odysseus/ui/checksum_window.py:200
 msgid "Correspond ({0})"
 msgstr "Matches ({0})"
 

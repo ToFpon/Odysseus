@@ -596,6 +596,8 @@ def sommes_de_controle(win):
           f"empreinte publiée collée : verdict vert sans clic ({w.result.get_title()}, {w.badge.get_css_classes()})")
     check(w.digests.get("MD5") == md5 and w.rows["MD5"].get_subtitle() == md5,
           "empreintes MD5 / SHA-1 / SHA-256 / SHA-512 affichées")
+    check(bool(w.sums.get_description()) and "…" not in w.sums.get_description(),
+          f"texte d'aide mis à jour après le calcul ({w.sums.get_description()})")
     w.entry.emit("changed")
     yield pump(0.4)
     check(w.verdict is True and w.badge.has_css_class("ok"), "verdict gardé après un « changed » sans changement")

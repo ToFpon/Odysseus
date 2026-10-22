@@ -159,7 +159,7 @@ msgstr ""
 msgid "Mot de passe manquant ou incorrect"
 msgstr ""
 
-#: odysseus/backend/engine.py:182 odysseus/ui/checksum_window.py:128
+#: odysseus/backend/engine.py:182 odysseus/ui/checksum_window.py:137
 msgid "Annulé"
 msgstr ""
 
@@ -2055,11 +2055,11 @@ msgstr[1] ""
 msgid "Attendu : {0}\nCalculé : {1}"
 msgstr ""
 
-#: odysseus/ui/checksum_window.py:201 odysseus/ui/checksum_window.py:194 odysseus/ui/checksum_window.py:73 odysseus/ui/properties.py:56
+#: odysseus/ui/checksum_window.py:210 odysseus/ui/checksum_window.py:203 odysseus/ui/checksum_window.py:80 odysseus/ui/properties.py:56
 msgid "Calcul…"
 msgstr ""
 
-#: odysseus/ui/checksum_window.py:221
+#: odysseus/ui/checksum_window.py:230
 msgid "Ne correspond pas : le fichier est différent ou abîmé"
 msgstr ""
 
@@ -2067,47 +2067,59 @@ msgstr ""
 msgid "Empreintes"
 msgstr ""
 
-#: odysseus/ui/checksum_window.py:55
+#: odysseus/ui/checksum_window.py:58
 msgid "Comparer avec l'empreinte publiée"
 msgstr ""
 
-#: odysseus/ui/checksum_window.py:56
+#: odysseus/ui/checksum_window.py:59
+msgid "Copiez l'empreinte indiquée sur le site où vous avez téléchargé ce fichier, puis collez-la ci-dessous : le verdict s'affiche tout seul."
+msgstr ""
+
+#: odysseus/ui/checksum_window.py:61
 msgid "Collez ici l'empreinte du site de téléchargement"
 msgstr ""
 
-#: odysseus/ui/checksum_window.py:68
+#: odysseus/ui/checksum_window.py:73
 msgid "Empreintes du fichier"
 msgstr ""
 
-#: odysseus/ui/checksum_window.py:184
+#: odysseus/ui/checksum_window.py:74
+msgid "Lecture du fichier pour calculer ses empreintes…"
+msgstr ""
+
+#: odysseus/ui/checksum_window.py:133
+msgid "Calculées à partir du fichier sur ce disque. Celle qui correspond à l'empreinte collée passe en vert."
+msgstr ""
+
+#: odysseus/ui/checksum_window.py:193
 msgid "Empreinte non reconnue"
 msgstr ""
 
-#: odysseus/ui/checksum_window.py:185
+#: odysseus/ui/checksum_window.py:194
 msgid "Collez l'empreinte publiée (MD5, SHA-1, SHA-256, SHA-512…), seule ou avec le nom du fichier"
 msgstr ""
 
-#: odysseus/ui/checksum_window.py:191
+#: odysseus/ui/checksum_window.py:200
 msgid "Le fichier est intact"
 msgstr ""
 
-#: odysseus/ui/checksum_window.py:76 odysseus/ui/common.py:354 odysseus/ui/jobs.py:145 odysseus/ui/menus.py:169
+#: odysseus/ui/checksum_window.py:83 odysseus/ui/common.py:354 odysseus/ui/jobs.py:145 odysseus/ui/menus.py:169
 msgid "Copier"
 msgstr ""
 
-#: odysseus/ui/checksum_window.py:130 odysseus/ui/checksum_window.py:211
+#: odysseus/ui/checksum_window.py:139 odysseus/ui/checksum_window.py:220
 msgid "Calcul impossible"
 msgstr ""
 
-#: odysseus/ui/checksum_window.py:141
+#: odysseus/ui/checksum_window.py:150
 msgid "{0} copié"
 msgstr ""
 
-#: odysseus/ui/checksum_window.py:222
+#: odysseus/ui/checksum_window.py:231
 msgid "{0} calculé : {1}"
 msgstr ""
 
-#: odysseus/ui/checksum_window.py:191
+#: odysseus/ui/checksum_window.py:200
 msgid "Correspond ({0})"
 msgstr ""
 

@@ -184,7 +184,7 @@ msgstr "Fertig"
 msgid "Mot de passe manquant ou incorrect"
 msgstr "Passwort fehlt oder ist falsch"
 
-#: odysseus/backend/engine.py:182 odysseus/ui/checksum_window.py:128
+#: odysseus/backend/engine.py:182 odysseus/ui/checksum_window.py:137
 msgid "Annulé"
 msgstr "Abgebrochen"
 
@@ -869,7 +869,9 @@ msgstr "Prüfsummen"
 msgid ""
 "Calculer l'empreinte d'un fichier et la comparer à celle publiée, vérifier "
 "les fichiers .sha256 / .md5 / .sfv (menu du clic droit)"
-msgstr "Prüfsumme einer Datei berechnen und mit der veröffentlichten vergleichen, .sha256-/.md5-/.sfv-Dateien prüfen (Kontextmenü)"
+msgstr ""
+"Prüfsumme einer Datei berechnen und mit der veröffentlichten vergleichen, ."
+"sha256-/.md5-/.sfv-Dateien prüfen (Kontextmenü)"
 
 #: odysseus/features.py:94
 msgid "Fenêtre de progression"
@@ -2192,12 +2194,12 @@ msgstr ""
 "Erwartet: {0}\n"
 "Berechnet: {1}"
 
-#: odysseus/ui/checksum_window.py:201 odysseus/ui/checksum_window.py:194
-#: odysseus/ui/checksum_window.py:73 odysseus/ui/properties.py:56
+#: odysseus/ui/checksum_window.py:210 odysseus/ui/checksum_window.py:203
+#: odysseus/ui/checksum_window.py:80 odysseus/ui/properties.py:56
 msgid "Calcul…"
 msgstr "Wird berechnet …"
 
-#: odysseus/ui/checksum_window.py:221
+#: odysseus/ui/checksum_window.py:230
 msgid "Ne correspond pas : le fichier est différent ou abîmé"
 msgstr "Stimmt nicht überein: Die Datei ist anders oder beschädigt"
 
@@ -2205,23 +2207,39 @@ msgstr "Stimmt nicht überein: Die Datei ist anders oder beschädigt"
 msgid "Empreintes"
 msgstr "Prüfsummen"
 
-#: odysseus/ui/checksum_window.py:55
+#: odysseus/ui/checksum_window.py:58
 msgid "Comparer avec l'empreinte publiée"
 msgstr "Mit veröffentlichter Prüfsumme vergleichen"
 
-#: odysseus/ui/checksum_window.py:56
+#: odysseus/ui/checksum_window.py:59
+msgid ""
+"Copiez l'empreinte indiquée sur le site où vous avez téléchargé ce fichier, "
+"puis collez-la ci-dessous : le verdict s'affiche tout seul."
+msgstr "Kopieren Sie die Prüfsumme von der Seite, auf der Sie diese Datei heruntergeladen haben, und fügen Sie sie unten ein: Das Ergebnis erscheint von selbst."
+
+#: odysseus/ui/checksum_window.py:61
 msgid "Collez ici l'empreinte du site de téléchargement"
 msgstr "Prüfsumme von der Download-Seite hier einfügen"
 
-#: odysseus/ui/checksum_window.py:68
+#: odysseus/ui/checksum_window.py:73
 msgid "Empreintes du fichier"
 msgstr "Prüfsummen der Datei"
 
-#: odysseus/ui/checksum_window.py:184
+#: odysseus/ui/checksum_window.py:74
+msgid "Lecture du fichier pour calculer ses empreintes…"
+msgstr "Datei wird gelesen, um ihre Prüfsummen zu berechnen …"
+
+#: odysseus/ui/checksum_window.py:133
+msgid ""
+"Calculées à partir du fichier sur ce disque. Celle qui correspond à "
+"l'empreinte collée passe en vert."
+msgstr "Aus der Datei auf diesem Datenträger berechnet. Die zur eingefügten Prüfsumme passende wird grün."
+
+#: odysseus/ui/checksum_window.py:193
 msgid "Empreinte non reconnue"
 msgstr "Prüfsumme nicht erkannt"
 
-#: odysseus/ui/checksum_window.py:185
+#: odysseus/ui/checksum_window.py:194
 msgid ""
 "Collez l'empreinte publiée (MD5, SHA-1, SHA-256, SHA-512…), seule ou avec le "
 "nom du fichier"
@@ -2229,28 +2247,28 @@ msgstr ""
 "Veröffentlichte Prüfsumme einfügen (MD5, SHA-1, SHA-256, SHA-512 …), allein "
 "oder mit dem Dateinamen"
 
-#: odysseus/ui/checksum_window.py:191
+#: odysseus/ui/checksum_window.py:200
 msgid "Le fichier est intact"
 msgstr "Die Datei ist unversehrt"
 
-#: odysseus/ui/checksum_window.py:76 odysseus/ui/common.py:354
+#: odysseus/ui/checksum_window.py:83 odysseus/ui/common.py:354
 #: odysseus/ui/jobs.py:145 odysseus/ui/menus.py:169
 msgid "Copier"
 msgstr "Kopieren"
 
-#: odysseus/ui/checksum_window.py:130 odysseus/ui/checksum_window.py:211
+#: odysseus/ui/checksum_window.py:139 odysseus/ui/checksum_window.py:220
 msgid "Calcul impossible"
 msgstr "Berechnung nicht möglich"
 
-#: odysseus/ui/checksum_window.py:141
+#: odysseus/ui/checksum_window.py:150
 msgid "{0} copié"
 msgstr "{0} kopiert"
 
-#: odysseus/ui/checksum_window.py:222
+#: odysseus/ui/checksum_window.py:231
 msgid "{0} calculé : {1}"
 msgstr "{0} berechnet: {1}"
 
-#: odysseus/ui/checksum_window.py:191
+#: odysseus/ui/checksum_window.py:200
 msgid "Correspond ({0})"
 msgstr "Stimmt überein ({0})"
 
