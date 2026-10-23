@@ -252,10 +252,19 @@ class MainWindow(FileActions, ArchiveActions, ToolActions, Adw.ApplicationWindow
             GLib.idle_add(ws.active.focus_view)
         return ws
 
+    def _on_pane_activated(self, pane, rec):
+        """Double-clic (ou Entrée) sur un fichier qui fait partie d'une sélection de plusieurs
+        fichiers : comme Nautilus, toute la sélection s'ouvre (un seul lecteur pour 6 vidéos)."""
+        files = [r for r in pane.selected_recs() if not r.is_dir]
+        if pane is self.pane and len(files) > 1 and any(r.name == rec.name for r in files):
+            self.open_selected()
+        else:
+            self._on_activated(pane, rec)
+
     def connect_pane(self, pane: Pane, ws: Workspace):
         pane.connect("location-changed", lambda p: self._on_location(p))
         pane.connect("selection-changed", lambda p: self._on_selection(p))
-        pane.connect("activated", self._on_activated)
+        pane.connect("activated", self._on_pane_activated)
         pane.connect("context-menu", self._on_context_menu)
         pane.connect("open-in-tab", lambda p, rec: self.new_tab(rec.path or rec.uri, select=False))
         pane.connect("files-dropped", self._on_pane_drop)

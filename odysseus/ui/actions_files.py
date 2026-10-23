@@ -18,7 +18,7 @@ from ..i18n import ntr, tr
 from ..settings import settings
 from . import clipboard
 from .common import (AlertDialog, alert, choose_folder, copy_to_clipboard, describe_paths, full_date,
-                     launch_default, open_with_default, shown, toast)
+                     launch_default, launch_defaults, name_order, open_with_default, shown, toast)
 from .jobs import ProgressWindow, finished_toast, manager
 
 TERMINALS = ["x-terminal-emulator", "gnome-terminal", "kgx", "ptyxis", "tilix", "terminator", "konsole",
@@ -184,9 +184,32 @@ class FileActions:
             return
         for r in dirs:
             self.new_tab(r.path or r.uri, select=False)
+        files = []
         for r in sel:
-            if not r.is_dir:
+            if r.is_dir:
+                continue
+            if p.mode in ("archive", "trash") or (r.path and features.enabled("archives")
+                                                  and formats.looks_like_archive(r.name)):
                 self._on_activated(p, r)
+            else:
+                files.append(r)
+        self._open_files(files)
+
+    def _open_files(self, recs: list, activate: bool = True):
+        """Plusieurs fichiers : un seul lancement par application par défaut, dans l'ordre des noms
+        (6 vidéos → une seule fenêtre de VLC, les 6 dans sa liste de lecture, (1) à (6)).
+        activate=False (« Ouvrir avec <application> ») : toujours l'application, même pour une
+        archive qu'Odysseus ouvrirait lui-même."""
+        if len(recs) == 1 and activate:
+            self._on_activated(self.pane, recs[0])
+            return
+        gfiles = [Gio.File.new_for_path(r.path) if r.path else Gio.File.new_for_uri(r.get("target_uri") or r.uri)
+                  for r in recs if r.path or r.uri]
+        for f in launch_defaults(self, gfiles):
+            if f.get_path():
+                open_with_default(self, f.get_path())
+            else:
+                self._open_uri(f.get_uri())
 
     def _on_activated(self, pane, rec):
         if pane.mode == "archive":
@@ -207,13 +230,11 @@ class FileActions:
 
     def open_default(self):
         p = self.pane
-        for r in self._sel():
-            if p.mode == "archive":
+        if p.mode == "archive":
+            for r in self._sel():
                 self.preview_archive_item(p, r, external=True)
-            elif r.path:
-                open_with_default(self, r.path)
-            elif r.uri:
-                self._open_uri(r.get("target_uri") or r.uri)
+            return
+        self._open_files([r for r in self._sel() if r.path or r.uri], activate=False)
 
     def _open_uri(self, uri: str):
         f = Gio.File.new_for_uri(uri)
@@ -222,13 +243,13 @@ class FileActions:
 
     def open_with_app(self, app_id: str):
         app = Gio.DesktopAppInfo.new(app_id) if app_id else None
-        files = self._sel_gfiles()
+        files = name_order(self._sel_gfiles())
         if app is not None and files:
             self._launch_app(app, files)
 
     def open_with_dialog(self):
         sel = [r for r in self._sel() if not r.is_dir]
-        files = self._sel_gfiles()
+        files = name_order(self._sel_gfiles())
         if not files:
             return
         from .dialogs import AppChooser

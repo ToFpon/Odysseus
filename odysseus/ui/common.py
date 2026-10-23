@@ -262,25 +262,62 @@ def choose_save(parent: Gtk.Widget, title: str, initial_path: str, callback: Cal
     dlg.save(parent.get_root(), None, done)
 
 
-def launch_default(parent: Optional[Gtk.Widget], f: Gio.File) -> bool:
-    """Ouvre f avec l'application par défaut de son type, directement, comme Nautilus.
-    (Gtk.FileLauncher passe par le portail, qui affiche « Ouvrir avec… » sous GNOME même quand une
-    application par défaut existe.) False s'il n'y a pas d'application par défaut."""
+def _default_app(f: Gio.File) -> Optional[Gio.AppInfo]:
     try:
         info = f.query_info("standard::content-type,standard::fast-content-type",
                             Gio.FileQueryInfoFlags.NONE, None)
         ctype = info.get_content_type() or info.get_attribute_string("standard::fast-content-type")
-        app = Gio.AppInfo.get_default_for_type(ctype, not f.is_native()) if ctype else None
+        return Gio.AppInfo.get_default_for_type(ctype, not f.is_native()) if ctype else None
     except GLib.Error:
-        app = None
+        return None
+
+
+def _launch_context(parent: Optional[Gtk.Widget]):
+    win = parent.get_root() if parent else None
+    return win.get_display().get_app_launch_context() if win is not None else None
+
+
+def launch_default(parent: Optional[Gtk.Widget], f: Gio.File) -> bool:
+    """Ouvre f avec l'application par défaut de son type, directement, comme Nautilus.
+    (Gtk.FileLauncher passe par le portail, qui affiche « Ouvrir avec… » sous GNOME même quand une
+    application par défaut existe.) False s'il n'y a pas d'application par défaut."""
+    app = _default_app(f)
     if app is None:
         return False
-    win = parent.get_root() if parent else None
-    ctx = win.get_display().get_app_launch_context() if win is not None else None
     try:
-        return bool(app.launch([f], ctx))
+        return bool(app.launch([f], _launch_context(parent)))
     except GLib.Error:
         return False
+
+
+def name_order(files: list) -> list:
+    """Fichiers (Gio.File) dans l'ordre naturel des noms, celui de Nautilus : « (2) » avant « (10) »,
+    pistes « 01 - », « 02 - »…"""
+    return sorted(files, key=lambda f: GLib.utf8_collate_key_for_filename(
+        GLib.filename_display_name(f.get_basename() or ""), -1))
+
+
+def launch_defaults(parent: Optional[Gtk.Widget], files: list) -> list:
+    """Ouvre plusieurs fichiers comme Nautilus : regroupés par application par défaut, UN lancement
+    par application avec tous ses fichiers (VLC, Rhythmbox… les mettent dans leur file), dans
+    l'ordre naturel des noms. Une application qui n'accepte qu'un fichier (%f) est lancée une fois
+    par fichier par GIO lui-même. Renvoie les fichiers restés sans application."""
+    from .dialogs import launch_app
+    groups: dict = {}
+    left = []
+    for f in name_order(files):
+        app = _default_app(f)
+        if app is None:
+            left.append(f)
+        else:
+            groups.setdefault(app.get_id() or id(app), (app, []))[1].append(f)
+    ctx = _launch_context(parent)
+    for app, group in groups.values():
+        try:
+            launch_app(app, group, ctx)
+        except GLib.Error:
+            left.extend(group)
+    return left
 
 
 def open_with_default(parent: Gtk.Widget, path: str, folder: bool = False):

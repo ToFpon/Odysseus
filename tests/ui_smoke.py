@@ -1068,6 +1068,60 @@ def dialogues_fenetres(win):
 
 
 @step
+def plusieurs_fichiers_un_lecteur(win):
+    """Plusieurs vidéos / morceaux ouverts ensemble : UN seul lancement du lecteur par défaut (VLC…)
+    avec tous les fichiers, dans l'ordre naturel des noms ((2) avant (10), pistes 01, 02…)."""
+    from odysseus.ui.common import launch_defaults
+    log = os.path.join(TMP, "lecteur.log")
+    apps = os.path.join(os.environ["XDG_DATA_HOME"], "applications")
+    os.makedirs(apps, exist_ok=True)
+    script = os.path.join(TMP, "lecteur.sh")       # une ligne par lancement, les noms reçus dans l'ordre
+    with open(script, "w") as f:
+        f.write(f'#!/bin/sh\nfor a; do printf "%s|" "$(basename "$a")"; done >> {log}\necho >> {log}\n')
+    os.chmod(script, 0o755)
+    with open(os.path.join(apps, "lecteur-test.desktop"), "w") as f:
+        f.write("[Desktop Entry]\nType=Application\nName=Lecteur test\n"
+                f"Exec={script} %F\nMimeType=video/mp4;audio/mpeg;\n")
+    mimeapps = os.path.join(os.environ["XDG_CONFIG_HOME"], "mimeapps.list")
+    old = open(mimeapps).read() if os.path.exists(mimeapps) else "[Default Applications]\n"
+    with open(mimeapps, "w") as f:
+        f.write(old.rstrip("\n") + "\nvideo/mp4=lecteur-test.desktop\naudio/mpeg=lecteur-test.desktop\n")
+    subprocess.run(["update-desktop-database", apps], capture_output=True)
+    folder = tempfile.mkdtemp(dir=D, prefix="videos ")
+    names = ["Clip (10).mp4", "Clip (2).mp4", "Clip (1).mp4", "02 - Deux.mp3", "01 - Un.mp3"]
+    for i, n in enumerate(names):
+        with open(os.path.join(folder, n), "wb") as f:
+            f.write(b"\0" * (100 * (i + 1)))
+    open(log, "w").close()
+    files = [Gio.File.new_for_path(os.path.join(folder, n)) for n in names]
+    left = launch_defaults(win, files)
+    yield Wait(5, until=lambda: open(log).read().count("\n") >= 1)
+    yield pump(0.5)
+    runs = [line for line in open(log).read().splitlines() if line]
+    want = "01 - Un.mp3|02 - Deux.mp3|Clip (1).mp4|Clip (2).mp4|Clip (10).mp4|"
+    check(not left and runs == [want],
+          f"plusieurs fichiers : un seul lancement du lecteur, dans l'ordre des noms ({runs}, restés : {len(left)})")
+    # par l'interface : sélection (ordre du modèle trié par taille) puis Entrée
+    p = win.pane
+    p.open(folder)
+    yield Wait(5, until=lambda: not p.model.loading)
+    open(log, "w").close()
+    p.model.select_names(names)
+    win.open_selected()
+    yield Wait(5, until=lambda: open(log).read().count("\n") >= 1)
+    yield pump(0.5)
+    runs = [line for line in open(log).read().splitlines() if line]
+    check(runs == [want], f"Entrée sur la sélection : un seul lecteur, ordre des noms ({runs})")
+    open(log, "w").close()
+    p.model.select_names(names)
+    win._on_pane_activated(p, [r for r in p.model.items if r.name == "Clip (2).mp4"][0])
+    yield Wait(5, until=lambda: open(log).read().count("\n") >= 1)
+    yield pump(0.5)
+    runs = [line for line in open(log).read().splitlines() if line]
+    check(runs == [want], f"double-clic dans la sélection : toute la sélection, un seul lecteur ({runs})")
+
+
+@step
 def application_par_defaut(win):
     """Ouvrir un fichier lance directement l'application par défaut de son type (comme Nautilus),
     sans passer par le choix « Ouvrir avec… » du portail."""

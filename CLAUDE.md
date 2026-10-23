@@ -176,6 +176,9 @@ fenêtre de recherche dans le contenu.
 - Ouvrir un fichier : `common.launch_default` (Gio.AppInfo par défaut du type, lancée directement,
   comme Nautilus). Pas `Gtk.FileLauncher` en premier : il passe par le portail, qui affiche
   « Ouvrir avec… » sous GNOME même quand une application par défaut existe (repli seulement).
+  Plusieurs fichiers : `common.launch_defaults` les regroupe par application par défaut, un seul
+  lancement chacune (VLC met tout dans sa file), dans l'ordre naturel des noms (`name_order`) ;
+  double-clic sur un fichier d'une sélection multiple = toute la sélection (`_on_pane_activated`).
   Menu comme Nautilus : « Ouvrir avec <app par défaut> » puis « Ouvrir avec… »
   (`dialogs.AppChooser` : `Gtk.AppChooserWidget`, le composant de Nautilus 46, déprécié mais présent
   en GTK 4.14 ; ses titres de section viennent des traductions de GTK ; sa treeview a un fond `view`
