@@ -23,6 +23,11 @@ if [ "$1" = "--uninstall" ]; then
     FM1="$SHARE/dbus-1/services/org.freedesktop.FileManager1.service"
     if [ "$(head -n1 "$FM1" 2>/dev/null)" = "# Odysseus" ]; then rm -f "$FM1"; fi
     update-desktop-database "$SHARE/applications" 2>/dev/null || true
+    # index des icônes reconstruit sans Odysseus : sinon il annonce encore l'icône supprimée, et
+    # GNOME affiche une icône vide au lieu de celle du paquet (/usr/share) s'il est installé
+    if [ -f "$SHARE/icons/hicolor/icon-theme.cache" ]; then
+        gtk-update-icon-cache -f -t "$SHARE/icons/hicolor" 2>/dev/null || rm -f "$SHARE/icons/hicolor/icon-theme.cache"
+    fi
     echo "Odysseus a été désinstallé."
     exit 0
 fi
