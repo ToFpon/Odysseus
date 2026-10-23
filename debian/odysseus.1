@@ -1,0 +1,30 @@
+.TH ODYSSEUS 1 "October 2026" "Odysseus 1.0.0" "User Commands"
+.SH NAME
+odysseus \- GTK4 file manager in the style of GNOME Files
+.SH SYNOPSIS
+.B odysseus
+[\fIOPTION\fR...] [\fILOCATION\fR...]
+.SH DESCRIPTION
+Odysseus is a file manager that looks and behaves like GNOME Files (Nautilus),
+with dual panel, column view, archives, PDF tools and more built in.
+Each \fILOCATION\fR (folder, file or URI such as smb://) is opened in a tab;
+a file is shown selected in its folder.
+.SH OPTIONS
+.TP
+.BR \-w ", " \-\-new\-window
+Open a new window.
+.TP
+.BR \-d ", " \-\-dual
+Open in dual panel mode; with two locations, one on each side.
+.TP
+.BR \-s ", " \-\-search\-content
+Search in the contents of the files of the given folder.
+.TP
+.BR \-v ", " \-\-version
+Print the version.
+.SH FILES
+.TP
+.I ~/.config/odysseus/settings.json
+Preferences.
+.SH SEE ALSO
+.BR nautilus (1)

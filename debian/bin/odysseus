@@ -1,0 +1,5 @@
+#!/bin/sh
+# /usr/bin/python3 : celui du système (python3-gi…), jamais un autre python3 trouvé dans le PATH
+# -P : pas de dossier courant dans les chemins d'import (lancé depuis un dossier supprimé, l'import
+# de gi plantait ; un « gi.py » posé dans le dossier courant aurait été exécuté)
+exec /usr/bin/python3 -P -c 'import sys; sys.path.insert(0, "/usr/share/odysseus"); from odysseus.app import main; sys.exit(main(sys.argv))' "$@"

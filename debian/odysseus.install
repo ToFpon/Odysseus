@@ -1,0 +1,5 @@
+debian/bin/odysseus usr/bin
+debian/io.github.odysseus.Odysseus.service usr/share/dbus-1/services
+data/io.github.odysseus.Odysseus.desktop usr/share/applications
+data/io.github.odysseus.Odysseus.metainfo.xml usr/share/metainfo
+data/icons/hicolor/scalable/apps/io.github.odysseus.Odysseus.svg usr/share/icons/hicolor/scalable/apps

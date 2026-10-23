@@ -33,15 +33,19 @@ MARK = "# Odysseus"
 
 
 def _launcher() -> str:
-    """Commande qui lance Odysseus : celle du service D-Bus écrit par install.sh, sinon bin/odysseus
-    du dépôt."""
-    try:
-        with open(os.path.join(SERVICE_DIR, APP_ID + ".service"), encoding="utf-8") as fh:
-            for line in fh:
-                if line.startswith("Exec="):
-                    return line[5:].strip()
-    except OSError:
-        pass
+    """Commande qui lance Odysseus : celle de son service D-Bus (écrit par install.sh dans
+    ~/.local/share, ou installé par le paquet dans /usr/share), sinon bin/odysseus du dépôt."""
+    dirs = [SERVICE_DIR] + [os.path.join(d, "dbus-1", "services")
+                            for d in (os.environ.get("XDG_DATA_DIRS") or "/usr/local/share:/usr/share").split(":")
+                            if d]
+    for folder in dirs:
+        try:
+            with open(os.path.join(folder, APP_ID + ".service"), encoding="utf-8") as fh:
+                for line in fh:
+                    if line.startswith("Exec="):
+                        return line[5:].strip()
+        except OSError:
+            pass
     here = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "bin", "odysseus")
     return f"{here} --gapplication-service" if os.access(here, os.X_OK) else ""
 

@@ -1,0 +1,79 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<component type="desktop-application">
+  <id>io.github.odysseus.Odysseus</id>
+  <metadata_license>CC0-1.0</metadata_license>
+  <project_license>GPL-3.0-or-later</project_license>
+  <name>Odysseus</name>
+  <summary>File manager in the style of GNOME Files, with built-in tools</summary>
+  <summary xml:lang="fr">Gestionnaire de fichiers dans le style de Fichiers de GNOME, outils intégrés</summary>
+  <summary xml:lang="de">Dateiverwaltung im Stil von GNOME Dateien, mit eingebauten Werkzeugen</summary>
+  <developer id="io.github.odysseus">
+    <name>Tof</name>
+  </developer>
+  <description>
+    <p>
+      Odysseus looks and behaves like GNOME Files (Nautilus) and follows the desktop theme. It
+      integrates the features of popular Nautilus extensions, each of which can be switched off
+      without restarting.
+    </p>
+    <p xml:lang="fr">
+      Odysseus ressemble à Fichiers de GNOME (Nautilus), se comporte comme lui et suit le thème du
+      bureau. Il intègre les fonctionnalités d'extensions Nautilus, chacune désactivable sans
+      redémarrer.
+    </p>
+    <p xml:lang="de">
+      Odysseus sieht aus wie GNOME Dateien (Nautilus), verhält sich wie dieses und folgt dem Thema der
+      Arbeitsumgebung. Es enthält die Funktionen von Nautilus-Erweiterungen, die sich jeweils ohne
+      Neustart abschalten lassen.
+    </p>
+    <ul>
+      <li>Dual panel, column view, preview panel and tabs</li>
+      <li>Archives with the 7-Zip engine: browse, extract, compress, split</li>
+      <li>PDF tools: compress, merge, watermark, pages</li>
+      <li>Video to audio, image annotation, checksums, search in file contents</li>
+      <li>Safe file operations: originals are removed only once copies are on disk</li>
+    </ul>
+    <ul xml:lang="fr">
+      <li>Double panneau, vue en colonnes, panneau d'aperçu et onglets</li>
+      <li>Archives avec le moteur de 7-Zip : parcourir, extraire, compresser, découper</li>
+      <li>Outils PDF : compresser, fusionner, filigrane, pages</li>
+      <li>Vidéo vers audio, annotation d'images, sommes de contrôle, recherche dans le contenu</li>
+      <li>Opérations sûres : un original n'est supprimé qu'une fois sa copie sur le disque</li>
+    </ul>
+    <ul xml:lang="de">
+      <li>Zwei Fenster, Spaltenansicht, Vorschaubereich und Reiter</li>
+      <li>Archive mit der 7-Zip-Engine: durchsuchen, entpacken, erstellen, aufteilen</li>
+      <li>PDF-Werkzeuge: komprimieren, zusammenführen, Wasserzeichen, Seiten</li>
+      <li>Video zu Audio, Bild bearbeiten, Prüfsummen, Suche in Dateiinhalten</li>
+      <li>Sichere Dateivorgänge: Originale werden erst gelöscht, wenn die Kopien auf dem Datenträger sind</li>
+    </ul>
+  </description>
+  <url type="homepage">https://github.com/ToFpon/Odysseus</url>
+  <url type="bugtracker">https://github.com/ToFpon/Odysseus/issues</url>
+  <launchable type="desktop-id">io.github.odysseus.Odysseus.desktop</launchable>
+  <categories>
+    <category>Utility</category>
+    <category>FileManager</category>
+  </categories>
+  <keywords>
+    <keyword>folder</keyword>
+    <keyword>file manager</keyword>
+    <keyword>nautilus</keyword>
+    <keyword>dual panel</keyword>
+  </keywords>
+  <provides>
+    <binary>odysseus</binary>
+    <mediatype>inode/directory</mediatype>
+  </provides>
+  <requires>
+    <display_length compare="ge">360</display_length>
+  </requires>
+  <content_rating type="oars-1.1"/>
+  <releases>
+    <release version="1.0.0" date="2026-10-23">
+      <description>
+        <p>First release on the PPA.</p>
+      </description>
+    </release>
+  </releases>
+</component>

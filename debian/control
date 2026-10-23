@@ -1,0 +1,30 @@
+Source: odysseus
+Section: utils
+Priority: optional
+Maintainer: Tof <nourpon@gmail.com>
+Build-Depends: debhelper-compat (= 13), dh-python, python3:any
+Standards-Version: 4.6.2
+Homepage: https://github.com/ToFpon/Odysseus
+Vcs-Browser: https://github.com/ToFpon/Odysseus
+Vcs-Git: https://github.com/ToFpon/Odysseus.git
+Rules-Requires-Root: no
+
+Package: odysseus
+Architecture: all
+Depends: ${misc:Depends}, ${python3:Depends}, python3 (>= 3.10), python3-gi, gir1.2-gtk-4.0 (>= 4.14),
+ gir1.2-adw-1 (>= 1.5), gir1.2-glib-2.0, gvfs
+Recommends: 7zip, ghostscript, qpdf, poppler-utils, gir1.2-poppler-0.18, ffmpeg, ffmpegthumbnailer,
+ ripgrep, zstd, lbzip2, pigz, python3-cairo, python3-gi-cairo, gvfs-backends, xdg-utils
+Suggests: brotli, lz4, python3-pypdf, pkexec, gnome-shell-extension-gsconnect
+Description: GTK4 file manager in the style of GNOME Files, with built-in tools
+ Odysseus looks and behaves like GNOME Files (Nautilus) and follows the
+ desktop theme (Adwaita, light/dark, accent colour or installed GTK4 theme).
+ It integrates natively the features of the Nautilus extensions by Tof, each
+ of which can be switched off without restarting:
+  - dual panel, column view, preview panel, tabs;
+  - archives (7-Zip engine): browse, extract, compress, split into volumes;
+  - PDF tools: compress, merge, watermark, pages;
+  - video to audio, image annotation, checksums, content search;
+  - "This PC" page, sending files to a phone with GSConnect.
+ File operations are designed to never lose data: copies are written under a
+ temporary name, originals are removed only once the copy is safely on disk.

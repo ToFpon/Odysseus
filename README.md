@@ -87,7 +87,14 @@ Duplicates in the original extensions were merged: Archive Browser + Extract Her
 
 ### Installation
 
-Requirements: Python 3.10+, PyGObject, GTK ≥ 4.14, libadwaita ≥ 1.5. Every other program is optional: a feature whose tool is missing tells you which package to install.
+Ubuntu 24.04+ / Zorin OS 18, from the PPA (updates come with the system's):
+
+```sh
+sudo add-apt-repository ppa:nourpon/odysseus
+sudo apt update && sudo apt install odysseus
+```
+
+Or by hand, from the sources. Requirements: Python 3.10+, PyGObject, GTK ≥ 4.14, libadwaita ≥ 1.5. Every other program is optional: a feature whose tool is missing tells you which package to install.
 
 ```sh
 # Debian / Ubuntu 24.04+ / Zorin OS 18
@@ -205,7 +212,14 @@ Les doublons des extensions d'origine ont été fusionnés : Archive Browser + E
 
 ### Installation
 
-Prérequis : Python 3.10+, PyGObject, GTK ≥ 4.14, libadwaita ≥ 1.5. Tous les autres programmes sont facultatifs : une fonctionnalité dont l'outil manque indique le paquet à installer.
+Ubuntu 24.04+ / Zorin OS 18, depuis le PPA (les mises à jour arrivent avec celles du système) :
+
+```sh
+sudo add-apt-repository ppa:nourpon/odysseus
+sudo apt update && sudo apt install odysseus
+```
+
+Ou à la main, depuis les sources. Prérequis : Python 3.10+, PyGObject, GTK ≥ 4.14, libadwaita ≥ 1.5. Tous les autres programmes sont facultatifs : une fonctionnalité dont l'outil manque indique le paquet à installer.
 
 ```sh
 # Debian / Ubuntu 24.04+ / Zorin OS 18
