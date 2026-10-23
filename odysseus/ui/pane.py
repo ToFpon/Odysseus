@@ -99,13 +99,33 @@ class Pane(Gtk.Box):
         focus.connect("enter", lambda *_: self.emit("focused"))
         self.add_controller(focus)
         click = Gtk.GestureClick(button=0, propagation_phase=Gtk.PropagationPhase.CAPTURE)
-        click.connect("pressed", lambda *_: (self.emit("focused"), self._check_location()))
+        click.connect("pressed", self._on_capture_pressed)
+        click.connect("released", self._on_capture_released)
+        click.connect("cancel", lambda *_: self._on_capture_released(None))
         self.add_controller(click)
         self._settings_cb = self._on_setting
         settings.connect(self._settings_cb)
         self._clip_id = clipboard.state.connect("changed", lambda *_: self.refresh_rows())
         self.connect("destroy", lambda *_: self._cleanup())
         self.open(location or os.path.expanduser("~"), push=False)
+
+    def _on_capture_pressed(self, gesture, n_press, _x, _y):
+        self.emit("focused")
+        self._check_location()
+        # clic gauche sans Ctrl / Maj : voir Selection.do_select_item (double-clic sur une sélection)
+        mods = gesture.get_current_event_state() & (Gdk.ModifierType.CONTROL_MASK | Gdk.ModifierType.SHIFT_MASK)
+        self.selection.clicking = gesture.get_current_button() == 1 and not mods
+        if n_press == 1:
+            self.selection.activated = False
+
+    def _on_capture_released(self, *_):
+        # la cellule sélectionne APRÈS nous (au relâchement) : on conclut une fois qu'elle l'a fait
+        def done():
+            self.selection.clicking = False
+            delay = Gtk.Settings.get_default().get_property("gtk-double-click-time")
+            self.selection.finish_click(delay)
+            return False
+        GLib.idle_add(done)
 
     def _cleanup(self):
         if getattr(self, "_retired", False):
@@ -1072,6 +1092,8 @@ class Pane(Gtk.Box):
         return False
 
     def activate_position(self, pos: int):
+        self.selection.cancel_pending()         # double-clic : toute la sélection reste (et s'ouvre)
+        self.selection.activated = True
         rec = self.model.rec_at(pos)
         if rec is None:
             return

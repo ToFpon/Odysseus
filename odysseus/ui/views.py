@@ -233,6 +233,7 @@ class _CellMixin:
                               propagation_phase=Gtk.PropagationPhase.CAPTURE)
 
         def prepare(source, x, y):
+            pane.selection.cancel_pending()         # glisser toute la sélection, pas le seul élément
             pos = self._cell_pos(source.get_widget())
             if pos != Gtk.INVALID_LIST_POSITION and not pane.selection.is_selected(pos):
                 pane.selection.select_item(pos, True)     # glisser un élément non sélectionné : lui seul

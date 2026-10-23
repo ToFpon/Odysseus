@@ -4,6 +4,8 @@ from __future__ import annotations
 
 import os
 import subprocess
+import tempfile
+import time
 from datetime import datetime
 from typing import Callable, Optional
 
@@ -314,10 +316,36 @@ def launch_defaults(parent: Optional[Gtk.Widget], files: list) -> list:
     ctx = _launch_context(parent)
     for app, group in groups.values():
         try:
-            launch_app(app, group, ctx)
+            launch_app(app, _vlc_playlist(app, group), ctx)
         except GLib.Error:
             left.extend(group)
     return left
+
+
+def _vlc_playlist(app: Gio.AppInfo, files: list) -> list:
+    """VLC déjà ouvert (« une seule instance ») : les fichiers reçus sont passés un par un à la
+    fenêtre existante, et la lecture partait d'un fichier au hasard de la liste (vérifié avec VLC
+    3.0.20 d'Ubuntu 24.04 : le dernier, ou un du milieu). Une liste de lecture .m3u, elle, est lue
+    depuis le début, dans l'ordre, dans tous les cas. Pour VLC seulement : d'autres lecteurs
+    (Rhythmbox…) importeraient la liste dans leur bibliothèque."""
+    if len(files) < 2 or "vlc" not in (app.get_id() or "").lower():
+        return files
+    folder = os.path.join(GLib.get_user_cache_dir(), "odysseus", "playlists")
+    try:
+        os.makedirs(folder, exist_ok=True)
+        now = time.time()
+        for old in os.listdir(folder):              # listes des jours précédents
+            full = os.path.join(folder, old)
+            if now - os.path.getmtime(full) > 86400:
+                os.unlink(full)
+        parent = files[0].get_parent()
+        name = (parent.get_basename() if parent is not None else "") or "Odysseus"
+        fd, path = tempfile.mkstemp(prefix=name.replace("/", "_") + " ", suffix=".m3u", dir=folder)
+        with os.fdopen(fd, "w", encoding="utf-8") as fh:
+            fh.write("#EXTM3U\n" + "".join(f.get_uri() + "\n" for f in files))
+    except OSError:
+        return files
+    return [Gio.File.new_for_path(path)]
 
 
 def open_with_default(parent: Gtk.Widget, path: str, folder: bool = False):

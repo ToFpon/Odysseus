@@ -510,6 +510,32 @@ class Selection(GObject.Object, Gio.ListModel, Gtk.SelectionModel):
         self.model = model
         self.bits = Gtk.Bitset.new_empty()
         model.connect("items-changed", self._on_items_changed)
+        # clic simple sur un élément déjà sélectionné parmi d'autres : comme Nautilus, la sélection
+        # n'est réduite à lui qu'une fois sûr que ce n'est pas un double-clic (qui ouvre TOUTE la
+        # sélection) ni le début d'un glisser. Piloté par Pane (clic) et la vue (glisser).
+        self.clicking = False       # clic gauche simple en cours (GTK 4.14 sélectionne au relâchement)
+        self.activated = False      # ce clic a ouvert la sélection (double-clic)
+        self._pending = None
+        self._pending_timer = 0
+
+    def finish_click(self, delay_ms: int):
+        """Bouton relâché : réduire la sélection différée, sauf si un 2e clic arrive avant."""
+        if self._pending is not None and not self._pending_timer:
+            self._pending_timer = GLib.timeout_add(delay_ms, self._collapse)
+
+    def cancel_pending(self):
+        """Double-clic (ouverture de la sélection) ou glisser : la sélection reste entière."""
+        self._pending = None
+        if self._pending_timer:
+            GLib.source_remove(self._pending_timer)
+            self._pending_timer = 0
+
+    def _collapse(self):
+        self._pending_timer = 0
+        pos, self._pending = self._pending, None
+        if pos is not None and pos < self.model.get_n_items():
+            self.do_set_selection(Gtk.Bitset.new_range(pos, 1), Gtk.Bitset.new_range(0, self.model.get_n_items()))
+        return False
 
     # -- Gio.ListModel -----------------------------------------------------
     def do_get_item_type(self):
@@ -536,6 +562,15 @@ class Selection(GObject.Object, Gio.ListModel, Gtk.SelectionModel):
         return out
 
     def do_set_selection(self, selected, mask):
+        if self.clicking and selected.get_size() == 1 and self.bits.get_size() > 1 \
+                and mask.get_size() >= self.model.get_n_items() and self.bits.contains(selected.get_minimum()):
+            # « lui seul » sur un élément déjà sélectionné parmi d'autres : différé (voir __init__)
+            if self._pending_timer:
+                GLib.source_remove(self._pending_timer)
+                self._pending_timer = 0
+            self._pending = None if self.activated else selected.get_minimum()
+            return True
+        self.cancel_pending()
         # attention : Gtk.Bitset.difference() est la différence symétrique, subtract() la différence
         new = self.bits.copy()
         new.subtract(mask)

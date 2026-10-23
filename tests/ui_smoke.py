@@ -1119,6 +1119,31 @@ def plusieurs_fichiers_un_lecteur(win):
     yield pump(0.5)
     runs = [line for line in open(log).read().splitlines() if line]
     check(runs == [want], f"double-clic dans la sélection : toute la sélection, un seul lecteur ({runs})")
+    # VLC (« une seule instance ») : une liste de lecture .m3u, lue depuis le début dans l'ordre
+    vlc_log = os.path.join(TMP, "vlc.log")
+    vscript = os.path.join(TMP, "vlc.sh")
+    with open(vscript, "w") as f:
+        f.write(f'#!/bin/sh\necho "$#|$1|$2" >> {vlc_log}\ncat "$2" >> {vlc_log}\n')
+    os.chmod(vscript, 0o755)
+    with open(os.path.join(apps, "vlc-test.desktop"), "w") as f:
+        f.write(f"[Desktop Entry]\nType=Application\nName=VLC test\nExec={vscript} --started-from-file %U\n"
+                "MimeType=video/x-matroska;\n")
+    with open(mimeapps, "a") as f:
+        f.write("video/x-matroska=vlc-test.desktop\n")
+    subprocess.run(["update-desktop-database", apps], capture_output=True)
+    mkv = ["Épisode 10.mkv", "Épisode 2.mkv", "Épisode 1.mkv"]
+    for n in mkv:
+        with open(os.path.join(folder, n), "wb") as f:
+            f.write(b"\x1a\x45\xdf\xa3" + b"\0" * 64)
+    open(vlc_log, "w").close()
+    left = launch_defaults(win, [Gio.File.new_for_path(os.path.join(folder, n)) for n in mkv])
+    yield Wait(5, until=lambda: "#EXTM3U" in open(vlc_log).read())
+    yield pump(0.3)
+    lines = open(vlc_log).read().splitlines()
+    got = [GLib.filename_from_uri(line)[0].rsplit("/", 1)[-1] for line in lines if line.startswith("file://")]
+    check(not left and lines and lines[0].startswith("2|--started-from-file|") and lines[0].endswith(".m3u")
+          and got == ["Épisode 1.mkv", "Épisode 2.mkv", "Épisode 10.mkv"],
+          f"VLC : une liste de lecture .m3u dans l'ordre des noms ({lines[:1]}, {got})")
 
 
 @step

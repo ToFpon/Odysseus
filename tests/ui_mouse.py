@@ -15,17 +15,36 @@ if not shutil.which("xdotool"):
     print("xdotool absent : test ignoré.")
     sys.exit(0)
 
-TMP = tempfile.mkdtemp()
-os.environ["HOME"] = os.path.join(TMP, "home")
-os.environ["XDG_CONFIG_HOME"] = os.path.join(TMP, "home", ".config")
-os.environ["XDG_CACHE_HOME"] = os.path.join(TMP, "home", ".cache")
-os.makedirs(os.environ["HOME"])
-D = os.path.join(TMP, "data")
-for d in ("un", "deux", "vide", os.path.join("un", "cible"), "dst"):
-    os.makedirs(os.path.join(D, d))
-for i in range(6):
-    open(os.path.join(D, "un", f"f{i}"), "w").close()
-    open(os.path.join(D, "deux", f"g{i}"), "w").close()
+PLAYER_LOG = ""
+if os.environ.get("ODYSSEUS_UI_MOUSE_CHILD") != "1":     # le sous-processus hérite de tout
+    TMP = tempfile.mkdtemp()
+    os.environ["HOME"] = os.path.join(TMP, "home")
+    os.environ["XDG_CONFIG_HOME"] = os.path.join(TMP, "home", ".config")
+    os.environ["XDG_CACHE_HOME"] = os.path.join(TMP, "home", ".cache")
+    os.environ["XDG_DATA_HOME"] = os.path.join(TMP, "home", ".local", "share")
+    os.makedirs(os.environ["HOME"])
+    # faux lecteur vidéo : une ligne par lancement, les noms reçus dans l'ordre
+    PLAYER_LOG = os.path.join(TMP, "lecteur.log")
+    _apps = os.path.join(os.environ["XDG_DATA_HOME"], "applications")
+    os.makedirs(_apps)
+    os.makedirs(os.environ["XDG_CONFIG_HOME"])
+    with open(os.path.join(TMP, "lecteur.sh"), "w") as _f:
+        _f.write(f'#!/bin/sh\nfor a; do printf "%s|" "$(basename "$a")"; done >> {PLAYER_LOG}\necho >> {PLAYER_LOG}\n')
+    os.chmod(os.path.join(TMP, "lecteur.sh"), 0o755)
+    with open(os.path.join(_apps, "lecteur-test.desktop"), "w") as _f:
+        _f.write(f"[Desktop Entry]\nType=Application\nName=Lecteur\nExec={TMP}/lecteur.sh %U\nMimeType=video/mp4;\n")
+    with open(os.path.join(os.environ["XDG_CONFIG_HOME"], "mimeapps.list"), "w") as _f:
+        _f.write("[Default Applications]\nvideo/mp4=lecteur-test.desktop\n")
+    D = os.path.join(TMP, "data")
+    for d in ("un", "deux", "vide", os.path.join("un", "cible"), "dst"):
+        os.makedirs(os.path.join(D, d))
+    for i in range(6):
+        open(os.path.join(D, "un", f"f{i}"), "w").close()
+        open(os.path.join(D, "deux", f"g{i}"), "w").close()
+    os.makedirs(os.path.join(D, "videos"))
+    for i in range(1, 5):
+        with open(os.path.join(D, "videos", f"Clip ({i}).mp4"), "wb") as _f:
+            _f.write(b"\0" * (1000 * (5 - i)))
 
 if os.environ.get("ODYSSEUS_UI_MOUSE_CHILD") != "1":
     # relancé dans un sous-processus pour lire les avertissements GTK sur stderr
@@ -47,6 +66,7 @@ import faulthandler  # noqa: E402
 faulthandler.enable()          # plantage natif (GTK) : la pile Python s'affiche quand même
 TMP = os.environ["ODYSSEUS_UI_MOUSE_TMP"]
 D = os.path.join(TMP, "data")
+PLAYER_LOG = os.path.join(TMP, "lecteur.log")
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 import gi  # noqa: E402
 
@@ -340,6 +360,31 @@ def steps(win):
     yield
     yield
     check(p.location == "/", f"Ce PC : double-clic ouvre ({p.location})")
+
+    # double-clic sur un fichier d'une sélection multiple : TOUTE la sélection s'ouvre, en un seul
+    # lancement, dans l'ordre des noms (GTK 4.14 réduisait la sélection au premier clic) ; un
+    # simple clic, lui, réduit la sélection au fichier cliqué
+    p.open(os.path.join(D, "videos"))
+    yield
+    yield
+    x, y = label_point(win, win, "Clip (3).mp4")
+    xdo("mousemove", x, y, "click", 1)
+    yield
+    xdo("key", "ctrl+a")
+    yield
+    open(PLAYER_LOG, "w").close()
+    xdo("mousemove", x, y, "click", "--repeat", "2", "--delay", "80", 1)
+    yield
+    yield
+    yield
+    runs = open(PLAYER_LOG).read().splitlines()
+    check(runs == ["Clip (1).mp4|Clip (2).mp4|Clip (3).mp4|Clip (4).mp4|"] and len(p.selected_recs()) == 4,
+          f"double-clic dans une sélection : toute la sélection, un seul lecteur ({runs})")
+    xdo("mousemove", x, y, "click", 1)
+    yield
+    yield
+    check(len(p.selected_recs()) == 1 and p.selected_recs()[0].name == "Clip (3).mp4",
+          f"simple clic dans une sélection : lui seul ({[r.name for r in p.selected_recs()]})")
 
 
 def on_window(_a, win):

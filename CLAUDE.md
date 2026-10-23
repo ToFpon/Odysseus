@@ -179,6 +179,12 @@ fenêtre de recherche dans le contenu.
   Plusieurs fichiers : `common.launch_defaults` les regroupe par application par défaut, un seul
   lancement chacune (VLC met tout dans sa file), dans l'ordre naturel des noms (`name_order`) ;
   double-clic sur un fichier d'une sélection multiple = toute la sélection (`_on_pane_activated`).
+  GTK 4.14 réduit la sélection au relâchement du 1er clic (`set_selection`) : `Selection` diffère cette
+  réduction (`clicking`, posé par le geste en capture de `Pane`) jusqu'au délai du double-clic, annulée
+  par l'activation ou un glisser ; testé avec de vrais clics dans `ui_mouse.py`.
+  VLC (« une seule instance ») déjà ouvert démarrait la lecture sur un fichier au hasard de la liste :
+  ses fichiers lui sont passés en une liste .m3u (`_vlc_playlist`, ~/.cache/odysseus/playlists),
+  lue depuis le début dans tous les cas (vérifié avec VLC 3.0.20).
   Menu comme Nautilus : « Ouvrir avec <app par défaut> » puis « Ouvrir avec… »
   (`dialogs.AppChooser` : `Gtk.AppChooserWidget`, le composant de Nautilus 46, déprécié mais présent
   en GTK 4.14 ; ses titres de section viennent des traductions de GTK ; sa treeview a un fond `view`
