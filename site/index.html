@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Odysseus — a fast file manager for GNOME</title>
-<meta name="description" content="Odysseus is a fast GTK4 / libadwaita file manager with the look of Nautilus and twenty extensions built in: dual panel, Miller columns, archives, content search & replace, PDF tools and more. Coming soon.">
+<meta name="description" content="Odysseus is a fast GTK4 / libadwaita file manager with the look of Nautilus and twenty extensions built in: dual panel, Miller columns, archives, content search & replace, PDF tools and more. Available now for Ubuntu 24.04, Zorin OS 18 and Linux Mint 22.">
 <link rel="icon" href="img/icon.svg" type="image/svg+xml">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -69,12 +69,13 @@
   .nav-links{display:flex;gap:30px;align-items:center;font-size:.92rem}
   .nav-links a{color:var(--text-dim);transition:color .2s}
   .nav-links a:hover{color:var(--text)}
-  .soon-pill{
+  .get-pill{
     font-family:var(--mono);font-size:.74rem;letter-spacing:.04em;
-    color:var(--amber);border:1px solid rgba(245,197,66,.35);background:rgba(245,197,66,.08);
-    padding:6px 14px;border-radius:999px;white-space:nowrap;
+    color:var(--green);border:1px solid rgba(74,222,128,.35);background:rgba(74,222,128,.08);
+    padding:6px 14px;border-radius:999px;white-space:nowrap;transition:background .2s;
   }
-  @media(max-width:720px){.nav-links a{display:none}}
+  .get-pill:hover{background:rgba(74,222,128,.16)}
+  @media(max-width:720px){.nav-links a:not(.get-pill){display:none}}
 
   /* ───────────────── HERO ───────────────── */
   .hero{position:relative;padding:150px 0 90px;overflow:hidden}
@@ -123,8 +124,8 @@
     padding:13px 26px;border-radius:12px;transition:all .2s;
     display:inline-flex;align-items:center;gap:9px;border:1px solid transparent;
   }
-  .btn-soon{background:var(--surface-2);color:var(--text-dim);border-color:var(--line-strong);cursor:default}
-  .btn-soon b{color:var(--amber);font-weight:600}
+  .btn-primary{background:linear-gradient(120deg,var(--zorin-bright),var(--zorin));color:#fff;box-shadow:0 10px 30px -10px rgba(26,143,227,.7)}
+  .btn-primary:hover{filter:brightness(1.1)}
   .btn-ghost{border-color:var(--line-strong);color:var(--text)}
   .btn-ghost:hover{border-color:var(--zorin);background:rgba(26,143,227,.1)}
 
@@ -248,7 +249,7 @@
   .ecard p{font-size:.88rem;color:var(--text-dim);margin-bottom:14px}
   .ecard code{font-family:var(--mono);font-size:.74rem;color:var(--zorin-bright);background:rgba(26,143,227,.1);padding:3px 8px;border-radius:6px}
 
-  /* ───────────────── SOON ───────────────── */
+  /* ───────────────── INSTALL ───────────────── */
   .soon{padding:100px 0;background:var(--surface);border-top:1px solid var(--line)}
   .soon-card{
     max-width:760px;margin:0 auto;background:#0a0d13;border:1px solid var(--line);border-radius:16px;overflow:hidden;
@@ -265,6 +266,16 @@
   .badge{font-family:var(--mono);font-size:.7rem;padding:4px 10px;border-radius:999px;white-space:nowrap}
   .badge.soon{color:var(--amber);background:rgba(245,197,66,.08);border:1px solid rgba(245,197,66,.3)}
   .badge.ok{color:var(--green);background:rgba(74,222,128,.08);border:1px solid rgba(74,222,128,.3)}
+  .cmd{position:relative;margin:0;padding:18px 22px;font-family:var(--mono);font-size:.86rem;line-height:1.9;color:var(--text);overflow-x:auto;white-space:pre}
+  .cmd .p{color:var(--zorin-bright);user-select:none}
+  .cmd .c{color:var(--text-faint)}
+  .copy-btn{
+    position:absolute;top:50%;right:10px;transform:translateY(-50%);font-family:var(--mono);font-size:.72rem;cursor:pointer;
+    color:var(--text-dim);background:var(--surface-2);border:1px solid var(--line-strong);border-radius:8px;padding:5px 10px;
+  }
+  .copy-btn:hover{color:var(--text);border-color:var(--zorin)}
+  .soon-row a{color:var(--zorin-bright)}
+  .soon-row a:hover{text-decoration:underline}
   .reqs{max-width:760px;margin:30px auto 0;font-size:.9rem;color:var(--text-dim);text-align:center}
   .reqs code{font-family:var(--mono);color:var(--zorin-bright);font-size:.84rem}
 
@@ -297,8 +308,9 @@
       <a href="#features">Features</a>
       <a href="#speed">Speed</a>
       <a href="#all">Everything</a>
-      <a href="#soon">Availability</a>
-      <span class="soon-pill">Coming soon</span>
+      <a href="#install">Install</a>
+      <a href="https://github.com/ToFpon/Odysseus">GitHub</a>
+      <a href="#install" class="get-pill">v1.0 · available</a>
     </div>
   </div>
 </nav>
@@ -308,12 +320,12 @@
   <div class="hero-bg"></div>
   <div class="wrap hero-in">
     <img class="hero-icon" src="img/icon.svg" alt="Odysseus icon">
-    <span class="eyebrow"><span class="dot"></span> Coming soon · GTK4 · libadwaita · GPL-3.0</span>
+    <span class="eyebrow"><span class="dot" style="background:var(--green);box-shadow:0 0 8px var(--green)"></span> Version 1.0 · GTK4 · libadwaita · GPL-3.0</span>
     <h1>The look of <span class="accent">Nautilus</span>.<br>The power of its <span class="accent">extensions</span>.</h1>
     <p class="lede">Odysseus is a fast file manager for GNOME. It looks and behaves like GNOME Files, and comes with twenty extensions built in: dual panel, Miller columns, an archive browser, content search &amp; replace, PDF tools and more. Every one of them can be switched off in a click.</p>
     <div class="hero-actions">
-      <span class="btn btn-soon">Download — <b>coming soon</b></span>
-      <a href="#features" class="btn btn-ghost">See it in action ↓</a>
+      <a href="#install" class="btn btn-primary">Install on Ubuntu / Zorin</a>
+      <a href="https://github.com/ToFpon/Odysseus" class="btn btn-ghost">Source code on GitHub</a>
     </div>
 
     <div class="stage reveal">
@@ -593,23 +605,29 @@
   </div>
 </section>
 
-<!-- ───────────── COMING SOON ───────────── -->
-<section class="soon" id="soon">
+<!-- ───────────── INSTALL ───────────── -->
+<section class="soon" id="install">
   <div class="wrap">
     <div class="sec-head">
-      <div class="sec-tag">Availability</div>
-      <h2>Almost ready to sail.</h2>
-      <p>Odysseus is in daily use and final testing. Packages for <b>Ubuntu 24.04 “Noble”</b> and its derivatives — Zorin OS 18, Linux Mint 22 — are on their way.</p>
+      <div class="sec-tag">Install</div>
+      <h2>Ready to sail.</h2>
+      <p>Odysseus 1.0 is available for <b>Ubuntu 24.04 “Noble”</b> and its derivatives — Zorin OS 18, Linux Mint 22 — from a PPA. Updates then arrive with the rest of your system.</p>
     </div>
     <div class="soon-card reveal">
-      <div class="soon-top">Release status</div>
+      <div class="soon-top" style="position:relative">Terminal<button class="copy-btn" type="button" id="copy" title="Copy the two install commands" data-text="sudo add-apt-repository ppa:nourpon/odysseus&#10;sudo apt update &amp;&amp; sudo apt install odysseus">Copy</button></div>
+      <pre class="cmd" id="cmd"><span class="p">$ </span>sudo add-apt-repository ppa:nourpon/odysseus
+<span class="p">$ </span>sudo apt update &amp;&amp; sudo apt install odysseus
+<span class="c"># optional: make it your default file manager</span>
+<span class="p">$ </span>xdg-mime default io.github.odysseus.Odysseus.desktop inode/directory</pre>
+    </div>
+    <div class="soon-card reveal" style="margin-top:22px">
       <div class="soon-body">
-        <div class="soon-row"><span class="ri">🧪</span><div class="rt"><b>Daily use &amp; testing</b><span>Automated tests for every destructive operation, real-world feedback</span></div><span class="badge ok">In progress</span></div>
-        <div class="soon-row"><span class="ri">📦</span><div class="rt"><b>Debian package &amp; PPA</b><span>Signed packages, updated through apt</span></div><span class="badge soon">Coming soon</span></div>
-        <div class="soon-row"><span class="ri">💻</span><div class="rt"><b>Source code</b><span>GPL-3.0, published on GitHub</span></div><span class="badge soon">Coming soon</span></div>
+        <div class="soon-row"><span class="ri">📦</span><div class="rt"><b>Debian package &amp; PPA</b><span>Signed packages, updated through apt · <a href="https://launchpad.net/~nourpon/+archive/ubuntu/odysseus">ppa:nourpon/odysseus</a></span></div><span class="badge ok">Available</span></div>
+        <div class="soon-row"><span class="ri">💻</span><div class="rt"><b>Source code</b><span>GPL-3.0 · <a href="https://github.com/ToFpon/Odysseus">github.com/ToFpon/Odysseus</a></span></div><span class="badge ok">Available</span></div>
+        <div class="soon-row"><span class="ri">🐞</span><div class="rt"><b>Found a bug? An idea?</b><span><a href="https://github.com/ToFpon/Odysseus/issues">Open an issue on GitHub</a></span></div><span class="badge ok">Welcome</span></div>
       </div>
     </div>
-    <p class="reqs">Requirements: Python 3.10+, PyGObject, GTK ≥ 4.14, libadwaita ≥ 1.5. Everything else — <code>7zip</code>, <code>ghostscript</code>, <code>ffmpeg</code>, <code>ripgrep</code>… — is optional: a feature whose tool is missing tells you what to install.</p>
+    <p class="reqs">Requirements: Python 3.10+, PyGObject, GTK ≥ 4.14, libadwaita ≥ 1.5 — all installed by the package. The tools behind the features — <code>7zip</code>, <code>ghostscript</code>, <code>ffmpeg</code>, <code>ripgrep</code>… — come along as recommended packages; a feature whose tool is missing tells you what to install.</p>
   </div>
 </section>
 
@@ -621,7 +639,9 @@
       <a href="#features">Features</a>
       <a href="#speed">Speed</a>
       <a href="#all">Everything</a>
-      <a href="#soon">Availability</a>
+      <a href="#install">Install</a>
+      <a href="https://github.com/ToFpon/Odysseus">GitHub</a>
+      <a href="https://launchpad.net/~nourpon/+archive/ubuntu/odysseus">PPA</a>
     </div>
     <p class="foot-meta">Built by Tof · GPL-3.0 <span class="sep">·</span> Made on Zorin OS <span class="sep">·</span> X11 forever <span class="sep">·</span> No telemetry, no nonsense</p>
   </div>
@@ -655,6 +675,15 @@
       buttons.forEach(x => x.classList.toggle('active', x === b));
       imgs.forEach((im, i) => im.classList.toggle('active', i === +b.dataset.i));
     }));
+  });
+
+  // copier les deux commandes d'installation (pas la ligne facultative du gestionnaire par défaut)
+  const copy = document.getElementById('copy');
+  copy.addEventListener('click', () => {
+    navigator.clipboard.writeText(copy.dataset.text).then(() => {
+      copy.textContent = 'Copied ✓';
+      setTimeout(() => copy.textContent = 'Copy', 1600);
+    });
   });
 
   // comparaison clair / sombre
