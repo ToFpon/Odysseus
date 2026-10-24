@@ -440,8 +440,41 @@ def combo_row(title: str, labels: list[str], selected: int = 0, subtitle: str = 
     row = Adw.ComboRow(title=title, model=Gtk.StringList.new(labels))
     if subtitle:
         row.set_subtitle(subtitle)
+    row.set_list_factory(_combo_list_factory(row))
     row.set_selected(max(0, min(selected, len(labels) - 1)))
     return row
+
+
+def _combo_list_factory(row: Adw.ComboRow) -> Gtk.SignalListItemFactory:
+    """Liste déroulante d'un Adw.ComboRow : celle de libadwaita abrège les choix longs
+    (« Intelligent (bei mehreren E… ») ; ici, texte entier et même coche pour le choix actuel."""
+    boxes: list = []
+
+    def setup(_f, li):
+        box = Gtk.Box(spacing=6)
+        box._label = Gtk.Label(xalign=0, hexpand=True)
+        box._check = Gtk.Image(icon_name="object-select-symbolic")
+        box.append(box._label)
+        box.append(box._check)
+        box._pos = -1
+        boxes.append(box)
+        li.set_child(box)
+
+    def bind(_f, li):
+        box = li.get_child()
+        box._pos = li.get_position()
+        box._label.set_label(li.get_item().get_string())
+        box._check.set_opacity(1 if box._pos == row.get_selected() else 0)
+
+    def refresh(*_):
+        for box in boxes:
+            box._check.set_opacity(1 if box._pos == row.get_selected() else 0)
+
+    f = Gtk.SignalListItemFactory()
+    f.connect("setup", setup)
+    f.connect("bind", bind)
+    row.connect("notify::selected", refresh)
+    return f
 
 
 def path_row(title: str, path: str, on_browse: Callable, icon: str = "folder-open-symbolic") -> Adw.EntryRow:

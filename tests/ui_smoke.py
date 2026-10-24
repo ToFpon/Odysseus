@@ -943,6 +943,40 @@ def outils(win):
         prefs.destroy()
     finally:
         features.present = real
+    # listes déroulantes : choix longs en entier (libadwaita les abrégeait), coche sur le choix actuel
+    from odysseus.ui.common import combo_row
+    cw = Adw.PreferencesWindow(transient_for=win)
+    cg = Adw.PreferencesGroup()
+    crow = combo_row("Standard-Unterordner", ["Intelligent (bei mehreren Elementen)", "Immer", "Nie"], 0)
+    cg.add(crow)
+    cpage = Adw.PreferencesPage()
+    cpage.add(cg)
+    cw.add(cpage)
+    cw.present()
+    yield pump(0.5)
+    crow.activate()
+    yield pump(0.6)
+
+    def combo_state():
+        out = []
+
+        def walk(x):
+            if hasattr(x, "_check"):
+                out.append((x._label.get_label(), x._label.get_layout().is_ellipsized(), x._check.get_opacity()))
+            c = x.get_first_child()
+            while c is not None:
+                walk(c)
+                c = c.get_next_sibling()
+        walk(crow)
+        return out
+    st = combo_state()
+    check(len(st) == 3 and not any(e for _l, e, _o in st) and [o for *_x, o in st] == [1, 0, 0],
+          f"liste déroulante : texte entier, coche sur le choix actuel ({st})")
+    crow.set_selected(2)
+    yield pump(0.3)
+    st = combo_state()
+    check([o for *_x, o in st] == [0, 0, 1], f"liste déroulante : la coche suit le choix ({st})")
+    cw.destroy()
     check(features.install_command("pdf_merge") == "" or "qpdf" in features.install_command("pdf_merge"),
           f"fusion PDF : jamais « python3-pypdf » réclamé ({features.install_command('pdf_merge')})")
     win.activate_action("win.shortcuts", None)
