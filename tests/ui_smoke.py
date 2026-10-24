@@ -711,6 +711,45 @@ def quitter_double_panneau_focus(win):
 
 
 @step
+def signets_doublons_thunar(win):
+    """Thunar met souvent les dossiers de l'utilisateur en signets : comme Nautilus, ils ne sont pas
+    affichés une seconde fois, et le fichier des signets (partagé avec Thunar) n'est pas touché."""
+    from odysseus.backend import bookmarks
+    home = os.environ["HOME"]
+    docs, projets = os.path.join(home, "Documents"), os.path.join(home, "Projets")
+    os.makedirs(docs, exist_ok=True)
+    os.makedirs(projets, exist_ok=True)
+    os.makedirs(os.environ["XDG_CONFIG_HOME"], exist_ok=True)
+    with open(os.path.join(os.environ["XDG_CONFIG_HOME"], "user-dirs.dirs"), "w") as f:
+        f.write('XDG_DOCUMENTS_DIR="$HOME/Documents"\n')
+    GLib.reload_user_special_dirs_cache()
+    os.makedirs(os.path.dirname(bookmarks.BOOKMARKS_FILE), exist_ok=True)
+    content = f"{GLib.filename_to_uri(docs)}\n{GLib.filename_to_uri(projets)}\n"
+    with open(bookmarks.BOOKMARKS_FILE, "w") as f:
+        f.write(content)
+    sb = win.sidebar
+    sb.fill_places()
+    sb._fill_bookmarks()
+    yield pump(0.5)
+
+    def targets(lb):
+        out, r = [], lb.get_first_child()
+        while r is not None:
+            out.append(getattr(r, "target", None))
+            r = r.get_next_sibling()
+        return out
+    check(docs in targets(sb.places_list), "Documents parmi les emplacements")
+    check(targets(sb.bm_list) == [projets],
+          f"signets : Documents (doublon de Thunar) masqué, Projets affiché ({targets(sb.bm_list)})")
+    check(open(bookmarks.BOOKMARKS_FILE).read() == content, "fichier des signets intact (Thunar garde les siens)")
+    os.unlink(bookmarks.BOOKMARKS_FILE)
+    os.unlink(os.path.join(os.environ["XDG_CONFIG_HOME"], "user-dirs.dirs"))
+    GLib.reload_user_special_dirs_cache()
+    sb.fill_places()
+    yield pump(0.3)
+
+
+@step
 def ce_pc_et_bureau(win):
     """Barre latérale : Bureau et « Ce PC » en option, suivis en direct ; la page « Ce PC »
     montre dossiers et disques, avec l'espace libre lu en asynchrone."""

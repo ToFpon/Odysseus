@@ -26,6 +26,9 @@ Gestionnaire de fichiers GTK4 / libadwaita en Python, look Nautilus, intégrant 
   Ce PC montre aussi le réseau découvert et la barre « Se connecter à un serveur » (`other_locations.
   connect_bar` / `discover_network`, partagés). Largeur de la barre latérale : assez pour lire en entier
   les emplacements fixes dans la langue et la police courantes (`MainWindow.fit_sidebar`, suivi en direct).
+  Signets (`~/.config/gtk-3.0/bookmarks`, partagé avec Nautilus et Thunar) vers un dossier déjà affiché
+  dans les emplacements : masqués comme dans Nautilus (Thunar y met Documents, Images…), jamais retirés
+  du fichier.
 - Chaque fonctionnalité issue d'une extension est déclarée dans `odysseus/features.py` et doit rester
   désactivable sans redémarrage (`features.enabled(id)` au moment de l'usage, pas à l'import).
 - Tout texte visible passe par `tr()` / `ntr()` (jamais `_`). Après modification :

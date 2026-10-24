@@ -133,6 +133,8 @@ class Sidebar(Gtk.Box):
             self.places_list.append(SidebarRow(icon, label, target))
         self.select(self.current)
         self._sync_other()
+        if getattr(self, "bm_list", None) is not None:     # Bureau affiché ou non : son signet aussi
+            self._fill_bookmarks()
 
     def fixed_width(self) -> int:
         """Largeur qu'il faut pour lire en entier les emplacements fixes (« Autres emplacements »,
@@ -188,9 +190,13 @@ class Sidebar(Gtk.Box):
         while (c := self.bm_list.get_first_child()) is not None:
             self.bm_list.remove(c)
         items = bookmarks.load()
+        # comme Nautilus : un signet vers un dossier déjà affiché plus haut (Documents, Images…,
+        # que Thunar met souvent en signets) n'est pas montré une seconde fois. Il reste dans le
+        # fichier des signets, partagé avec Thunar et Nautilus : le supprimer ici l'enlevait partout.
+        shown = {os.path.realpath(t) for _i, _l, t in places(desktop=settings["sidebar_desktop"], trash=False)}
         for b in items:
             p = b.path
-            if p is not None and not os.path.exists(p):
+            if p is not None and (not os.path.exists(p) or os.path.realpath(p) in shown):
                 continue
             icon = "folder-symbolic" if p else "folder-remote-symbolic"
             self.bm_list.append(SidebarRow(icon, b.title, p or b.uri, kind="bookmark",
