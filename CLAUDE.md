@@ -182,6 +182,10 @@ fenêtre de recherche dans le contenu.
   identique, puis qui commence par le texte, puis le plus court), Entrée dans le champ l'ouvre
   (`_on_search_activate`) ; ouvrir un autre dossier que celui de départ (`_search_origin`) ferme la
   recherche, sinon le filtre restait posé sur le nouveau dossier.
+- Barre de chemin en saisie : suggestions des sous-dossiers comme Nautilus (`PathBar._update_suggestions`,
+  lecture du dossier dans un fil, 10 au plus) dans un Gtk.Popover qui ne prend jamais le focus
+  (`autohide=False`, `can_focus=False`) ; touches en capture sur le champ (sinon le texte prend les
+  flèches) : ↑/↓ choisir, Tab / clic compléter, Entrée y aller, Échap ferme d'abord la liste.
 - `Adw.TabView` capte Ctrl+Tab : `remove_shortcuts(...)` pour l'utiliser entre panneaux.
 - D-Bus : `conn.register_object(path, info, method_cb, None, None)` (pas de `register_object_with_closures`).
 - Double panneau : la position du séparateur se calcule avec `paned.get_width()`, et le ratio n'est

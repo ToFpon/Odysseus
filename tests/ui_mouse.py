@@ -265,6 +265,34 @@ def steps(win):
     yield
     yield
     check(p.location == "/usr/share", f"Ctrl+L puis « /usr/share » au clavier ({p.location})")
+    # suggestions sous le champ, comme Nautilus : sous-dossiers qui commencent par le texte tapé
+    bar = win.pathbar
+    xdo("key", "ctrl+l")
+    yield
+    xdo("type", "--delay", "60", "/usr/share/a")
+    yield
+    rows = []
+    r = bar.suggest_list.get_first_child()
+    while r is not None:
+        rows.append(r.path)
+        r = r.get_next_sibling()
+    want = sorted((e.name for e in os.scandir("/usr/share") if e.name.startswith("a") and e.is_dir()),
+                  key=lambda n: GLib.utf8_collate_key_for_filename(n, -1))[:bar.MAX_SUGGESTIONS]
+    check(bar.suggest.get_visible() and rows == ["/usr/share/" + n + "/" for n in want],
+          f"barre de chemin : suggestions des sous-dossiers ({[os.path.basename(x[:-1]) for x in rows]})")
+    xdo("key", "Escape")
+    yield
+    check(not bar.suggest.get_visible() and bar.stack.get_visible_child_name() == "entry",
+          "Échap ferme d'abord la liste, la saisie continue")
+    xdo("type", "--delay", "60", "l")
+    yield
+    xdo("key", "Down", "Return")
+    yield
+    yield
+    first = sorted((e.name for e in os.scandir("/usr/share") if e.name.startswith("al") and e.is_dir()),
+                   key=lambda n: GLib.utf8_collate_key_for_filename(n, -1))[0]
+    check(p.location == "/usr/share/" + first and not bar.suggest.get_visible(),
+          f"flèche bas puis Entrée : on va dans la suggestion ({p.location})")
     # AZERTY (Tof) et QWERTZ : « / » et « ~ » se tapent avec Maj / AltGr, le raccourci se déclenchait
     for layout in ("fr", "de"):
         if subprocess.run(["setxkbmap", layout], capture_output=True).returncode != 0:

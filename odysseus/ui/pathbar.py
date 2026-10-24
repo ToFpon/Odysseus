@@ -1,12 +1,14 @@
 """Barre de chemin à la manière de Nautilus : fil d'Ariane cliquable, saisie avec Ctrl+L.
 
 Clic sur un segment : y aller ; clic du milieu : nouvel onglet ; déposer des fichiers sur un
-segment : les copier ou déplacer dans ce dossier. Tab complète le nom de dossier saisi.
+segment : les copier ou déplacer dans ce dossier. En saisie, comme Nautilus, les sous-dossiers qui
+commencent par le texte tapé sont proposés sous le champ ; Tab complète.
 """
 
 from __future__ import annotations
 
 import os
+import threading
 from typing import Callable, Optional
 
 from gi.repository import Gdk, Gio, GLib, GObject, Gtk
@@ -69,7 +71,8 @@ class PathBar(Gtk.Box):
         self.entry = Gtk.Entry(hexpand=True, css_classes=["path-entry"],
                                placeholder_text=tr("Saisir un emplacement"))
         self.entry.connect("activate", self._on_activate)
-        keys = Gtk.EventControllerKey()
+        # en capture : avant le texte, qui prendrait sinon les flèches (déplacement du focus)
+        keys = Gtk.EventControllerKey(propagation_phase=Gtk.PropagationPhase.CAPTURE)
         keys.connect("key-pressed", self._on_entry_key)
         self.entry.add_controller(keys)
         focus = Gtk.EventControllerFocus()
@@ -77,6 +80,7 @@ class PathBar(Gtk.Box):
         self.entry.add_controller(focus)
         self.stack.add_named(self.entry, "entry")
         self.append(self.stack)
+        self._build_suggestions()
 
     # ------------------------------------------------------------------
     def set_location(self, location: str, display: str, archive_root: str = ""):
@@ -206,6 +210,7 @@ class PathBar(Gtk.Box):
             self.entry.set_position(-1)
 
     def stop_edit(self):
+        self.hide_suggestions()
         self.stack.set_visible_child_name("crumbs")
 
     def _maybe_leave(self):
@@ -223,12 +228,25 @@ class PathBar(Gtk.Box):
         self.edit()
 
     def _on_activate(self, entry):
+        row = self.suggest_list.get_selected_row() if self.suggest.get_visible() else None
+        if row is not None:                 # suggestion choisie aux flèches : on y va
+            entry.set_text(row.path)
         text = entry.get_text().strip()
         if text:
             self.stop_edit()
             self.emit("navigate", text)
 
     def _on_entry_key(self, _c, keyval, _code, state):
+        shown_list = self.suggest.get_visible()
+        if shown_list and keyval in (Gdk.KEY_Down, Gdk.KEY_Up):
+            self._move_suggestion(1 if keyval == Gdk.KEY_Down else -1)
+            return True
+        if shown_list and keyval == Gdk.KEY_Escape:     # Échap ferme d'abord la liste
+            self.hide_suggestions()
+            return True
+        if shown_list and keyval == Gdk.KEY_Tab and self.suggest_list.get_selected_row() is not None:
+            self._accept(self.suggest_list.get_selected_row())
+            return True
         if keyval == Gdk.KEY_Escape:
             self.entry.set_text(_shown(self.display))
             self.stop_edit()
@@ -238,6 +256,109 @@ class PathBar(Gtk.Box):
             self._complete()
             return True
         return False
+
+    # -- suggestions (comme Nautilus) ----------------------------------------
+    MAX_SUGGESTIONS = 10
+
+    def _build_suggestions(self):
+        self.suggest_list = Gtk.ListBox(selection_mode=Gtk.SelectionMode.SINGLE, css_classes=["path-suggestions"])
+        self.suggest_list.set_activate_on_single_click(True)
+        self.suggest_list.connect("row-activated", lambda _l, row: self._accept(row))
+        # le champ garde le focus : la liste ne le prend jamais (on continue à taper)
+        self.suggest = Gtk.Popover(child=self.suggest_list, autohide=False, has_arrow=False,
+                                   position=Gtk.PositionType.BOTTOM, halign=Gtk.Align.START,
+                                   can_focus=False, css_classes=["path-suggestions-popover"])
+        self.suggest.set_parent(self.entry)
+        self.suggest_list.set_can_focus(False)
+        self._suggest_timer = 0
+        self._suggest_token = 0
+        self.entry.connect("changed", self._queue_suggestions)
+        self.connect("unrealize", lambda *_: self.hide_suggestions())
+
+    def hide_suggestions(self):
+        self._suggest_token += 1
+        if self._suggest_timer:
+            GLib.source_remove(self._suggest_timer)
+            self._suggest_timer = 0
+        if self.suggest.get_visible():
+            self.suggest.popdown()
+
+    def _queue_suggestions(self, *_):
+        if self._suggest_timer:
+            GLib.source_remove(self._suggest_timer)
+        self._suggest_timer = GLib.timeout_add(120, self._update_suggestions)
+
+    def _update_suggestions(self):
+        self._suggest_timer = 0
+        self._suggest_token += 1
+        token = self._suggest_token
+        typed = self.entry.get_text()
+        if self.stack.get_visible_child_name() != "entry" or not typed or "://" in typed:
+            self.hide_suggestions()
+            return False
+        text = os.path.expanduser(typed)
+        if not text.startswith("/"):
+            self.hide_suggestions()
+            return False
+        folder, prefix = os.path.split(text)
+        shown_folder = typed[:len(typed) - len(prefix)]     # tel que tapé (« ~/ » gardé)
+
+        def work():
+            # dans un fil : un dossier sur un disque réseau lent ne bloque pas la saisie
+            try:
+                low = prefix.casefold()
+                names = [e.name for e in os.scandir(folder or "/")
+                         if e.name.casefold().startswith(low) and (prefix.startswith(".") or not e.name.startswith("."))
+                         and e.is_dir()]
+            except OSError:
+                names = []
+            names.sort(key=lambda n: GLib.utf8_collate_key_for_filename(n, -1))
+            GLib.idle_add(lambda: (self._show_suggestions(token, shown_folder, folder, prefix, names), False)[1])
+        threading.Thread(target=work, daemon=True).start()
+        return False
+
+    def _show_suggestions(self, token, shown_folder, folder, prefix, names):
+        if token != self._suggest_token or self.stack.get_visible_child_name() != "entry":
+            return
+        while (row := self.suggest_list.get_first_child()) is not None:
+            self.suggest_list.remove(row)
+        # rien à proposer de plus que ce qui est tapé : pas de liste
+        if not names or names == [prefix]:
+            self.hide_suggestions()
+            return
+        for name in names[:self.MAX_SUGGESTIONS]:
+            row = Gtk.ListBoxRow()
+            row.path = os.path.join(folder, name) + "/"
+            row.text = shown_folder + name + "/"
+            lbl = Gtk.Label(xalign=0, use_markup=True)
+            lbl.set_markup('<span alpha="55%">{0}</span>{1}/'.format(
+                GLib.markup_escape_text(_shown(shown_folder)), GLib.markup_escape_text(_shown(name))))
+            row.set_child(lbl)
+            self.suggest_list.append(row)
+        self.suggest.set_size_request(max(self.entry.get_width(), 1), -1)
+        if not self.suggest.get_visible():
+            self.suggest.popup()
+
+    def _move_suggestion(self, step: int):
+        rows = []
+        r = self.suggest_list.get_first_child()
+        while r is not None:
+            rows.append(r)
+            r = r.get_next_sibling()
+        if not rows:
+            return
+        cur = self.suggest_list.get_selected_row()
+        i = rows.index(cur) + step if cur in rows else (0 if step > 0 else len(rows) - 1)
+        if 0 <= i < len(rows):
+            self.suggest_list.select_row(rows[i])
+        else:
+            self.suggest_list.unselect_all()        # au-delà des bouts : retour au texte tapé
+
+    def _accept(self, row):
+        """Suggestion retenue (Tab, clic) : le champ la reprend, et on continue dans ce dossier."""
+        self.entry.set_text(row.text)
+        self.entry.set_position(-1)
+        self.entry.grab_focus()
 
     def _complete(self):
         text = os.path.expanduser(self.entry.get_text())

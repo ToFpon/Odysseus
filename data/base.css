@@ -28,6 +28,9 @@
 .path-button.current { font-weight: 700; }
 .path-sep { margin: 0 1px; opacity: 0.45; }
 .path-entry { border-radius: 8px; }
+/* Suggestions sous le champ de chemin, aérées comme celles de Nautilus */
+.path-suggestions { background: transparent; }
+.path-suggestions > row { padding: 7px 10px; border-radius: 6px; }
 .path-menu { min-height: 26px; min-width: 26px; padding: 0; border-radius: 6px; }
 .path-menu > button { background: none; box-shadow: none; border-radius: 6px; }
 .path-menu > button:hover { background: alpha(currentColor, 0.07); }
