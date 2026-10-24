@@ -1102,6 +1102,49 @@ def dialogues_fenetres(win):
 
 
 @step
+def grille_noms_dans_la_case(win):
+    """Vue grille : un nom sur plusieurs lignes reste dans la case en surbrillance. La boîte centrée ne
+    recevait que sa largeur naturelle, plus étroite que celle de la mesure : une ligne de plus,
+    qui débordait sous la sélection (selon la police : reproduit en « Sans 12 »)."""
+    folder = tempfile.mkdtemp(dir=D, prefix="grille ")
+    for n in ("un-deux-trois-quatre-cinq-six.txt", "photo 2026-10-24 12-30-45.png", "Orchis-theme-master.zip",
+              "Aurores boréales dans la région de Sápmi en Finlande.jpg", "x-y.txt",
+              "a-b-c-d-e-f-g-h-i-j-k-l-m-n-o.txt", "Arromanches-les-Bains, Normandie.jpg",
+              "Mes documents importants-copie.tar.gz", "Facture-2026-10-24-électricité.pdf",
+              "Très-long-nom-de-fichier-avec-des-tirets-partout.odt", "IMG_20261024_123045_HDR_portrait.jpg"):
+        open(os.path.join(folder, n), "w").close()
+    gs = Gtk.Settings.get_default()
+    font = gs.get_property("gtk-font-name")
+    p = win.pane
+    mode = p.view_mode
+    try:
+        for f in ("Sans 8", "Sans 9", "Sans 10", "Sans 11", "Sans 12", "Sans 13", "Sans 14"):
+            gs.set_property("gtk-font-name", f)
+            p.open(folder)
+            yield Wait(5, until=lambda: not p.model.loading)
+            win.activate_action("win.view-mode", GLib.Variant.new_string("grid"))
+            yield pump(1.0)
+            bad = []
+
+            def walk(w):
+                if isinstance(w, Gtk.Label) and w.get_mapped() and w.get_wrap() and w.get_ancestor(Gtk.GridView):
+                    child = w.get_parent().get_parent()
+                    ok, b = w.compute_bounds(child)
+                    if ok and b.get_y() + b.get_height() > child.get_height() + 0.5:
+                        bad.append(w.get_label())
+                c = w.get_first_child()
+                while c is not None:
+                    walk(c)
+                    c = c.get_next_sibling()
+            walk(p)
+            check(not bad, f"grille ({f}) : les noms restent dans leur case ({bad or 'aucun ne déborde'})")
+    finally:
+        gs.set_property("gtk-font-name", font)
+        win.activate_action("win.view-mode", GLib.Variant.new_string(mode))
+    yield pump(0.3)
+
+
+@step
 def plusieurs_fichiers_un_lecteur(win):
     """Plusieurs vidéos / morceaux ouverts ensemble : UN seul lancement du lecteur par défaut (VLC…)
     avec tous les fichiers, dans l'ordre naturel des noms ((2) avant (10), pistes 01, 02…)."""

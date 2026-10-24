@@ -603,8 +603,11 @@ class GridView(Gtk.ScrolledWindow, _CellMixin):
         return False
 
     def _setup(self, _f, li):
+        # toute la largeur de la case : centrée, la boîte ne recevait que sa largeur naturelle, plus
+        # étroite que celle où GTK avait mesuré le nom ; le nom repassait à la ligne plus tôt, prenait
+        # une ligne de plus et débordait sous la sélection (selon la police et sa taille)
         box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=6, css_classes=["grid-cell"],
-                      halign=Gtk.Align.CENTER, valign=Gtk.Align.START)
+                      halign=Gtk.Align.FILL, valign=Gtk.Align.START)
         ov = Gtk.Overlay(halign=Gtk.Align.CENTER)
         img = Gtk.Image()
         ov.set_child(img)
