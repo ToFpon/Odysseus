@@ -246,6 +246,13 @@ class Pane(Gtk.Box):
                                   visible=False, ellipsize=3, max_width_chars=90)
         self.floating.set_can_target(False)
         self.overlay.add_overlay(self.floating)
+        # « aller au fichier » en tapant (réglage type_ahead) : ce qui a été tapé, en bas au centre
+        self.type_ahead_label = Gtk.Label(css_classes=["osd", "type-ahead"], halign=Gtk.Align.CENTER,
+                                          valign=Gtk.Align.END, visible=False)
+        self.type_ahead_label.set_can_target(False)
+        self.overlay.add_overlay(self.type_ahead_label)
+        self._ta_text = ""
+        self._ta_timer = 0
         # comme Nautilus : la barre s'efface tant que le pointeur est sur sa zone, pour ne pas cacher
         # la ligne du dessous (opacité seulement : elle garde sa place, on sait quand le pointeur sort)
         motion = Gtk.EventControllerMotion()
@@ -1034,6 +1041,57 @@ class Pane(Gtk.Box):
             return self.search_root
         f = Gio.File.new_for_uri(self.location) if is_uri(self.location) else None
         return f.get_path() if f is not None and f.get_path() else ""
+
+    # -- taper pour aller au fichier (réglage type_ahead) -----------------------
+    TYPE_AHEAD_RESET = 1000     # ms sans frappe : on repart de zéro
+
+    @property
+    def type_ahead_active(self) -> bool:
+        return bool(self._ta_text)
+
+    def type_ahead(self, ch: str):
+        """Lettre tapée : le premier élément dont le nom commence par le texte tapé est sélectionné,
+        la liste reste entière (comme Nemo, Thunar, l'ancien Nautilus)."""
+        self._ta_text += ch
+        self._ta_restart()
+        self._ta_select()
+
+    def type_ahead_back(self):
+        self._ta_text = self._ta_text[:-1]
+        if not self._ta_text:
+            self.type_ahead_cancel()
+            return
+        self._ta_restart()
+        self._ta_select()
+
+    def type_ahead_cancel(self):
+        self._ta_text = ""
+        if self._ta_timer:
+            GLib.source_remove(self._ta_timer)
+            self._ta_timer = 0
+        self.type_ahead_label.set_visible(False)
+
+    def _ta_restart(self):
+        if self._ta_timer:
+            GLib.source_remove(self._ta_timer)
+        self._ta_timer = GLib.timeout_add(self.TYPE_AHEAD_RESET, self._ta_expire)
+
+    def _ta_expire(self):
+        self._ta_timer = 0
+        self.type_ahead_cancel()
+        return False
+
+    def _ta_select(self):
+        needle = fold(self._ta_text)
+        items = self.model.items
+        found = next((i for i, r in enumerate(items) if fold(r.name).startswith(needle)), -1)
+        self.type_ahead_label.set_label(self._ta_text)
+        self.type_ahead_label.set_visible(True)
+        # rien ne commence ainsi : l'encart le signale, la sélection ne bouge pas
+        (self.type_ahead_label.remove_css_class if found >= 0 else self.type_ahead_label.add_css_class)("error")
+        if found >= 0 and self.model.selection:
+            self.model.selection.set_selection(Gtk.Bitset.new_range(found, 1), Gtk.Bitset.new_range(0, len(items)))
+            self.scroll_to(found)
 
     def select_best(self, query: str):
         """Recherche : comme Nautilus, le meilleur résultat est sélectionné, Entrée l'ouvre. Nom

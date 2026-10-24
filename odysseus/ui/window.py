@@ -56,6 +56,8 @@ class MainWindow(FileActions, ArchiveActions, ToolActions, Adw.ApplicationWindow
         # touches qui ont un sens dans un champ de saisie : rendues au texte (voir _TEXT_KEYS)
         keys = Gtk.EventControllerKey(propagation_phase=Gtk.PropagationPhase.CAPTURE)
         keys.connect("key-pressed", self._on_text_key)
+        # taper pour aller au fichier : aussi en capture, avant les raccourcis (Retour arrière = Précédent)
+        keys.connect("key-pressed", self._on_type_ahead)
         self.add_controller(keys)
 
     # ------------------------------------------------------------------
@@ -169,7 +171,8 @@ class MainWindow(FileActions, ArchiveActions, ToolActions, Adw.ApplicationWindow
         self.content_search_btn = content_btn
         self.search_bar.set_child(Adw.Clamp(maximum_size=720, child=sbox))
         self.search_bar.connect_entry(self.search_entry)
-        self.search_bar.set_key_capture_widget(self)
+        # taper au clavier ouvre la recherche (comme Nautilus), sauf réglage « aller au fichier »
+        self.search_bar.set_key_capture_widget(None if settings["type_ahead"] else self)
         self.search_btn.bind_property("active", self.search_bar, "search-mode-enabled", bidir())
         self.search_entry.connect("search-changed", self._on_search_changed)
         self.search_entry.connect("activate", self._on_search_activate)
@@ -415,6 +418,10 @@ class MainWindow(FileActions, ArchiveActions, ToolActions, Adw.ApplicationWindow
                     a.set_state(GLib.Variant.new_boolean(col in settings["list_columns"]))
         elif key == "features":
             self._apply_features()
+        elif key == "type_ahead":
+            self.search_bar.set_key_capture_widget(None if settings["type_ahead"] else self)
+            for p in self.all_panes():
+                p.type_ahead_cancel()
         elif key in ("sidebar_desktop", "sidebar_this_pc"):
             self.sidebar.fill_places()
             self.fit_sidebar()
@@ -704,6 +711,37 @@ class MainWindow(FileActions, ArchiveActions, ToolActions, Adw.ApplicationWindow
         ("x", True, False): "cut", ("c", True, False): "copy", ("v", True, False): "paste",
         ("z", True, False): "undo", ("Z", True, True): "redo", ("z", True, True): "redo",
     }
+
+    def _on_type_ahead(self, _ctrl, keyval, _code, state):
+        """Réglage « taper pour aller au fichier » : les lettres tapées dans la vue des fichiers
+        sélectionnent le premier élément qui commence ainsi (Pane.type_ahead)."""
+        if not settings["type_ahead"]:
+            return False
+        if state & (Gdk.ModifierType.CONTROL_MASK | Gdk.ModifierType.ALT_MASK | Gdk.ModifierType.SUPER_MASK):
+            return False
+        p = self.pane
+        focus = self.get_focus()
+        # seulement dans la vue des fichiers : pas dans un champ, un menu, la barre latérale…
+        if p is None or focus is None or isinstance(focus, Gtk.Editable) or not focus.is_ancestor(p) \
+                or p.mode not in ("fs", "search", "trash", "remote", "archive") or p.view_mode == "columns":
+            return False
+        if p.type_ahead_active and keyval == Gdk.KEY_Escape:
+            p.type_ahead_cancel()
+            return True
+        if p.type_ahead_active and keyval == Gdk.KEY_BackSpace:
+            p.type_ahead_back()
+            return True
+        if keyval in (Gdk.KEY_Return, Gdk.KEY_KP_Enter):
+            p.type_ahead_cancel()           # Entrée ouvre l'élément choisi (la vue s'en charge)
+            return False
+        code = Gdk.keyval_to_unicode(keyval)
+        ch = chr(code) if code else ""
+        if not ch or not ch.isprintable() or (ch == " " and not p.type_ahead_active):
+            return False
+        if ch == "/" or (ch == "~" and not p.type_ahead_active):
+            return False                    # raccourcis « saisir un emplacement » (/, ~) gardés
+        p.type_ahead(ch)
+        return True
 
     def _on_text_key(self, _ctrl, keyval, _code, state):
         if state & (Gdk.ModifierType.ALT_MASK | Gdk.ModifierType.SUPER_MASK):

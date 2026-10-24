@@ -182,6 +182,11 @@ fenêtre de recherche dans le contenu.
   identique, puis qui commence par le texte, puis le plus court), Entrée dans le champ l'ouvre
   (`_on_search_activate`) ; ouvrir un autre dossier que celui de départ (`_search_origin`) ferme la
   recherche, sinon le filtre restait posé sur le nouveau dossier.
+- Taper pour aller au fichier (réglage `type_ahead`, coupé par défaut : sinon taper lance la recherche
+  comme Nautilus, `search_bar.set_key_capture_widget`) : `MainWindow._on_type_ahead`, en capture avant les
+  raccourcis (Retour arrière ne fait pas « Précédent »), seulement si le focus est dans la vue du panneau ;
+  `/` et `~` restent des raccourcis. `Pane.type_ahead` : premier nom qui commence par le texte (accents
+  ignorés), liste entière, encart `.type-ahead` en bas ; 1 s sans frappe → on repart de zéro.
 - Barre de chemin en saisie : suggestions des sous-dossiers comme Nautilus (`PathBar._update_suggestions`,
   lecture du dossier dans un fil, 10 au plus) dans un Gtk.Popover qui ne prend jamais le focus
   (`autohide=False`, `can_focus=False`) ; touches en capture sur le champ (sinon le texte prend les

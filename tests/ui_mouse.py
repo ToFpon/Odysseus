@@ -41,6 +41,9 @@ if os.environ.get("ODYSSEUS_UI_MOUSE_CHILD") != "1":     # le sous-processus hé
     for i in range(6):
         open(os.path.join(D, "un", f"f{i}"), "w").close()
         open(os.path.join(D, "deux", f"g{i}"), "w").close()
+    os.makedirs(os.path.join(D, "taper", "Projets"))
+    for n in ("Factures.ods", "fabrication.txt", "photo.jpg", "zèbre.txt", "Prix.txt"):
+        open(os.path.join(D, "taper", n), "w").close()
     os.makedirs(os.path.join(D, "videos"))
     for i in range(1, 5):
         with open(os.path.join(D, "videos", f"Clip ({i}).mp4"), "wb") as _f:
@@ -265,6 +268,55 @@ def steps(win):
     yield
     yield
     check(p.location == "/usr/share", f"Ctrl+L puis « /usr/share » au clavier ({p.location})")
+    # taper pour aller au fichier (réglage) : la liste reste entière, l'élément est sélectionné
+    from odysseus.settings import settings as _st
+    p.open(os.path.join(D, "taper"))
+    yield
+    yield
+    x, y = label_point(win, p, "photo.jpg")
+    xdo("mousemove", x, y, "click", 1)
+    yield
+    xdo("type", "--delay", "80", "p")
+    yield
+    check(win.search_bar.get_search_mode(), "réglage coupé : taper ouvre la recherche (comme Nautilus)")
+    xdo("key", "Escape")
+    yield
+    _st["type_ahead"] = True
+    xdo("mousemove", x, y, "click", 1)
+    yield
+    sel = lambda: [r.name for r in p.selected_recs()]
+    xdo("type", "--delay", "80", "pro")
+    yield
+    check(sel() == ["Projets"] and not win.search_bar.get_search_mode() and len(p.model.items) == 6
+          and p.type_ahead_label.get_visible() and p.type_ahead_label.get_label() == "pro",
+          f"taper « pro » : Projets sélectionné, liste entière, pas de recherche ({sel()}, {len(p.model.items)})")
+    xdo("key", "BackSpace", "BackSpace")
+    yield
+    check(p.type_ahead_label.get_label() == "p" and sel() == ["Projets"] and p.location == os.path.join(D, "taper"),
+          f"Retour arrière corrige la frappe, sans revenir en arrière ({p.type_ahead_label.get_label()!r}, {p.location})")
+    yield                                   # plus d'une seconde sans frappe (deux pas de 0,7 s)
+    yield
+    check(not p.type_ahead_active and not p.type_ahead_label.get_visible(), "une pause : la frappe repart de zéro")
+    xdo("type", "--delay", "80", "ze")
+    yield
+    check(sel() == ["zèbre.txt"], f"« ze » trouve « zèbre » (accents ignorés) ({sel()})")
+    xdo("key", "Escape")
+    yield
+    check(not p.type_ahead_active and not p.type_ahead_label.get_visible(), "Échap annule la frappe")
+    xdo("type", "--delay", "80", "pr")
+    yield
+    xdo("key", "Return")
+    yield
+    yield
+    check(p.location == os.path.join(D, "taper", "Projets"), f"Entrée ouvre l'élément trouvé ({p.location})")
+    xdo("type", "--delay", "80", "/")
+    yield
+    check(win.pathbar.stack.get_visible_child_name() == "entry" and not p.type_ahead_active,
+          "« / » ouvre toujours la saisie d'un emplacement")
+    xdo("key", "Escape")
+    yield
+    _st["type_ahead"] = False
+
     # suggestions sous le champ, comme Nautilus : sous-dossiers qui commencent par le texte tapé
     bar = win.pathbar
     xdo("key", "ctrl+l")

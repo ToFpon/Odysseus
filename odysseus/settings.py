@@ -24,6 +24,7 @@ DEFAULTS: dict[str, Any] = {
     "list_columns": ["size", "type", "date"],   # colonnes facultatives visibles (+ perms, owner, duration)
     "single_click": False,
     "dnd_hover_open": True,         # glisser au-dessus d'un dossier l'ouvre après un temps (Nautilus)
+    "type_ahead": False,            # taper au clavier : aller au fichier (Nemo, Thunar) au lieu de rechercher
     "thumbnails": "local",          # always, local, never
     "search_recursive": False,
     # Fenêtre

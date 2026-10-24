@@ -79,6 +79,9 @@ class PreferencesDialog(Adw.PreferencesWindow):
                       [tr("Fichiers locaux seulement"), tr("Toujours"), tr("Jamais")], ["local", "always", "never"]))
         g.add(_switch(tr("Ouvrir d'un simple clic"), "single_click",
                       tr("Sinon, double-clic comme dans Nautilus")))
+        g.add(_switch(tr("Taper au clavier pour aller au fichier"), "type_ahead",
+                      tr("Taper le début d'un nom sélectionne le fichier, comme dans Nemo ou Thunar ; "
+                         "sinon, taper lance la recherche, comme dans Nautilus (Ctrl+F reste disponible)")))
         g.add(_switch(tr("Ouvrir les dossiers survolés pendant un glisser"), "dnd_hover_open",
                       tr("Tenir un élément une demi-seconde au-dessus d'un dossier l'ouvre, comme dans Nautilus")))
         page.add(g)

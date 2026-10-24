@@ -55,7 +55,7 @@ msgstr ""
 msgid "Le moteur d'archives de Pressoir https://github.com/ToFpon/Pressoir"
 msgstr "Pressoir's archive engine https://github.com/ToFpon/Pressoir"
 
-#: odysseus/app.py:180 odysseus/app.py:152 odysseus/ui/pane.py:468
+#: odysseus/app.py:180 odysseus/app.py:152 odysseus/ui/pane.py:475
 msgid "Emplacement introuvable : {0}"
 msgstr "Location not found: {0}"
 
@@ -111,7 +111,7 @@ msgid "Module auto-extractible (7zCon.sfx) introuvable"
 msgstr "Self-extracting module (7zCon.sfx) not found"
 
 #: odysseus/backend/archive.py:815 odysseus/backend/archive.py:839
-#: odysseus/backend/archive.py:829 odysseus/ui/dialogs.py:158
+#: odysseus/backend/archive.py:829 odysseus/ui/dialogs.py:161
 msgid "Extraction"
 msgstr "Extraction"
 
@@ -691,12 +691,12 @@ msgstr "Pass {0}/{passes} — {1}"
 msgid "Volume {i} — {0}"
 msgstr "Volume {i} — {0}"
 
-#: odysseus/features.py:36 odysseus/ui/dialogs.py:215
+#: odysseus/features.py:36 odysseus/ui/dialogs.py:218
 msgid "Affichage"
 msgstr "Display"
 
 #: odysseus/features.py:37 odysseus/ui/actions_archives.py:240
-#: odysseus/ui/archive_dialogs.py:460 odysseus/ui/dialogs.py:219
+#: odysseus/ui/archive_dialogs.py:460 odysseus/ui/dialogs.py:222
 msgid "Fichiers"
 msgstr "Files"
 
@@ -712,7 +712,7 @@ msgstr "Multimedia"
 msgid "Système"
 msgstr "System"
 
-#: odysseus/features.py:44 odysseus/ui/dialogs.py:217 odysseus/ui/menus.py:302
+#: odysseus/features.py:44 odysseus/ui/dialogs.py:220 odysseus/ui/menus.py:302
 msgid "Double panneau"
 msgstr "Dual panel"
 
@@ -731,7 +731,7 @@ msgid ""
 "l'arborescence"
 msgstr "Finder-style chained columns to dive quickly into the folder tree"
 
-#: odysseus/features.py:50 odysseus/ui/dialogs.py:217
+#: odysseus/features.py:50 odysseus/ui/dialogs.py:220
 msgid "Panneau d'aperçu"
 msgstr "Preview panel"
 
@@ -798,7 +798,7 @@ msgstr "Duration column"
 msgid "Durée des fichiers audio et vidéo (ffprobe), avec cache"
 msgstr "Duration of audio and video files (ffprobe), cached"
 
-#: odysseus/features.py:73 odysseus/features.py:206 odysseus/ui/dialogs.py:157
+#: odysseus/features.py:73 odysseus/features.py:206 odysseus/ui/dialogs.py:160
 msgid "Archives"
 msgstr "Archives"
 
@@ -825,7 +825,7 @@ msgid ""
 "Ouvrir directement les fichiers texte sélectionnés dans l'éditeur choisi"
 msgstr "Open the selected text files directly in the chosen editor"
 
-#: odysseus/features.py:84 odysseus/ui/dialogs.py:225 odysseus/ui/window.py:220
+#: odysseus/features.py:84 odysseus/ui/dialogs.py:228 odysseus/ui/window.py:223
 msgid "Terminal ici"
 msgstr "Terminal here"
 
@@ -1000,7 +1000,7 @@ msgstr "Delete from archive?"
 msgid "Créer"
 msgstr "Create"
 
-#: odysseus/ui/actions_archives.py:50 odysseus/ui/dialogs.py:277
+#: odysseus/ui/actions_archives.py:50 odysseus/ui/dialogs.py:280
 #: odysseus/ui/jobs.py:201 odysseus/ui/menus.py:147
 msgid "Ouvrir"
 msgstr "Open"
@@ -1294,7 +1294,7 @@ msgid "Fusionner"
 msgstr "Merge"
 
 #: odysseus/ui/actions_files.py:509 odysseus/ui/menus.py:58
-#: odysseus/ui/sidebar.py:427 odysseus/ui/views.py:35
+#: odysseus/ui/sidebar.py:433 odysseus/ui/views.py:35
 msgid "Nom"
 msgstr "Name"
 
@@ -1395,7 +1395,7 @@ msgstr[1] "Moving {0} items to the trash"
 msgid "Suppression définitive"
 msgstr "Permanent deletion"
 
-#: odysseus/ui/actions_files.py:781 odysseus/ui/pane.py:846
+#: odysseus/ui/actions_files.py:781 odysseus/ui/pane.py:855
 msgid "La corbeille est vide"
 msgstr "The trash is empty"
 
@@ -1530,12 +1530,12 @@ msgstr "Move"
 msgid "Existant : {0}"
 msgstr "Existing: {0}"
 
-#: odysseus/ui/actions_files.py:694 odysseus/ui/dialogs.py:221
+#: odysseus/ui/actions_files.py:694 odysseus/ui/dialogs.py:224
 #: odysseus/ui/menus.py:245
 msgid "Mettre à la corbeille"
 msgstr "Move to trash"
 
-#: odysseus/ui/actions_files.py:850 odysseus/ui/dialogs.py:257
+#: odysseus/ui/actions_files.py:850 odysseus/ui/dialogs.py:260
 msgid "Cette application ne sait pas ouvrir les fichiers distants."
 msgstr "This application cannot open remote files."
 
@@ -1940,7 +1940,7 @@ msgstr "Folder"
 msgid "Créer un sous-dossier"
 msgstr "Create a subfolder"
 
-#: odysseus/ui/archive_dialogs.py:359 odysseus/ui/dialogs.py:160
+#: odysseus/ui/archive_dialogs.py:359 odysseus/ui/dialogs.py:163
 msgid "Fichiers déjà présents"
 msgstr "Existing files"
 
@@ -2142,7 +2142,7 @@ msgstr "Low (128 kb/s)"
 msgid "Copie sans réencodage"
 msgstr "Copy without re-encoding"
 
-#: odysseus/ui/audio_dialog.py:23 odysseus/ui/window.py:218
+#: odysseus/ui/audio_dialog.py:23 odysseus/ui/window.py:221
 msgid "Extraire l'audio"
 msgstr "Extract audio"
 
@@ -2164,7 +2164,7 @@ msgid_plural "Extraction audio de {0} vidéos"
 msgstr[0] "Extracting audio from {0} video"
 msgstr[1] "Extracting audio from {0} videos"
 
-#: odysseus/ui/audio_dialog.py:42 odysseus/ui/pane.py:660
+#: odysseus/ui/audio_dialog.py:42 odysseus/ui/pane.py:667
 #: odysseus/ui/pdf_dialogs.py:50 odysseus/ui/properties.py:130
 msgid "{0} fichier"
 msgid_plural "{0} fichiers"
@@ -2187,7 +2187,7 @@ msgstr "Different: file damaged or modified"
 msgid "Absent"
 msgstr "Missing"
 
-#: odysseus/ui/checksum_dialog.py:22 odysseus/ui/pane.py:606
+#: odysseus/ui/checksum_dialog.py:22 odysseus/ui/pane.py:613
 msgid "Illisible"
 msgstr "Unreadable"
 
@@ -2276,8 +2276,8 @@ msgstr ""
 msgid "Le fichier est intact"
 msgstr "The file is intact"
 
-#: odysseus/ui/checksum_window.py:83 odysseus/ui/common.py:465
-#: odysseus/ui/dialogs.py:185 odysseus/ui/jobs.py:145
+#: odysseus/ui/checksum_window.py:83 odysseus/ui/common.py:498
+#: odysseus/ui/dialogs.py:188 odysseus/ui/jobs.py:145
 msgid "Copier"
 msgstr "Copy"
 
@@ -2301,55 +2301,55 @@ msgstr "Matches ({0})"
 msgid "Valider"
 msgstr "OK"
 
-#: odysseus/ui/common.py:456
+#: odysseus/ui/common.py:489
 msgid "Commande équivalente"
 msgstr "Equivalent command"
 
-#: odysseus/ui/common.py:504
+#: odysseus/ui/common.py:537
 msgid "janv."
 msgstr "Jan"
 
-#: odysseus/ui/common.py:504
+#: odysseus/ui/common.py:537
 msgid "févr."
 msgstr "Feb"
 
-#: odysseus/ui/common.py:504
+#: odysseus/ui/common.py:537
 msgid "mars"
 msgstr "Mar"
 
-#: odysseus/ui/common.py:504
+#: odysseus/ui/common.py:537
 msgid "avril"
 msgstr "Apr"
 
-#: odysseus/ui/common.py:504
+#: odysseus/ui/common.py:537
 msgid "mai"
 msgstr "May"
 
-#: odysseus/ui/common.py:504
+#: odysseus/ui/common.py:537
 msgid "juin"
 msgstr "Jun"
 
-#: odysseus/ui/common.py:504
+#: odysseus/ui/common.py:537
 msgid "juil."
 msgstr "Jul"
 
-#: odysseus/ui/common.py:505
+#: odysseus/ui/common.py:538
 msgid "août"
 msgstr "Aug"
 
-#: odysseus/ui/common.py:505
+#: odysseus/ui/common.py:538
 msgid "sept."
 msgstr "Sep"
 
-#: odysseus/ui/common.py:505
+#: odysseus/ui/common.py:538
 msgid "oct."
 msgstr "Oct"
 
-#: odysseus/ui/common.py:505
+#: odysseus/ui/common.py:538
 msgid "nov."
 msgstr "Nov"
 
-#: odysseus/ui/common.py:505
+#: odysseus/ui/common.py:538
 msgid "déc."
 msgstr "Dec"
 
@@ -2361,7 +2361,7 @@ msgstr "Protected archive"
 msgid "Déverrouiller"
 msgstr "Unlock"
 
-#: odysseus/ui/common.py:495
+#: odysseus/ui/common.py:528
 msgid "Aucun élément"
 msgstr "No items"
 
@@ -2369,37 +2369,37 @@ msgstr "No items"
 msgid "Le mot de passe est incorrect. Réessayez.\n"
 msgstr "The password is incorrect. Try again.\n"
 
-#: odysseus/ui/common.py:449
+#: odysseus/ui/common.py:482
 msgid "Parcourir…"
 msgstr "Browse…"
 
-#: odysseus/ui/common.py:459
+#: odysseus/ui/common.py:492
 msgid "Afficher la commande"
 msgstr "Show command"
 
-#: odysseus/ui/common.py:459
+#: odysseus/ui/common.py:492
 msgid "Utile pour vos scripts"
 msgstr "Useful for your scripts"
 
-#: odysseus/ui/common.py:499
+#: odysseus/ui/common.py:532
 msgid "{name} et {n} autre"
 msgid_plural "{name} et {n} autres"
 msgstr[0] "{name} and {n} other"
 msgstr[1] "{name} and {n} others"
 
-#: odysseus/ui/common.py:518
+#: odysseus/ui/common.py:551
 msgid "{day} {month} {year}"
 msgstr "{month} {day}, {year}"
 
-#: odysseus/ui/common.py:515
+#: odysseus/ui/common.py:548
 msgid "Aujourd'hui à {0}"
 msgstr "Today at {0}"
 
-#: odysseus/ui/common.py:517
+#: odysseus/ui/common.py:550
 msgid "Hier à {0}"
 msgstr "Yesterday at {0}"
 
-#: odysseus/ui/common.py:466
+#: odysseus/ui/common.py:499
 msgid "Commande copiée"
 msgstr "Command copied"
 
@@ -2464,11 +2464,11 @@ msgstr "Additional packages that will be installed:"
 msgid "L'installation a échoué (code {0})."
 msgstr "Installation failed (code {0})."
 
-#: odysseus/ui/dialogs.py:208
+#: odysseus/ui/dialogs.py:211
 msgid "Navigation"
 msgstr "Navigation"
 
-#: odysseus/ui/dialogs.py:226
+#: odysseus/ui/dialogs.py:229
 msgid "Outils"
 msgstr "Tools"
 
@@ -2480,7 +2480,7 @@ msgstr "Theme"
 msgid "Langue"
 msgstr "Language"
 
-#: odysseus/ui/dialogs.py:233 odysseus/ui/menus.py:43
+#: odysseus/ui/dialogs.py:236 odysseus/ui/menus.py:43
 msgid "Raccourcis clavier"
 msgstr "Keyboard shortcuts"
 
@@ -2545,74 +2545,86 @@ msgid "Sinon, double-clic comme dans Nautilus"
 msgstr "Otherwise, double click as in Nautilus"
 
 #: odysseus/ui/dialogs.py:82
-msgid "Ouvrir les dossiers survolés pendant un glisser"
-msgstr "Open folders hovered while dragging"
+msgid "Taper au clavier pour aller au fichier"
+msgstr "Type to go to a file"
 
 #: odysseus/ui/dialogs.py:83
 msgid ""
+"Taper le début d'un nom sélectionne le fichier, comme dans Nemo ou Thunar ; "
+"sinon, taper lance la recherche, comme dans Nautilus (Ctrl+F reste "
+"disponible)"
+msgstr "Typing the start of a name selects the file, as in Nemo or Thunar; otherwise typing starts a search, as in Nautilus (Ctrl+F is still available)"
+
+#: odysseus/ui/dialogs.py:85
+msgid "Ouvrir les dossiers survolés pendant un glisser"
+msgstr "Open folders hovered while dragging"
+
+#: odysseus/ui/dialogs.py:86
+msgid ""
 "Tenir un élément une demi-seconde au-dessus d'un dossier l'ouvre, comme dans "
 "Nautilus"
-msgstr "Holding an item over a folder for half a second opens it, as in Nautilus"
+msgstr ""
+"Holding an item over a folder for half a second opens it, as in Nautilus"
 
-#: odysseus/ui/dialogs.py:86 odysseus/ui/dialogs.py:214
+#: odysseus/ui/dialogs.py:89 odysseus/ui/dialogs.py:217
 msgid "Barre latérale"
 msgstr "Sidebar"
 
-#: odysseus/ui/dialogs.py:87
+#: odysseus/ui/dialogs.py:90
 msgid "Afficher « Ce PC »"
 msgstr "Show “This PC”"
 
-#: odysseus/ui/dialogs.py:88
+#: odysseus/ui/dialogs.py:91
 msgid ""
 "Dossiers et disques avec leur espace libre sur une seule page, comme sous "
 "Windows"
 msgstr ""
 "Folders and drives with their free space on a single page, like on Windows"
 
-#: odysseus/ui/dialogs.py:89
+#: odysseus/ui/dialogs.py:92
 msgid "Afficher le Bureau"
 msgstr "Show Desktop"
 
-#: odysseus/ui/dialogs.py:92
+#: odysseus/ui/dialogs.py:95
 msgid "Comportement"
 msgstr "Behaviour"
 
-#: odysseus/ui/dialogs.py:93
+#: odysseus/ui/dialogs.py:96
 msgid "Confirmer la mise à la corbeille"
 msgstr "Confirm moving to the trash"
 
-#: odysseus/ui/dialogs.py:94
+#: odysseus/ui/dialogs.py:97
 msgid "Confirmer la suppression définitive"
 msgstr "Confirm permanent deletion"
 
-#: odysseus/ui/dialogs.py:95
+#: odysseus/ui/dialogs.py:98
 msgid "Rechercher dans les sous-dossiers par défaut"
 msgstr "Search in subfolders by default"
 
-#: odysseus/ui/dialogs.py:98
+#: odysseus/ui/dialogs.py:101
 msgid "Applications"
 msgstr "Applications"
 
-#: odysseus/ui/dialogs.py:108
+#: odysseus/ui/dialogs.py:111
 msgid "Extensions ouvertes dans l'éditeur"
 msgstr "Extensions opened in the editor"
 
-#: odysseus/ui/dialogs.py:111
+#: odysseus/ui/dialogs.py:114
 msgid "Répondre à « Afficher dans le dossier »"
 msgstr "Handle “Show in folder”"
 
-#: odysseus/ui/dialogs.py:112
+#: odysseus/ui/dialogs.py:115
 msgid ""
 "Firefox, téléchargements… ouvrent Odysseus au lieu de Nautilus, même s'il "
 "est fermé"
 msgstr ""
 "Firefox, downloads… open Odysseus instead of Nautilus, even when it is closed"
 
-#: odysseus/ui/dialogs.py:118 odysseus/ui/menus.py:305
+#: odysseus/ui/dialogs.py:121 odysseus/ui/menus.py:305
 msgid "Fonctionnalités"
 msgstr "Features"
 
-#: odysseus/ui/dialogs.py:120
+#: odysseus/ui/dialogs.py:123
 msgid ""
 "Toutes les extensions Nautilus de Tof sont intégrées. Désactivez celles dont "
 "vous n'avez pas besoin : le changement est immédiat."
@@ -2620,27 +2632,27 @@ msgstr ""
 "All of Tof's Nautilus extensions are built in. Turn off the ones you don't "
 "need: the change is immediate."
 
-#: odysseus/ui/dialogs.py:159
+#: odysseus/ui/dialogs.py:162
 msgid "Sous-dossier par défaut"
 msgstr "Default subfolder"
 
-#: odysseus/ui/dialogs.py:161
+#: odysseus/ui/dialogs.py:164
 msgid "Ouvrir le dossier après extraction"
 msgstr "Open the folder after extraction"
 
-#: odysseus/ui/dialogs.py:162
+#: odysseus/ui/dialogs.py:165
 msgid "Mémoriser les mots de passe pendant la session"
 msgstr "Remember passwords during the session"
 
-#: odysseus/ui/dialogs.py:163
+#: odysseus/ui/dialogs.py:166
 msgid "Jamais enregistrés sur le disque"
 msgstr "Never written to disk"
 
-#: odysseus/ui/dialogs.py:172
+#: odysseus/ui/dialogs.py:175
 msgid "Composants"
 msgstr "Components"
 
-#: odysseus/ui/dialogs.py:174
+#: odysseus/ui/dialogs.py:177
 msgid ""
 "Programmes externes utilisés par Odysseus. S'il en manque un, seules les "
 "fonctions qui en ont besoin sont touchées."
@@ -2648,268 +2660,268 @@ msgstr ""
 "External programs used by Odysseus. If one is missing, only the features "
 "that need it are affected."
 
-#: odysseus/ui/dialogs.py:209
+#: odysseus/ui/dialogs.py:212
 msgid "Ctrl+L"
 msgstr "Ctrl+L"
 
-#: odysseus/ui/dialogs.py:209 odysseus/ui/pathbar.py:70
+#: odysseus/ui/dialogs.py:212 odysseus/ui/pathbar.py:72
 msgid "Saisir un emplacement"
 msgstr "Enter a location"
 
-#: odysseus/ui/dialogs.py:209
+#: odysseus/ui/dialogs.py:212
 msgid "Alt+← / Retour arrière"
 msgstr "Alt+← / Backspace"
 
-#: odysseus/ui/dialogs.py:209
+#: odysseus/ui/dialogs.py:212
 msgid "Précédent"
 msgstr "Back"
 
-#: odysseus/ui/dialogs.py:210
+#: odysseus/ui/dialogs.py:213
 msgid "Alt+→"
 msgstr "Alt+→"
 
-#: odysseus/ui/dialogs.py:210
+#: odysseus/ui/dialogs.py:213
 msgid "Suivant"
 msgstr "Forward"
 
-#: odysseus/ui/dialogs.py:210
+#: odysseus/ui/dialogs.py:213
 msgid "Boutons latéraux de la souris"
 msgstr "Mouse side buttons"
 
-#: odysseus/ui/dialogs.py:210
+#: odysseus/ui/dialogs.py:213
 msgid "Précédent / suivant"
 msgstr "Back / forward"
 
-#: odysseus/ui/dialogs.py:211
+#: odysseus/ui/dialogs.py:214
 msgid "Alt+↑"
 msgstr "Alt+↑"
 
-#: odysseus/ui/dialogs.py:211
+#: odysseus/ui/dialogs.py:214
 msgid "Dossier parent"
 msgstr "Parent folder"
 
-#: odysseus/ui/dialogs.py:211
+#: odysseus/ui/dialogs.py:214
 msgid "Alt+Origine"
 msgstr "Alt+Home"
 
-#: odysseus/ui/dialogs.py:211 odysseus/ui/pane.py:1151
-#: odysseus/ui/pathbar.py:114 odysseus/ui/sidebar.py:35
+#: odysseus/ui/dialogs.py:214 odysseus/ui/pane.py:1235
+#: odysseus/ui/pathbar.py:118 odysseus/ui/sidebar.py:35
 msgid "Dossier personnel"
 msgstr "Home"
 
-#: odysseus/ui/dialogs.py:212
+#: odysseus/ui/dialogs.py:215
 msgid "F5 / Ctrl+R"
 msgstr "F5 / Ctrl+R"
 
-#: odysseus/ui/dialogs.py:212 odysseus/ui/menus.py:293
+#: odysseus/ui/dialogs.py:215 odysseus/ui/menus.py:293
 msgid "Actualiser"
 msgstr "Reload"
 
-#: odysseus/ui/dialogs.py:212
+#: odysseus/ui/dialogs.py:215
 msgid "Ctrl+F"
 msgstr "Ctrl+F"
 
-#: odysseus/ui/dialogs.py:212 odysseus/ui/search_dialog.py:47
+#: odysseus/ui/dialogs.py:215 odysseus/ui/search_dialog.py:47
 #: odysseus/ui/search_dialog.py:90 odysseus/ui/search_dialog.py:142
 msgid "Rechercher"
 msgstr "Search"
 
-#: odysseus/ui/dialogs.py:212
+#: odysseus/ui/dialogs.py:215
 msgid "Ctrl+H"
 msgstr "Ctrl+H"
 
-#: odysseus/ui/dialogs.py:212 odysseus/ui/search_dialog.py:82
+#: odysseus/ui/dialogs.py:215 odysseus/ui/search_dialog.py:82
 msgid "Fichiers cachés"
 msgstr "Hidden files"
 
-#: odysseus/ui/dialogs.py:213
+#: odysseus/ui/dialogs.py:216
 msgid "Ctrl+T / Ctrl+W"
 msgstr "Ctrl+T / Ctrl+W"
 
-#: odysseus/ui/dialogs.py:213
+#: odysseus/ui/dialogs.py:216
 msgid "Ouvrir / fermer un onglet"
 msgstr "Open / close a tab"
 
-#: odysseus/ui/dialogs.py:213
+#: odysseus/ui/dialogs.py:216
 msgid "Ctrl+N"
 msgstr "Ctrl+N"
 
-#: odysseus/ui/dialogs.py:213 odysseus/ui/menus.py:23
+#: odysseus/ui/dialogs.py:216 odysseus/ui/menus.py:23
 msgid "Nouvelle fenêtre"
 msgstr "New window"
 
-#: odysseus/ui/dialogs.py:214
+#: odysseus/ui/dialogs.py:217
 msgid "Ctrl+D"
 msgstr "Ctrl+D"
 
-#: odysseus/ui/dialogs.py:214 odysseus/ui/menus.py:276 odysseus/ui/menus.py:294
+#: odysseus/ui/dialogs.py:217 odysseus/ui/menus.py:276 odysseus/ui/menus.py:294
 msgid "Ajouter aux signets"
 msgstr "Add to bookmarks"
 
-#: odysseus/ui/dialogs.py:214
+#: odysseus/ui/dialogs.py:217
 msgid "Ctrl+F9"
 msgstr "Ctrl+F9"
 
-#: odysseus/ui/dialogs.py:216
+#: odysseus/ui/dialogs.py:219
 msgid "Ctrl+1 / Ctrl+2 / Ctrl+3"
 msgstr "Ctrl+1 / Ctrl+2 / Ctrl+3"
 
-#: odysseus/ui/dialogs.py:216
+#: odysseus/ui/dialogs.py:219
 msgid "Liste / grille / colonnes"
 msgstr "List / grid / columns"
 
-#: odysseus/ui/dialogs.py:216
+#: odysseus/ui/dialogs.py:219
 msgid "Ctrl++ / Ctrl+− / Ctrl+0"
 msgstr "Ctrl++ / Ctrl+− / Ctrl+0"
 
-#: odysseus/ui/dialogs.py:216
+#: odysseus/ui/dialogs.py:219
 msgid "Taille des icônes"
 msgstr "Icon size"
 
-#: odysseus/ui/dialogs.py:217
+#: odysseus/ui/dialogs.py:220
 msgid "F3"
 msgstr "F3"
 
-#: odysseus/ui/dialogs.py:217
+#: odysseus/ui/dialogs.py:220
 msgid "Ctrl+Tab"
 msgstr "Ctrl+Tab"
 
-#: odysseus/ui/dialogs.py:217
+#: odysseus/ui/dialogs.py:220
 msgid "Changer de panneau (ou d'onglet)"
 msgstr "Switch panel (or tab)"
 
-#: odysseus/ui/dialogs.py:217
+#: odysseus/ui/dialogs.py:220
 msgid "F4"
 msgstr "F4"
 
-#: odysseus/ui/dialogs.py:218
+#: odysseus/ui/dialogs.py:221
 msgid "F9"
 msgstr "F9"
 
-#: odysseus/ui/dialogs.py:218
+#: odysseus/ui/dialogs.py:221
 msgid "Basculer la vue en colonnes"
 msgstr "Toggle the column view"
 
-#: odysseus/ui/dialogs.py:220
+#: odysseus/ui/dialogs.py:223
 msgid "Ctrl+C / Ctrl+X / Ctrl+V"
 msgstr "Ctrl+C / Ctrl+X / Ctrl+V"
 
-#: odysseus/ui/dialogs.py:220
+#: odysseus/ui/dialogs.py:223
 msgid "Copier / couper / coller"
 msgstr "Copy / cut / paste"
 
-#: odysseus/ui/dialogs.py:220
+#: odysseus/ui/dialogs.py:223
 msgid "F2"
 msgstr "F2"
 
-#: odysseus/ui/dialogs.py:221
+#: odysseus/ui/dialogs.py:224
 msgid "Suppr"
 msgstr "Delete"
 
-#: odysseus/ui/dialogs.py:221
+#: odysseus/ui/dialogs.py:224
 msgid "Maj+Suppr"
 msgstr "Shift+Delete"
 
-#: odysseus/ui/dialogs.py:221 odysseus/ui/menus.py:131
+#: odysseus/ui/dialogs.py:224 odysseus/ui/menus.py:131
 msgid "Supprimer définitivement"
 msgstr "Delete permanently"
 
-#: odysseus/ui/dialogs.py:222
+#: odysseus/ui/dialogs.py:225
 msgid "Ctrl+Maj+N"
 msgstr "Ctrl+Shift+N"
 
-#: odysseus/ui/dialogs.py:222
+#: odysseus/ui/dialogs.py:225
 msgid "Ctrl+I"
 msgstr "Ctrl+I"
 
-#: odysseus/ui/dialogs.py:222 odysseus/ui/menus.py:250 odysseus/ui/menus.py:280
+#: odysseus/ui/dialogs.py:225 odysseus/ui/menus.py:250 odysseus/ui/menus.py:280
 #: odysseus/ui/menus.py:310
 msgid "Propriétés"
 msgstr "Properties"
 
-#: odysseus/ui/dialogs.py:222
+#: odysseus/ui/dialogs.py:225
 msgid "Ctrl+M"
 msgstr "Ctrl+M"
 
-#: odysseus/ui/dialogs.py:222 odysseus/ui/menus.py:182
+#: odysseus/ui/dialogs.py:225 odysseus/ui/menus.py:182
 msgid "Créer un lien"
 msgstr "Create link"
 
-#: odysseus/ui/dialogs.py:223
+#: odysseus/ui/dialogs.py:226
 msgid "Ctrl+Z"
 msgstr "Ctrl+Z"
 
-#: odysseus/ui/dialogs.py:223
+#: odysseus/ui/dialogs.py:226
 msgid "Ctrl+A"
 msgstr "Ctrl+A"
 
-#: odysseus/ui/dialogs.py:223 odysseus/ui/menus.py:264
+#: odysseus/ui/dialogs.py:226 odysseus/ui/menus.py:264
 msgid "Tout sélectionner"
 msgstr "Select all"
 
-#: odysseus/ui/dialogs.py:223
+#: odysseus/ui/dialogs.py:226
 msgid "Ctrl+Maj+I"
 msgstr "Ctrl+Shift+I"
 
-#: odysseus/ui/dialogs.py:223
+#: odysseus/ui/dialogs.py:226
 msgid "Inverser la sélection"
 msgstr "Invert selection"
 
-#: odysseus/ui/dialogs.py:224
+#: odysseus/ui/dialogs.py:227
 msgid "F6 / Maj+F6"
 msgstr "F6 / Shift+F6"
 
-#: odysseus/ui/dialogs.py:224
+#: odysseus/ui/dialogs.py:227
 msgid "Copier / déplacer vers l'autre panneau"
 msgstr "Copy / move to the other panel"
 
-#: odysseus/ui/dialogs.py:224
+#: odysseus/ui/dialogs.py:227
 msgid "Ctrl+Maj+C"
 msgstr "Ctrl+Shift+C"
 
-#: odysseus/ui/dialogs.py:224 odysseus/ui/menus.py:249 odysseus/ui/menus.py:361
+#: odysseus/ui/dialogs.py:227 odysseus/ui/menus.py:249 odysseus/ui/menus.py:361
 #: odysseus/ui/search_dialog.py:328
 msgid "Copier le chemin"
 msgstr "Copy path"
 
-#: odysseus/ui/dialogs.py:225
+#: odysseus/ui/dialogs.py:228
 msgid "Ctrl+Alt+T"
 msgstr "Ctrl+Alt+T"
 
-#: odysseus/ui/dialogs.py:227
+#: odysseus/ui/dialogs.py:230
 msgid "F7"
 msgstr "F7"
 
-#: odysseus/ui/dialogs.py:227
+#: odysseus/ui/dialogs.py:230
 msgid "Parcourir l'archive sélectionnée"
 msgstr "Browse the selected archive"
 
-#: odysseus/ui/dialogs.py:227
+#: odysseus/ui/dialogs.py:230
 msgid "Ctrl+E"
 msgstr "Ctrl+E"
 
-#: odysseus/ui/dialogs.py:227 odysseus/ui/menus.py:187
+#: odysseus/ui/dialogs.py:230 odysseus/ui/menus.py:187
 msgid "Extraire vers…"
 msgstr "Extract to…"
 
-#: odysseus/ui/dialogs.py:228
+#: odysseus/ui/dialogs.py:231
 msgid "Ctrl+Maj+E"
 msgstr "Ctrl+Shift+E"
 
-#: odysseus/ui/dialogs.py:228 odysseus/ui/menus.py:186
-#: odysseus/ui/window.py:216
+#: odysseus/ui/dialogs.py:231 odysseus/ui/menus.py:186
+#: odysseus/ui/window.py:219
 msgid "Extraire ici"
 msgstr "Extract here"
 
-#: odysseus/ui/dialogs.py:228
+#: odysseus/ui/dialogs.py:231
 msgid "F8"
 msgstr "F8"
 
-#: odysseus/ui/dialogs.py:228
+#: odysseus/ui/dialogs.py:231
 msgid "Rechercher dans le contenu des fichiers"
 msgstr "Search file contents"
 
-#: odysseus/ui/dialogs.py:296
+#: odysseus/ui/dialogs.py:299
 msgid "Toujours utiliser pour ce type de fichiers"
 msgstr "Always use for this file type"
 
@@ -2945,65 +2957,65 @@ msgstr "Large"
 msgid "Fichiers locaux seulement"
 msgstr "Local files only"
 
-#: odysseus/ui/dialogs.py:180
+#: odysseus/ui/dialogs.py:183
 msgid "Installer ce qui manque"
 msgstr "Install What Is Missing"
 
-#: odysseus/ui/dialogs.py:181
+#: odysseus/ui/dialogs.py:184
 msgid "À copier dans un terminal (mot de passe administrateur demandé)"
 msgstr "Copy into a terminal (administrator password required)"
 
-#: odysseus/ui/dialogs.py:269 odysseus/ui/search_dialog.py:324
+#: odysseus/ui/dialogs.py:272 odysseus/ui/search_dialog.py:324
 msgid "Ouvrir le fichier"
 msgstr "Open the file"
 
-#: odysseus/ui/dialogs.py:269
+#: odysseus/ui/dialogs.py:272
 msgid "Ouvrir les fichiers"
 msgstr "Open Files"
 
-#: odysseus/ui/dialogs.py:100
+#: odysseus/ui/dialogs.py:103
 msgid "Terminal (vide = automatique : {0})"
 msgstr "Terminal (empty = automatic: {0})"
 
-#: odysseus/ui/dialogs.py:104
+#: odysseus/ui/dialogs.py:107
 msgid "Éditeur de texte (vide = automatique : {0})"
 msgstr "Text editor (empty = automatic: {0})"
 
-#: odysseus/ui/dialogs.py:145
+#: odysseus/ui/dialogs.py:148
 msgid "Délai avant affichage (secondes)"
 msgstr "Delay before showing (seconds)"
 
-#: odysseus/ui/dialogs.py:285
+#: odysseus/ui/dialogs.py:288
 msgid "Choisir une application pour ouvrir <b>{0}</b>"
 msgstr "Choose an app to open <b>{0}</b>"
 
-#: odysseus/ui/dialogs.py:286
+#: odysseus/ui/dialogs.py:289
 msgid "Choisir une application pour ouvrir le fichier"
 msgid_plural "Choisir une application pour ouvrir les {0} fichiers"
 msgstr[0] "Choose an app to open the file"
 msgstr[1] "Choose an app to open the {0} files"
 
-#: odysseus/ui/dialogs.py:141
+#: odysseus/ui/dialogs.py:144
 msgid "Atténuation des fichiers cachés"
 msgstr "Dimming of hidden files"
 
-#: odysseus/ui/dialogs.py:197
+#: odysseus/ui/dialogs.py:200
 msgid "non installé — paquet {0}"
 msgstr "not installed — package {0}"
 
-#: odysseus/ui/dialogs.py:133
+#: odysseus/ui/dialogs.py:136
 msgid "⚠ Manquant : {0} (voir l'onglet Composants)"
 msgstr "⚠ Missing: {0} (see the Components tab)"
 
-#: odysseus/ui/dialogs.py:142
+#: odysseus/ui/dialogs.py:145
 msgid "Icône seulement"
 msgstr "Icon only"
 
-#: odysseus/ui/dialogs.py:142
+#: odysseus/ui/dialogs.py:145
 msgid "Icône et nom"
 msgstr "Icon and name"
 
-#: odysseus/ui/dialogs.py:186
+#: odysseus/ui/dialogs.py:189
 msgid "Copié"
 msgstr "Copied"
 
@@ -3192,12 +3204,12 @@ msgstr "Open With…"
 msgid "Exécuter comme un programme"
 msgstr "Run as a Program"
 
-#: odysseus/ui/menus.py:155 odysseus/ui/sidebar.py:396
+#: odysseus/ui/menus.py:155 odysseus/ui/sidebar.py:402
 #: odysseus/ui/this_pc.py:339
 msgid "Ouvrir dans un nouvel onglet"
 msgstr "Open in new tab"
 
-#: odysseus/ui/menus.py:156 odysseus/ui/sidebar.py:397
+#: odysseus/ui/menus.py:156 odysseus/ui/sidebar.py:403
 #: odysseus/ui/this_pc.py:340
 msgid "Ouvrir dans une nouvelle fenêtre"
 msgstr "Open in New Window"
@@ -3222,7 +3234,7 @@ msgstr "Copy to the other panel"
 msgid "Déplacer vers l'autre panneau"
 msgstr "Move to the other panel"
 
-#: odysseus/ui/menus.py:181 odysseus/ui/menus.py:358 odysseus/ui/sidebar.py:403
+#: odysseus/ui/menus.py:181 odysseus/ui/menus.py:358 odysseus/ui/sidebar.py:409
 msgid "Renommer…"
 msgstr "Rename…"
 
@@ -3282,11 +3294,11 @@ msgstr "Add files…"
 msgid "Restaurer"
 msgstr "Restore"
 
-#: odysseus/ui/menus.py:133 odysseus/ui/pane.py:195 odysseus/ui/sidebar.py:413
+#: odysseus/ui/menus.py:133 odysseus/ui/pane.py:195 odysseus/ui/sidebar.py:419
 msgid "Vider la corbeille…"
 msgstr "Empty trash…"
 
-#: odysseus/ui/menus.py:158 odysseus/ui/sidebar.py:399
+#: odysseus/ui/menus.py:158 odysseus/ui/sidebar.py:405
 #: odysseus/ui/this_pc.py:342
 msgid "Ouvrir dans l'autre panneau"
 msgstr "Open in the other panel"
@@ -3387,37 +3399,37 @@ msgstr "On This Computer"
 msgid "Réseaux"
 msgstr "Networks"
 
-#: odysseus/ui/other_locations.py:178 odysseus/ui/sidebar.py:287
+#: odysseus/ui/other_locations.py:178 odysseus/ui/sidebar.py:293
 #: odysseus/ui/this_pc.py:77
 msgid "Cliquez pour monter"
 msgstr "Click to mount"
 
-#: odysseus/ui/pane.py:30 odysseus/ui/pane.py:1143 odysseus/ui/pane.py:192
-#: odysseus/ui/pathbar.py:95
+#: odysseus/ui/pane.py:30 odysseus/ui/pane.py:1227 odysseus/ui/pane.py:192
+#: odysseus/ui/pathbar.py:99
 msgid "Corbeille"
 msgstr "Trash"
 
-#: odysseus/ui/pane.py:30 odysseus/ui/pathbar.py:96 odysseus/ui/sidebar.py:99
+#: odysseus/ui/pane.py:30 odysseus/ui/pathbar.py:100 odysseus/ui/sidebar.py:99
 msgid "Récents"
 msgstr "Recent"
 
-#: odysseus/ui/pane.py:30 odysseus/ui/pathbar.py:97
+#: odysseus/ui/pane.py:30 odysseus/ui/pathbar.py:101
 msgid "Réseau"
 msgstr "Network"
 
-#: odysseus/ui/pane.py:31 odysseus/ui/pathbar.py:98 odysseus/ui/sidebar.py:115
+#: odysseus/ui/pane.py:31 odysseus/ui/pathbar.py:102 odysseus/ui/sidebar.py:115
 msgid "Autres emplacements"
 msgstr "Other Locations"
 
-#: odysseus/ui/pane.py:31 odysseus/ui/pathbar.py:99 odysseus/ui/sidebar.py:131
+#: odysseus/ui/pane.py:31 odysseus/ui/pathbar.py:103 odysseus/ui/sidebar.py:131
 msgid "Ce PC"
 msgstr "This PC"
 
-#: odysseus/ui/pane.py:572
+#: odysseus/ui/pane.py:579
 msgid "Lecture…"
 msgstr "Reading…"
 
-#: odysseus/ui/pane.py:575
+#: odysseus/ui/pane.py:582
 msgid "Lecture de l'archive…"
 msgstr "Reading archive…"
 
@@ -3425,31 +3437,31 @@ msgstr "Reading archive…"
 msgid "🔒 chiffrée"
 msgstr "🔒 encrypted"
 
-#: odysseus/ui/pane.py:216 odysseus/ui/pane.py:850 odysseus/ui/pane.py:854
+#: odysseus/ui/pane.py:216 odysseus/ui/pane.py:859 odysseus/ui/pane.py:863
 msgid "Dossier vide"
 msgstr "Empty folder"
 
-#: odysseus/ui/pane.py:222 odysseus/ui/pane.py:1187 odysseus/ui/pane.py:860
+#: odysseus/ui/pane.py:222 odysseus/ui/pane.py:1271 odysseus/ui/pane.py:869
 msgid "Chargement…"
 msgstr "Loading…"
 
-#: odysseus/ui/pane.py:229 odysseus/ui/pane.py:596
+#: odysseus/ui/pane.py:229 odysseus/ui/pane.py:603
 msgid "Les noms de fichiers sont chiffrés. Saisissez le mot de passe."
 msgstr "File names are encrypted. Enter the password."
 
-#: odysseus/ui/pane.py:599
+#: odysseus/ui/pane.py:606
 msgid "Contenu verrouillé"
 msgstr "Content locked"
 
-#: odysseus/ui/pane.py:607
+#: odysseus/ui/pane.py:614
 msgid "Archive illisible"
 msgstr "Unreadable archive"
 
-#: odysseus/ui/pane.py:842 odysseus/ui/pane.py:961
+#: odysseus/ui/pane.py:851 odysseus/ui/pane.py:970
 msgid "Aucun résultat"
 msgstr "No results"
 
-#: odysseus/ui/pane.py:871
+#: odysseus/ui/pane.py:880
 msgid "Accès impossible"
 msgstr "Access denied"
 
@@ -3457,80 +3469,80 @@ msgstr "Access denied"
 msgid "Tout extraire"
 msgstr "Extract all"
 
-#: odysseus/ui/pane.py:597
+#: odysseus/ui/pane.py:604
 msgid "Mot de passe incorrect, réessayez."
 msgstr "Wrong password, try again."
 
-#: odysseus/ui/pane.py:661 odysseus/ui/preview.py:97
+#: odysseus/ui/pane.py:668 odysseus/ui/preview.py:97
 #: odysseus/ui/properties.py:132
 msgid "{0} dossier"
 msgid_plural "{0} dossiers"
 msgstr[0] "{0} folder"
 msgstr[1] "{0} folders"
 
-#: odysseus/ui/pane.py:1141
+#: odysseus/ui/pane.py:1225
 msgid "Recherche « {0} »"
 msgstr "Search “{0}”"
 
-#: odysseus/ui/pane.py:1197 odysseus/ui/pane.py:1212
+#: odysseus/ui/pane.py:1281 odysseus/ui/pane.py:1296
 msgid "« {0} » sélectionné"
 msgstr "“{0}” selected"
 
-#: odysseus/ui/pane.py:663
+#: odysseus/ui/pane.py:670
 msgid "{0} décompressés"
 msgstr "{0} unpacked"
 
-#: odysseus/ui/pane.py:664
+#: odysseus/ui/pane.py:671
 msgid "ratio {0} %"
 msgstr "ratio {0}%"
 
-#: odysseus/ui/pane.py:843 odysseus/ui/pane.py:962
+#: odysseus/ui/pane.py:852 odysseus/ui/pane.py:971
 msgid "Rien ne correspond à « {0} »"
 msgstr "Nothing matches “{0}”"
 
-#: odysseus/ui/pane.py:851
+#: odysseus/ui/pane.py:860
 msgid "Déposez des fichiers ici pour les ajouter à l'archive."
 msgstr "Drop files here to add them to the archive."
 
-#: odysseus/ui/pane.py:1202
+#: odysseus/ui/pane.py:1286
 msgid "{0} dossier sélectionné"
 msgid_plural "{0} dossiers sélectionnés"
 msgstr[0] "{0} folder selected"
 msgstr[1] "{0} folders selected"
 
-#: odysseus/ui/pane.py:1209
+#: odysseus/ui/pane.py:1293
 msgid "{0} autre élément sélectionné"
 msgid_plural "{0} autres éléments sélectionnés"
 msgstr[0] "{0} other item selected"
 msgstr[1] "{0} other items selected"
 
-#: odysseus/ui/pane.py:955
+#: odysseus/ui/pane.py:964
 msgid "Recherche… {0} résultat(s)"
 msgstr "Searching… {0} result(s)"
 
-#: odysseus/ui/pane.py:1199
+#: odysseus/ui/pane.py:1283
 msgid "(contenant {0} élément)"
 msgid_plural "(contenant {0} éléments)"
 msgstr[0] "(containing {0} item)"
 msgstr[1] "(containing {0} items)"
 
-#: odysseus/ui/pane.py:1214 odysseus/ui/preview.py:248
+#: odysseus/ui/pane.py:1298 odysseus/ui/preview.py:248
 msgid "{0} élément sélectionné"
 msgid_plural "{0} éléments sélectionnés"
 msgstr[0] "{0} item selected"
 msgstr[1] "{0} items selected"
 
-#: odysseus/ui/pane.py:1204
+#: odysseus/ui/pane.py:1288
 msgid "(contenant {0} élément au total)"
 msgid_plural "(contenant {0} éléments au total)"
 msgstr[0] "(containing {0} item in total)"
 msgstr[1] "(containing a total of {0} items)"
 
-#: odysseus/ui/pathbar.py:60
+#: odysseus/ui/pathbar.py:62
 msgid "Menu du dossier"
 msgstr "Folder menu"
 
-#: odysseus/ui/pathbar.py:100 odysseus/ui/window.py:329
+#: odysseus/ui/pathbar.py:104 odysseus/ui/window.py:339
 msgid "Administrateur"
 msgstr "Administrator"
 
@@ -3670,7 +3682,7 @@ msgstr "Compression finished"
 msgid "Pages à garder, ex. 1-3, 5, 8-"
 msgstr "Pages to keep, e.g. 1-3, 5, 8-"
 
-#: odysseus/ui/pdf_dialogs.py:125 odysseus/ui/sidebar.py:409
+#: odysseus/ui/pdf_dialogs.py:125 odysseus/ui/sidebar.py:415
 #: odysseus/ui/this_pc.py:334
 msgid "Monter"
 msgstr "Move up"
@@ -4054,7 +4066,7 @@ msgstr "Metadata changed"
 msgid "Type MIME"
 msgstr "MIME type"
 
-#: odysseus/ui/properties.py:82 odysseus/ui/sidebar.py:244
+#: odysseus/ui/properties.py:82 odysseus/ui/sidebar.py:250
 #: odysseus/ui/this_pc.py:90
 msgid "{0} libres sur {1}"
 msgstr "{0} free of {1}"
@@ -4091,7 +4103,7 @@ msgstr "Extensions (e.g. py,txt,md — empty = all)"
 msgid "Dossier de recherche"
 msgstr "Search folder"
 
-#: odysseus/ui/search_dialog.py:78 odysseus/ui/window.py:162
+#: odysseus/ui/search_dialog.py:78 odysseus/ui/window.py:164
 msgid "Sous-dossiers"
 msgstr "Subfolders"
 
@@ -4201,33 +4213,33 @@ msgstr[1] "{0} results…"
 msgid "Périphériques"
 msgstr "Devices"
 
-#: odysseus/ui/sidebar.py:427
+#: odysseus/ui/sidebar.py:433
 msgid "Renommer le signet"
 msgstr "Rename bookmark"
 
-#: odysseus/ui/sidebar.py:404
+#: odysseus/ui/sidebar.py:410
 msgid "Retirer des signets"
 msgstr "Remove from bookmarks"
 
-#: odysseus/ui/sidebar.py:257 odysseus/ui/sidebar.py:411
+#: odysseus/ui/sidebar.py:263 odysseus/ui/sidebar.py:417
 #: odysseus/ui/this_pc.py:349 odysseus/ui/this_pc.py:351
 msgid "Éjecter"
 msgstr "Eject"
 
-#: odysseus/ui/sidebar.py:258 odysseus/ui/sidebar.py:411
+#: odysseus/ui/sidebar.py:264 odysseus/ui/sidebar.py:417
 #: odysseus/ui/this_pc.py:349
 msgid "Démonter"
 msgstr "Unmount"
 
-#: odysseus/ui/sidebar.py:334
+#: odysseus/ui/sidebar.py:340
 msgid "{0} peut être retiré en toute sécurité"
 msgstr "{0} can be safely removed"
 
-#: odysseus/ui/sidebar.py:310
+#: odysseus/ui/sidebar.py:316
 msgid "Impossible de monter {0}"
 msgstr "Unable to mount {0}"
 
-#: odysseus/ui/sidebar.py:332
+#: odysseus/ui/sidebar.py:338
 msgid "Impossible d'éjecter {0}"
 msgstr "Unable to eject {0}"
 
@@ -4251,137 +4263,137 @@ msgstr "Modified"
 msgid "Emplacement d'origine"
 msgstr "Original location"
 
-#: odysseus/ui/window.py:93
+#: odysseus/ui/window.py:95
 msgid "Menu principal (F10)"
 msgstr "Main menu (F10)"
 
-#: odysseus/ui/window.py:116
+#: odysseus/ui/window.py:118
 msgid "Barre latérale (Ctrl+F9)"
 msgstr "Sidebar (Ctrl+F9)"
 
-#: odysseus/ui/window.py:119
+#: odysseus/ui/window.py:121
 msgid "Précédent (Alt+←)"
 msgstr "Back (Alt+←)"
 
-#: odysseus/ui/window.py:120
+#: odysseus/ui/window.py:122
 msgid "Suivant (Alt+→)"
 msgstr "Forward (Alt+→)"
 
-#: odysseus/ui/window.py:131
+#: odysseus/ui/window.py:133
 msgid "Vue en colonnes (F9)"
 msgstr "Column view (F9)"
 
-#: odysseus/ui/window.py:134
+#: odysseus/ui/window.py:136
 msgid "Double panneau (F3)"
 msgstr "Dual panel (F3)"
 
-#: odysseus/ui/window.py:137
+#: odysseus/ui/window.py:139
 msgid "Aperçu (F4)"
 msgstr "Preview (F4)"
 
-#: odysseus/ui/window.py:140
+#: odysseus/ui/window.py:142
 msgid "Rechercher (Ctrl+F)"
 msgstr "Search (Ctrl+F)"
 
-#: odysseus/ui/window.py:143
+#: odysseus/ui/window.py:145
 msgid "Changer de vue"
 msgstr "Change view"
 
-#: odysseus/ui/window.py:143
+#: odysseus/ui/window.py:145
 msgid "Options d'affichage"
 msgstr "View options"
 
-#: odysseus/ui/window.py:153
+#: odysseus/ui/window.py:155
 msgid ""
 "Mode administrateur : les modifications sont faites avec les droits root. "
 "Soyez prudent."
 msgstr "Administrator mode: changes are made with root privileges. Be careful."
 
-#: odysseus/ui/window.py:160
+#: odysseus/ui/window.py:162
 msgid "Rechercher dans ce dossier…"
 msgstr "Search this folder…"
 
-#: odysseus/ui/window.py:163
+#: odysseus/ui/window.py:165
 msgid "Chercher aussi dans les sous-dossiers"
 msgstr "Also search in subfolders"
 
-#: odysseus/ui/window.py:167
+#: odysseus/ui/window.py:169
 msgid "Rechercher dans le contenu des fichiers (F8)"
 msgstr "Search file contents (F8)"
 
-#: odysseus/ui/window.py:199
+#: odysseus/ui/window.py:202
 msgid "Nouveau fichier"
 msgstr "New file"
 
-#: odysseus/ui/window.py:200
+#: odysseus/ui/window.py:203
 msgid "Renommer (F2)"
 msgstr "Rename (F2)"
 
-#: odysseus/ui/window.py:201
+#: odysseus/ui/window.py:204
 msgid "Mettre à la corbeille (Suppr)"
 msgstr "Move to trash (Delete)"
 
-#: odysseus/ui/window.py:203
+#: odysseus/ui/window.py:206
 msgid "Supprimer définitivement (Maj+Suppr)"
 msgstr "Delete permanently (Shift+Delete)"
 
-#: odysseus/ui/window.py:209
+#: odysseus/ui/window.py:212
 msgid "Copier vers l'autre panneau (F6)"
 msgstr "Copy to the other panel (F6)"
 
-#: odysseus/ui/window.py:211
+#: odysseus/ui/window.py:214
 msgid "Déplacer vers l'autre panneau (Maj+F6)"
 msgstr "Move to the other panel (Shift+F6)"
 
-#: odysseus/ui/window.py:381
+#: odysseus/ui/window.py:391
 msgid "Copier →"
 msgstr "Copy →"
 
-#: odysseus/ui/window.py:381
+#: odysseus/ui/window.py:391
 msgid "← Copier"
 msgstr "← Copy"
 
-#: odysseus/ui/window.py:382
+#: odysseus/ui/window.py:392
 msgid "Déplacer →"
 msgstr "Move →"
 
-#: odysseus/ui/window.py:382
+#: odysseus/ui/window.py:392
 msgid "← Déplacer"
 msgstr "← Move"
 
-#: odysseus/ui/window.py:563
+#: odysseus/ui/window.py:595
 msgid "Des opérations sont en cours"
 msgstr "Operations are in progress"
 
-#: odysseus/ui/window.py:563
+#: odysseus/ui/window.py:595
 msgid "Quitter maintenant les annulera."
 msgstr "Quitting now will cancel them."
 
-#: odysseus/ui/window.py:816
+#: odysseus/ui/window.py:879
 msgid "Réduire (Ctrl+−)"
 msgstr "Smaller (Ctrl+−)"
 
-#: odysseus/ui/window.py:817
+#: odysseus/ui/window.py:880
 msgid "Agrandir (Ctrl++)"
 msgstr "Larger (Ctrl++)"
 
-#: odysseus/ui/window.py:925
+#: odysseus/ui/window.py:988
 msgid "Ajouté aux signets"
 msgstr "Added to bookmarks"
 
-#: odysseus/ui/window.py:925
+#: odysseus/ui/window.py:988
 msgid "Retiré des signets"
 msgstr "Removed from bookmarks"
 
-#: odysseus/ui/window.py:815
+#: odysseus/ui/window.py:878
 msgid "Taille d'icône"
 msgstr "Icon Size"
 
-#: odysseus/ui/window.py:564
+#: odysseus/ui/window.py:596
 msgid "Continuer"
 msgstr "Continue"
 
-#: odysseus/ui/window.py:564
+#: odysseus/ui/window.py:596
 msgid "Quitter"
 msgstr "Quit"
 

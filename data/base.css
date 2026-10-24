@@ -28,6 +28,8 @@
 .path-button.current { font-weight: 700; }
 .path-sep { margin: 0 1px; opacity: 0.45; }
 .path-entry { border-radius: 8px; }
+/* Taper pour aller au fichier : ce qui a été tapé, en bas au centre */
+.type-ahead { margin-bottom: 18px; padding: 6px 14px; border-radius: 999px; }
 /* Suggestions sous le champ de chemin, aérées comme celles de Nautilus */
 .path-suggestions { background: transparent; }
 .path-suggestions > row { padding: 7px 10px; border-radius: 6px; }
