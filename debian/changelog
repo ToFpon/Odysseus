@@ -1,3 +1,11 @@
+odysseus (1.0.4~noble1) noble; urgency=medium
+
+  * Barre de chemin : en tapant un chemin, les sous-dossiers
+    correspondants sont proposés sous le champ, comme dans Nautilus
+    (flèches pour choisir, Tab pour compléter, Entrée pour y aller).
+
+ -- Tof <nourpon@gmail.com>  Sun, 25 Oct 2026 18:00:00 +0100
+
 odysseus (1.0.3~noble1) noble; urgency=medium
 
   * Recherche : le meilleur résultat est sélectionné au fil de la frappe
