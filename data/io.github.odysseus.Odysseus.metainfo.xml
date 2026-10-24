@@ -70,6 +70,11 @@
   </requires>
   <content_rating type="oars-1.1"/>
   <releases>
+    <release version="1.0.1" date="2026-10-24">
+      <description>
+        <p>Holding dragged files over a folder opens it after half a second, as in GNOME Files.</p>
+      </description>
+    </release>
     <release version="1.0.0" date="2026-10-23">
       <description>
         <p>First release on the PPA.</p>

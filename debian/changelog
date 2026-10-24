@@ -1,3 +1,11 @@
+odysseus (1.0.1~noble1) noble; urgency=medium
+
+  * Glisser-déposer : tenir des fichiers une demi-seconde au-dessus d'un
+    dossier (vue, barre latérale, barre de chemin) l'ouvre, comme dans
+    Nautilus ; désactivable dans Préférences → Général.
+
+ -- Tof <nourpon@gmail.com>  Sat, 24 Oct 2026 12:00:00 +0200
+
 odysseus (1.0.0~noble1) noble; urgency=medium
 
   * Première publication sur le PPA ppa:nourpon/odysseus.
