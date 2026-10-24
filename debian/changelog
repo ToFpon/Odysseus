@@ -1,3 +1,13 @@
+odysseus (1.0.3~noble1) noble; urgency=medium
+
+  * Recherche : le meilleur résultat est sélectionné au fil de la frappe
+    et Entrée l'ouvre, comme dans Nautilus.
+  * Recherche : ouvrir un dossier depuis les résultats termine la
+    recherche et affiche tout son contenu (le filtre restait posé sur le
+    nouveau dossier).
+
+ -- Tof <nourpon@gmail.com>  Sun, 25 Oct 2026 12:00:00 +0100
+
 odysseus (1.0.2~noble1) noble; urgency=medium
 
   * Listes de choix : les choix longs ne sont plus abrégés.
