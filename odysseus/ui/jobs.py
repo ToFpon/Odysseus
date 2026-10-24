@@ -222,6 +222,9 @@ class OperationsButton(Gtk.MenuButton):
         box = Gtk.Box(spacing=6)
         self.spinner = Gtk.Spinner()
         box.append(self.spinner)
+        # tout est fini (le bouton reste quelques secondes) : une icône, sinon il restait vide
+        self.done_icon = Gtk.Image(visible=False)
+        box.append(self.done_icon)
         self.label = Gtk.Label(css_classes=["caption", "numeric"])
         box.append(self.label)
         self.set_child(box)
@@ -260,12 +263,18 @@ class OperationsButton(Gtk.MenuButton):
                 GLib.source_remove(self._hide_id)
                 self._hide_id = 0
             self.set_visible(True)
+            self.done_icon.set_visible(False)
+            self.spinner.set_visible(True)
             self.spinner.start()
             self.label.set_text(f"{int(manager.overall_fraction() * 100)} %")
             self.label.set_visible(True)
         else:
             self.spinner.stop()
+            self.spinner.set_visible(False)
             self.label.set_visible(False)
+            failed = any(j.state == "failed" for j in manager.jobs)
+            self.done_icon.set_from_icon_name("dialog-warning-symbolic" if failed else "object-select-symbolic")
+            self.done_icon.set_visible(bool(manager.jobs))
             if manager.jobs and not self._hide_id and self.get_visible():
                 self._hide_id = GLib.timeout_add_seconds(20, self._autohide)
             elif not manager.jobs:

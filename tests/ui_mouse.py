@@ -268,6 +268,26 @@ def steps(win):
     yield
     yield
     check(p.location == "/usr/share", f"Ctrl+L puis « /usr/share » au clavier ({p.location})")
+    # clic gauche dans une zone vide : plus rien de sélectionné (comme Nautilus), en liste et en grille
+    p.open(os.path.join(D, "taper"))
+    yield
+    yield
+    for mode in ("list", "grid"):
+        win.activate_action("win.view-mode", GLib.Variant.new_string(mode))
+        yield
+        yield
+        x, y = label_point(win, p, "photo.jpg")
+        xdo("mousemove", x, y, "click", 1)
+        yield
+        had = [r.name for r in p.selected_recs()]
+        ex, ey = screen_point(win, p, p.get_width() / 2, p.get_height() - 80)
+        xdo("mousemove", ex, ey, "click", 1)
+        yield
+        check(had == ["photo.jpg"] and not p.selected_recs(),
+              f"{mode} : clic dans le vide, plus rien de sélectionné ({had} → {[r.name for r in p.selected_recs()]})")
+    win.activate_action("win.view-mode", GLib.Variant.new_string("list"))
+    yield
+
     # taper pour aller au fichier (réglage) : la liste reste entière, l'élément est sélectionné
     from odysseus.settings import settings as _st
     p.open(os.path.join(D, "taper"))

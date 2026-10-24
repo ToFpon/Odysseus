@@ -289,6 +289,10 @@ def copie(win):
     win.run_transfer([os.path.join(D, "fichier 1.txt")], os.path.join(D, "dossier B"))
     yield wait_jobs()
     check(os.path.exists(os.path.join(D, "dossier B", "fichier 1.txt")), "copie")
+    ob = win.ops_btn
+    yield pump(0.3)
+    check(not ob.get_visible() or (ob.done_icon.get_visible() and ob.done_icon.get_icon_name() == "object-select-symbolic"),
+          f"bouton des opérations : icône « terminé » une fois fini, jamais vide ({ob.get_visible()}, {ob.done_icon.get_icon_name()})")
     win.run_transfer([os.path.join(D, "fichier 1.txt")], D)
     yield wait_jobs()
     check(os.path.exists(os.path.join(D, COPIED)), "copie au même endroit : « (copie) »")

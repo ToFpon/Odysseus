@@ -122,6 +122,24 @@ class _CellMixin:
     """Liaison commune des cellules nom (liste) et des cases de la grille."""
     pane: "Pane"
 
+    def _attach_empty_click(self, view):
+        """Clic gauche dans une zone vide de la vue : plus rien de sélectionné, comme Nautilus
+        (Ctrl / Maj gardent la sélection, pour commencer un lasso qui s'y ajoute)."""
+        click = Gtk.GestureClick(button=1)
+
+        def pressed(gesture, _n, x, y):
+            if gesture.get_current_event_state() & (Gdk.ModifierType.CONTROL_MASK | Gdk.ModifierType.SHIFT_MASK):
+                return
+            w = view.pick(x, y, Gtk.PickFlags.DEFAULT)
+            while w is not None and w is not view:
+                # un élément (case ou ligne), ou l'en-tête des colonnes : pas une zone vide
+                if getattr(w, "_rec", None) is not None or w.get_css_name() in ("header", "row", "child"):
+                    return
+                w = w.get_parent()
+            self.pane.selection.unselect_all()
+        click.connect("pressed", pressed)
+        view.add_controller(click)
+
     def _track(self, widget, entry, refill):
         old = getattr(widget, "_entry", None)
         if old is not None and getattr(widget, "_hid", 0):
@@ -412,6 +430,7 @@ class ListView(Gtk.ScrolledWindow, _CellMixin):
         bg = Gtk.GestureClick(button=3)
         bg.connect("pressed", self._on_bg_click)
         view.add_controller(bg)
+        self._attach_empty_click(view)
         lp = Gtk.GestureLongPress(touch_only=True)
         lp.connect("pressed", lambda g, x, y: pane.emit("context-menu", x, y, True))
         view.add_controller(lp)
@@ -557,6 +576,7 @@ class GridView(Gtk.ScrolledWindow, _CellMixin):
         bg = Gtk.GestureClick(button=3)
         bg.connect("pressed", self._on_bg_click)
         self.view.add_controller(bg)
+        self._attach_empty_click(self.view)
         self._pending = None
         self._pending_id = 0
         self._cols_id = 0
