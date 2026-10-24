@@ -70,6 +70,14 @@
   </requires>
   <content_rating type="oars-1.1"/>
   <releases>
+    <release version="1.0.6" date="2026-10-26">
+      <description>
+        <ul>
+          <li>Clicking an empty area clears the selection, as in GNOME Files</li>
+          <li>The file operations button shows a check mark once everything is done</li>
+        </ul>
+      </description>
+    </release>
     <release version="1.0.5" date="2026-10-25">
       <description>
         <p>New option: type the start of a name to go to the file without filtering the list, as in Nemo or Thunar.</p>

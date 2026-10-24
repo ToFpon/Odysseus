@@ -1,3 +1,12 @@
+odysseus (1.0.6~noble1) noble; urgency=medium
+
+  * Un clic gauche dans une zone vide vide la sélection, comme dans
+    Nautilus.
+  * Bouton des opérations : une coche (ou un avertissement en cas
+    d'échec) une fois tout terminé, au lieu d'un bouton vide.
+
+ -- Tof <nourpon@gmail.com>  Mon, 26 Oct 2026 12:00:00 +0100
+
 odysseus (1.0.5~noble1) noble; urgency=medium
 
   * Nouvelle option « Taper au clavier pour aller au fichier »
