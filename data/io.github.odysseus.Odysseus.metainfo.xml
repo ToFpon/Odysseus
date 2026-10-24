@@ -70,6 +70,15 @@
   </requires>
   <content_rating type="oars-1.1"/>
   <releases>
+    <release version="1.0.2" date="2026-10-24">
+      <description>
+        <ul>
+          <li>Long choices in drop-down lists are no longer cut off</li>
+          <li>Grid view: long names stay inside the selection</li>
+          <li>Bookmarks duplicating your personal folders (often added by Thunar) are hidden, as in GNOME Files</li>
+        </ul>
+      </description>
+    </release>
     <release version="1.0.1" date="2026-10-24">
       <description>
         <p>Holding dragged files over a folder opens it after half a second, as in GNOME Files.</p>
