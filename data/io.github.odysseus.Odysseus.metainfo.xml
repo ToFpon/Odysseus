@@ -70,6 +70,11 @@
   </requires>
   <content_rating type="oars-1.1"/>
   <releases>
+    <release version="1.0.5" date="2026-10-25">
+      <description>
+        <p>New option: type the start of a name to go to the file without filtering the list, as in Nemo or Thunar.</p>
+      </description>
+    </release>
     <release version="1.0.4" date="2026-10-25">
       <description>
         <p>Typing a path in the location bar suggests matching folders, as in GNOME Files.</p>

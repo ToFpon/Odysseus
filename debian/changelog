@@ -1,3 +1,12 @@
+odysseus (1.0.5~noble1) noble; urgency=medium
+
+  * Nouvelle option « Taper au clavier pour aller au fichier »
+    (Préférences → Général, coupée par défaut) : taper le début d'un nom
+    sélectionne le fichier sans filtrer la liste, comme dans Nemo ou
+    Thunar.
+
+ -- Tof <nourpon@gmail.com>  Sun, 25 Oct 2026 21:00:00 +0100
+
 odysseus (1.0.4~noble1) noble; urgency=medium
 
   * Barre de chemin : en tapant un chemin, les sous-dossiers
