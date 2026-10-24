@@ -172,7 +172,7 @@ class MainWindow(FileActions, ArchiveActions, ToolActions, Adw.ApplicationWindow
         self.search_bar.set_key_capture_widget(self)
         self.search_btn.bind_property("active", self.search_bar, "search-mode-enabled", bidir())
         self.search_entry.connect("search-changed", self._on_search_changed)
-        self.search_entry.connect("activate", lambda *_: self._run_search(force=True))
+        self.search_entry.connect("activate", self._on_search_activate)
         self.search_bar.connect("notify::search-mode-enabled", self._on_search_mode)
         tv.add_top_bar(self.search_bar)
 
@@ -307,6 +307,7 @@ class MainWindow(FileActions, ArchiveActions, ToolActions, Adw.ApplicationWindow
         if ws is None:
             return
         self.search_entry.set_text("")
+        self._search_origin = None
         self._on_location(ws.active)
         self._sync_dual()
 
@@ -321,6 +322,12 @@ class MainWindow(FileActions, ArchiveActions, ToolActions, Adw.ApplicationWindow
             self.update_pane_pathbar(pane)
         if pane is not self.pane:
             return
+        origin = getattr(self, "_search_origin", None)
+        if origin is not None and pane.mode != "search" and pane.location != origin \
+                and self.search_bar.get_search_mode():
+            # un résultat (ou un autre dossier) ouvert : la recherche est finie, comme dans Nautilus ;
+            # sinon le filtre restait posé sur le nouveau dossier (« include » seul dans /usr)
+            self.search_bar.set_search_mode(False)
         archive_root = pane.archive_path if pane.mode == "archive" else ""
         loc = pane.location if pane.mode not in ("archive", "search") else pane.location_text()
         self.pathbar.set_location(loc, pane.location_text() if pane.mode != "trash" else TRASH_URI, archive_root)
@@ -523,6 +530,9 @@ class MainWindow(FileActions, ArchiveActions, ToolActions, Adw.ApplicationWindow
         p = self.pane
         if p is not None:
             text = self.search_entry.get_text()
+            if text.strip() and getattr(self, "_search_origin", None) is None:
+                # dossier où la recherche a commencé : en ouvrir un autre la termine (comme Nautilus)
+                self._search_origin = p.search_root if p.mode == "search" else p.location
             if self.recursive_btn.get_active() and p.mode in ("fs", "search"):
                 if text.strip():
                     p.start_search(text, recursive=True)
@@ -530,10 +540,25 @@ class MainWindow(FileActions, ArchiveActions, ToolActions, Adw.ApplicationWindow
                     p.open(p.search_root, push=False)
             else:
                 p.start_search(text, recursive=False)
+                p.select_best(text)
         return False
+
+    def _on_search_activate(self, *_):
+        """Entrée dans le champ de recherche : ouvre le résultat sélectionné (le meilleur, d'office),
+        comme Nautilus. Recherche dans les sous-dossiers pas encore lancée : on la lance d'abord."""
+        if getattr(self, "_search_id", 0):
+            GLib.source_remove(self._search_id)
+            self._run_search(force=True)
+            return
+        p = self.pane
+        if p is not None and self.search_entry.get_text().strip() and p.selected_recs():
+            self.open_selected()
+        else:
+            self._run_search(force=True)
 
     def _on_search_mode(self, bar, *_):
         if not bar.get_search_mode():
+            self._search_origin = None
             p = self.pane
             self.search_entry.set_text("")
             if p is not None:

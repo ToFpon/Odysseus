@@ -711,6 +711,40 @@ def quitter_double_panneau_focus(win):
 
 
 @step
+def recherche_comme_nautilus(win):
+    """Signalé par un utilisateur : taper « u » dans / doit sélectionner usr (le meilleur résultat),
+    Entrée l'ouvre, et la recherche se termine (avant : le filtre « u » restait sur /usr, où seul
+    « include » s'affichait). Dans le dossier, puis dans les sous-dossiers."""
+    root = tempfile.mkdtemp(dir=D, prefix="racine ")
+    for d in ("usr", "run", "bin.usr-is-merged", "lib.usr-is-merged", "etc"):
+        os.makedirs(os.path.join(root, d))
+    usr_children = ("bin", "games", "include", "lib", "share", "src")
+    for d in usr_children:
+        os.makedirs(os.path.join(root, "usr", d))
+    p = win.pane
+    for recursive in (False, True):
+        p.open(root)
+        yield Wait(5, until=lambda: not p.model.loading)
+        win.recursive_btn.set_active(recursive)
+        win.search_bar.set_search_mode(True)
+        yield pump(0.2)
+        win.search_entry.set_text("u")
+        yield Wait(5, until=lambda: [r.name for r in p.selected_recs()] == ["usr"])
+        how = "sous-dossiers" if recursive else "dossier"
+        check([r.name for r in p.selected_recs()] == ["usr"],
+              f"recherche ({how}) : « u » sélectionne usr d'office ({[r.name for r in p.selected_recs()]})")
+        win.search_entry.emit("activate")
+        yield Wait(5, until=lambda: p.location == os.path.join(root, "usr") and not p.model.loading)
+        yield pump(0.4)
+        names = sorted(r.name for r in p.model.items)
+        check(p.location == os.path.join(root, "usr") and not win.search_bar.get_search_mode()
+              and names == sorted(usr_children),
+              f"recherche ({how}) : Entrée ouvre usr, recherche terminée, tout son contenu ({names})")
+    win.recursive_btn.set_active(False)
+    yield pump(0.2)
+
+
+@step
 def signets_doublons_thunar(win):
     """Thunar met souvent les dossiers de l'utilisateur en signets : comme Nautilus, ils ne sont pas
     affichés une seconde fois, et le fichier des signets (partagé avec Thunar) n'est pas touché."""

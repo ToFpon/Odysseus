@@ -741,6 +741,8 @@ class Pane(Gtk.Box):
                 items = batch[:]
                 batch.clear()
             self.model.append_static(items)
+            if items:
+                self._keep_best(query)
             self._update_state()
             if state["done"]:
                 self.model.finish_static()
@@ -1032,6 +1034,30 @@ class Pane(Gtk.Box):
             return self.search_root
         f = Gio.File.new_for_uri(self.location) if is_uri(self.location) else None
         return f.get_path() if f is not None and f.get_path() else ""
+
+    def select_best(self, query: str):
+        """Recherche : comme Nautilus, le meilleur résultat est sélectionné, Entrée l'ouvre. Nom
+        identique, puis qui commence par le texte, puis le plus court ; à égalité, l'ordre affiché."""
+        needle = fold(query.strip())
+        items = self.model.items
+        if not needle or not items or not self.model.selection or self.view_mode == "columns":
+            return
+        best, key = -1, None
+        for i, r in enumerate(items):
+            f = fold(r.name)
+            k = (0 if f == needle else 1 if f.startswith(needle) else 2, len(f), i)
+            if key is None or k < key:
+                best, key = i, k
+        self._auto_pick = items[best]
+        self.model.selection.set_selection(Gtk.Bitset.new_range(best, 1), Gtk.Bitset.new_range(0, len(items)))
+        self.scroll_to(best)
+
+    def _keep_best(self, query: str):
+        """Résultats qui arrivent au fil de la recherche : le meilleur reste sélectionné, tant que
+        l'utilisateur n'a pas choisi lui-même."""
+        sel = self.selected_recs()
+        if not sel or (len(sel) == 1 and sel[0] is getattr(self, "_auto_pick", None)):
+            self.select_best(query)
 
     def select_names(self, names: list[str]):
         if not names:

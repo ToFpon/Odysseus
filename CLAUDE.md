@@ -178,6 +178,10 @@ fenêtre de recherche dans le contenu.
   après un seuil de glisser dans la cible, relancé tant que le pointeur bouge. Testé avec de vrais
   glisser dans `ui_mouse.py` ; y déposer au milieu (la notification « déplacé — Annuler » du dépôt
   précédent, en bas de la fenêtre, n'accepte pas de fichiers).
+- Recherche comme Nautilus : le meilleur résultat est sélectionné d'office (`Pane.select_best` : nom
+  identique, puis qui commence par le texte, puis le plus court), Entrée dans le champ l'ouvre
+  (`_on_search_activate`) ; ouvrir un autre dossier que celui de départ (`_search_origin`) ferme la
+  recherche, sinon le filtre restait posé sur le nouveau dossier.
 - `Adw.TabView` capte Ctrl+Tab : `remove_shortcuts(...)` pour l'utiliser entre panneaux.
 - D-Bus : `conn.register_object(path, info, method_cb, None, None)` (pas de `register_object_with_closures`).
 - Double panneau : la position du séparateur se calcule avec `paned.get_width()`, et le ratio n'est
