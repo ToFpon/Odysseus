@@ -19,7 +19,7 @@ from ..backend.workers import pool
 from ..i18n import ntr, tr
 from ..settings import settings
 from . import clipboard, icons
-from .common import date_label, perms_label, shown
+from .common import SpringLoad, date_label, perms_label, shown
 
 if TYPE_CHECKING:
     from .pane import Pane
@@ -269,10 +269,39 @@ class _CellMixin:
             rec = getattr(_t.get_widget(), "_rec", None)
             return bool(rec is not None and rec.is_dir and rec.path and self.pane.mode == "fs")
 
+        def spring():
+            # au moment d'ouvrir : la cellule montre-t-elle toujours ce dossier, et y déposer
+            # a-t-il un sens (pas un des dossiers qu'on fait glisser, ni leur propre dossier) ?
+            rec = getattr(t.get_widget(), "_rec", None)
+            if rec is None or rec.path != t._spring_path or not rec.is_dir or self.pane.mode != "fs":
+                return
+            if rec.path in DRAG_PATHS or not self.pane.preferred_action(t.get_current_drop(), rec):
+                return
+            # la cellule va être recyclée pour le nouveau dossier sans recevoir « leave » : sans ça,
+            # la surbrillance de dépôt restait sur une ligne du nouveau dossier
+            t.get_widget().remove_css_class("drop-row")
+            t._spring_path = None
+            self.pane.open(rec.path)
+        t._spring = SpringLoad(widget, spring)
+        t._spring_path = None
+
         def enter(_t, x, y):
             w = _t.get_widget()
             w.add_css_class("drop-row")
-            return self.pane.preferred_action(_t.get_current_drop(), getattr(w, "_rec", None))
+            rec = getattr(w, "_rec", None)
+            if rec is not None and rec.path != _t._spring_path:
+                _t._spring_path = rec.path
+                _t._spring.enter(x, y)
+            return self.pane.preferred_action(_t.get_current_drop(), rec)
+
+        def motion(_t, x, y):
+            _t._spring.motion(x, y)
+            return enter(_t, x, y)
+
+        def leave(_t):
+            _t.get_widget().remove_css_class("drop-row")
+            _t._spring.leave()
+            _t._spring_path = None
 
         def drop(_t, value, x, y):
             w = _t.get_widget()
@@ -285,9 +314,9 @@ class _CellMixin:
             return True
         t.connect("accept", accept)
         t.connect("enter", enter)
-        t.connect("motion", enter)
-        t.connect("leave", lambda t_: t_.get_widget().remove_css_class("drop-row"))
-        t.connect("drop", drop)
+        t.connect("motion", motion)
+        t.connect("leave", leave)
+        t.connect("drop", lambda *a: (t._spring.leave(), drop(*a))[1])
         widget.add_controller(t)
 
 

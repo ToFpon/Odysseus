@@ -128,6 +128,28 @@ def drag(a, b):
     threading.Thread(target=run, daemon=True).start()
 
 
+def drag_hold(a, b, hold, c_point):
+    """Glisser de a jusqu'à b, rester immobile « hold » secondes au-dessus de b, puis déposer en
+    c_point() (calculé à ce moment-là : la vue a pu changer de dossier entre-temps)."""
+    def run():
+        xdo("mousemove", *a)
+        time.sleep(0.2)
+        xdo("mousedown", 1)
+        time.sleep(0.2)
+        for k in range(1, 11):
+            xdo("mousemove", a[0] + (b[0] - a[0]) * k // 10, a[1] + (b[1] - a[1]) * k // 10)
+            time.sleep(0.05)
+        xdo("mousemove", b[0] + 12, b[1])         # bien entré dans la cible, puis immobile
+        time.sleep(hold)
+        c = c_point()
+        for k in range(1, 6):
+            xdo("mousemove", b[0] + (c[0] - b[0]) * k // 5, b[1] + (c[1] - b[1]) * k // 5)
+            time.sleep(0.05)
+        time.sleep(0.3)
+        xdo("mouseup", 1)
+    threading.Thread(target=run, daemon=True).start()
+
+
 def _all_popovers(win):
     out = []
 
@@ -165,7 +187,40 @@ def steps(win):
     for _ in range(5):
         yield
     check(os.path.exists(os.path.join(D, "un", "cible", "f1")), "glisser un fichier sur un dossier")
+    check(p.location == os.path.join(D, "un"), f"déposé sans s'attarder : le dossier ne s'ouvre pas ({p.location})")
+    # comme Nautilus : tenir le fichier au-dessus d'un dossier l'ouvre au bout d'une demi-seconde,
+    # et on dépose à l'intérieur (au milieu : la notification « déplacé — Annuler » du dépôt
+    # précédent occupe encore le bas de la fenêtre et n'accepte pas de fichiers)
+    cible = os.path.join(D, "un", "cible")
+    drag_hold(label_point(win, p, "f3"), label_point(win, p, "cible"), 1.2,
+              lambda: screen_point(win, p, p.get_width() / 2, p.get_height() / 2))
+    for _ in range(6):
+        yield
+    check(p.location == cible and os.path.exists(os.path.join(cible, "f3")),
+          f"glisser en s'attardant sur un dossier : il s'ouvre, on dépose dedans ({p.location})")
+    p.open(os.path.join(D, "un"))
+    yield
     check(not any(x.has_css_class("drop-hover") for x in win.all_panes()), "pas de cadre de dépôt resté affiché")
+    # barre latérale : s'attarder sur « Dossier personnel » l'ouvre, on dépose dedans
+    from odysseus.i18n import tr as _tr
+    drag_hold(label_point(win, p, "f4"), label_point(win, win.sidebar, _tr("Dossier personnel")), 1.2,
+              lambda: screen_point(win, p, p.get_width() / 2, p.get_height() / 2))
+    for _ in range(6):
+        yield
+    home = os.environ["HOME"]
+    check(p.location == home and os.path.exists(os.path.join(home, "f4")),
+          f"barre latérale : s'attarder sur un emplacement l'ouvre ({p.location})")
+    # réglage coupé : le dossier survolé ne s'ouvre plus, le dépôt se fait dessus
+    from odysseus.settings import settings as _settings
+    _settings["dnd_hover_open"] = False
+    p.open(os.path.join(D, "un"))
+    yield
+    drag_hold(label_point(win, p, "f5"), label_point(win, p, "cible"), 1.2, lambda: label_point(win, p, "cible"))
+    for _ in range(6):
+        yield
+    check(p.location == os.path.join(D, "un") and os.path.exists(os.path.join(cible, "f5")),
+          f"réglage coupé : le dossier survolé ne s'ouvre pas ({p.location})")
+    _settings["dnd_hover_open"] = True
     win.activate_action("win.dual", None)
     yield
     other = win.workspace.other(p)

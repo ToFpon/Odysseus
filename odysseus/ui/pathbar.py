@@ -12,6 +12,7 @@ from typing import Callable, Optional
 from gi.repository import Gdk, Gio, GLib, GObject, Gtk
 
 from ..i18n import tr
+from .common import SpringLoad
 from .common import shown as _shown
 
 
@@ -164,10 +165,23 @@ class PathBar(Gtk.Box):
 
     def _add_drop(self, widget, target):
         t = Gtk.DropTarget.new(Gdk.FileList, Gdk.DragAction.COPY | Gdk.DragAction.MOVE)
-        t.connect("enter", lambda *_: (widget.add_css_class("drop-row"), Gdk.DragAction.MOVE)[1])
-        t.connect("leave", lambda *_: widget.remove_css_class("drop-row"))
+        # comme Nautilus : tenir un élément au-dessus d'un dossier du chemin y va
+        spring = SpringLoad(widget, lambda: self.emit("navigate", target))
+
+        def enter(_t, x, y):
+            widget.add_css_class("drop-row")
+            spring.enter(x, y)
+            return Gdk.DragAction.MOVE
+
+        def motion(_t, x, y):
+            spring.motion(x, y)
+            return Gdk.DragAction.MOVE
+        t.connect("enter", enter)
+        t.connect("motion", motion)
+        t.connect("leave", lambda *_: (widget.remove_css_class("drop-row"), spring.leave()))
 
         def drop(_t, value, x, y):
+            spring.leave()
             widget.remove_css_class("drop-row")
             paths = [f.get_path() for f in value.get_files() if f.get_path()]
             if paths:

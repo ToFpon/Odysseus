@@ -17,7 +17,7 @@ from ..backend import bookmarks, devices
 from ..backend.engine import human_size
 from ..i18n import tr
 from ..settings import settings
-from .common import alert, ask_text, popup_menu, toast
+from .common import SpringLoad, alert, ask_text, popup_menu, toast
 
 TRASH = "trash:///"
 
@@ -168,7 +168,7 @@ class Sidebar(Gtk.Box):
         lb.add_controller(mid)
         drop = Gtk.DropTarget.new(Gdk.FileList, Gdk.DragAction.COPY | Gdk.DragAction.MOVE | Gdk.DragAction.LINK)
         drop.connect("motion", self._drop_motion, lb)
-        drop.connect("leave", lambda *_a, lb=lb: self._drop_clear(lb))
+        drop.connect("leave", lambda *_a, lb=lb: (self._drop_clear(lb), self._spring_leave()))
         drop.connect("drop", self._on_drop, lb)
         lb.add_controller(drop)
         self.box.append(lb)
@@ -428,9 +428,29 @@ class Sidebar(Gtk.Box):
                  lambda name: bookmarks.rename(row.target, name), tr("Renommer"))
 
     # -- déposer ----------------------------------------------------------------
+    def _spring_open(self):
+        row = getattr(self, "_spring_row", None)
+        if row is not None and row.get_parent() is not None and row.target and row.target != TRASH:
+            self.emit("open", row.target, "here")
+
+    def _spring_leave(self):
+        spring = getattr(self, "_spring", None)
+        if spring is not None:
+            spring.leave()
+        self._spring_row = None
+
     def _drop_motion(self, target, x, y, lb):
         self._drop_clear(lb)
         row = lb.get_row_at_y(int(y))
+        # comme Nautilus : tenir un élément au-dessus d'un emplacement l'ouvre (sauf la Corbeille)
+        if getattr(self, "_spring", None) is None:
+            self._spring = SpringLoad(self, self._spring_open)
+            self._spring_row = None
+        if row is not getattr(self, "_spring_row", None):
+            self._spring_row = row if isinstance(row, SidebarRow) else None
+            self._spring.enter(x, y)
+        else:
+            self._spring.motion(x, y)
         if isinstance(row, SidebarRow) and row.target and (row.target == TRASH or "://" not in row.target):
             row.add_css_class("drop-row")
             return Gdk.DragAction.MOVE if row.target == TRASH else Gdk.DragAction.COPY
@@ -448,6 +468,7 @@ class Sidebar(Gtk.Box):
 
     def _on_drop(self, target, value, x, y, lb):
         self._drop_clear(lb)
+        self._spring_leave()
         paths = [f.get_path() for f in value.get_files() if f.get_path()]
         if not paths:
             return False

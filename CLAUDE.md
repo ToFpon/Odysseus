@@ -170,6 +170,11 @@ fenêtre de recherche dans le contenu.
   fermé, le bus lançait Nautilus (son service dans /usr/share). Option active, `dbus.sync_service`
   écrit le nôtre dans ~/.local/share/dbus-1/services (prioritaire, 1re ligne `# Odysseus`) ; option
   coupée, il est retiré et le nom rendu, sans redémarrage. Un fichier qui n'est pas à nous : jamais touché.
+- Glisser au-dessus d'un dossier (vue, barre latérale sauf Corbeille, barre de chemin) l'ouvre après
+  500 ms comme Nautilus 46 (`common.SpringLoad`, réglage `dnd_hover_open`) : minuteur lancé seulement
+  après un seuil de glisser dans la cible, relancé tant que le pointeur bouge. Testé avec de vrais
+  glisser dans `ui_mouse.py` ; y déposer au milieu (la notification « déplacé — Annuler » du dépôt
+  précédent, en bas de la fenêtre, n'accepte pas de fichiers).
 - `Adw.TabView` capte Ctrl+Tab : `remove_shortcuts(...)` pour l'utiliser entre panneaux.
 - D-Bus : `conn.register_object(path, info, method_cb, None, None)` (pas de `register_object_with_closures`).
 - Double panneau : la position du séparateur se calcule avec `paned.get_width()`, et le ratio n'est

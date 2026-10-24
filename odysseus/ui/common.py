@@ -59,6 +59,52 @@ def focus_later(widget: Gtk.Widget):
     GLib.idle_add(lambda: (widget.grab_focus(), False)[1])
 
 
+HOVER_TIMEOUT = 500     # ms, comme Nautilus 46 (nautilus-dnd.h)
+
+
+class SpringLoad:
+    """Glisser des fichiers au-dessus d'un dossier : il s'ouvre au bout de HOVER_TIMEOUT, comme
+    dans Nautilus. Le minuteur ne part qu'une fois le pointeur entré d'un seuil de glisser dans la
+    cible, et repart de zéro tant qu'il bouge encore : traverser un dossier ne l'ouvre pas.
+    open_cb() décide au dernier moment (cible toujours valable ?) et ouvre."""
+
+    def __init__(self, widget: Gtk.Widget, open_cb: Callable[[], None]):
+        self.widget = widget
+        self.open_cb = open_cb
+        self._start = None
+        self._timer = 0
+
+    def enter(self, x: float, y: float):
+        self.cancel()
+        self._start = (x, y)
+
+    def motion(self, x: float, y: float):
+        if self._start is None:
+            self._start = (x, y)
+            return
+        if self.widget.drag_check_threshold(int(self._start[0]), int(self._start[1]), int(x), int(y)):
+            self.cancel()
+            self._start = (x, y)
+            from ..settings import settings
+            if settings["dnd_hover_open"]:
+                self._timer = GLib.timeout_add(HOVER_TIMEOUT, self._fire)
+
+    def cancel(self):
+        if self._timer:
+            GLib.source_remove(self._timer)
+            self._timer = 0
+
+    def leave(self):
+        self.cancel()
+        self._start = None
+
+    def _fire(self):
+        self._timer = 0
+        self._start = None
+        self.open_cb()
+        return False
+
+
 def dialog_parent(widget) -> Optional[Gtk.Window]:
     if widget is None:
         return None
