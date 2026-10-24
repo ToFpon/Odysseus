@@ -1,6 +1,6 @@
 odysseus (1.0.6~noble1) noble; urgency=medium
 
-  * Un clic gauche dans une zone vide vide la sélection, comme dans
+  * Un clic gauche dans une zone vide efface la sélection, comme dans
     Nautilus.
   * Bouton des opérations : une coche (ou un avertissement en cas
     d'échec) une fois tout terminé, au lieu d'un bouton vide.
