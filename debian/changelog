@@ -1,3 +1,10 @@
+odysseus (1.0.9~noble1) noble; urgency=medium
+
+  * Dossier ouvert depuis Autres emplacements ou Ce PC : la liste prend
+    le clavier (taper « u » puis Entrée ouvre bien usr dans « / »).
+
+ -- Tof <nourpon@gmail.com>  Tue, 27 Oct 2026 10:00:00 +0100
+
 odysseus (1.0.8~noble1) noble; urgency=medium
 
   * Vue grille : mêmes cases et espacements que Nautilus 46 ; emblèmes à
