@@ -70,6 +70,13 @@
   </requires>
   <content_rating type="oars-1.1"/>
   <releases>
+    <release version="1.0.7" date="2026-10-26">
+      <description>
+        <ul>
+          <li>In search, the Down and Up arrow keys move from the search field into the results</li>
+        </ul>
+      </description>
+    </release>
     <release version="1.0.6" date="2026-10-26">
       <description>
         <ul>
