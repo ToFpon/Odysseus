@@ -1,3 +1,10 @@
+odysseus (1.0.10~noble1) noble; urgency=medium
+
+  * Taper pour aller au fichier : marche aussi quand le focus s'est
+    perdu après un dossier ouvert depuis Autres emplacements.
+
+ -- Tof <nourpon@gmail.com>  Tue, 27 Oct 2026 16:00:00 +0100
+
 odysseus (1.0.9~noble1) noble; urgency=medium
 
   * Dossier ouvert depuis Autres emplacements ou Ce PC : la liste prend
