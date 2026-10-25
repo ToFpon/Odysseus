@@ -359,6 +359,28 @@ def steps(win):
     want = names[names.index(found[0]) + 1] if found else None
     check(found and sel() == [want] and not win.search_bar.get_search_mode(),
           f"« fa » puis flèche bas : l'élément suivant ({found} → {sel()}), sans champ de recherche")
+    # « / » ouvert par un clic dans Autres emplacements : le focus restait sur la ligne cliquée
+    # (invisible), Entrée la réactivait au lieu d'ouvrir l'élément trouvé
+    from odysseus.ui.pane import OTHER_URI
+    p.open(OTHER_URI)
+    yield
+    yield
+    x, y = label_point(win, p, GLib.get_os_info("NAME") or "/")
+    xdo("mousemove", x, y, "click", 1)
+    yield
+    yield
+    xdo("type", "--delay", "80", "u")
+    yield
+    xdo("key", "Return")
+    yield
+    yield
+    check(p.location == "/usr", f"« / » depuis Autres emplacements, « u » puis Entrée : /usr ({p.location})")
+    p.open(os.path.join(D, "taper"))
+    yield
+    yield
+    x, y = label_point(win, p, "photo.jpg")
+    xdo("mousemove", x, y, "click", 1)
+    yield
     xdo("type", "--delay", "80", "/")
     yield
     check(win.pathbar.stack.get_visible_child_name() == "entry" and not p.type_ahead_active,

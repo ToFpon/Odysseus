@@ -844,6 +844,16 @@ class Pane(Gtk.Box):
             self.stack.set_visible_child_name("empty")
         else:
             self.stack.set_visible_child_name(name)
+            self._focus_from_page()
+
+    def _focus_from_page(self):
+        """Dossier ouvert depuis Autres emplacements / Ce PC : le focus restait sur la ligne cliquée de
+        la page, devenue invisible ; taper « u » sélectionnait usr, mais Entrée réactivait cette ligne
+        (on rouvrait « / »). La vue des fichiers prend le focus, comme dans Nautilus."""
+        root = self.get_root()
+        focus = root.get_focus() if root is not None else None
+        if focus is not None and any(focus is pg or focus.is_ancestor(pg) for pg in self.pages.values()):
+            GLib.idle_add(self.focus_view)
 
     def _fill_empty(self):
         if self.model.filter_text:
