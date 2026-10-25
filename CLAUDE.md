@@ -50,6 +50,10 @@ Gestionnaire de fichiers GTK4 / libadwaita en Python, look Nautilus, intégrant 
   utiliser `subtract`).
 - Au-delà de 2000 éléments, `items_changed` en deux temps (vider puis remplir) ; le contenu du modèle
   doit être cohérent avec chaque signal, sinon GTK plante (segfault).
+- Grille = celle de Nautilus 46 (`nautilus-grid-cell.ui`, style.css) : case = icône + 18 + 2 + 16 (colonne
+  des emblèmes) + 2 × 6, nom dans un `Adw.Clamp(maximum_size=0)` (il passe à la ligne sous l'icône,
+  « … » au milieu), 18 px autour, 6 px entre les cases (`border-spacing`). `GRID_*` de views.py et
+  base.css doivent rester d'accord : `max_columns` calculé = le choix de GTK avec max_columns=20.
 - Seule la vue visible est branchée sur le modèle (`Pane._attach_views`). La grille ne reçoit son
   modèle qu'une fois dimensionnée (`GridView.attach`) et `max_columns` suit la largeur réelle :
   sinon Gtk.GridView crée 64 × 32 cases d'un coup (2 s figées sur 20 000 fichiers).
@@ -254,7 +258,7 @@ fenêtre de recherche dans le contenu.
 - Ghostscript `pdfimage24` : `-sCompression=JPEG` en majuscules.
 - `view-column-symbolic` n'existe pas dans Adwaita : `icons.first_icon` avec repli.
 - Emblèmes comme Nautilus (lien, `emblem-readonly`, `emblem-unreadable`, puis Folder Color), à la suite
-  après le nom en liste, sur l'icône en grille. Droits calculés depuis mode / uid / gid du `stat`
+  après le nom en liste ; en grille, dans une colonne de 16 px à droite de l'icône comme Nautilus 46. Droits calculés depuis mode / uid / gid du `stat`
   (`icons._access`, aucun appel système par ligne). Cadenas seulement si le dossier parent est
   modifiable (dans / ou /usr : aucun cadenas, comme Nautilus) ; parent lu une fois par dossier
   (`_parent_writable`, cache de 5 s). Le bac à sable tourne en root (aucun

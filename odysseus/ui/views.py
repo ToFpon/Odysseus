@@ -9,7 +9,7 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
-from gi.repository import Gdk, Gio, GLib, Graphene, Gtk, Pango
+from gi.repository import Adw, Gdk, Gio, GLib, Graphene, Gtk, Pango
 
 from .. import features
 from ..backend import media, scanner
@@ -29,6 +29,9 @@ ZOOM_LEVELS = ["small", "medium", "large"]
 ZOOM = {"small": (16, True), "medium": (32, False), "large": (48, False)}
 GRID_ZOOM_LEVELS = ["small", "medium", "large", "larger"]
 GRID_ZOOM = {"small": 64, "medium": 96, "large": 128, "larger": 256}
+# grille de Nautilus 46 (style.css) : 18 px autour, 6 px entre les cases ; une case = icône + 18 + 2 + 16
+# (colonne des emblèmes) + 2 × 6 de marge intérieure. Mêmes valeurs dans data/base.css.
+GRID_PADDING, GRID_SPACING, GRID_CELL_EXTRA = 18, 6, 48
 
 # clé, titre, largeur, alignement, clé de tri
 COLUMNS = [
@@ -585,9 +588,8 @@ class GridView(Gtk.ScrolledWindow, _CellMixin):
         Gtk.ScrolledWindow.do_size_allocate(self, width, height, baseline)
         # Gtk.GridView remplit d'abord « max_columns » colonnes, sans connaître la largeur des cases :
         # avec 64, il créait ~2 000 cases (32 rangées × 64). On lui donne le vrai nombre de colonnes.
-        size = self.pane.grid_icon_size
-        cell = max(size, max(10, size // 7) * 8) + 20
-        cols = max(1, min(64, (width - 24) // cell))
+        cols = max(1, min(64, (width - 2 * GRID_PADDING + GRID_SPACING)
+                          // (self.pane.grid_icon_size + GRID_CELL_EXTRA + GRID_SPACING)))
         if cols != self.view.get_max_columns() and not self._cols_id:
             self._cols_id = GLib.idle_add(self._apply_cols, cols)
 
@@ -623,20 +625,27 @@ class GridView(Gtk.ScrolledWindow, _CellMixin):
         return False
 
     def _setup(self, _f, li):
-        # toute la largeur de la case : centrée, la boîte ne recevait que sa largeur naturelle, plus
-        # étroite que celle où GTK avait mesuré le nom ; le nom repassait à la ligne plus tôt, prenait
-        # une ligne de plus et débordait sous la sélection (selon la police et sa taille)
-        box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=6, css_classes=["grid-cell"],
-                      halign=Gtk.Align.FILL, valign=Gtk.Align.START)
-        ov = Gtk.Overlay(halign=Gtk.Align.CENTER)
+        # case de Nautilus 46 (nautilus-grid-cell.ui) : icône centrée dans une boîte de sa taille, une
+        # colonne de 16 px à droite pour les emblèmes, équilibrée par 18 px à gauche ; Adw.Clamp à 0 :
+        # la case prend la largeur de l'icône et le nom passe à la ligne dessous (il ne l'élargit pas)
+        box = Gtk.Box(css_classes=["grid-cell"], valign=Gtk.Align.START)
+        inner = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=6)
+        icon_box = Gtk.Box(halign=Gtk.Align.CENTER, margin_start=18)
+        ov = Gtk.Overlay(halign=Gtk.Align.CENTER, hexpand=True)
         img = Gtk.Image()
         ov.set_child(img)
-        ov.add_overlay(Gtk.Box(halign=Gtk.Align.END, valign=Gtk.Align.END, visible=False, spacing=2,
-                               css_classes=["emblems"]))
         ov.add_overlay(Gtk.Box(halign=Gtk.Align.START, css_classes=["copy-mark"], visible=False))
-        box.append(ov)
-        box.append(Gtk.Label(wrap=True, wrap_mode=Pango.WrapMode.WORD_CHAR, lines=3,
-                             ellipsize=Pango.EllipsizeMode.END, justify=Gtk.Justification.CENTER))
+        icon_box.append(ov)
+        side = Gtk.Box(width_request=16, margin_start=2)
+        side.append(Gtk.Box(orientation=Gtk.Orientation.VERTICAL, valign=Gtk.Align.END, spacing=6,
+                            visible=False, css_classes=["emblems"]))
+        icon_box.append(side)
+        inner.append(icon_box)
+        label = Gtk.Label(wrap=True, wrap_mode=Pango.WrapMode.WORD_CHAR, lines=3,
+                          ellipsize=Pango.EllipsizeMode.MIDDLE, justify=Gtk.Justification.CENTER)
+        inner.append(label)
+        box.append(Adw.Clamp(maximum_size=0, hexpand=True, child=inner))
+        box._ov, box._img, box._emb, box._mark, box._label = ov, img, side.get_first_child(), ov.get_last_child(), label
         li.set_child(box)
         self._attach_menu_gesture(box, li)
         self._attach_drag(box, li)
@@ -650,17 +659,10 @@ class GridView(Gtk.ScrolledWindow, _CellMixin):
         self._fill(box, entry.rec)
 
     def _fill(self, box, rec: Rec):
-        ov = box.get_first_child()
-        img = ov.get_child()
-        emb = img.get_next_sibling()
-        mark = ov.get_last_child()
-        label = box.get_last_child()
+        img, emb, mark, label = box._img, box._emb, box._mark, box._label
         size = self.pane.grid_icon_size
-        ov.set_size_request(size, size)
-        self._fill_icon(img, emb, rec, size, True)
-        chars = max(10, size // 7)
-        label.set_width_chars(chars)
-        label.set_max_width_chars(chars)
+        box._ov.set_size_request(size, size)
+        self._fill_icon(img, emb, rec, size, True, 16)
         label.set_text(shown(rec.name))
         label.set_tooltip_text(shown(rec.name))
         self._apply_copy_mark(mark, rec)
