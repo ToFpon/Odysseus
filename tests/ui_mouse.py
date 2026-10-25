@@ -375,6 +375,24 @@ def steps(win):
     yield
     yield
     check(p.location == "/usr", f"« / » depuis Autres emplacements, « u » puis Entrée : /usr ({p.location})")
+    # même chose quand la vue n'a pas pu prendre le focus à l'ouverture (dossier lent à lire) :
+    # la frappe le lui donne
+    saved_focus = type(p)._focus_from_page
+    type(p)._focus_from_page = lambda self: None
+    p.open(OTHER_URI)
+    yield
+    yield
+    x, y = label_point(win, p, GLib.get_os_info("NAME") or "/")
+    xdo("mousemove", x, y, "click", 1)
+    yield
+    yield
+    xdo("type", "--delay", "80", "u")
+    yield
+    xdo("key", "Return")
+    yield
+    yield
+    type(p)._focus_from_page = saved_focus
+    check(p.location == "/usr", f"idem sans focus donné à l'ouverture : /usr ({p.location})")
     p.open(os.path.join(D, "taper"))
     yield
     yield

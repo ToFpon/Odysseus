@@ -738,7 +738,7 @@ class MainWindow(FileActions, ArchiveActions, ToolActions, Adw.ApplicationWindow
         p = self.pane
         focus = self.get_focus()
         # seulement dans la vue des fichiers : pas dans un champ, un menu, la barre latérale…
-        if p is None or focus is None or isinstance(focus, Gtk.Editable) or not focus.is_ancestor(p) \
+        if p is None or not (p.lost_focus(focus) or focus.is_ancestor(p) and not isinstance(focus, Gtk.Editable)) \
                 or p.mode not in ("fs", "search", "trash", "remote", "archive") or p.view_mode == "columns":
             return False
         if p.type_ahead_active and keyval == Gdk.KEY_Escape:
@@ -756,6 +756,10 @@ class MainWindow(FileActions, ArchiveActions, ToolActions, Adw.ApplicationWindow
             return False
         if ch == "/" or (ch == "~" and not p.type_ahead_active):
             return False                    # raccourcis « saisir un emplacement » (/, ~) gardés
+        if focus is None or not focus.is_ancestor(p.active_view):
+            # focus resté ailleurs dans le panneau (ligne d'une page Autres emplacements devenue
+            # invisible…) : Entrée l'aurait réactivée au lieu d'ouvrir l'élément trouvé
+            p.focus_view()
         p.type_ahead(ch)
         return True
 

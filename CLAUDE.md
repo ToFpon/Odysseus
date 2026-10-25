@@ -193,8 +193,10 @@ fenêtre de recherche dans le contenu.
   raccourcis (Retour arrière ne fait pas « Précédent »), seulement si le focus est dans la vue du panneau ;
   `/` et `~` restent des raccourcis. `Pane.type_ahead` : premier nom qui commence par le texte (accents
   ignorés), liste entière, encart `.type-ahead` en bas ; 1 s sans frappe → on repart de zéro.
-  Dossier ouvert depuis Autres emplacements / Ce PC : la vue prend le focus (`Pane._focus_from_page`),
-  sinon il restait sur la ligne cliquée (invisible) et Entrée rouvrait « / » au lieu de l'élément trouvé.
+  Dossier ouvert depuis Autres emplacements / Ce PC : la vue prend le focus (`Pane._focus_from_page`,
+  seulement en quittant une de ces pages : sinon elle volait le focus à l'autre panneau), sinon il
+  restait sur la ligne cliquée (invisible) et Entrée rouvrait « / ». GTK remonte aussi parfois le focus
+  sur un conteneur (GtkPaned) ou nulle part : `Pane.lost_focus` ; la frappe donne alors le focus à la vue.
 - Barre de chemin en saisie : suggestions des sous-dossiers comme Nautilus (`PathBar._update_suggestions`,
   lecture du dossier dans un fil, 10 au plus) dans un Gtk.Popover qui ne prend jamais le focus
   (`autohide=False`, `can_focus=False`) ; touches en capture sur le champ (sinon le texte prend les

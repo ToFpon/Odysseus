@@ -843,17 +843,25 @@ class Pane(Gtk.Box):
             self._fill_empty()
             self.stack.set_visible_child_name("empty")
         else:
+            left_page = self.stack.get_visible_child_name() in {n for _c, n in PAGES.values()}
             self.stack.set_visible_child_name(name)
-            self._focus_from_page()
+            if left_page:
+                self._focus_from_page()
 
     def _focus_from_page(self):
         """Dossier ouvert depuis Autres emplacements / Ce PC : le focus restait sur la ligne cliquée de
-        la page, devenue invisible ; taper « u » sélectionnait usr, mais Entrée réactivait cette ligne
-        (on rouvrait « / »). La vue des fichiers prend le focus, comme dans Nautilus."""
+        la page, devenue invisible (ou GTK le remontait sur un conteneur) ; taper « u » ne faisait
+        rien ou Entrée rouvrait « / ». La vue des fichiers prend le focus, comme dans Nautilus."""
         root = self.get_root()
         focus = root.get_focus() if root is not None else None
-        if focus is not None and any(focus is pg or focus.is_ancestor(pg) for pg in self.pages.values()):
+        if self.lost_focus(focus):
             GLib.idle_add(self.focus_view)
+
+    def lost_focus(self, focus) -> bool:
+        """Focus nulle part d'utile : sur une page cachée (Autres emplacements, Ce PC), sur personne,
+        ou sur un conteneur du panneau (GTK y remonte le focus quand la ligne cliquée disparaît)."""
+        return (focus is None or self.is_ancestor(focus)
+                or any(focus is pg or focus.is_ancestor(pg) for pg in self.pages.values()))
 
     def _fill_empty(self):
         if self.model.filter_text:
