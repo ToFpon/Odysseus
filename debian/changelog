@@ -1,3 +1,10 @@
+odysseus (1.0.8~noble1) noble; urgency=medium
+
+  * Vue grille : mêmes cases et espacements que Nautilus 46 ; emblèmes à
+    droite de l'icône, noms longs coupés au milieu.
+
+ -- Tof <nourpon@gmail.com>  Mon, 26 Oct 2026 21:00:00 +0100
+
 odysseus (1.0.7~noble1) noble; urgency=medium
 
   * Recherche : les flèches ↓ / ↑ passent du champ de recherche à la

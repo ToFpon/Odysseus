@@ -70,6 +70,13 @@
   </requires>
   <content_rating type="oars-1.1"/>
   <releases>
+    <release version="1.0.8" date="2026-10-26">
+      <description>
+        <ul>
+          <li>Grid view: same cells and spacing as GNOME Files 46, emblems beside the icon</li>
+        </ul>
+      </description>
+    </release>
     <release version="1.0.7" date="2026-10-26">
       <description>
         <ul>
