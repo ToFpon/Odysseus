@@ -176,6 +176,11 @@ class MainWindow(FileActions, ArchiveActions, ToolActions, Adw.ApplicationWindow
         self.search_btn.bind_property("active", self.search_bar, "search-mode-enabled", bidir())
         self.search_entry.connect("search-changed", self._on_search_changed)
         self.search_entry.connect("activate", self._on_search_activate)
+        # comme Nautilus : flèche bas / haut dans le champ → la liste des résultats prend le focus, sur
+        # le résultat sélectionné ; les flèches y naviguent ensuite (sans fermer la recherche)
+        sk = Gtk.EventControllerKey(propagation_phase=Gtk.PropagationPhase.CAPTURE)
+        sk.connect("key-pressed", self._on_search_key)
+        self.search_entry.add_controller(sk)
         self.search_bar.connect("notify::search-mode-enabled", self._on_search_mode)
         tv.add_top_bar(self.search_bar)
 
@@ -549,6 +554,17 @@ class MainWindow(FileActions, ArchiveActions, ToolActions, Adw.ApplicationWindow
                 p.start_search(text, recursive=False)
                 p.select_best(text)
         return False
+
+    def _on_search_key(self, _c, keyval, _code, state):
+        if keyval not in (Gdk.KEY_Down, Gdk.KEY_Up, Gdk.KEY_KP_Down, Gdk.KEY_KP_Up):
+            return False
+        p = self.pane
+        if p is None or not p.model.items:
+            return False
+        if not p.selected_recs():
+            p.select_best(self.search_entry.get_text()) if self.search_entry.get_text().strip() else None
+        p.focus_view()
+        return True
 
     def _on_search_activate(self, *_):
         """Entrée dans le champ de recherche : ouvre le résultat sélectionné (le meilleur, d'office),

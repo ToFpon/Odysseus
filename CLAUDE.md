@@ -182,6 +182,8 @@ fenêtre de recherche dans le contenu.
   identique, puis qui commence par le texte, puis le plus court), Entrée dans le champ l'ouvre
   (`_on_search_activate`) ; ouvrir un autre dossier que celui de départ (`_search_origin`) ferme la
   recherche, sinon le filtre restait posé sur le nouveau dossier.
+- Recherche : ↓ / ↑ dans le champ passe le focus à la liste sur le meilleur résultat (`MainWindow._on_search_key`),
+  puis les flèches y naviguent.
 - Taper pour aller au fichier (réglage `type_ahead`, coupé par défaut : sinon taper lance la recherche
   comme Nautilus, `search_bar.set_key_capture_widget`) : `MainWindow._on_type_ahead`, en capture avant les
   raccourcis (Retour arrière ne fait pas « Précédent »), seulement si le focus est dans la vue du panneau ;

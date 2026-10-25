@@ -299,7 +299,21 @@ def steps(win):
     xdo("type", "--delay", "80", "p")
     yield
     check(win.search_bar.get_search_mode(), "réglage coupé : taper ouvre la recherche (comme Nautilus)")
+    # comme Nautilus : flèche bas dans le champ → la liste prend le focus, puis les flèches y naviguent
+    xdo("key", "Down")
+    yield
+    first = [r.name for r in p.selected_recs()]
+    xdo("key", "Down")
+    yield
+    after = [r.name for r in p.selected_recs()]
+    focus = win.get_focus()
+    order = [r.name for r in p.model.items]
+    check(first == ["Projets"] and after == [order[order.index("Projets") + 1]] and focus is not None
+          and not isinstance(focus, Gtk.Editable) and focus.is_ancestor(p),
+          f"recherche : flèche bas passe dans la liste, puis navigue ({first} → {after})")
     xdo("key", "Escape")
+    yield
+    win.search_bar.set_search_mode(False)
     yield
     _st["type_ahead"] = True
     xdo("mousemove", x, y, "click", 1)
@@ -329,6 +343,22 @@ def steps(win):
     yield
     yield
     check(p.location == os.path.join(D, "taper", "Projets"), f"Entrée ouvre l'élément trouvé ({p.location})")
+    # puis les flèches partent de l'élément trouvé (comme l'Explorateur Windows, Nemo)
+    p.open(os.path.join(D, "taper"))
+    yield
+    yield
+    x, y = label_point(win, p, "photo.jpg")
+    xdo("mousemove", x, y, "click", 1)
+    yield
+    xdo("type", "--delay", "80", "fa")
+    yield
+    names = [r.name for r in p.model.items]
+    found = sel()
+    xdo("key", "Down")
+    yield
+    want = names[names.index(found[0]) + 1] if found else None
+    check(found and sel() == [want] and not win.search_bar.get_search_mode(),
+          f"« fa » puis flèche bas : l'élément suivant ({found} → {sel()}), sans champ de recherche")
     xdo("type", "--delay", "80", "/")
     yield
     check(win.pathbar.stack.get_visible_child_name() == "entry" and not p.type_ahead_active,
