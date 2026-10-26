@@ -1495,6 +1495,73 @@ def precedent_avec_focus_texte(win):
 
 
 @step
+def renommage_multiple(win):
+    """Plusieurs éléments + F2 : le dialogue « Renommer » de Nautilus (modèle, numérotation, rechercher /
+    remplacer, conflits), renommage en une opération, Ctrl+Z / Ctrl+Maj+Z."""
+    from odysseus.backend import batchrename as br
+    base = os.path.join(D, "multi")
+    os.makedirs(os.path.join(base, "Dossier"))
+    for n in ("IMG_2.jpg", "IMG_10.jpg", "IMG_1.jpg", "garde.txt"):
+        open(os.path.join(base, n), "w").close()
+    p = win.pane
+    p.open(base)
+    yield Wait(5, until=lambda: not p.model.loading)
+    p.model.select_names(["IMG_2.jpg", "IMG_10.jpg", "IMG_1.jpg", "Dossier"])
+    yield pump(0.2)
+    check(win.lookup_action("rename").get_enabled(), "renommer actif avec plusieurs éléments")
+    before = list(Gtk.Window.list_toplevels())
+    win.activate_action("win.rename", None)
+    yield pump(0.5)
+    dlg = [w for w in Gtk.Window.list_toplevels() if w not in before and type(w).__name__ == "BatchRenameDialog"]
+    check(len(dlg) == 1, "F2 sur plusieurs éléments : dialogue de renommage multiple")
+    if not dlg:
+        return
+    d = dlg[0]
+    check(not d.rename_button.get_sensitive(), "rien ne change : « Renommer » grisé")
+    d.name_entry.set_text("Vacances ")
+    d.name_entry.set_position(-1)
+    d.activate_action("rename.tag-num2", None)
+    yield pump(0.3)
+    check(d.name_entry.get_text() == "Vacances " + br.tag_text("num2") and d.numbering.get_reveal_child(),
+          f"balise ajoutée, ordre de numérotation proposé ({d.name_entry.get_text()!r})")
+    shown_new = [r._new.get_text() for r in d.rows]
+    check(shown_new == ["Vacances 01", "Vacances 02.jpg", "Vacances 03.jpg", "Vacances 04.jpg"],
+          f"aperçu dans l'ordre naturel, extensions gardées ({shown_new})")
+    # effacer dans une balise l'efface d'un bloc
+    n = len(d.name_entry.get_text())
+    d.name_entry.get_delegate().delete_text(n - 2, n - 1)
+    yield pump(0.2)
+    check(d.name_entry.get_text() == "Vacances ", f"balise effacée d'un bloc ({d.name_entry.get_text()!r})")
+    # conflit avec un fichier qui n'est pas renommé
+    d.replace_mode.set_active(True)
+    yield pump(0.2)
+    d.find_entry.set_text("IMG_1.jpg")
+    d.replace_entry.set_text("garde.txt")
+    yield pump(0.3)
+    check(d.conflict_box.get_visible() and not d.rename_button.get_sensitive(),
+          f"conflit signalé, « Renommer » grisé ({d.conflict_label.get_text()!r})")
+    d.find_entry.set_text("IMG")
+    d.replace_entry.set_text("Photo")
+    yield pump(0.3)
+    check(not d.conflict_box.get_visible() and d.rename_button.get_sensitive(), "rechercher / remplacer sans conflit")
+    d.rename_button.emit("clicked")
+    yield Wait(5, until=lambda: os.path.exists(os.path.join(base, "Photo_10.jpg")))
+    yield pump(0.5)
+    names = sorted(os.listdir(base))
+    check(names == ["Dossier", "Photo_1.jpg", "Photo_10.jpg", "Photo_2.jpg", "garde.txt"], f"renommés ({names})")
+    win.activate_action("win.undo", None)
+    yield Wait(5, until=lambda: os.path.exists(os.path.join(base, "IMG_10.jpg")))
+    names = sorted(os.listdir(base))
+    check(names == ["Dossier", "IMG_1.jpg", "IMG_10.jpg", "IMG_2.jpg", "garde.txt"], f"annulé d'un coup ({names})")
+    yield pump(0.3)
+    win.activate_action("win.redo", None)
+    yield Wait(5, until=lambda: os.path.exists(os.path.join(base, "Photo_10.jpg")))
+    names = sorted(os.listdir(base))
+    check(names == ["Dossier", "Photo_1.jpg", "Photo_10.jpg", "Photo_2.jpg", "garde.txt"], f"rétabli ({names})")
+    yield pump(0.3)
+
+
+@step
 def panneau_suit_le_dossier(win):
     """Un panneau ouvert dans un dossier renommé (par Odysseus) le suit ; mis à la corbeille, il remonte."""
     base = os.path.join(D, "suivre")

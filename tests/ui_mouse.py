@@ -407,6 +407,39 @@ def steps(win):
     yield
     _st["type_ahead"] = False
 
+    # renommage multiple au clavier : F2, Retour arrière efface la balise d'un bloc, Entrée renomme
+    multi = os.path.join(D, "multi-clavier")
+    os.makedirs(multi)
+    for n in ("b.txt", "a.txt", "c.txt"):
+        open(os.path.join(multi, n), "w").close()
+    p.open(multi)
+    yield
+    yield
+    x, y = label_point(win, p, "a.txt")
+    xdo("mousemove", x, y, "click", 1)
+    yield
+    xdo("key", "ctrl+a")
+    yield
+    xdo("key", "F2")
+    yield
+    yield
+    xdo("key", "End", "BackSpace")
+    yield
+    xdo("type", "--delay", "60", "Note ")
+    yield
+    dlg = [w for w in Gtk.Window.list_toplevels() if type(w).__name__ == "BatchRenameDialog" and w.get_visible()]
+    text = dlg[0].name_entry.get_text() if dlg else None
+    check(text == "Note ", f"F2 sur plusieurs fichiers, Retour arrière efface la balise d'un bloc ({text!r})")
+    if dlg:
+        dlg[0].activate_action("rename.tag-num1", None)
+        yield
+        xdo("key", "Return")
+        yield
+        yield
+        yield
+    names = sorted(os.listdir(multi))
+    check(names == ["Note 1.txt", "Note 2.txt", "Note 3.txt"], f"Entrée renomme ({names})")
+
     # suggestions sous le champ, comme Nautilus : sous-dossiers qui commencent par le texte tapé
     bar = win.pathbar
     xdo("key", "ctrl+l")

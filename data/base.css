@@ -192,3 +192,7 @@ banner.admin-banner > revealer > widget { background-color: @warning_bg_color; c
 .odysseus-app-chooser scrolledwindow,
 .odysseus-app-chooser treeview.view:not(:selected) { background: transparent; }
 .odysseus-app-chooser treeview.view { -gtk-icon-size: 32px; }
+
+/* Renommage multiple : comme Nautilus 46 (style.css) */
+.batch-rename-preview { border-top: 1px solid @borders; }
+.batch-rename-preview row.conflict-row { background: @warning_bg_color; color: @warning_fg_color; }

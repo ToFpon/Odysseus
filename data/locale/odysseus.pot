@@ -83,7 +83,7 @@ msgstr ""
 msgid "Suppression"
 msgstr ""
 
-#: odysseus/backend/archive.py:1058
+#: odysseus/backend/archive.py:1058 odysseus/ui/actions_files.py:940 odysseus/ui/actions_files.py:631
 msgid "Renommage"
 msgstr ""
 
@@ -103,7 +103,7 @@ msgstr ""
 msgid "Ajout"
 msgstr ""
 
-#: odysseus/backend/archive.py:1067 odysseus/ui/actions_archives.py:388 odysseus/ui/actions_archives.py:388 odysseus/ui/actions_files.py:636
+#: odysseus/backend/archive.py:1067 odysseus/ui/actions_archives.py:388 odysseus/ui/actions_archives.py:388 odysseus/ui/actions_files.py:662
 msgid "Nouveau dossier"
 msgstr ""
 
@@ -121,6 +121,74 @@ msgstr ""
 
 #: odysseus/backend/archive.py:611
 msgid "Le format {0} ne compresse qu'un seul fichier ; utilisez TAR.* pour un dossier"
+msgstr ""
+
+#: odysseus/backend/batchrename.py:178
+msgid "Le nom ne peut pas être vide."
+msgstr ""
+
+#: odysseus/backend/batchrename.py:180
+msgid "Le nom ne peut pas contenir « / »."
+msgstr ""
+
+#: odysseus/backend/batchrename.py:182
+msgid "« . » n'est pas un nom valide."
+msgstr ""
+
+#: odysseus/backend/batchrename.py:184
+msgid "« .. » n'est pas un nom valide."
+msgstr ""
+
+#: odysseus/backend/batchrename.py:186 odysseus/backend/fileops.py:107
+msgid "Le nom est trop long"
+msgstr ""
+
+#: odysseus/backend/batchrename.py:33 odysseus/ui/batch_rename.py:30
+msgid "Nom du fichier original"
+msgstr ""
+
+#: odysseus/backend/batchrename.py:35 odysseus/ui/batch_rename.py:26
+msgid "Date de création"
+msgstr ""
+
+#: odysseus/backend/batchrename.py:35 odysseus/ui/batch_rename.py:26
+msgid "Modèle de l'appareil photo"
+msgstr ""
+
+#: odysseus/backend/batchrename.py:36 odysseus/ui/batch_rename.py:27
+msgid "Numéro de saison"
+msgstr ""
+
+#: odysseus/backend/batchrename.py:36 odysseus/ui/batch_rename.py:27
+msgid "Numéro d'épisode"
+msgstr ""
+
+#: odysseus/backend/batchrename.py:37 odysseus/ui/batch_rename.py:28
+msgid "Numéro de piste"
+msgstr ""
+
+#: odysseus/backend/batchrename.py:37 odysseus/ui/batch_rename.py:28
+msgid "Nom de l'artiste"
+msgstr ""
+
+#: odysseus/backend/batchrename.py:37 odysseus/ui/batch_rename.py:29 odysseus/ui/preview.py:144 odysseus/ui/preview.py:160
+msgid "Titre"
+msgstr ""
+
+#: odysseus/backend/batchrename.py:38 odysseus/ui/batch_rename.py:29
+msgid "Nom de l'album"
+msgstr ""
+
+#: odysseus/backend/batchrename.py:224
+msgid "« {0} » ne serait pas un nouveau nom unique."
+msgstr ""
+
+#: odysseus/backend/batchrename.py:226
+msgid "« {0} » créerait un conflit avec un fichier existant."
+msgstr ""
+
+#: odysseus/backend/batchrename.py:265 odysseus/backend/fileops.py:907 odysseus/backend/fileops.py:918 odysseus/backend/fileops.py:940
+msgid "« {0} » existe déjà"
 msgstr ""
 
 #: odysseus/backend/engine.py:109
@@ -183,11 +251,7 @@ msgstr ""
 msgid "Le nom ne peut pas contenir « / »"
 msgstr ""
 
-#: odysseus/backend/fileops.py:107
-msgid "Le nom est trop long"
-msgstr ""
-
-#: odysseus/backend/fileops.py:178 odysseus/ui/actions_files.py:927
+#: odysseus/backend/fileops.py:178 odysseus/ui/actions_files.py:982
 msgid "Déplacement"
 msgstr ""
 
@@ -199,7 +263,7 @@ msgstr ""
 msgid "Vidage de la corbeille…"
 msgstr ""
 
-#: odysseus/backend/fileops.py:979 odysseus/ui/actions_files.py:293
+#: odysseus/backend/fileops.py:982 odysseus/ui/actions_files.py:294
 msgid "{0} élément copié"
 msgid_plural "{0} éléments copiés"
 msgstr[0] ""
@@ -249,7 +313,13 @@ msgid_plural "{0} éléments restaurés"
 msgstr[0] ""
 msgstr[1] ""
 
-#: odysseus/backend/fileops.py:978
+#: odysseus/backend/fileops.py:979
+msgid "{0} élément renommé"
+msgid_plural "{0} éléments renommés"
+msgstr[0] ""
+msgstr[1] ""
+
+#: odysseus/backend/fileops.py:981
 msgid "{0} lien créé"
 msgid_plural "{0} liens créés"
 msgstr[0] ""
@@ -269,10 +339,6 @@ msgstr ""
 
 #: odysseus/backend/fileops.py:870
 msgid "Emplacement d'origine inconnu"
-msgstr ""
-
-#: odysseus/backend/fileops.py:907 odysseus/backend/fileops.py:918 odysseus/backend/fileops.py:940 odysseus/backend/fileops.py:948
-msgid "« {0} » existe déjà"
 msgstr ""
 
 #: odysseus/backend/fileops.py:89 odysseus/backend/gioops.py:37
@@ -783,7 +849,7 @@ msgstr ""
 msgid "Ouvrir directement les fichiers texte sélectionnés dans l'éditeur choisi"
 msgstr ""
 
-#: odysseus/features.py:84 odysseus/ui/dialogs.py:228 odysseus/ui/window.py:223
+#: odysseus/features.py:84 odysseus/ui/dialogs.py:228 odysseus/ui/window.py:228
 msgid "Terminal ici"
 msgstr ""
 
@@ -931,7 +997,7 @@ msgstr ""
 msgid "Ajouter à l'archive ?"
 msgstr ""
 
-#: odysseus/ui/actions_archives.py:352 odysseus/ui/actions_archives.py:352 odysseus/ui/actions_files.py:606 odysseus/ui/actions_files.py:606
+#: odysseus/ui/actions_archives.py:352 odysseus/ui/actions_archives.py:352 odysseus/ui/actions_files.py:610 odysseus/ui/actions_files.py:610
 msgid "Renommer"
 msgstr ""
 
@@ -939,7 +1005,7 @@ msgstr ""
 msgid "Supprimer de l'archive ?"
 msgstr ""
 
-#: odysseus/ui/actions_archives.py:388 odysseus/ui/actions_files.py:637 odysseus/ui/actions_files.py:666 odysseus/ui/actions_files.py:623
+#: odysseus/ui/actions_archives.py:388 odysseus/ui/actions_files.py:663 odysseus/ui/actions_files.py:692 odysseus/ui/actions_files.py:649
 msgid "Créer"
 msgstr ""
 
@@ -1051,11 +1117,11 @@ msgstr[1] ""
 msgid "L'archive contient déjà des éléments du même nom ; ils seront remplacés."
 msgstr ""
 
-#: odysseus/ui/actions_archives.py:333 odysseus/ui/actions_archives.py:375 odysseus/ui/actions_archives.py:329 odysseus/ui/actions_files.py:410
+#: odysseus/ui/actions_archives.py:333 odysseus/ui/actions_archives.py:375 odysseus/ui/actions_archives.py:329 odysseus/ui/actions_files.py:411
 msgid "Annuler"
 msgstr ""
 
-#: odysseus/ui/actions_archives.py:333 odysseus/ui/annotate.py:347
+#: odysseus/ui/actions_archives.py:333 odysseus/ui/annotate.py:347 odysseus/ui/batch_rename.py:119
 msgid "Ajouter"
 msgstr ""
 
@@ -1063,11 +1129,11 @@ msgstr ""
 msgid "Suppression dans {0}"
 msgstr ""
 
-#: odysseus/ui/actions_archives.py:375 odysseus/ui/actions_files.py:713 odysseus/ui/actions_files.py:748 odysseus/ui/actions_files.py:766
+#: odysseus/ui/actions_archives.py:375 odysseus/ui/actions_files.py:739 odysseus/ui/actions_files.py:774 odysseus/ui/actions_files.py:792
 msgid "Supprimer"
 msgstr ""
 
-#: odysseus/ui/actions_archives.py:241 odysseus/ui/preview.py:106 odysseus/ui/views.py:37
+#: odysseus/ui/actions_archives.py:241 odysseus/ui/preview.py:106 odysseus/ui/views.py:40
 msgid "Compressé"
 msgstr ""
 
@@ -1079,7 +1145,7 @@ msgstr ""
 msgid "Ajout dans {0}"
 msgstr ""
 
-#: odysseus/ui/actions_archives.py:329 odysseus/ui/actions_files.py:413 odysseus/ui/archive_dialogs.py:324 odysseus/ui/search_dialog.py:277
+#: odysseus/ui/actions_archives.py:329 odysseus/ui/actions_files.py:414 odysseus/ui/archive_dialogs.py:324 odysseus/ui/search_dialog.py:277
 msgid "Remplacer"
 msgstr ""
 
@@ -1111,7 +1177,7 @@ msgstr[1] ""
 msgid "Ces liens de l'archive pointaient hors du dossier d'extraction ; tout le reste a été extrait."
 msgstr ""
 
-#: odysseus/ui/actions_archives.py:123 odysseus/ui/actions_archives.py:197 odysseus/ui/actions_files.py:467 odysseus/ui/archive_dialogs.py:405
+#: odysseus/ui/actions_archives.py:123 odysseus/ui/actions_archives.py:197 odysseus/ui/actions_files.py:468 odysseus/ui/archive_dialogs.py:405
 msgid "… et {0} autre(s)"
 msgstr ""
 
@@ -1131,339 +1197,339 @@ msgstr ""
 msgid "Ils n'ont pas été supprimés."
 msgstr ""
 
-#: odysseus/ui/actions_files.py:1087
+#: odysseus/ui/actions_files.py:1146
 msgid "Terminé (code {0}). Appuyez sur Entrée pour fermer."
 msgstr ""
 
-#: odysseus/ui/actions_files.py:411 odysseus/ui/archive_dialogs.py:324
+#: odysseus/ui/actions_files.py:412 odysseus/ui/archive_dialogs.py:324
 msgid "Ignorer"
 msgstr ""
 
-#: odysseus/ui/actions_files.py:412
+#: odysseus/ui/actions_files.py:413
 msgid "Garder les deux"
 msgstr ""
 
-#: odysseus/ui/actions_files.py:655 odysseus/ui/actions_files.py:651
+#: odysseus/ui/actions_files.py:681 odysseus/ui/actions_files.py:677
 msgid "Nouveau document.txt"
 msgstr ""
 
-#: odysseus/ui/actions_files.py:666 odysseus/ui/actions_files.py:650 odysseus/ui/menus.py:290 odysseus/ui/menus.py:260
+#: odysseus/ui/actions_files.py:692 odysseus/ui/actions_files.py:676 odysseus/ui/menus.py:290 odysseus/ui/menus.py:260
 msgid "Nouveau document"
 msgstr ""
 
-#: odysseus/ui/actions_files.py:798
+#: odysseus/ui/actions_files.py:824
 msgid "Vider tous les éléments de la corbeille ?"
 msgstr ""
 
-#: odysseus/ui/actions_files.py:799
+#: odysseus/ui/actions_files.py:825
 msgid "Tous les éléments de la corbeille seront définitivement supprimés."
 msgstr ""
 
-#: odysseus/ui/actions_files.py:887 odysseus/ui/menus.py:34
+#: odysseus/ui/actions_files.py:915 odysseus/ui/menus.py:34
 msgid "Annuler la dernière opération"
 msgstr ""
 
-#: odysseus/ui/actions_files.py:1012 odysseus/ui/search_dialog.py:329
+#: odysseus/ui/actions_files.py:1071 odysseus/ui/search_dialog.py:329
 msgid "Chemin copié"
 msgstr ""
 
-#: odysseus/ui/actions_files.py:1016
+#: odysseus/ui/actions_files.py:1075
 msgid "Emplacement copié"
 msgstr ""
 
-#: odysseus/ui/actions_files.py:1176
+#: odysseus/ui/actions_files.py:1235
 msgid "Supprimer définitivement « {name} » ?"
 msgid_plural "Supprimer définitivement les {n} éléments sélectionnés ?"
 msgstr[0] ""
 msgstr[1] ""
 
-#: odysseus/ui/actions_files.py:334
+#: odysseus/ui/actions_files.py:335
 msgid "Déplacer vers"
 msgstr ""
 
-#: odysseus/ui/actions_files.py:334
+#: odysseus/ui/actions_files.py:335
 msgid "Copier vers"
 msgstr ""
 
-#: odysseus/ui/actions_files.py:344
+#: odysseus/ui/actions_files.py:345
 msgid "L'autre panneau n'affiche pas un dossier"
 msgstr ""
 
-#: odysseus/ui/actions_files.py:348
+#: odysseus/ui/actions_files.py:349
 msgid "Déplacer ?"
 msgstr ""
 
-#: odysseus/ui/actions_files.py:373 odysseus/ui/actions_files.py:675
+#: odysseus/ui/actions_files.py:374 odysseus/ui/actions_files.py:701
 msgid "Création de liens"
 msgstr ""
 
-#: odysseus/ui/actions_files.py:403
+#: odysseus/ui/actions_files.py:404
 msgid "dossier"
 msgstr ""
 
-#: odysseus/ui/actions_files.py:408
+#: odysseus/ui/actions_files.py:409
 msgid "Appliquer à tous les conflits"
 msgstr ""
 
-#: odysseus/ui/actions_files.py:413 odysseus/ui/pdf_dialogs.py:152
+#: odysseus/ui/actions_files.py:414 odysseus/ui/pdf_dialogs.py:152
 msgid "Fusionner"
 msgstr ""
 
-#: odysseus/ui/actions_files.py:509 odysseus/ui/menus.py:58 odysseus/ui/sidebar.py:433 odysseus/ui/views.py:35
+#: odysseus/ui/actions_files.py:510 odysseus/ui/menus.py:58 odysseus/ui/sidebar.py:433 odysseus/ui/views.py:38
 msgid "Nom"
 msgstr ""
 
-#: odysseus/ui/actions_files.py:693
+#: odysseus/ui/actions_files.py:719
 msgid "Mettre à la corbeille ?"
 msgstr ""
 
-#: odysseus/ui/actions_files.py:708
+#: odysseus/ui/actions_files.py:734
 msgid "Impossible de déplacer le fichier vers la corbeille, voulez-vous le supprimer immédiatement ?"
 msgid_plural "Impossible de déplacer les fichiers vers la corbeille, voulez-vous les supprimer immédiatement ?"
 msgstr[0] ""
 msgstr[1] ""
 
-#: odysseus/ui/actions_files.py:747 odysseus/ui/actions_files.py:765
+#: odysseus/ui/actions_files.py:773 odysseus/ui/actions_files.py:791
 msgid "Les éléments définitivement supprimés ne peuvent pas être restaurés"
 msgstr ""
 
-#: odysseus/ui/actions_files.py:775
+#: odysseus/ui/actions_files.py:801
 msgid "Restauration"
 msgstr ""
 
-#: odysseus/ui/actions_files.py:840 odysseus/ui/properties.py:141
+#: odysseus/ui/actions_files.py:866 odysseus/ui/properties.py:141
 msgid "Aucune application"
 msgstr ""
 
-#: odysseus/ui/actions_files.py:840
+#: odysseus/ui/actions_files.py:866
 msgid "Aucune application n'ouvre ce type de fichier."
 msgstr ""
 
-#: odysseus/ui/actions_files.py:884 odysseus/ui/menus.py:34
+#: odysseus/ui/actions_files.py:912 odysseus/ui/menus.py:34
 msgid "Rétablir"
 msgstr ""
 
-#: odysseus/ui/actions_files.py:944
+#: odysseus/ui/actions_files.py:999
 msgid "Rien à annuler"
 msgstr ""
 
-#: odysseus/ui/actions_files.py:1037 odysseus/ui/actions_files.py:1085
+#: odysseus/ui/actions_files.py:1096 odysseus/ui/actions_files.py:1144
 msgid "Aucun terminal trouvé"
 msgstr ""
 
-#: odysseus/ui/actions_files.py:1037 odysseus/ui/actions_files.py:1085
+#: odysseus/ui/actions_files.py:1096 odysseus/ui/actions_files.py:1144
 msgid "Indiquez votre terminal dans les préférences."
 msgstr ""
 
-#: odysseus/ui/actions_files.py:1058 odysseus/ui/actions_files.py:1066
+#: odysseus/ui/actions_files.py:1117 odysseus/ui/actions_files.py:1125
 msgid "Courriel impossible"
 msgstr ""
 
-#: odysseus/ui/actions_files.py:1058
+#: odysseus/ui/actions_files.py:1117
 msgid "Installez xdg-utils (sudo apt install xdg-utils)."
 msgstr ""
 
-#: odysseus/ui/actions_files.py:171 odysseus/ui/pane.py:225
+#: odysseus/ui/actions_files.py:172 odysseus/ui/pane.py:225
 msgid "Impossible d'ouvrir"
 msgstr ""
 
-#: odysseus/ui/actions_files.py:303
+#: odysseus/ui/actions_files.py:304
 msgid "Rien à coller"
 msgstr ""
 
-#: odysseus/ui/actions_files.py:308
+#: odysseus/ui/actions_files.py:309
 msgid "Les éléments sont déjà dans ce dossier"
 msgstr ""
 
-#: odysseus/ui/actions_files.py:395
+#: odysseus/ui/actions_files.py:396
 msgid "Fusionner le dossier « {0} » ?"
 msgstr ""
 
-#: odysseus/ui/actions_files.py:396
+#: odysseus/ui/actions_files.py:397
 msgid "Remplacer « {0} » ?"
 msgstr ""
 
-#: odysseus/ui/actions_files.py:406
+#: odysseus/ui/actions_files.py:407
 msgid "Nouveau : {0}"
 msgstr ""
 
-#: odysseus/ui/actions_files.py:468
+#: odysseus/ui/actions_files.py:469
 msgid "{0} : certains éléments n'ont pas pu être traités"
 msgstr ""
 
-#: odysseus/ui/actions_files.py:712
+#: odysseus/ui/actions_files.py:738
 msgid "Ce support n'a pas de corbeille."
 msgstr ""
 
-#: odysseus/ui/actions_files.py:717
+#: odysseus/ui/actions_files.py:743
 msgid "Mise à la corbeille de {0} élément"
 msgid_plural "Mise à la corbeille de {0} éléments"
 msgstr[0] ""
 msgstr[1] ""
 
-#: odysseus/ui/actions_files.py:745 odysseus/ui/actions_files.py:760 odysseus/ui/actions_files.py:762 odysseus/ui/actions_files.py:715
+#: odysseus/ui/actions_files.py:771 odysseus/ui/actions_files.py:786 odysseus/ui/actions_files.py:788 odysseus/ui/actions_files.py:741
 msgid "Suppression définitive"
 msgstr ""
 
-#: odysseus/ui/actions_files.py:781 odysseus/ui/pane.py:855
+#: odysseus/ui/actions_files.py:807 odysseus/ui/pane.py:873
 msgid "La corbeille est vide"
 msgstr ""
 
-#: odysseus/ui/actions_files.py:797
+#: odysseus/ui/actions_files.py:823
 msgid "Vidage de la corbeille"
 msgstr ""
 
-#: odysseus/ui/actions_files.py:885
+#: odysseus/ui/actions_files.py:913
 msgid "Annuler le renommage"
 msgstr ""
 
-#: odysseus/ui/actions_files.py:885
+#: odysseus/ui/actions_files.py:913
 msgid "Annuler le déplacement"
 msgstr ""
 
-#: odysseus/ui/actions_files.py:886
+#: odysseus/ui/actions_files.py:914
 msgid "Annuler la mise à la corbeille"
 msgstr ""
 
-#: odysseus/ui/actions_files.py:886
+#: odysseus/ui/actions_files.py:914
 msgid "Annuler la copie"
 msgstr ""
 
-#: odysseus/ui/actions_files.py:887
+#: odysseus/ui/actions_files.py:915
 msgid "Annuler la création"
 msgstr ""
 
-#: odysseus/ui/actions_files.py:955
-msgid "Renommage annulé"
-msgstr ""
-
-#: odysseus/ui/actions_files.py:978
-msgid "Annulation du déplacement"
-msgstr ""
-
-#: odysseus/ui/actions_files.py:1046 odysseus/ui/actions_files.py:1095
+#: odysseus/ui/actions_files.py:1105 odysseus/ui/actions_files.py:1154
 msgid "Impossible de lancer le terminal"
 msgstr ""
 
-#: odysseus/ui/actions_files.py:292
+#: odysseus/ui/actions_files.py:293
 msgid "{0} élément coupé"
 msgid_plural "{0} éléments coupés"
 msgstr[0] ""
 msgstr[1] ""
 
-#: odysseus/ui/actions_files.py:349
+#: odysseus/ui/actions_files.py:350
 msgid "Déplacer {name} vers {dst} ?"
 msgid_plural "Déplacer {n} éléments vers {dst} ?"
 msgstr[0] ""
 msgstr[1] ""
 
-#: odysseus/ui/actions_files.py:598 odysseus/ui/actions_files.py:586
+#: odysseus/ui/actions_files.py:602 odysseus/ui/actions_files.py:590
 msgid "Renommage impossible"
 msgstr ""
 
-#: odysseus/ui/actions_files.py:632 odysseus/ui/actions_files.py:662 odysseus/ui/actions_files.py:620 odysseus/ui/actions_files.py:647
+#: odysseus/ui/actions_files.py:658 odysseus/ui/actions_files.py:688 odysseus/ui/actions_files.py:646 odysseus/ui/actions_files.py:673
 msgid "Création impossible"
 msgstr ""
 
-#: odysseus/ui/actions_files.py:796
+#: odysseus/ui/actions_files.py:822
 msgid "Corbeille vidée"
 msgstr ""
 
-#: odysseus/ui/actions_files.py:800
+#: odysseus/ui/actions_files.py:826
 msgid "Vider la corbeille"
 msgstr ""
 
-#: odysseus/ui/actions_files.py:852
+#: odysseus/ui/actions_files.py:878
 msgid "Ouverture impossible"
 msgstr ""
 
-#: odysseus/ui/actions_files.py:882
+#: odysseus/ui/actions_files.py:910
 msgid "Rétablir le renommage"
 msgstr ""
 
-#: odysseus/ui/actions_files.py:882
+#: odysseus/ui/actions_files.py:910
 msgid "Rétablir le déplacement"
 msgstr ""
 
-#: odysseus/ui/actions_files.py:883
+#: odysseus/ui/actions_files.py:911
 msgid "Rétablir la mise à la corbeille"
 msgstr ""
 
-#: odysseus/ui/actions_files.py:883
+#: odysseus/ui/actions_files.py:911
 msgid "Rétablir la copie"
 msgstr ""
 
-#: odysseus/ui/actions_files.py:884
+#: odysseus/ui/actions_files.py:912
 msgid "Rétablir la création"
 msgstr ""
 
-#: odysseus/ui/actions_files.py:903
-msgid "Rétablissement impossible"
+#: odysseus/ui/actions_files.py:1014
+msgid "Renommage annulé"
 msgstr ""
 
-#: odysseus/ui/actions_files.py:935
-msgid "Mise à la corbeille"
+#: odysseus/ui/actions_files.py:1037
+msgid "Annulation du déplacement"
 msgstr ""
 
-#: odysseus/ui/actions_files.py:960
-msgid "Annulation impossible"
-msgstr ""
-
-#: odysseus/ui/actions_files.py:994 odysseus/ui/actions_files.py:938
-msgid "Restauration depuis la corbeille"
-msgstr ""
-
-#: odysseus/ui/actions_files.py:1073
+#: odysseus/ui/actions_files.py:1132
 msgid "{0} fichier envoyé vers {1}"
 msgid_plural "{0} fichiers envoyés vers {1}"
 msgstr[0] ""
 msgstr[1] ""
 
-#: odysseus/ui/actions_files.py:313 odysseus/ui/actions_files.py:494
+#: odysseus/ui/actions_files.py:314 odysseus/ui/actions_files.py:495
 msgid "Déplacement de {0} élément"
 msgid_plural "Déplacement de {0} éléments"
 msgstr[0] ""
 msgstr[1] ""
 
-#: odysseus/ui/actions_files.py:314 odysseus/ui/actions_files.py:495
+#: odysseus/ui/actions_files.py:315 odysseus/ui/actions_files.py:496
 msgid "Copie de {0} élément"
 msgid_plural "Copie de {0} éléments"
 msgstr[0] ""
 msgstr[1] ""
 
-#: odysseus/ui/actions_files.py:351
+#: odysseus/ui/actions_files.py:352
 msgid "Déplacer"
 msgstr ""
 
-#: odysseus/ui/actions_files.py:406
+#: odysseus/ui/actions_files.py:407
 msgid "Existant : {0}"
 msgstr ""
 
-#: odysseus/ui/actions_files.py:694 odysseus/ui/dialogs.py:224 odysseus/ui/menus.py:245
+#: odysseus/ui/actions_files.py:720 odysseus/ui/dialogs.py:224 odysseus/ui/menus.py:245
 msgid "Mettre à la corbeille"
 msgstr ""
 
-#: odysseus/ui/actions_files.py:850 odysseus/ui/dialogs.py:260
+#: odysseus/ui/actions_files.py:876 odysseus/ui/dialogs.py:260
 msgid "Cette application ne sait pas ouvrir les fichiers distants."
 msgstr ""
 
-#: odysseus/ui/actions_files.py:859
+#: odysseus/ui/actions_files.py:885
 msgid "Accès administrateur refusé"
 msgstr ""
 
-#: odysseus/ui/actions_files.py:405
+#: odysseus/ui/actions_files.py:958
+msgid "Rétablissement impossible"
+msgstr ""
+
+#: odysseus/ui/actions_files.py:990
+msgid "Mise à la corbeille"
+msgstr ""
+
+#: odysseus/ui/actions_files.py:1019
+msgid "Annulation impossible"
+msgstr ""
+
+#: odysseus/ui/actions_files.py:1053 odysseus/ui/actions_files.py:993
+msgid "Restauration depuis la corbeille"
+msgstr ""
+
+#: odysseus/ui/actions_files.py:406
 msgid "Un élément du même nom existe déjà dans « {0} »."
 msgstr ""
 
-#: odysseus/ui/actions_files.py:999
-msgid "Annulation : mise à la corbeille"
-msgstr ""
-
-#: odysseus/ui/actions_files.py:447
+#: odysseus/ui/actions_files.py:448
 msgid "{0} erreur"
 msgid_plural "{0} erreurs"
 msgstr[0] ""
 msgstr[1] ""
+
+#: odysseus/ui/actions_files.py:1058
+msgid "Annulation : mise à la corbeille"
+msgstr ""
 
 #: odysseus/ui/actions_tools.py:34
 msgid "Programme manquant"
@@ -1749,7 +1815,7 @@ msgstr ""
 msgid "Caractéristiques"
 msgstr ""
 
-#: odysseus/ui/archive_dialogs.py:459 odysseus/ui/properties.py:59 odysseus/ui/views.py:44 odysseus/ui/views.py:372
+#: odysseus/ui/archive_dialogs.py:459 odysseus/ui/properties.py:59 odysseus/ui/views.py:47 odysseus/ui/views.py:393
 msgid "Emplacement"
 msgstr ""
 
@@ -1829,7 +1895,7 @@ msgstr ""
 msgid "Extraire"
 msgstr ""
 
-#: odysseus/ui/archive_dialogs.py:351 odysseus/ui/preview.py:82 odysseus/ui/properties.py:50 odysseus/ui/views.py:73
+#: odysseus/ui/archive_dialogs.py:351 odysseus/ui/preview.py:82 odysseus/ui/properties.py:50 odysseus/ui/views.py:76
 msgid "Dossier"
 msgstr ""
 
@@ -2035,7 +2101,7 @@ msgstr ""
 msgid "Copie sans réencodage"
 msgstr ""
 
-#: odysseus/ui/audio_dialog.py:23 odysseus/ui/window.py:221
+#: odysseus/ui/audio_dialog.py:23 odysseus/ui/window.py:226
 msgid "Extraire l'audio"
 msgstr ""
 
@@ -2065,6 +2131,84 @@ msgstr[1] ""
 
 #: odysseus/ui/audio_dialog.py:83
 msgid "{0} sur {1} fichiers convertis"
+msgstr ""
+
+#: odysseus/ui/batch_rename.py:19
+msgid "Nom original (croissant)"
+msgstr ""
+
+#: odysseus/ui/batch_rename.py:19
+msgid "Nom original (décroissant)"
+msgstr ""
+
+#: odysseus/ui/batch_rename.py:20
+msgid "Premier modifié"
+msgstr ""
+
+#: odysseus/ui/batch_rename.py:20
+msgid "Dernier modifié"
+msgstr ""
+
+#: odysseus/ui/batch_rename.py:21
+msgid "Premier créé"
+msgstr ""
+
+#: odysseus/ui/batch_rename.py:21
+msgid "Dernier créé"
+msgstr ""
+
+#: odysseus/ui/batch_rename.py:41
+msgid "Renommer {0} fichier et dossier"
+msgid_plural "Renommer {0} fichiers et dossiers"
+msgstr[0] ""
+msgstr[1] ""
+
+#: odysseus/ui/batch_rename.py:195
+msgid "Nombres automatiques"
+msgstr ""
+
+#: odysseus/ui/batch_rename.py:200
+msgid "Métadonnées"
+msgstr ""
+
+#: odysseus/ui/batch_rename.py:38
+msgid "Renommer {0} dossier"
+msgid_plural "Renommer {0} dossiers"
+msgstr[0] ""
+msgstr[1] ""
+
+#: odysseus/ui/batch_rename.py:40
+msgid "Renommer {0} fichier"
+msgid_plural "Renommer {0} fichiers"
+msgstr[0] ""
+msgstr[1] ""
+
+#: odysseus/ui/batch_rename.py:87
+msgid "A_nnuler"
+msgstr ""
+
+#: odysseus/ui/batch_rename.py:90
+msgid "_Renommer"
+msgstr ""
+
+#: odysseus/ui/batch_rename.py:97
+msgid "Renommer en _utilisant un modèle"
+msgstr ""
+
+#: odysseus/ui/batch_rename.py:99
+msgid "Rechercher et remplacer un _texte"
+msgstr ""
+
+#: odysseus/ui/batch_rename.py:124
+msgid "Ordre de numérotation automatique"
+msgstr ""
+
+#: odysseus/ui/batch_rename.py:135
+msgid "Texte existant"
+msgstr ""
+
+#: odysseus/ui/batch_rename.py:138
+msgid "Remplacer par"
 msgstr ""
 
 #: odysseus/ui/checksum_dialog.py:21
@@ -2553,7 +2697,7 @@ msgstr ""
 msgid "Alt+Origine"
 msgstr ""
 
-#: odysseus/ui/dialogs.py:214 odysseus/ui/pane.py:1235 odysseus/ui/pathbar.py:118 odysseus/ui/sidebar.py:35
+#: odysseus/ui/dialogs.py:214 odysseus/ui/pane.py:1253 odysseus/ui/pathbar.py:118 odysseus/ui/sidebar.py:35
 msgid "Dossier personnel"
 msgstr ""
 
@@ -2753,7 +2897,7 @@ msgstr ""
 msgid "Ctrl+Maj+E"
 msgstr ""
 
-#: odysseus/ui/dialogs.py:231 odysseus/ui/menus.py:186 odysseus/ui/window.py:219
+#: odysseus/ui/dialogs.py:231 odysseus/ui/menus.py:186 odysseus/ui/window.py:224
 msgid "Extraire ici"
 msgstr ""
 
@@ -2899,11 +3043,11 @@ msgstr ""
 msgid "Opérations sur les fichiers"
 msgstr ""
 
-#: odysseus/ui/jobs.py:236
+#: odysseus/ui/jobs.py:239
 msgid "Effacer les opérations terminées"
 msgstr ""
 
-#: odysseus/ui/jobs.py:289
+#: odysseus/ui/jobs.py:298
 msgid "Opérations en cours"
 msgstr ""
 
@@ -2955,15 +3099,15 @@ msgstr ""
 msgid "Type"
 msgstr ""
 
-#: odysseus/ui/menus.py:68 odysseus/ui/preview.py:108 odysseus/ui/properties.py:73 odysseus/ui/views.py:46
+#: odysseus/ui/menus.py:68 odysseus/ui/preview.py:108 odysseus/ui/properties.py:73 odysseus/ui/views.py:49
 msgid "Modifié"
 msgstr ""
 
-#: odysseus/ui/menus.py:69 odysseus/ui/preview.py:110 odysseus/ui/properties.py:163 odysseus/ui/views.py:41
+#: odysseus/ui/menus.py:69 odysseus/ui/preview.py:110 odysseus/ui/properties.py:163 odysseus/ui/views.py:44
 msgid "Droits"
 msgstr ""
 
-#: odysseus/ui/menus.py:70 odysseus/ui/properties.py:173 odysseus/ui/views.py:42 odysseus/ui/views.py:47
+#: odysseus/ui/menus.py:70 odysseus/ui/properties.py:173 odysseus/ui/views.py:45 odysseus/ui/views.py:50
 msgid "Propriétaire"
 msgstr ""
 
@@ -3019,7 +3163,7 @@ msgstr ""
 msgid "Date de modification"
 msgstr ""
 
-#: odysseus/ui/menus.py:62 odysseus/ui/menus.py:72 odysseus/ui/preview.py:134 odysseus/ui/views.py:43
+#: odysseus/ui/menus.py:62 odysseus/ui/menus.py:72 odysseus/ui/preview.py:134 odysseus/ui/views.py:46
 msgid "Durée"
 msgstr ""
 
@@ -3223,7 +3367,7 @@ msgstr ""
 msgid "Cliquez pour monter"
 msgstr ""
 
-#: odysseus/ui/pane.py:30 odysseus/ui/pane.py:1227 odysseus/ui/pane.py:192 odysseus/ui/pathbar.py:99
+#: odysseus/ui/pane.py:30 odysseus/ui/pane.py:1245 odysseus/ui/pane.py:192 odysseus/ui/pathbar.py:99
 msgid "Corbeille"
 msgstr ""
 
@@ -3255,11 +3399,11 @@ msgstr ""
 msgid "🔒 chiffrée"
 msgstr ""
 
-#: odysseus/ui/pane.py:216 odysseus/ui/pane.py:859 odysseus/ui/pane.py:863
+#: odysseus/ui/pane.py:216 odysseus/ui/pane.py:877 odysseus/ui/pane.py:881
 msgid "Dossier vide"
 msgstr ""
 
-#: odysseus/ui/pane.py:222 odysseus/ui/pane.py:1271 odysseus/ui/pane.py:869
+#: odysseus/ui/pane.py:222 odysseus/ui/pane.py:1289 odysseus/ui/pane.py:887
 msgid "Chargement…"
 msgstr ""
 
@@ -3275,11 +3419,11 @@ msgstr ""
 msgid "Archive illisible"
 msgstr ""
 
-#: odysseus/ui/pane.py:851 odysseus/ui/pane.py:970
+#: odysseus/ui/pane.py:869 odysseus/ui/pane.py:988
 msgid "Aucun résultat"
 msgstr ""
 
-#: odysseus/ui/pane.py:880
+#: odysseus/ui/pane.py:898
 msgid "Accès impossible"
 msgstr ""
 
@@ -3297,11 +3441,11 @@ msgid_plural "{0} dossiers"
 msgstr[0] ""
 msgstr[1] ""
 
-#: odysseus/ui/pane.py:1225
+#: odysseus/ui/pane.py:1243
 msgid "Recherche « {0} »"
 msgstr ""
 
-#: odysseus/ui/pane.py:1281 odysseus/ui/pane.py:1296
+#: odysseus/ui/pane.py:1299 odysseus/ui/pane.py:1314
 msgid "« {0} » sélectionné"
 msgstr ""
 
@@ -3313,43 +3457,43 @@ msgstr ""
 msgid "ratio {0} %"
 msgstr ""
 
-#: odysseus/ui/pane.py:852 odysseus/ui/pane.py:971
+#: odysseus/ui/pane.py:870 odysseus/ui/pane.py:989
 msgid "Rien ne correspond à « {0} »"
 msgstr ""
 
-#: odysseus/ui/pane.py:860
+#: odysseus/ui/pane.py:878
 msgid "Déposez des fichiers ici pour les ajouter à l'archive."
 msgstr ""
 
-#: odysseus/ui/pane.py:1286
+#: odysseus/ui/pane.py:1304
 msgid "{0} dossier sélectionné"
 msgid_plural "{0} dossiers sélectionnés"
 msgstr[0] ""
 msgstr[1] ""
 
-#: odysseus/ui/pane.py:1293
+#: odysseus/ui/pane.py:1311
 msgid "{0} autre élément sélectionné"
 msgid_plural "{0} autres éléments sélectionnés"
 msgstr[0] ""
 msgstr[1] ""
 
-#: odysseus/ui/pane.py:964
+#: odysseus/ui/pane.py:982
 msgid "Recherche… {0} résultat(s)"
 msgstr ""
 
-#: odysseus/ui/pane.py:1283
+#: odysseus/ui/pane.py:1301
 msgid "(contenant {0} élément)"
 msgid_plural "(contenant {0} éléments)"
 msgstr[0] ""
 msgstr[1] ""
 
-#: odysseus/ui/pane.py:1298 odysseus/ui/preview.py:248
+#: odysseus/ui/pane.py:1316 odysseus/ui/preview.py:248
 msgid "{0} élément sélectionné"
 msgid_plural "{0} éléments sélectionnés"
 msgstr[0] ""
 msgstr[1] ""
 
-#: odysseus/ui/pane.py:1288
+#: odysseus/ui/pane.py:1306
 msgid "(contenant {0} élément au total)"
 msgid_plural "(contenant {0} éléments au total)"
 msgstr[0] ""
@@ -3359,7 +3503,7 @@ msgstr[1] ""
 msgid "Menu du dossier"
 msgstr ""
 
-#: odysseus/ui/pathbar.py:104 odysseus/ui/window.py:339
+#: odysseus/ui/pathbar.py:104 odysseus/ui/window.py:344
 msgid "Administrateur"
 msgstr ""
 
@@ -3745,10 +3889,6 @@ msgstr ""
 msgid "Dimensions"
 msgstr ""
 
-#: odysseus/ui/preview.py:144 odysseus/ui/preview.py:160
-msgid "Titre"
-msgstr ""
-
 #: odysseus/ui/preview.py:144
 msgid "Artiste"
 msgstr ""
@@ -3773,7 +3913,7 @@ msgstr ""
 msgid "Vidéo"
 msgstr ""
 
-#: odysseus/ui/preview.py:239 odysseus/ui/preview.py:96 odysseus/ui/properties.py:46 odysseus/ui/views.py:62
+#: odysseus/ui/preview.py:239 odysseus/ui/preview.py:96 odysseus/ui/properties.py:46 odysseus/ui/views.py:65
 msgid "{0} élément"
 msgid_plural "{0} éléments"
 msgstr[0] ""
@@ -4053,15 +4193,15 @@ msgstr ""
 msgid "Emplacements réseau"
 msgstr ""
 
-#: odysseus/ui/views.py:38
+#: odysseus/ui/views.py:41
 msgid "Ratio"
 msgstr ""
 
-#: odysseus/ui/views.py:40
+#: odysseus/ui/views.py:43
 msgid "Dernière modification"
 msgstr ""
 
-#: odysseus/ui/views.py:372
+#: odysseus/ui/views.py:393
 msgid "Emplacement d'origine"
 msgstr ""
 
@@ -4121,78 +4261,78 @@ msgstr ""
 msgid "Rechercher dans le contenu des fichiers (F8)"
 msgstr ""
 
-#: odysseus/ui/window.py:202
+#: odysseus/ui/window.py:207
 msgid "Nouveau fichier"
 msgstr ""
 
-#: odysseus/ui/window.py:203
+#: odysseus/ui/window.py:208
 msgid "Renommer (F2)"
 msgstr ""
 
-#: odysseus/ui/window.py:204
+#: odysseus/ui/window.py:209
 msgid "Mettre à la corbeille (Suppr)"
 msgstr ""
 
-#: odysseus/ui/window.py:206
+#: odysseus/ui/window.py:211
 msgid "Supprimer définitivement (Maj+Suppr)"
 msgstr ""
 
-#: odysseus/ui/window.py:212
+#: odysseus/ui/window.py:217
 msgid "Copier vers l'autre panneau (F6)"
 msgstr ""
 
-#: odysseus/ui/window.py:214
+#: odysseus/ui/window.py:219
 msgid "Déplacer vers l'autre panneau (Maj+F6)"
 msgstr ""
 
-#: odysseus/ui/window.py:391
+#: odysseus/ui/window.py:396
 msgid "Copier →"
 msgstr ""
 
-#: odysseus/ui/window.py:391
+#: odysseus/ui/window.py:396
 msgid "← Copier"
 msgstr ""
 
-#: odysseus/ui/window.py:392
+#: odysseus/ui/window.py:397
 msgid "Déplacer →"
 msgstr ""
 
-#: odysseus/ui/window.py:392
+#: odysseus/ui/window.py:397
 msgid "← Déplacer"
 msgstr ""
 
-#: odysseus/ui/window.py:595
+#: odysseus/ui/window.py:612
 msgid "Des opérations sont en cours"
 msgstr ""
 
-#: odysseus/ui/window.py:595
+#: odysseus/ui/window.py:612
 msgid "Quitter maintenant les annulera."
 msgstr ""
 
-#: odysseus/ui/window.py:879
+#: odysseus/ui/window.py:900
 msgid "Réduire (Ctrl+−)"
 msgstr ""
 
-#: odysseus/ui/window.py:880
+#: odysseus/ui/window.py:901
 msgid "Agrandir (Ctrl++)"
 msgstr ""
 
-#: odysseus/ui/window.py:988
+#: odysseus/ui/window.py:1009
 msgid "Ajouté aux signets"
 msgstr ""
 
-#: odysseus/ui/window.py:988
+#: odysseus/ui/window.py:1009
 msgid "Retiré des signets"
 msgstr ""
 
-#: odysseus/ui/window.py:878
+#: odysseus/ui/window.py:899
 msgid "Taille d'icône"
 msgstr ""
 
-#: odysseus/ui/window.py:596
+#: odysseus/ui/window.py:613
 msgid "Continuer"
 msgstr ""
 
-#: odysseus/ui/window.py:596
+#: odysseus/ui/window.py:613
 msgid "Quitter"
 msgstr ""

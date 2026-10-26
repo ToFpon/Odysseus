@@ -465,7 +465,8 @@ class MainWindow(FileActions, ArchiveActions, ToolActions, Adw.ApplicationWindow
         can = {
             "back": bool(p.back_stack), "forward": bool(p.forward_stack), "up": p.can_go_up(),
             "cut": fs and bool(local_sel), "copy": fs and bool(local_sel),
-            "paste": has_dir, "rename": len(sel) == 1 and (fs or p.mode == "archive"),
+            "paste": has_dir, "rename": (len(sel) == 1 and (fs or p.mode == "archive"))
+            or (len(sel) > 1 and p.mode in ("fs", "search") and all(r.path for r in sel)),
             "trash": fs and bool(local_sel), "delete": bool(sel) and (p.mode in ("fs", "search", "trash") or gvfs),
             "new-folder": has_dir or p.mode == "archive", "new-file": has_dir, "new-empty-file": has_dir,
             "copy-to-other": fs and bool(local_sel), "move-to-other": fs and bool(local_sel),

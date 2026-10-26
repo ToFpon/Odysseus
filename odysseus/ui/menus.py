@@ -177,8 +177,8 @@ def context_menu(win, pane, on_item: bool) -> Gio.Menu:
     m.append_section(None, s)
 
     s = Gio.Menu()
-    if one is not None:
-        s.append(tr("Renommer…"), "win.rename")
+    if one is not None or all(r.path for r in sel):
+        s.append(tr("Renommer…"), "win.rename")            # plusieurs : renommage multiple (Nautilus)
     s.append(tr("Créer un lien"), "win.make-link")
     if features.available("archives"):
         archives = [r for r in files if formats.looks_like_archive(r.name)]

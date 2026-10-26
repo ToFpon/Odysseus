@@ -12,11 +12,12 @@ from typing import Optional
 from gi.repository import Adw, Gio, GLib, Gtk
 
 from .. import features
-from ..backend import fileops, folder_colors, formats, gioops
+from ..backend import batchrename, fileops, folder_colors, formats, gioops
 from ..backend.engine import Job, ToolError, human_size
 from ..i18n import ntr, tr
 from ..settings import settings
 from . import clipboard
+from .batch_rename import BatchRenameDialog
 from .common import (AlertDialog, alert, choose_folder, copy_to_clipboard, describe_paths, full_date,
                      launch_default, launch_defaults, name_order, open_with_default, shown, toast)
 from .jobs import ProgressWindow, finished_toast, manager
@@ -446,12 +447,12 @@ class FileActions:
                     if res.errors:
                         msg += " — " + ntr("{0} erreur", "{0} erreurs", len(res.errors)).format(len(res.errors))
                         self._show_errors(job.title, res.errors)
-                    if res.kind in ("trash", "move") and undo is not None:
+                    if res.kind in ("trash", "move", "rename") and undo is not None:
                         toast(self, msg, tr("Annuler"), self.undo, timeout=6)
                     elif res.kind not in ("copy", "move"):
                         toast(self, msg)
                     self._select_created(res)
-                    if res.kind == "move":
+                    if res.kind in ("move", "rename"):
                         self._follow_moves(res)
                 if on_done:
                     on_done(job)
@@ -571,6 +572,9 @@ class FileActions:
     def rename(self):
         p = self.pane
         sel = self._sel()
+        if len(sel) > 1 and all(r.path for r in sel):
+            self.batch_rename(sel)
+            return
         if len(sel) != 1:
             return
         rec = sel[0]
@@ -605,6 +609,28 @@ class FileActions:
                 GLib.timeout_add(300, lambda: (p.select_names([new]), False)[1])
         self.ask_name(tr("Renommer"), rec.name, tr("Renommer"), apply, folder, select_stem=not rec.is_dir,
                       current=rec.name)
+
+    def batch_rename(self, sel):
+        """Plusieurs éléments : le dialogue « Renommer » de Nautilus (modèle, rechercher / remplacer)."""
+        items = []
+        for r in sel:
+            try:
+                mtime = os.lstat(r.path).st_mtime
+            except OSError:
+                mtime = 0.0
+            items.append(batchrename.Item(r.path, is_dir=r.is_dir, mtime=mtime))
+
+        def apply(pairs):
+            def work(j):
+                res = fileops.Result("rename")
+                done, errors = batchrename.apply(pairs, lambda n, total: j.progress(n / max(1, total)))
+                res.moved = done
+                res.created = [new for _old, new in done]
+                res.errors = errors
+                return res
+            self._run(tr("Renommage"), work,
+                      undo=lambda r: ("batch-rename", list(r.moved)) if r.moved else None)
+        BatchRenameDialog(self, items, apply).present()
 
     def new_folder(self):
         p = self.pane
@@ -878,6 +904,8 @@ class FileActions:
     def undo_label(entry, redo: bool = False) -> str:
         """Libellé du menu, comme Nautilus : « Annuler la mise à la corbeille »…"""
         kind = entry[0] if entry else ""
+        if kind == "batch-rename":
+            kind = "rename"
         if redo:
             return {"rename": tr("Rétablir le renommage"), "move": tr("Rétablir le déplacement"),
                     "trash": tr("Rétablir la mise à la corbeille"), "copy": tr("Rétablir la copie"),
@@ -886,6 +914,31 @@ class FileActions:
                 "trash": tr("Annuler la mise à la corbeille"), "copy": tr("Annuler la copie"),
                 "create": tr("Annuler la création")}.get(kind, tr("Annuler la dernière opération"))
 
+    def _batch_rename_steps(self, pairs, redo: bool):
+        """Annuler (ou refaire) un renommage multiple : les mêmes renommages à l'envers, dans un ordre
+        sûr (batchrename.apply). Seul ce qui a réussi passe dans l'autre pile."""
+        steps = [(old, os.path.basename(new)) for old, new in pairs] if redo else \
+            [(new, os.path.basename(old)) for old, new in pairs]
+
+        def work(j):
+            res = fileops.Result("rename")
+            done, errors = batchrename.apply(steps)
+            res.moved, res.errors = done, errors
+            res.created = [new for _o, new in done]
+            return res
+
+        def finished(j):
+            res = j.result
+            if not isinstance(res, fileops.Result) or not res.moved:
+                return
+            if redo:
+                self._push_undo(("batch-rename", list(res.moved)), keep_redo=True)
+            else:
+                # l'entrée garde le sens d'origine (ancien → nouveau) ; ici res.moved va du nouveau à l'ancien
+                self.redo_stack.append(("batch-rename", [(dst, src) for src, dst in res.moved]))
+                self._update_undo_actions()
+        self._run(tr("Renommage"), work, on_done=finished)
+
     def redo(self):
         """Refait la dernière opération annulée."""
         if not self.redo_stack:
@@ -893,7 +946,9 @@ class FileActions:
         entry = self.redo_stack.pop()
         self._update_undo_actions()
         kind = entry[0]
-        if kind == "rename":
+        if kind == "batch-rename":
+            self._batch_rename_steps(entry[1], redo=True)
+        elif kind == "rename":
             _k, old, new = entry
             try:
                 fileops.rename(old, os.path.basename(new))
@@ -947,7 +1002,11 @@ class FileActions:
         self.redo_stack.append(entry)
         self._update_undo_actions()
         kind = entry[0]
-        if kind == "rename":
+        if kind == "batch-rename":
+            self.redo_stack.pop()                   # remis par _batch_rename_steps si tout s'est passé
+            self._update_undo_actions()
+            self._batch_rename_steps(entry[1], redo=False)
+        elif kind == "rename":
             _k, old, new = entry
             try:
                 # fileops.rename refuse d'écraser un élément créé entre-temps sous l'ancien nom

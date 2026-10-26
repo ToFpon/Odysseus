@@ -227,6 +227,15 @@ fenêtre de recherche dans le contenu.
   raccourcis) — jamais dans l'action : un clic sur « Précédent » doit naviguer ; testé dans `ui_mouse.py`.
   « / » et « ~ » se tapent avec Maj / AltGr en AZERTY (clavier de Tof) et QWERTZ : pour eux, Maj ne
   compte pas ; `ui_mouse.py` les tape aussi avec `setxkbmap fr` et `de`.
+- Renommage multiple (F2 / « Renommer… » sur plusieurs éléments locaux) = dialogue de Nautilus 46
+  (`ui/batch_rename.py`, moteur `backend/batchrename.py`, testé par `test_batchrename` et ui_smoke) :
+  modèle (texte + balises « [Nom du fichier original] », « [01, 02, 03] »… effacées d'un bloc,
+  extension gardée), ordre de numérotation, ou rechercher / remplacer ; aperçu, conflits (nom non
+  unique, nom pris par un élément non renommé ; casse ignorée sur FAT / NTFS), bouton grisé tant qu'il
+  en reste. Métadonnées lues dans un fil (EXIF maison pour JPEG / TIFF / RAW, ffprobe pour l'audio /
+  la vidéo) ; une balise n'est proposée que si TOUS les éléments l'ont. `batchrename.apply` : chaînes
+  dans le bon ordre, permutations par un nom caché, `_rename_new` (jamais d'écrasement), un élément en
+  erreur garde son nom. Une seule entrée d'annulation (« batch-rename »).
 - Propriétés → Droits : ne recalculer que la catégorie modifiée (les listes ne montrent pas « -w- »,
   « -wx »… : tout recalculer changeait les autres catégories).
 - GTK 4.14 / Gtk.ColumnView : NE JAMAIS changer la visibilité d'une colonne d'une vue remplie (une
