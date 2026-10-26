@@ -1,3 +1,12 @@
+odysseus (1.2.0~noble1) noble; urgency=medium
+
+  * Outils image (reprise de nautilus-image-converter) : redimensionner,
+    pivoter et convertir des images (JPEG, PNG, WebP, TIFF ; lecture du
+    HEIC et de l'AVIF), combinables, sans jamais écraser. Recommande
+    imagemagick et libheif-plugin-libde265.
+
+ -- Tof <nourpon@gmail.com>  Wed, 28 Oct 2026 10:00:00 +0100
+
 odysseus (1.1.0~noble1) noble; urgency=medium
 
   * Renommage multiple comme Nautilus : modèle (nom d'origine, numéros,

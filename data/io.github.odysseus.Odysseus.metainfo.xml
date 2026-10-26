@@ -70,6 +70,13 @@
   </requires>
   <content_rating type="oars-1.1"/>
   <releases>
+    <release version="1.2.0" date="2026-10-28">
+      <description>
+        <ul>
+          <li>Image tools: resize, rotate and convert images (JPEG, PNG, WebP, TIFF; HEIC and AVIF read), several at once and in one pass, never overwriting</li>
+        </ul>
+      </description>
+    </release>
     <release version="1.1.0" date="2026-10-27">
       <description>
         <ul>
