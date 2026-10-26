@@ -31,7 +31,7 @@ import gi  # noqa: E402
 
 gi.require_version("Gtk", "4.0")
 gi.require_version("Adw", "1")
-from gi.repository import Adw, Gio, GLib, Graphene, Gtk  # noqa: E402
+from gi.repository import Adw, Gdk, Gio, GLib, Graphene, Gtk  # noqa: E402
 
 errors = []
 
@@ -1856,6 +1856,60 @@ def courriel_et_telephone(win):
             fake.terminate()
         yield Wait(5, until=lambda: not gsconnect.devices.capable())
         check(not gsconnect.devices.capable(), "téléphone parti : plus proposé")
+    p.open(D)
+    yield Wait(5, until=lambda: not p.model.loading)
+
+
+@step
+def apercu_rapide(win):
+    """Espace : aperçu rapide par Sushi (faux Sushi D-Bus), comme Nautilus : Espace ouvre / referme,
+    l'aperçu suit la sélection, une flèche tapée dans Sushi déplace la sélection d'Odysseus."""
+    if not os.environ.get("DBUS_SESSION_BUS_ADDRESS"):
+        print("- pas de bus de session : test de l'aperçu rapide sauté")
+        return
+    from odysseus import features as feat
+    from odysseus.ui import sushi
+    base = os.path.join(D, "apercu")
+    os.makedirs(base)
+    for n in ("a.txt", "b.txt", "c.txt"):
+        open(os.path.join(base, n), "w").close()
+    marker = os.path.join(TMP, "org.gnome.NautilusPreviewer.service")
+    open(marker, "w").close()
+    saved = feat.LIBS["lib:sushi"]
+    feat.LIBS["lib:sushi"] = marker                    # « Sushi installé »
+    journal = os.path.join(TMP, "sushi.log")
+    fake = subprocess.Popen([sys.executable, os.path.join(ROOT, "tests", "fake_sushi.py"), journal])
+    uri = lambda n: Gio.File.new_for_path(os.path.join(base, n)).get_uri()  # noqa: E731
+    lines = lambda: open(journal).read().splitlines() if os.path.exists(journal) else []  # noqa: E731
+    try:
+        yield pump(0.8)
+        p = win.pane
+        p.open(base)
+        yield Wait(5, until=lambda: not p.model.loading)
+        p.model.select_names(["a.txt"])
+        p.focus_view()
+        yield pump(0.3)
+        win.present()
+        check(win._on_type_ahead(None, Gdk.KEY_space, 0, 0), "Espace pris par l'aperçu rapide")
+        yield Wait(5, until=lambda: lines())
+        check(lines()[:1] == [f"show {uri('a.txt')} x11 1"], f"Sushi ouvert sur le fichier sélectionné ({lines()})")
+        yield Wait(3, until=sushi.previewer.visible)
+        p.model.select_names(["b.txt"])
+        yield Wait(3, until=lambda: len(lines()) >= 2)
+        check(lines()[1:2] == [f"show {uri('b.txt')} x11 0"], f"l'aperçu suit la sélection ({lines()})")
+        sushi.previewer.proxy.call_sync("Arrow", GLib.Variant("(u)", (int(Gtk.DirectionType.DOWN),)),
+                                        Gio.DBusCallFlags.NONE, -1, None)
+        yield Wait(3, until=lambda: [r.name for r in p.selected_recs()] == ["c.txt"])
+        check([r.name for r in p.selected_recs()] == ["c.txt"], "flèche dans Sushi : élément suivant")
+        win._on_type_ahead(None, Gdk.KEY_space, 0, 0)
+        yield Wait(3, until=lambda: not sushi.previewer.visible())
+        check(not sushi.previewer.visible(), "Espace referme l'aperçu")
+        feat.set_enabled("quick_look", False)
+        check(not win._on_type_ahead(None, Gdk.KEY_space, 0, 0), "aperçu rapide désactivable à chaud")
+        feat.set_enabled("quick_look", True)
+    finally:
+        fake.terminate()
+        feat.LIBS["lib:sushi"] = saved
     p.open(D)
     yield Wait(5, until=lambda: not p.model.loading)
 

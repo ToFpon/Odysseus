@@ -114,6 +114,11 @@ FEATURES = [
             tr("Extraire la piste audio des vidéos : MP3, M4A, OGG, OPUS, FLAC, WAV"),
             "audio-x-generic-symbolic", "media",
             tools=(("ffmpeg",),), packages="ffmpeg"),
+    Feature("quick_look", tr("Aperçu rapide (Espace)"),
+            tr("La barre d'espace ouvre l'aperçu de GNOME (Sushi) comme dans Nautilus ; les flèches passent "
+               "au fichier suivant"),
+            "view-reveal-symbolic", "files",
+            tools=(("lib:sushi",),), packages="gnome-sushi"),
     Feature("image_tools", tr("Outils image"),
             tr("Redimensionner, pivoter et convertir des images (JPEG, PNG, WebP, HEIC…), plusieurs à la fois"),
             "image-x-generic-symbolic", "media",
@@ -150,14 +155,15 @@ def set_enabled(fid: str, value: bool):
 # Programme ou module Python → paquet Ubuntu 24.04 qui le fournit
 PACKAGE_OF = {"7zz": "7zip", "7z": "7zip", "7za": "7zip", "gs": "ghostscript", "ghostscript": "ghostscript",
               "qpdf": "qpdf", "ffmpeg": "ffmpeg", "magick": "imagemagick", "convert": "imagemagick",
-              "lib:heif-libde265": "libheif-plugin-libde265", "ffprobe": "ffmpeg", "ffmpegthumbnailer": "ffmpegthumbnailer",
+              "lib:heif-libde265": "libheif-plugin-libde265", "lib:sushi": "gnome-sushi", "ffprobe": "ffmpeg", "ffmpegthumbnailer": "ffmpegthumbnailer",
               "rg": "ripgrep", "grep": "grep", "pdftoppm": "poppler-utils", "zstd": "zstd", "brotli": "brotli",
               "lz4": "lz4", "dpkg-deb": "dpkg", "pkexec": "pkexec", "py:pypdf": "python3-pypdf",
               "py:cairo": "python3-cairo python3-gi-cairo", "gir:Poppler": "gir1.2-poppler-0.18"}
 
 
 # greffons de bibliothèques (pas de programme à chercher dans le PATH) : fichier installé par le paquet
-LIBS = {"lib:heif-libde265": "/usr/lib/*/libheif/plugins/libheif-libde265.so"}
+LIBS = {"lib:heif-libde265": "/usr/lib/*/libheif/plugins/libheif-libde265.so",
+        "lib:sushi": "/usr/share/dbus-1/services/org.gnome.NautilusPreviewer.service"}
 
 
 def _lib_path(name: str) -> str:
@@ -188,7 +194,7 @@ def _missing(fid: str) -> list[tuple[str, str]]:
     f = BY_ID[fid]
     out = []
     for group in f.tools:
-        if not any(shutil.which(t) for t in group):
+        if not any(present(t) for t in group):
             out.append((" / ".join(group), PACKAGE_OF.get(group[0], f.packages)))
     if f.uri_scheme and f.uri_scheme not in Gio.Vfs.get_default().get_supported_uri_schemes():
         out.append(("gvfs-backends", "gvfs-backends"))
@@ -238,6 +244,9 @@ COMPONENTS = [
         ("ImageMagick", ("magick", "convert"), tr("Redimensionner, pivoter et convertir des images")),
         ("libde265 (HEIC)", ("lib:heif-libde265",), tr("Lire les photos HEIC des iPhone (outils image, miniatures)")),
         ("Cairo (Python)", ("py:cairo",), tr("Annoter une image, filigrane PDF")),
+    ]),
+    (tr("Fichiers"), [
+        ("Sushi", ("lib:sushi",), tr("Aperçu rapide avec la barre d'espace, comme dans Nautilus")),
     ]),
     (tr("Recherche"), [
         ("ripgrep", ("rg",), tr("Recherche rapide dans le contenu des fichiers (sinon grep, plus lent)")),

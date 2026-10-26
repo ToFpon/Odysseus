@@ -236,6 +236,13 @@ fenêtre de recherche dans le contenu.
   la vidéo) ; une balise n'est proposée que si TOUS les éléments l'ont. `batchrename.apply` : chaînes
   dans le bon ordre, permutations par un nom caché, `_rename_new` (jamais d'écrasement), un élément en
   erreur garde son nom. Une seule entrée d'annulation (« batch-rename »).
+- Aperçu rapide (fonctionnalité `quick_look`) = Sushi piloté comme par Nautilus 46 (`ui/sushi.py`,
+  D-Bus org.gnome.NautilusPreviewer2 : ShowFile(uri, « x11:<xid> », fermer si visible), propriété
+  Visible, signal SelectionEvent(GtkDirectionType) → `Pane.move_selection`). Espace pris en capture par
+  `MainWindow._quick_look` (avant type-ahead, sauf frappe en cours) ; l'aperçu ouvert suit la sélection
+  (fenêtre active seulement). Sushi présent = son fichier de service D-Bus (`lib:sushi`, features.LIBS),
+  `gnome-sushi` en Recommends. Testé avec `tests/fake_sushi.py` : ui_smoke sous `dbus-run-session`
+  (sans bus de session, l'étape est sautée).
 - Outils image (fonctionnalité `image_tools`, reprise de nautilus-image-converter + conversion) :
   `backend/images.py` + `ui/image_dialog.py`, menu « Outils image » (redimensionner / pivoter / convertir,
   combinables en une passe d'ImageMagick 6 : `convert`, `magick` si présent). Entrée avec sélecteur

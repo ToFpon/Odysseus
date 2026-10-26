@@ -11,7 +11,7 @@ from .. import APP_ID, APP_NAME, features
 from ..backend import bookmarks
 from ..i18n import tr
 from ..settings import settings
-from . import menus
+from . import menus, sushi
 from .actions_archives import ArchiveActions
 from .actions_files import FileActions
 from .actions_tools import ToolActions
@@ -366,6 +366,7 @@ class MainWindow(FileActions, ArchiveActions, ToolActions, Adw.ApplicationWindow
         self._update_dual_bar()
         if self.preview is not None and self.preview.get_visible():
             self.preview.show_selection(pane)
+        self._quick_look_follow(pane)
 
     def _sync_view_button(self):
         p = self.pane
@@ -732,6 +733,8 @@ class MainWindow(FileActions, ArchiveActions, ToolActions, Adw.ApplicationWindow
     def _on_type_ahead(self, _ctrl, keyval, _code, state):
         """Réglage « taper pour aller au fichier » : les lettres tapées dans la vue des fichiers
         sélectionnent le premier élément qui commence ainsi (Pane.type_ahead)."""
+        if keyval == Gdk.KEY_space and self._quick_look(state):
+            return True
         if not settings["type_ahead"]:
             return False
         if state & (Gdk.ModifierType.CONTROL_MASK | Gdk.ModifierType.ALT_MASK | Gdk.ModifierType.SUPER_MASK):
@@ -763,6 +766,42 @@ class MainWindow(FileActions, ArchiveActions, ToolActions, Adw.ApplicationWindow
             p.focus_view()
         p.type_ahead(ch)
         return True
+
+    def _quick_look(self, state) -> bool:
+        """Espace dans la vue des fichiers : aperçu rapide par Sushi, comme Nautilus (Espace referme)."""
+        if state & (Gdk.ModifierType.CONTROL_MASK | Gdk.ModifierType.ALT_MASK | Gdk.ModifierType.SUPER_MASK
+                    | Gdk.ModifierType.SHIFT_MASK):
+            return False
+        p = self.pane
+        focus = self.get_focus()
+        if p is None or p.type_ahead_active or not features.available("quick_look") \
+                or not (p.lost_focus(focus) or focus.is_ancestor(p) and not isinstance(focus, Gtk.Editable)):
+            return False
+        sel = p.selected_recs()
+        if not sel:
+            return False
+        sushi.previewer.on_selection_event = self._on_quick_look_move
+        sushi.previewer.show(self, sel[0].gfile.get_uri(), True)
+        return True
+
+    def _quick_look_follow(self, pane):
+        """Aperçu ouvert : il suit la sélection (fenêtre active seulement, comme Nautilus)."""
+        if not features.enabled("quick_look") or not sushi.previewer.visible() or not self.is_active():
+            return
+        sel = pane.selected_recs()
+        if sel:
+            sushi.previewer.show(self, sel[0].gfile.get_uri(), False)
+
+    def _on_quick_look_move(self, direction: int):
+        """Flèches tapées dans Sushi (GtkDirectionType) : la sélection d'Odysseus avance ou recule."""
+        if not self.is_active() and not sushi.previewer.visible():
+            return
+        p = self.pane
+        if p is not None:
+            p.move_selection({Gtk.DirectionType.UP: "up", Gtk.DirectionType.DOWN: "down",
+                              Gtk.DirectionType.LEFT: "left", Gtk.DirectionType.RIGHT: "right",
+                              Gtk.DirectionType.TAB_FORWARD: "down", Gtk.DirectionType.TAB_BACKWARD: "up"}
+                             .get(Gtk.DirectionType(direction), "down"))
 
     def _on_text_key(self, _ctrl, keyval, _code, state):
         if state & (Gdk.ModifierType.ALT_MASK | Gdk.ModifierType.SUPER_MASK):

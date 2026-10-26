@@ -13,7 +13,7 @@ Package: odysseus
 Architecture: all
 Depends: ${misc:Depends}, ${python3:Depends}, python3 (>= 3.10), python3-gi, gir1.2-gtk-4.0 (>= 4.14),
  gir1.2-adw-1 (>= 1.5), gir1.2-glib-2.0, gvfs
-Recommends: 7zip, ghostscript, qpdf, poppler-utils, gir1.2-poppler-0.18, ffmpeg, ffmpegthumbnailer, imagemagick, libheif-plugin-libde265,
+Recommends: 7zip, ghostscript, qpdf, poppler-utils, gir1.2-poppler-0.18, ffmpeg, ffmpegthumbnailer, imagemagick, libheif-plugin-libde265, gnome-sushi,
  ripgrep, zstd, lbzip2, pigz, python3-cairo, python3-gi-cairo, gvfs-backends, xdg-utils
 Suggests: brotli, lz4, python3-pypdf, pkexec, gnome-shell-extension-gsconnect
 Description: GTK4 file manager in the style of GNOME Files, with built-in tools

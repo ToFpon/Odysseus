@@ -1111,6 +1111,22 @@ class Pane(Gtk.Box):
             self.model.selection.set_selection(Gtk.Bitset.new_range(found, 1), Gtk.Bitset.new_range(0, len(items)))
             self.scroll_to(found)
 
+    def move_selection(self, direction: str):
+        """Sélection d'un cran (aperçu rapide : flèches tapées dans Sushi). En grille, haut / bas
+        sautent d'une rangée."""
+        items = self.model.items
+        if not items or not self.model.selection or self.view_mode == "columns":
+            return
+        sel = self.model.selection.get_selection()
+        pos = sel.get_nth(0) if sel.get_size() else 0
+        step = 1
+        if direction in ("up", "down") and self.view_mode == "grid":
+            step = max(1, self.grid_view.view.get_max_columns())
+        pos += step if direction in ("down", "right") else -step
+        pos = max(0, min(len(items) - 1, pos))
+        self.model.selection.set_selection(Gtk.Bitset.new_range(pos, 1), Gtk.Bitset.new_range(0, len(items)))
+        self.scroll_to(pos)
+
     def select_best(self, query: str):
         """Recherche : comme Nautilus, le meilleur résultat est sélectionné, Entrée l'ouvre. Nom
         identique, puis qui commence par le texte, puis le plus court ; à égalité, l'ordre affiché."""
