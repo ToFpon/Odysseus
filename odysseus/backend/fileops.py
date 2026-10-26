@@ -974,6 +974,9 @@ def describe_result(res: Result) -> str:
         return ntr("{0} élément déplacé", "{0} éléments déplacés", n).format(n)
     if res.kind == "restore":
         return ntr("{0} élément restauré", "{0} éléments restaurés", n).format(n)
+    if res.kind == "image":
+        n = len(res.created)
+        return ntr("{0} image enregistrée", "{0} images enregistrées", n).format(n)
     if res.kind == "rename":
         n = len(res.moved)
         return ntr("{0} élément renommé", "{0} éléments renommés", n).format(n)

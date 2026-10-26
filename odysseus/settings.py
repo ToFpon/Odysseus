@@ -59,6 +59,10 @@ DEFAULTS: dict[str, Any] = {
     "pdf_compress_level": "/ebook",
     "audio_format": "mp3",
     "audio_quality": "high",
+    # outils image : derniers réglages
+    "image_resize": "scale", "image_scale": 50, "image_width": 1920, "image_height": 1080,
+    "image_no_enlarge": True, "image_rotate": 90, "image_format": "jpg", "image_quality": 90,
+    "image_replace": False,
 }
 
 

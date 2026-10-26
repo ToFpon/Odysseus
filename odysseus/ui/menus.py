@@ -211,6 +211,14 @@ def context_menu(win, pane, on_item: bool) -> Gio.Menu:
     if files and len(files) == len(sel) and all(media.is_video(r.name) for r in files) \
             and features.available("video_to_audio"):
         t.append(tr("Extraire l'audio…"), "win.video-to-audio")
+    if files and len(files) == len(sel) and features.available("image_tools"):
+        from ..backend import images
+        if all(images.is_image(r.name) for r in files):
+            im = Gio.Menu()
+            im.append(tr("Redimensionner…"), "win.image-resize")
+            im.append(tr("Pivoter…"), "win.image-rotate")
+            im.append(tr("Convertir…"), "win.image-convert")
+            t.append_submenu(tr("Outils image"), im)
     if one is not None and not one.is_dir and one.content_type.startswith("image/") and features.available("annotate"):
         t.append(tr("Annoter l'image…"), "win.annotate")
     if one is not None and not one.is_dir and features.enabled("checksums"):

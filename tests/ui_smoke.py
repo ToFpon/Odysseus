@@ -1562,6 +1562,63 @@ def renommage_multiple(win):
 
 
 @step
+def outils_image(win):
+    """Outils image : menu sur des images, redimensionner + convertir en une fois, originaux intacts."""
+    import shutil as _sh
+    import subprocess as _sp
+    if not (_sh.which("convert") and _sh.which("identify")):
+        print("(outils image : ImageMagick absent, sauté)")
+        return
+    from odysseus.ui import menus
+    base = os.path.join(D, "images")
+    os.makedirs(base)
+    for n in ("a.png", "b [1].png"):
+        _sp.run(["convert", "-size", "200x100", "xc:red", os.path.join(base, n)], check=True)
+    p = win.pane
+    p.open(base)
+    yield Wait(5, until=lambda: not p.model.loading)
+    p.model.select_names(["a.png", "b [1].png"])
+    yield pump(0.2)
+    m = menus.context_menu(win, p, True)
+    labels = []
+
+    def walk(model):
+        for i in range(model.get_n_items()):
+            v = model.get_item_attribute_value(i, "label", None)
+            if v:
+                labels.append(v.get_string())
+            for link in ("section", "submenu"):
+                sub = model.get_item_link(i, link)
+                if sub:
+                    walk(sub)
+    walk(m)
+    check(tr("Outils image") in labels and tr("Convertir…") in labels, "menu « Outils image » sur des images")
+    before = list(Gtk.Window.list_toplevels())
+    win.activate_action("win.image-resize", None)
+    yield pump(0.5)
+    dlg = [w for w in Gtk.Window.list_toplevels() if w not in before and w.get_visible()]
+    check(len(dlg) == 1, "fenêtre « Redimensionner les images »")
+    from odysseus.ui import image_dialog
+    d = image_dialog._last
+    d.scale.set_value(50)
+    d.convert.set_enable_expansion(True)
+    d.fmt.set_selected(0)          # JPEG
+    yield pump(0.2)
+    check(d.quality.get_sensitive() and d.action.get_sensitive(), "qualité réglable vers JPEG, bouton actif")
+    d.action.emit("clicked")
+    suf = tr(" (redimensionnée)")
+    yield Wait(10, until=lambda: os.path.exists(os.path.join(base, f"b [1]{suf}.jpg")))
+    yield pump(0.5)
+    names = sorted(os.listdir(base))
+    check(names == sorted([f"a{suf}.jpg", "a.png", f"b [1]{suf}.jpg", "b [1].png"]),
+          f"images enregistrées à côté, originaux intacts ({names})")
+    out = _sp.run(["identify", "-format", "%w %h %m", os.path.join(base, f"a{suf}.jpg")],
+                  capture_output=True, text=True).stdout
+    check(out == "100 50 JPEG", f"redimensionnée et convertie ({out})")
+    yield pump(0.3)
+
+
+@step
 def panneau_suit_le_dossier(win):
     """Un panneau ouvert dans un dossier renommé (par Odysseus) le suit ; mis à la corbeille, il remonte."""
     base = os.path.join(D, "suivre")

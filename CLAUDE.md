@@ -236,6 +236,16 @@ fenêtre de recherche dans le contenu.
   la vidéo) ; une balise n'est proposée que si TOUS les éléments l'ont. `batchrename.apply` : chaînes
   dans le bon ordre, permutations par un nom caché, `_rename_new` (jamais d'écrasement), un élément en
   erreur garde son nom. Une seule entrée d'annulation (« batch-rename »).
+- Outils image (fonctionnalité `image_tools`, reprise de nautilus-image-converter + conversion) :
+  `backend/images.py` + `ui/image_dialog.py`, menu « Outils image » (redimensionner / pivoter / convertir,
+  combinables en une passe d'ImageMagick 6 : `convert`, `magick` si présent). Entrée avec sélecteur
+  explicite (`[0]`, GIF animé → GIF : `[0-99999]` + coalesce) sinon « photo [1].jpg » est mal lu ;
+  chemin absolu (un « x:y.png » relatif = format « x »). `-auto-orient` d'abord (photos de téléphone).
+  Sortie sous un nom caché puis `place_new` ; « remplacer » : même format → `os.replace` après fsync,
+  autre format → nouvelle image posée et mise sur disque, puis original à la corbeille. Ubuntu 24.04 :
+  HEIC / AVIF en lecture seule, et le décodeur HEIC (`libheif-plugin-libde265`) n'est que suggéré par
+  libheif → Recommends du paquet, composant `lib:heif-libde265` (features.LIBS), message clair sinon.
+  Testé par `tests/test_images.py` et ui_smoke.
 - Propriétés → Droits : ne recalculer que la catégorie modifiée (les listes ne montrent pas « -w- »,
   « -wx »… : tout recalculer changeait les autres catégories).
 - GTK 4.14 / Gtk.ColumnView : NE JAMAIS changer la visibilité d'une colonne d'une vue remplie (une

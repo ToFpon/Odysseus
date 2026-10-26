@@ -114,6 +114,10 @@ FEATURES = [
             tr("Extraire la piste audio des vidéos : MP3, M4A, OGG, OPUS, FLAC, WAV"),
             "audio-x-generic-symbolic", "media",
             tools=(("ffmpeg",),), packages="ffmpeg"),
+    Feature("image_tools", tr("Outils image"),
+            tr("Redimensionner, pivoter et convertir des images (JPEG, PNG, WebP, HEIC…), plusieurs à la fois"),
+            "image-x-generic-symbolic", "media",
+            tools=(("magick", "convert"),), packages="imagemagick"),
     Feature("annotate", tr("Annoter une image"),
             tr("Flèches, cadres, texte, surligneur et dessin à main levée sur une image"),
             "applications-graphics-symbolic", "media", python=("cairo",)),
@@ -145,10 +149,21 @@ def set_enabled(fid: str, value: bool):
 
 # Programme ou module Python → paquet Ubuntu 24.04 qui le fournit
 PACKAGE_OF = {"7zz": "7zip", "7z": "7zip", "7za": "7zip", "gs": "ghostscript", "ghostscript": "ghostscript",
-              "qpdf": "qpdf", "ffmpeg": "ffmpeg", "ffprobe": "ffmpeg", "ffmpegthumbnailer": "ffmpegthumbnailer",
+              "qpdf": "qpdf", "ffmpeg": "ffmpeg", "magick": "imagemagick", "convert": "imagemagick",
+              "lib:heif-libde265": "libheif-plugin-libde265", "ffprobe": "ffmpeg", "ffmpegthumbnailer": "ffmpegthumbnailer",
               "rg": "ripgrep", "grep": "grep", "pdftoppm": "poppler-utils", "zstd": "zstd", "brotli": "brotli",
               "lz4": "lz4", "dpkg-deb": "dpkg", "pkexec": "pkexec", "py:pypdf": "python3-pypdf",
               "py:cairo": "python3-cairo python3-gi-cairo", "gir:Poppler": "gir1.2-poppler-0.18"}
+
+
+# greffons de bibliothèques (pas de programme à chercher dans le PATH) : fichier installé par le paquet
+LIBS = {"lib:heif-libde265": "/usr/lib/*/libheif/plugins/libheif-libde265.so"}
+
+
+def _lib_path(name: str) -> str:
+    import glob
+    found = glob.glob(LIBS.get(name, ""))
+    return found[0] if found else ""
 
 
 def present(name: str) -> bool:
@@ -156,6 +171,8 @@ def present(name: str) -> bool:
     if name.startswith("py:"):
         import importlib.util
         return importlib.util.find_spec(name[3:]) is not None
+    if name.startswith("lib:"):
+        return bool(_lib_path(name))
     if name.startswith("gir:"):
         import gi
         try:
@@ -218,6 +235,8 @@ COMPONENTS = [
         ("FFmpeg", ("ffmpeg",), tr("Vidéo vers audio, miniatures des vidéos")),
         ("ffprobe", ("ffprobe",), tr("Colonne Durée")),
         ("ffmpegthumbnailer", ("ffmpegthumbnailer",), tr("Miniatures des vidéos, plus rapides qu'avec FFmpeg seul")),
+        ("ImageMagick", ("magick", "convert"), tr("Redimensionner, pivoter et convertir des images")),
+        ("libde265 (HEIC)", ("lib:heif-libde265",), tr("Lire les photos HEIC des iPhone (outils image, miniatures)")),
         ("Cairo (Python)", ("py:cairo",), tr("Annoter une image, filigrane PDF")),
     ]),
     (tr("Recherche"), [
@@ -234,6 +253,8 @@ def component_path(alternatives) -> str:
                 return "Python : " + a[3:]
             if a.startswith("gir:"):
                 return a[4:] + " (GObject Introspection)"
+            if a.startswith("lib:"):
+                return _lib_path(a)
             return shutil.which(a)
     return ""
 

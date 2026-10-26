@@ -17,6 +17,8 @@ class ToolActions:
             "pdf-compress": lambda: self._pdf("compress"), "pdf-merge": lambda: self._pdf("merge"),
             "pdf-watermark": lambda: self._pdf("watermark"), "pdf-pages": lambda: self._pdf("pages"),
             "video-to-audio": self.video_to_audio, "annotate": self.annotate, "deb-install": self.deb_install,
+            "image-resize": lambda: self.image_tools("resize"), "image-rotate": lambda: self.image_tools("rotate"),
+            "image-convert": lambda: self.image_tools("convert"),
             "verify-checksums": self.verify_checksums, "checksums": self.checksums,
         }
         for name, cb in acts.items():
@@ -79,6 +81,15 @@ class ToolActions:
         if paths:
             from .audio_dialog import VideoToAudioDialog
             VideoToAudioDialog(self, paths).present(self)
+
+    def image_tools(self, mode: str):
+        if not self._need("image_tools"):
+            return
+        from ..backend import images
+        paths = [r.path for r in self.pane.selected_recs() if r.path and not r.is_dir and images.is_image(r.name)]
+        if paths:
+            from .image_dialog import ImageToolsDialog
+            ImageToolsDialog(self, paths, mode).present(self)
 
     def annotate(self):
         if not self._need("annotate"):
