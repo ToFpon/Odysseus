@@ -151,9 +151,13 @@ class BatchRenameDialog(Adw.Window):
         for _it in self.items:
             row = Gtk.ListBoxRow(activatable=False)
             r = Gtk.Box(spacing=12, margin_top=6, margin_bottom=6, margin_start=12, margin_end=12)
-            old = Gtk.Label(xalign=0, hexpand=True, ellipsize=Pango.EllipsizeMode.MIDDLE, width_chars=20)
+            old = Gtk.Label(xalign=0, hexpand=True, ellipsize=Pango.EllipsizeMode.MIDDLE, width_chars=20,
+                             max_width_chars=20)
+            # même largeur demandée par les deux noms (max_width_chars) : la place restante se partage
+            # à égalité, la flèche et la colonne de droite sont alignées d'une ligne à l'autre
             arrow = Gtk.Label(label="←" if self.get_direction() == Gtk.TextDirection.RTL else "→")
-            new = Gtk.Label(xalign=0, hexpand=True, ellipsize=Pango.EllipsizeMode.MIDDLE, width_chars=20)
+            new = Gtk.Label(xalign=0, hexpand=True, ellipsize=Pango.EllipsizeMode.MIDDLE, width_chars=20,
+                             max_width_chars=20)
             r.append(old)
             r.append(arrow)
             r.append(new)
@@ -313,7 +317,8 @@ class BatchRenameDialog(Adw.Window):
             old = shown(it.name)
             if replace and find:
                 parts = [GLib.markup_escape_text(p) for p in old.split(shown(find))]
-                mark = "<span underline='single' weight='bold'>%s</span>" % GLib.markup_escape_text(shown(find))
+                # surlignage de Nautilus (batch_rename_replace_label_text)
+                mark = "<span background='#f57900' color='white'>%s</span>" % GLib.markup_escape_text(shown(find))
                 row._old.set_markup(mark.join(parts))
             else:
                 row._old.set_text(old)
