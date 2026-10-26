@@ -1,3 +1,11 @@
+odysseus (1.1.0~noble1) noble; urgency=medium
+
+  * Renommage multiple comme Nautilus : modèle (nom d'origine, numéros,
+    métadonnées des photos, musiques et vidéos) ou rechercher /
+    remplacer, aperçu en direct, conflits signalés, annulable d'un coup.
+
+ -- Tof <nourpon@gmail.com>  Tue, 27 Oct 2026 20:00:00 +0100
+
 odysseus (1.0.10~noble1) noble; urgency=medium
 
   * Taper pour aller au fichier : marche aussi quand le focus s'est

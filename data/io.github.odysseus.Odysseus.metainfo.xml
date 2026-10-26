@@ -70,6 +70,13 @@
   </requires>
   <content_rating type="oars-1.1"/>
   <releases>
+    <release version="1.1.0" date="2026-10-27">
+      <description>
+        <ul>
+          <li>Batch rename, as in GNOME Files: rename using a template (original name, automatic numbers, photo, music and video metadata) or find and replace text, with a live preview and conflict checks; undone in one step</li>
+        </ul>
+      </description>
+    </release>
     <release version="1.0.10" date="2026-10-27">
       <description>
         <ul>
