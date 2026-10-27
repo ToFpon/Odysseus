@@ -529,3 +529,18 @@ class SidebarPlacesTest(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class DebInstallTest(unittest.TestCase):
+    """Installateur .deb : debconf non interactif (sinon messages « unable to initialize frontend:
+    Dialog / Readline » sans terminal), lignes d'avancement de dpkg écartées."""
+
+    def test_command_and_progress(self):
+        from odysseus.backend import debpkg
+        cmd = debpkg.install_command("x.deb")
+        self.assertEqual(cmd[:4], ["pkexec", "env", "DEBIAN_FRONTEND=noninteractive", "apt-get"])
+        self.assertTrue(os.path.isabs(cmd[-1]))
+        self.assertTrue(debpkg.is_progress_line("(Lese Datenbank ... 45%"))
+        self.assertTrue(debpkg.is_progress_line("(Reading database ... 100%\n"))
+        self.assertFalse(debpkg.is_progress_line("(Lese Datenbank ... 335999 Dateien und Verzeichnisse sind derzeit installiert.)"))
+        self.assertFalse(debpkg.is_progress_line("Entpacken von clamtk (6.18-1) über (6.07-1.1) ..."))

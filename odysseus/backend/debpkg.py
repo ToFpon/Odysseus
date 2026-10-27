@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import os
+import re
 import subprocess
 from dataclasses import dataclass
 from typing import Optional
@@ -68,4 +69,18 @@ def missing_dependencies(path: str) -> Optional[list[str]]:
 
 
 def install_command(path: str) -> list[str]:
-    return ["pkexec", "apt-get", "install", "-y", "--no-install-recommends", os.path.abspath(path)]
+    """Installation sans terminal : debconf en mode non interactif (réponses par défaut, comme
+    l'Installation de logiciels de GNOME). Sinon il cherchait une interface « Dialog », puis
+    « Readline », puis « Teletype », et l'affichait en messages d'erreur (bénins, mais inquiétants).
+    pkexec ne transmet pas l'environnement : la variable passe par env."""
+    return ["pkexec", "env", "DEBIAN_FRONTEND=noninteractive", "apt-get", "install", "-y",
+            "--no-install-recommends", os.path.abspath(path)]
+
+
+_PROGRESS = re.compile(r"^\(.*\d+\s*%\s*$")
+
+
+def is_progress_line(line: str) -> bool:
+    """« (Lecture de la base de données... 45%» : étapes d'avancement de dpkg (écrites avec \r, une
+    ligne par étape une fois lues) ; seule la ligne finale « … fichiers et répertoires … » compte."""
+    return bool(_PROGRESS.match(line.strip()))

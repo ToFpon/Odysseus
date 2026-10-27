@@ -108,10 +108,11 @@ class DebInstallerDialog(DialogWindow):
 
         def work():
             try:
-                self.proc = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True,
-                                             errors="replace", bufsize=1)
+                self.proc = subprocess.Popen(cmd, stdin=subprocess.DEVNULL, stdout=subprocess.PIPE,
+                                             stderr=subprocess.STDOUT, text=True, errors="replace", bufsize=1)
                 for line in self.proc.stdout:
-                    GLib.idle_add(self._append, line)
+                    if not debpkg.is_progress_line(line):
+                        GLib.idle_add(self._append, line)
                 rc = self.proc.wait()
             except OSError as e:
                 GLib.idle_add(self._append, f"{e}\n", self.tag_err)

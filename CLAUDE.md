@@ -301,6 +301,10 @@ fenêtre de recherche dans le contenu.
   (seule, avec le nom, format BSD, en groupes) ; `compare_digest` calcule en une lecture tous les
   algorithmes de cette longueur (64 : SHA-256, SHA3-256, BLAKE2s…). `verify_hash_file` renvoie des
   états (ok, mismatch, missing, unreadable) traduits par `checksum_dialog`.
+- Installateur .deb : `pkexec env DEBIAN_FRONTEND=noninteractive apt-get install …` (`debpkg.install_command`),
+  stdin fermé ; sans ça, debconf sans terminal affichait « unable to initialize frontend: Dialog /
+  Readline… » (bénin mais inquiétant, reproduit avec apt-utils). Lignes d'avancement de dpkg
+  (« (Lecture de la base… 45% ») écartées (`debpkg.is_progress_line`).
 - Ghostscript `pdfimage24` : `-sCompression=JPEG` en majuscules.
 - `view-column-symbolic` n'existe pas dans Adwaita : `icons.first_icon` avec repli.
 - Emblèmes comme Nautilus (lien, `emblem-readonly`, `emblem-unreadable`, puis Folder Color), à la suite
