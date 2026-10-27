@@ -785,16 +785,23 @@ class MainWindow(FileActions, ArchiveActions, ToolActions, Adw.ApplicationWindow
         return True
 
     def _quick_look_follow(self, pane):
-        """Aperçu ouvert : il suit la sélection (fenêtre active seulement, comme Nautilus)."""
-        if not features.enabled("quick_look") or not sushi.previewer.visible() or not self.is_active():
+        """Aperçu ouvert par cette fenêtre : il suit la sélection, que le clavier soit dans Sushi (flèches →
+        SelectionEvent) ou resté dans Odysseus (Sushi ne prend pas toujours le focus sous X11)."""
+        if not features.enabled("quick_look") or sushi.previewer.owner is not self:
             return
         sel = pane.selected_recs()
-        if sel:
-            sushi.previewer.show(self, sel[0].gfile.get_uri(), False)
+        if not sel:
+            return
+        uri = sel[0].gfile.get_uri()
+
+        def visible(v):
+            if v and sushi.previewer.owner is self and [r.gfile.get_uri() for r in pane.selected_recs()[:1]] == [uri]:
+                sushi.previewer.show(self, uri, False)
+        sushi.previewer.query_visible(visible)
 
     def _on_quick_look_move(self, direction: int):
         """Flèches tapées dans Sushi (GtkDirectionType) : la sélection d'Odysseus avance ou recule."""
-        if not self.is_active() and not sushi.previewer.visible():
+        if sushi.previewer.owner is not self:
             return
         p = self.pane
         if p is not None:

@@ -23,6 +23,7 @@ class Previewer:
         self._fetching = False
         self._pending = None                     # (uri, handle, close) demandé avant que Sushi réponde
         self.on_selection_event: Optional[Callable[[int], None]] = None
+        self.owner = None                        # fenêtre qui a ouvert l'aperçu : elle seule le fait suivre
 
     # ------------------------------------------------------------------
     def _ensure(self) -> bool:
@@ -62,12 +63,31 @@ class Previewer:
 
     # ------------------------------------------------------------------
     def visible(self) -> bool:
+        """État mémorisé par le proxy (peut manquer : voir query_visible)."""
         if not self.ready or self.proxy is None:
             return False
         v = self.proxy.get_cached_property("Visible")
         return bool(v.unpack()) if v is not None else False
 
+    def query_visible(self, callback: Callable[[bool], None]):
+        """Demande à Sushi s'il est ouvert. Le cache du proxy ne suffit pas : Sushi lancé par le Ping
+        après la création du proxy (cas normal : il démarre au premier Espace), la propriété Visible
+        n'y était pas toujours, et l'aperçu ne suivait plus la sélection."""
+        if not self.ready or self.proxy is None:
+            return
+
+        def done(conn, res):
+            try:
+                v = conn.call_finish(res).unpack()[0]
+            except GLib.Error:
+                return
+            callback(bool(v))
+        self.proxy.get_connection().call(NAME, PATH, "org.freedesktop.DBus.Properties", "Get",
+                                         GLib.Variant("(ss)", (IFACE, "Visible")), GLib.VariantType("(v)"),
+                                         Gio.DBusCallFlags.NO_AUTO_START, -1, None, done)
+
     def show(self, window: Gtk.Window, uri: str, close_if_visible: bool):
+        self.owner = window
         handle = window_handle(window)
         if not self._ensure():
             self._pending = (uri, handle, close_if_visible)

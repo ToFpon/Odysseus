@@ -2,7 +2,7 @@
 gnome-sushi. Chaque appel (ShowFile uri fermer / Close) est écrit dans le journal ; la méthode de test
 Arrow(direction) émet SelectionEvent, comme une flèche tapée dans la fenêtre de Sushi.
 
-    python3.12 tests/fake_sushi.py JOURNAL
+    python3.12 tests/fake_sushi.py JOURNAL [--muet]
 """
 import sys
 
@@ -19,6 +19,9 @@ XML = f"""<node><interface name="{IFACE}">
   <signal name="SelectionEvent"><arg type="u"/></signal>
 </interface></node>"""
 log = sys.argv[1]
+# --muet : pas de PropertiesChanged. Cas réel : Sushi lancé après la création du proxy (au premier
+# Espace), la propriété Visible n'arrivait pas dans le cache du proxy
+QUIET = "--muet" in sys.argv
 state = {"visible": False, "conn": None}
 
 
@@ -29,6 +32,8 @@ def write(line):
 
 def set_visible(v):
     state["visible"] = v
+    if QUIET:
+        return
     state["conn"].emit_signal(None, PATH, "org.freedesktop.DBus.Properties", "PropertiesChanged",
                               GLib.Variant("(sa{sv}as)", (IFACE, {"Visible": GLib.Variant("b", v)}, [])))
 
