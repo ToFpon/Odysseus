@@ -258,8 +258,16 @@ fenêtre de recherche dans le contenu.
 - Propriétés d'un dossier : icône personnalisée comme Nautilus 46 (crayon → Gtk.FileDialog d'images,
   croix → retirée avec « Annuler »), dans metadata::custom-icon (`folder_colors.set_custom_icon` /
   `reset_icon` / `restore_icon`, repli JSON si GVfs n'écrit pas) : Nautilus la voit aussi.
-- Propriétés → Droits : ne recalculer que la catégorie modifiée (les listes ne montrent pas « -w- »,
-  « -wx »… : tout recalculer changeait les autres catégories).
+- Propriétés = disposition de Nautilus 46 (`ui/properties.py`, Adw.NavigationView) : en tête icône, nom,
+  « N éléments, totalisant X » / « Type, taille », espace libre ; dossier parent ; dates (« 21 octobre
+  2026 à 22:27:04 », création par GIO time::created) ; ligne « Permissions » → page « Définir des
+  permissions personnalisées » (accès de Nautilus : dossiers Aucun / Lister / Accès / Création et
+  suppression, fichiers Aucun / Lecture seule / Lecture et écriture ; combinaison hors liste montrée
+  avec le libellé de Nautilus ; groupe changeable parmi ceux de l'utilisateur), « Changer les permissions
+  des fichiers inclus… » (`chmod_tree` : dossier + contenu, fichiers r/w seulement — l'exécution reste —,
+  dossiers rwx, valeurs proposées d'après l'umask, liens jamais suivis ni modifiés). Ne recalculer que
+  la catégorie modifiée (tout recalculer changeait les autres catégories), jamais de chmod / chown à
+  travers un lien.
 - GTK 4.14 / Gtk.ColumnView : NE JAMAIS changer la visibilité d'une colonne d'une vue remplie (une
   cellule libérée reste dans la liste de la colonne → segfault à la suppression suivante d'une ligne,
   `gtk_column_view_column_queue_resize`). `ListView.update_columns` reconstruit la vue avec les

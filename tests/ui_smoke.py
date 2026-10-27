@@ -1412,7 +1412,7 @@ def droits(win):
           f"0744, « autres : aucun » → 0740 ({oct(stat.S_IMODE(os.stat(script).st_mode))})")
     d.close()
     # une seule catégorie change, les autres gardent leurs bits exacts (même « -wx », « -w- »)
-    for name, is_dir, mode, row, value, expected in (("d754", True, 0o754, 0, 1, 0o554),
+    for name, is_dir, mode, row, value, expected in (("d754", True, 0o754, 0, 2, 0o554),
                                                        ("d733", True, 0o733, 1, 0, 0o703),
                                                        ("f620", False, 0o620, 2, 1, 0o624)):
         path = os.path.join(base, name)
@@ -1435,6 +1435,41 @@ def droits(win):
     d.exec_row.set_active(False)
     yield pump(0.2)
     check(stat.S_IMODE(os.stat(script).st_mode) == 0o640, f"exécution retirée : 0640 ({oct(os.stat(script).st_mode & 0o777)})")
+    d.close()
+    # disposition de Nautilus : résumé en tête, permissions sur une page à part, fichiers inclus
+    tree = os.path.join(base, "arbre")
+    os.makedirs(os.path.join(tree, "sous"))
+    for f, m in (("a.txt", 0o600), ("sous/b.sh", 0o700)):
+        with open(os.path.join(tree, f), "w") as fh:
+            fh.write("x")
+        os.chmod(os.path.join(tree, f), m)
+    os.chmod(os.path.join(tree, "sous"), 0o700)
+    os.symlink(tgt, os.path.join(tree, "lien"))
+    d = PropertiesDialog(win, [tree])
+    d.present(win)
+    yield Wait(3, until=lambda: "…" not in d.summary.get_label())
+    from odysseus.backend.engine import human_size
+    size = sum(os.lstat(os.path.join(tree, f)).st_size for f in ("a.txt", "sous/b.sh", "lien"))
+    want = ntr("{0} élément, de taille {1}", "{0} éléments, totalisant {1}", 4).format("4", human_size(size))
+    check(d.summary.get_label() == want, f"résumé sous le nom ({d.summary.get_label()!r})")
+    check(d.perm_summary.get_label() == tr("Création et suppression des fichiers"),
+          f"ligne Permissions : accès du propriétaire ({d.perm_summary.get_label()!r})")
+    d.nav.push_by_tag("permissions")
+    yield pump(0.4)
+    check(d.nav.get_visible_page().get_tag() == "permissions", "page « Définir des permissions personnalisées »")
+    d.enclosed_button.emit("clicked")
+    yield pump(0.4)
+    rows = d._enclosed_rows
+    for (kind, shift), (r, choices) in rows.items():          # fichiers : rw-r--r-- ; dossiers : rwxr-xr-x
+        want_bits = {("files", 6): 6, ("files", 3): 4, ("files", 0): 4,
+                     ("dirs", 6): 7, ("dirs", 3): 5, ("dirs", 0): 5}[(kind, shift)]
+        r.set_selected([b for _l, b in choices].index(want_bits))
+    d._enclosed_go()
+    yield Wait(5, until=lambda: stat.S_IMODE(os.stat(os.path.join(tree, "sous", "b.sh")).st_mode) == 0o744)
+    got = {f: oct(stat.S_IMODE(os.lstat(os.path.join(tree, f)).st_mode)) for f in ("", "a.txt", "sous", "sous/b.sh")}
+    check(got == {"": "0o755", "a.txt": "0o644", "sous": "0o755", "sous/b.sh": "0o744"},
+          f"permissions des fichiers inclus (exécution des fichiers gardée) ({got})")
+    check(stat.S_IMODE(os.stat(tgt).st_mode) == 0o600, "fichiers inclus : la cible d'un lien n'est pas touchée")
     d.close()
 
 
