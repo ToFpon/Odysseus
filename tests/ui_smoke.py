@@ -1915,6 +1915,38 @@ def apercu_rapide(win):
 
 
 @step
+def icone_personnalisee(win):
+    """Propriétés d'un dossier : icône personnalisée (crayon), retirée (croix) puis « Annuler »,
+    enregistrée dans les métadonnées de Nautilus (metadata::custom-icon)."""
+    from odysseus.backend import folder_colors
+    from odysseus.ui.properties import PropertiesDialog
+    base = os.path.join(D, "icone-perso")
+    os.makedirs(os.path.join(base, "Boulot"))
+    img = os.path.join(base, "logo.png")
+    Gtk.IconTheme.get_for_display(win.get_display())          # (thème chargé)
+    with open(img, "wb") as f:
+        f.write(bytes.fromhex("89504e470d0a1a0a0000000d4948445200000001000000010806000000"
+                              "1f15c4890000000d49444154789c6360000002000154a24f5d0000000049454e44ae426082"))
+    target = os.path.join(base, "Boulot")
+    d = PropertiesDialog(win, [target])
+    d.present(win)
+    yield pump(0.3)
+    check(d.icon_edit.get_visible() and not d.icon_reset.get_visible(), "propriétés d'un dossier : crayon, pas de croix")
+    folder_colors.set_custom_icon(target, Gio.File.new_for_path(img).get_uri())
+    d._changed(d.recs[0])
+    yield pump(0.2)
+    check(folder_colors.read(target).get("icon_uri", "").endswith("logo.png") and d.icon_reset.get_visible(),
+          "icône personnalisée posée, croix affichée")
+    d._reset_icon(d.recs[0])
+    yield pump(0.2)
+    check(not folder_colors.read(target) and not d.icon_reset.get_visible(), "croix : icône personnalisée retirée")
+    folder_colors.restore_icon(target, {"icon_uri": Gio.File.new_for_path(img).get_uri()})
+    check(folder_colors.read(target).get("icon_uri", "").endswith("logo.png"), "« Annuler » remet l'image")
+    d.close()
+    yield pump(0.2)
+
+
+@step
 def chemin_depuis_le_disque(win):
     """Comme Nautilus : un disque monté commence la barre de chemin (son nom, son icône), au lieu de
     « Zorin OS / mnt / Stockage_Linux »."""

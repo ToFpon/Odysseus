@@ -55,7 +55,7 @@ msgstr ""
 msgid "Le moteur d'archives de Pressoir https://github.com/ToFpon/Pressoir"
 msgstr "Pressoir's archive engine https://github.com/ToFpon/Pressoir"
 
-#: odysseus/app.py:180 odysseus/app.py:152 odysseus/ui/pane.py:475
+#: odysseus/app.py:180 odysseus/app.py:152 odysseus/ui/pane.py:480
 msgid "Emplacement introuvable : {0}"
 msgstr "Location not found: {0}"
 
@@ -1005,8 +1005,12 @@ msgid "Aperçu rapide (Espace)"
 msgstr "Quick preview (Space)"
 
 #: odysseus/features.py:118
-msgid "La barre d'espace ouvre l'aperçu de GNOME (Sushi) comme dans Nautilus ; les flèches passent au fichier suivant"
-msgstr "The space bar opens the GNOME previewer (Sushi) as in GNOME Files; the arrow keys move to the next file"
+msgid ""
+"La barre d'espace ouvre l'aperçu de GNOME (Sushi) comme dans Nautilus ; les "
+"flèches passent au fichier suivant"
+msgstr ""
+"The space bar opens the GNOME previewer (Sushi) as in GNOME Files; the arrow "
+"keys move to the next file"
 
 #: odysseus/features.py:122 odysseus/ui/menus.py:221
 msgid "Outils image"
@@ -1447,7 +1451,7 @@ msgstr "Permanently deleted items can not be restored"
 msgid "Restauration"
 msgstr "Restoring"
 
-#: odysseus/ui/actions_files.py:866 odysseus/ui/properties.py:141
+#: odysseus/ui/actions_files.py:866 odysseus/ui/properties.py:165
 msgid "Aucune application"
 msgstr "No application"
 
@@ -1479,7 +1483,7 @@ msgstr "Cannot send email"
 msgid "Installez xdg-utils (sudo apt install xdg-utils)."
 msgstr "Install xdg-utils (sudo apt install xdg-utils)."
 
-#: odysseus/ui/actions_files.py:172 odysseus/ui/pane.py:225
+#: odysseus/ui/actions_files.py:172 odysseus/ui/pane.py:230
 msgid "Impossible d'ouvrir"
 msgstr "Unable to open"
 
@@ -1522,7 +1526,7 @@ msgstr[1] "Moving {0} items to the trash"
 msgid "Suppression définitive"
 msgstr "Permanent deletion"
 
-#: odysseus/ui/actions_files.py:807 odysseus/ui/pane.py:873
+#: odysseus/ui/actions_files.py:807 odysseus/ui/pane.py:882
 msgid "La corbeille est vide"
 msgstr "The trash is empty"
 
@@ -1978,7 +1982,7 @@ msgstr "Code page"
 msgid "Caractéristiques"
 msgstr "Characteristics"
 
-#: odysseus/ui/archive_dialogs.py:459 odysseus/ui/properties.py:59
+#: odysseus/ui/archive_dialogs.py:459 odysseus/ui/properties.py:83
 #: odysseus/ui/views.py:47 odysseus/ui/views.py:393
 msgid "Emplacement"
 msgstr "Location"
@@ -2061,7 +2065,7 @@ msgid "Extraire"
 msgstr "Extract"
 
 #: odysseus/ui/archive_dialogs.py:351 odysseus/ui/preview.py:82
-#: odysseus/ui/properties.py:50 odysseus/ui/views.py:76
+#: odysseus/ui/properties.py:74 odysseus/ui/views.py:76
 msgid "Dossier"
 msgstr "Folder"
 
@@ -2120,7 +2124,7 @@ msgid "AES-256 — conservez votre mot de passe en lieu sûr"
 msgstr "AES-256 — keep your password somewhere safe"
 
 #: odysseus/ui/archive_dialogs.py:112 odysseus/ui/common.py:202
-#: odysseus/ui/pane.py:233
+#: odysseus/ui/pane.py:238
 msgid "Mot de passe"
 msgstr "Password"
 
@@ -2293,8 +2297,8 @@ msgid_plural "Extraction audio de {0} vidéos"
 msgstr[0] "Extracting audio from {0} video"
 msgstr[1] "Extracting audio from {0} videos"
 
-#: odysseus/ui/audio_dialog.py:42 odysseus/ui/pane.py:667
-#: odysseus/ui/pdf_dialogs.py:50 odysseus/ui/properties.py:130
+#: odysseus/ui/audio_dialog.py:42 odysseus/ui/pane.py:672
+#: odysseus/ui/pdf_dialogs.py:50 odysseus/ui/properties.py:154
 msgid "{0} fichier"
 msgid_plural "{0} fichiers"
 msgstr[0] "{0} file"
@@ -2394,7 +2398,7 @@ msgstr "Different: file damaged or modified"
 msgid "Absent"
 msgstr "Missing"
 
-#: odysseus/ui/checksum_dialog.py:22 odysseus/ui/pane.py:613
+#: odysseus/ui/checksum_dialog.py:22 odysseus/ui/pane.py:618
 msgid "Illisible"
 msgstr "Unreadable"
 
@@ -2423,7 +2427,7 @@ msgstr ""
 "Computed: {1}"
 
 #: odysseus/ui/checksum_window.py:210 odysseus/ui/checksum_window.py:203
-#: odysseus/ui/checksum_window.py:80 odysseus/ui/properties.py:56
+#: odysseus/ui/checksum_window.py:80 odysseus/ui/properties.py:80
 msgid "Calcul…"
 msgstr "Computing…"
 
@@ -2560,11 +2564,11 @@ msgstr "Nov"
 msgid "déc."
 msgstr "Dec"
 
-#: odysseus/ui/common.py:208 odysseus/ui/pane.py:228
+#: odysseus/ui/common.py:208 odysseus/ui/pane.py:233
 msgid "Archive protégée"
 msgstr "Protected archive"
 
-#: odysseus/ui/common.py:210 odysseus/ui/pane.py:237
+#: odysseus/ui/common.py:210 odysseus/ui/pane.py:242
 msgid "Déverrouiller"
 msgstr "Unlock"
 
@@ -2695,7 +2699,7 @@ msgstr "Keyboard shortcuts"
 msgid "Préférences"
 msgstr "Preferences"
 
-#: odysseus/ui/dialogs.py:48 odysseus/ui/properties.py:55
+#: odysseus/ui/dialogs.py:48 odysseus/ui/properties.py:79
 msgid "Général"
 msgstr "General"
 
@@ -2913,7 +2917,7 @@ msgstr "Parent folder"
 msgid "Alt+Origine"
 msgstr "Alt+Home"
 
-#: odysseus/ui/dialogs.py:214 odysseus/ui/pane.py:1269
+#: odysseus/ui/dialogs.py:214 odysseus/ui/pane.py:1278
 #: odysseus/ui/pathbar.py:118 odysseus/ui/sidebar.py:35
 msgid "Dossier personnel"
 msgstr "Home"
@@ -3474,16 +3478,16 @@ msgid "Type"
 msgstr "Type"
 
 #: odysseus/ui/menus.py:68 odysseus/ui/preview.py:108
-#: odysseus/ui/properties.py:73 odysseus/ui/views.py:49
+#: odysseus/ui/properties.py:97 odysseus/ui/views.py:49
 msgid "Modifié"
 msgstr "Modified"
 
 #: odysseus/ui/menus.py:69 odysseus/ui/preview.py:110
-#: odysseus/ui/properties.py:163 odysseus/ui/views.py:44
+#: odysseus/ui/properties.py:187 odysseus/ui/views.py:44
 msgid "Droits"
 msgstr "Permissions"
 
-#: odysseus/ui/menus.py:70 odysseus/ui/properties.py:173
+#: odysseus/ui/menus.py:70 odysseus/ui/properties.py:197
 #: odysseus/ui/views.py:45 odysseus/ui/views.py:50
 msgid "Propriétaire"
 msgstr "Owner"
@@ -3765,7 +3769,7 @@ msgstr "Networks"
 msgid "Cliquez pour monter"
 msgstr "Click to mount"
 
-#: odysseus/ui/pane.py:30 odysseus/ui/pane.py:1261 odysseus/ui/pane.py:192
+#: odysseus/ui/pane.py:30 odysseus/ui/pane.py:1270 odysseus/ui/pane.py:192
 #: odysseus/ui/pathbar.py:99
 msgid "Corbeille"
 msgstr "Trash"
@@ -3786,11 +3790,11 @@ msgstr "Other Locations"
 msgid "Ce PC"
 msgstr "This PC"
 
-#: odysseus/ui/pane.py:579
+#: odysseus/ui/pane.py:584
 msgid "Lecture…"
 msgstr "Reading…"
 
-#: odysseus/ui/pane.py:582
+#: odysseus/ui/pane.py:587
 msgid "Lecture de l'archive…"
 msgstr "Reading archive…"
 
@@ -3798,31 +3802,31 @@ msgstr "Reading archive…"
 msgid "🔒 chiffrée"
 msgstr "🔒 encrypted"
 
-#: odysseus/ui/pane.py:216 odysseus/ui/pane.py:877 odysseus/ui/pane.py:881
+#: odysseus/ui/pane.py:216 odysseus/ui/pane.py:886 odysseus/ui/pane.py:890
 msgid "Dossier vide"
 msgstr "Empty folder"
 
-#: odysseus/ui/pane.py:222 odysseus/ui/pane.py:1305 odysseus/ui/pane.py:887
+#: odysseus/ui/pane.py:227 odysseus/ui/pane.py:1314 odysseus/ui/pane.py:896
 msgid "Chargement…"
 msgstr "Loading…"
 
-#: odysseus/ui/pane.py:229 odysseus/ui/pane.py:603
+#: odysseus/ui/pane.py:234 odysseus/ui/pane.py:608
 msgid "Les noms de fichiers sont chiffrés. Saisissez le mot de passe."
 msgstr "File names are encrypted. Enter the password."
 
-#: odysseus/ui/pane.py:606
+#: odysseus/ui/pane.py:611
 msgid "Contenu verrouillé"
 msgstr "Content locked"
 
-#: odysseus/ui/pane.py:614
+#: odysseus/ui/pane.py:619
 msgid "Archive illisible"
 msgstr "Unreadable archive"
 
-#: odysseus/ui/pane.py:869 odysseus/ui/pane.py:988
+#: odysseus/ui/pane.py:878 odysseus/ui/pane.py:997
 msgid "Aucun résultat"
 msgstr "No results"
 
-#: odysseus/ui/pane.py:898
+#: odysseus/ui/pane.py:907
 msgid "Accès impossible"
 msgstr "Access denied"
 
@@ -3830,70 +3834,70 @@ msgstr "Access denied"
 msgid "Tout extraire"
 msgstr "Extract all"
 
-#: odysseus/ui/pane.py:604
+#: odysseus/ui/pane.py:609
 msgid "Mot de passe incorrect, réessayez."
 msgstr "Wrong password, try again."
 
-#: odysseus/ui/pane.py:668 odysseus/ui/preview.py:97
-#: odysseus/ui/properties.py:132
+#: odysseus/ui/pane.py:673 odysseus/ui/preview.py:97
+#: odysseus/ui/properties.py:156
 msgid "{0} dossier"
 msgid_plural "{0} dossiers"
 msgstr[0] "{0} folder"
 msgstr[1] "{0} folders"
 
-#: odysseus/ui/pane.py:1259
+#: odysseus/ui/pane.py:1268
 msgid "Recherche « {0} »"
 msgstr "Search “{0}”"
 
-#: odysseus/ui/pane.py:1315 odysseus/ui/pane.py:1330
+#: odysseus/ui/pane.py:1324 odysseus/ui/pane.py:1339
 msgid "« {0} » sélectionné"
 msgstr "“{0}” selected"
 
-#: odysseus/ui/pane.py:670
+#: odysseus/ui/pane.py:675
 msgid "{0} décompressés"
 msgstr "{0} unpacked"
 
-#: odysseus/ui/pane.py:671
+#: odysseus/ui/pane.py:676
 msgid "ratio {0} %"
 msgstr "ratio {0}%"
 
-#: odysseus/ui/pane.py:870 odysseus/ui/pane.py:989
+#: odysseus/ui/pane.py:879 odysseus/ui/pane.py:998
 msgid "Rien ne correspond à « {0} »"
 msgstr "Nothing matches “{0}”"
 
-#: odysseus/ui/pane.py:878
+#: odysseus/ui/pane.py:887
 msgid "Déposez des fichiers ici pour les ajouter à l'archive."
 msgstr "Drop files here to add them to the archive."
 
-#: odysseus/ui/pane.py:1320
+#: odysseus/ui/pane.py:1329
 msgid "{0} dossier sélectionné"
 msgid_plural "{0} dossiers sélectionnés"
 msgstr[0] "{0} folder selected"
 msgstr[1] "{0} folders selected"
 
-#: odysseus/ui/pane.py:1327
+#: odysseus/ui/pane.py:1336
 msgid "{0} autre élément sélectionné"
 msgid_plural "{0} autres éléments sélectionnés"
 msgstr[0] "{0} other item selected"
 msgstr[1] "{0} other items selected"
 
-#: odysseus/ui/pane.py:982
+#: odysseus/ui/pane.py:991
 msgid "Recherche… {0} résultat(s)"
 msgstr "Searching… {0} result(s)"
 
-#: odysseus/ui/pane.py:1317
+#: odysseus/ui/pane.py:1326
 msgid "(contenant {0} élément)"
 msgid_plural "(contenant {0} éléments)"
 msgstr[0] "(containing {0} item)"
 msgstr[1] "(containing {0} items)"
 
-#: odysseus/ui/pane.py:1332 odysseus/ui/preview.py:248
+#: odysseus/ui/pane.py:1341 odysseus/ui/preview.py:248
 msgid "{0} élément sélectionné"
 msgid_plural "{0} éléments sélectionnés"
 msgstr[0] "{0} item selected"
 msgstr[1] "{0} items selected"
 
-#: odysseus/ui/pane.py:1322
+#: odysseus/ui/pane.py:1331
 msgid "(contenant {0} élément au total)"
 msgid_plural "(contenant {0} éléments au total)"
 msgstr[0] "(containing {0} item in total)"
@@ -4233,7 +4237,7 @@ msgstr[1] "{0} files created"
 msgid "{0} : déjà optimal, laissé tel quel ({1})"
 msgstr "{0}: already optimal, left as is ({1})"
 
-#: odysseus/ui/pdf_dialogs.py:286
+#: odysseus/ui/pdf_dialogs.py:286 odysseus/ui/properties.py:279
 msgid "Images"
 msgstr "Pictures"
 
@@ -4279,7 +4283,7 @@ msgstr "Close the preview (F4)"
 msgid "Taille des fichiers"
 msgstr "Size of the files"
 
-#: odysseus/ui/preview.py:113 odysseus/ui/properties.py:68
+#: odysseus/ui/preview.py:113 odysseus/ui/properties.py:92
 msgid "Lien vers"
 msgstr "Link to"
 
@@ -4320,7 +4324,7 @@ msgid "Vidéo"
 msgstr "Video"
 
 #: odysseus/ui/preview.py:239 odysseus/ui/preview.py:96
-#: odysseus/ui/properties.py:46 odysseus/ui/views.py:65
+#: odysseus/ui/properties.py:70 odysseus/ui/views.py:65
 msgid "{0} élément"
 msgid_plural "{0} éléments"
 msgstr[0] "{0} item"
@@ -4350,27 +4354,31 @@ msgstr "Read only"
 msgid "Lecture et écriture"
 msgstr "Read and write"
 
-#: odysseus/ui/properties.py:61
+#: odysseus/ui/properties.py:303
+msgid "Icône personnalisée retirée"
+msgstr "Custom icon removed"
+
+#: odysseus/ui/properties.py:85
 msgid "Ouvrir l'emplacement"
 msgstr "Open location"
 
-#: odysseus/ui/properties.py:128
+#: odysseus/ui/properties.py:152
 msgid "octets"
 msgstr "bytes"
 
-#: odysseus/ui/properties.py:139
+#: odysseus/ui/properties.py:163
 msgid "Ouvrir avec"
 msgstr "Open with"
 
-#: odysseus/ui/properties.py:142
+#: odysseus/ui/properties.py:166
 msgid "Application par défaut pour ce type"
 msgstr "Default application for this type"
 
-#: odysseus/ui/properties.py:145
+#: odysseus/ui/properties.py:169
 msgid "Changer…"
 msgstr "Change…"
 
-#: odysseus/ui/properties.py:168
+#: odysseus/ui/properties.py:192
 msgid ""
 "C'est un lien : ses droits sont ceux de sa cible ; ouvrez les propriétés de "
 "la cible pour les modifier."
@@ -4378,52 +4386,72 @@ msgstr ""
 "This is a link: its permissions are those of its target; open the target's "
 "properties to change them."
 
-#: odysseus/ui/properties.py:184
+#: odysseus/ui/properties.py:208
 msgid "Accès du propriétaire"
 msgstr "Owner access"
 
-#: odysseus/ui/properties.py:184
+#: odysseus/ui/properties.py:208
 msgid "Accès du groupe"
 msgstr "Group access"
 
-#: odysseus/ui/properties.py:184
+#: odysseus/ui/properties.py:208
 msgid "Accès des autres"
 msgstr "Others access"
 
-#: odysseus/ui/properties.py:172
+#: odysseus/ui/properties.py:277
+msgid "Sélectionnez une icône personnalisée"
+msgstr "Select Custom Icon"
+
+#: odysseus/ui/properties.py:277
+msgid "_Sélectionner"
+msgstr "_Select"
+
+#: odysseus/ui/properties.py:57
+msgid "Définir une icône personnalisée"
+msgstr "Set Custom Icon"
+
+#: odysseus/ui/properties.py:61
+msgid "Supprimer l'icône personnalisée"
+msgstr "Remove Custom Icon"
+
+#: odysseus/ui/properties.py:196
 msgid ""
 "Vous n'êtes pas le propriétaire : les droits ne peuvent pas être modifiés."
 msgstr "You are not the owner: permissions cannot be changed."
 
-#: odysseus/ui/properties.py:179
+#: odysseus/ui/properties.py:203
 msgid "Groupe"
 msgstr "Group"
 
-#: odysseus/ui/properties.py:195
+#: odysseus/ui/properties.py:219
 msgid "Autoriser l'exécution comme programme"
 msgstr "Allow executing as a program"
 
-#: odysseus/ui/properties.py:36
+#: odysseus/ui/properties.py:290
+msgid "Seules les images locales peuvent servir d'icône."
+msgstr "You can only use local images as custom icons."
+
+#: odysseus/ui/properties.py:41
 msgid "Élément introuvable"
 msgstr "Item not found"
 
-#: odysseus/ui/properties.py:82
+#: odysseus/ui/properties.py:106
 msgid "Espace libre"
 msgstr "Free space"
 
-#: odysseus/ui/properties.py:74
+#: odysseus/ui/properties.py:98
 msgid "Dernier accès"
 msgstr "Last accessed"
 
-#: odysseus/ui/properties.py:75
+#: odysseus/ui/properties.py:99
 msgid "Métadonnées modifiées"
 msgstr "Metadata changed"
 
-#: odysseus/ui/properties.py:79
+#: odysseus/ui/properties.py:103
 msgid "Type MIME"
 msgstr "MIME type"
 
-#: odysseus/ui/properties.py:82 odysseus/ui/sidebar.py:250
+#: odysseus/ui/properties.py:106 odysseus/ui/sidebar.py:250
 #: odysseus/ui/this_pc.py:90
 msgid "{0} libres sur {1}"
 msgstr "{0} free of {1}"

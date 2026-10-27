@@ -9,13 +9,17 @@ import time
 
 from gi.repository import Adw, Gio, GLib, Gtk
 
-from ..backend import scanner
+from ..backend import folder_colors, scanner
 from ..backend.engine import human_size
 from ..i18n import ntr, tr
 from . import icons
 from .common import DialogWindow, combo_row, full_date, shown, toast
 
 ACCESS = [tr("Aucun"), tr("Lecture seule"), tr("Lecture et écriture")]
+
+
+IMAGE_TYPES = ("image/png", "image/jpeg", "image/svg+xml", "image/gif", "image/webp", "image/bmp",
+               "image/x-icon", "image/tiff")
 
 
 class PropertiesDialog(DialogWindow):
@@ -29,7 +33,8 @@ class PropertiesDialog(DialogWindow):
         tv.add_top_bar(Adw.HeaderBar())
         page = Adw.PreferencesPage()
         tv.set_content(page)
-        self.set_child(tv)
+        self.toast_overlay = Adw.ToastOverlay(child=tv)       # « Icône retirée — Annuler »
+        self.set_child(self.toast_overlay)
         recs = [scanner.rec_for_path(p) for p in paths]
         recs = [r for r in recs if r is not None]
         if not recs:
@@ -41,8 +46,27 @@ class PropertiesDialog(DialogWindow):
         hero_g = Adw.PreferencesGroup()
         hero = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=6, css_classes=["info-hero"])
         img = Gtk.Image(pixel_size=72)
-        img.set_from_gicon(icons.gicon_for(one) if one else Gio.ThemedIcon.new("edit-select-all-symbolic"))
-        hero.append(img)
+        self.hero_img = img
+        if one and one.is_dir and one.path and one.path != "/":
+            # comme Nautilus 46 : crayon pour choisir une image, croix pour revenir à l'icône du dossier
+            for side in ("start", "end", "top", "bottom"):
+                getattr(img, "set_margin_" + side)(12)           # boutons dans les coins, pas sur le dessin
+            ov = Gtk.Overlay(halign=Gtk.Align.CENTER, child=img)
+            self.icon_edit = Gtk.Button(icon_name="document-edit-symbolic", halign=Gtk.Align.END,
+                                        valign=Gtk.Align.END, css_classes=["circular"],
+                                        tooltip_text=tr("Définir une icône personnalisée"))
+            self.icon_edit.connect("clicked", lambda *_: self._choose_icon(one))
+            self.icon_reset = Gtk.Button(icon_name="edit-clear-symbolic", halign=Gtk.Align.END,
+                                         valign=Gtk.Align.START, css_classes=["circular"],
+                                         tooltip_text=tr("Supprimer l'icône personnalisée"))
+            self.icon_reset.connect("clicked", lambda *_: self._reset_icon(one))
+            ov.add_overlay(self.icon_edit)
+            ov.add_overlay(self.icon_reset)
+            hero.append(ov)
+            self._show_icon(one)
+        else:
+            img.set_from_gicon(icons.gicon_for(one) if one else Gio.ThemedIcon.new("edit-select-all-symbolic"))
+            hero.append(img)
         title = one.name if one else ntr("{0} élément", "{0} éléments", len(recs)).format(len(recs))
         hero.append(Gtk.Label(label=shown(title), css_classes=["title-2"], wrap=True, justify=Gtk.Justification.CENTER,
                               selectable=True))
@@ -231,3 +255,49 @@ class PropertiesDialog(DialogWindow):
             os.chmod(self._mode_path, mode)
         except OSError as e:
             toast(self, e.strerror or str(e))
+
+    # ------------------------------------------------------------------
+    # Icône personnalisée d'un dossier (Nautilus : « Définir une icône personnalisée »)
+    def _show_icon(self, rec):
+        meta = folder_colors.read(rec.path)
+        if rec.extra:
+            rec.extra.pop("meta", None)
+        if meta:
+            rec.set("meta", meta)
+        self.hero_img.set_from_gicon(icons.gicon_for(rec))
+        self.icon_reset.set_visible(bool(meta.get("icon_uri") or meta.get("icon_name")))
+
+    def _changed(self, rec):
+        self._show_icon(rec)
+        refresh = getattr(self.window, "_refresh_meta", None)
+        if refresh:
+            refresh([rec.path])
+
+    def _choose_icon(self, rec):
+        dlg = Gtk.FileDialog(title=tr("Sélectionnez une icône personnalisée"), accept_label=tr("_Sélectionner"),
+                             modal=True, initial_folder=Gio.File.new_for_path(rec.path))
+        flt = Gtk.FileFilter(name=tr("Images"))
+        for t in IMAGE_TYPES:
+            flt.add_mime_type(t)
+        dlg.set_default_filter(flt)
+
+        def done(d, res):
+            try:
+                f = d.open_finish(res)
+            except GLib.Error:
+                return
+            if f is None or not f.get_path():
+                toast(self, tr("Seules les images locales peuvent servir d'icône."))
+                return
+            folder_colors.set_custom_icon(rec.path, f.get_uri())
+            self._changed(rec)
+        dlg.open(self, None, done)
+
+    def _reset_icon(self, rec):
+        old = folder_colors.reset_icon(rec.path)
+        self._changed(rec)
+
+        def undo():
+            folder_colors.restore_icon(rec.path, old)
+            self._changed(rec)
+        toast(self, tr("Icône personnalisée retirée"), tr("Annuler"), undo)

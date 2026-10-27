@@ -163,6 +163,22 @@ def set_color(path: str, color: str, has_icon: Callable[[str], bool]):
     _write(path, {"metadata::custom-icon": uri, "metadata::custom-icon-name": None})
 
 
+def set_custom_icon(path: str, uri: str):
+    """Icône personnalisée (image choisie dans Propriétés), comme Nautilus : metadata::custom-icon."""
+    _write(path, {"metadata::custom-icon": uri, "metadata::custom-icon-name": None})
+
+
+def reset_icon(path: str) -> dict:
+    """Retire l'icône personnalisée (couleur comprise) ; renvoie l'ancienne pour « Annuler »."""
+    old = {k: v for k, v in read(path).items() if k in ("icon_name", "icon_uri")}
+    _write(path, {"metadata::custom-icon": None, "metadata::custom-icon-name": None})
+    return old
+
+
+def restore_icon(path: str, old: dict):
+    _write(path, {"metadata::custom-icon": old.get("icon_uri"), "metadata::custom-icon-name": old.get("icon_name")})
+
+
 def toggle_emblem(path: str, emblem: str):
     cur = read(path).get("emblems", [])
     new = [e for e in cur if e != emblem] if emblem in cur else cur + [emblem]

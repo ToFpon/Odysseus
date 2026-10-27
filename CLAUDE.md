@@ -255,6 +255,9 @@ fenêtre de recherche dans le contenu.
   HEIC / AVIF en lecture seule, et le décodeur HEIC (`libheif-plugin-libde265`) n'est que suggéré par
   libheif → Recommends du paquet, composant `lib:heif-libde265` (features.LIBS), message clair sinon.
   Testé par `tests/test_images.py` et ui_smoke.
+- Propriétés d'un dossier : icône personnalisée comme Nautilus 46 (crayon → Gtk.FileDialog d'images,
+  croix → retirée avec « Annuler »), dans metadata::custom-icon (`folder_colors.set_custom_icon` /
+  `reset_icon` / `restore_icon`, repli JSON si GVfs n'écrit pas) : Nautilus la voit aussi.
 - Propriétés → Droits : ne recalculer que la catégorie modifiée (les listes ne montrent pas « -w- »,
   « -wx »… : tout recalculer changeait les autres catégories).
 - GTK 4.14 / Gtk.ColumnView : NE JAMAIS changer la visibilité d'une colonne d'une vue remplie (une
