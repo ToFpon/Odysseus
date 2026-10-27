@@ -19,8 +19,9 @@ XML = f"""<node><interface name="{IFACE}">
   <signal name="SelectionEvent"><arg type="u"/></signal>
 </interface></node>"""
 log = sys.argv[1]
-# --muet : pas de PropertiesChanged. Cas réel : Sushi lancé après la création du proxy (au premier
-# Espace), la propriété Visible n'arrivait pas dans le cache du proxy
+# Comme le vrai Sushi 46 (src/ui/application.js) : il annonce Visible (PropertiesChanged) mais ne répond
+# pas à Properties.Get (pas de lecteur pour la propriété) — vu chez Tof avec dbus-monitor.
+# --muet : pas non plus d'annonce (cas extrême : seules les flèches de Sushi disent qu'il est ouvert).
 QUIET = "--muet" in sys.argv
 state = {"visible": False, "conn": None}
 
@@ -52,7 +53,8 @@ def call(conn, sender, path, iface, method, params, inv):
 
 
 def get_prop(conn, sender, path, iface, name):
-    return GLib.Variant("b", state["visible"])
+    write("get " + name)
+    return None                                  # Sushi : pas de lecteur → erreur pour l'appelant
 
 
 def bus_acquired(conn, _name):

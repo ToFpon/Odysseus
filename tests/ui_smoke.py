@@ -1913,9 +1913,10 @@ def apercu_rapide(win):
     saved = feat.LIBS["lib:sushi"]
     feat.LIBS["lib:sushi"] = marker                    # « Sushi installé »
     journal = os.path.join(TMP, "sushi.log")
-    fake = subprocess.Popen([sys.executable, os.path.join(ROOT, "tests", "fake_sushi.py"), journal, "--muet"])
+    fake = subprocess.Popen([sys.executable, os.path.join(ROOT, "tests", "fake_sushi.py"), journal])
     uri = lambda n: Gio.File.new_for_path(os.path.join(base, n)).get_uri()  # noqa: E731
-    lines = lambda: open(journal).read().splitlines() if os.path.exists(journal) else []  # noqa: E731
+    lines = lambda: [line for line in (open(journal).read().splitlines() if os.path.exists(journal) else [])  # noqa: E731
+                     if not line.startswith("get ")]
     try:
         yield pump(0.8)
         p = win.pane
@@ -1934,11 +1935,13 @@ def apercu_rapide(win):
         check(lines()[1:2] == [f"show {uri('b.txt')} x11 0"], f"l'aperçu suit la sélection ({lines()})")
         sushi.previewer.proxy.call_sync("Arrow", GLib.Variant("(u)", (int(Gtk.DirectionType.DOWN),)),
                                         Gio.DBusCallFlags.NONE, -1, None)
-        yield Wait(3, until=lambda: [r.name for r in p.selected_recs()] == ["c.txt"])
-        check([r.name for r in p.selected_recs()] == ["c.txt"], "flèche dans Sushi : élément suivant")
+        yield Wait(3, until=lambda: len(lines()) >= 3)
+        check([r.name for r in p.selected_recs()] == ["c.txt"] and lines()[2:3] == [f"show {uri('c.txt')} x11 0"],
+              f"flèche dans Sushi : élément suivant, montré dans l'aperçu ({lines()[2:]})")
         win._on_type_ahead(None, Gdk.KEY_space, 0, 0)
         yield Wait(3, until=lambda: len(lines()) >= 4)
         check(lines()[3:4] == [f"show {uri('c.txt')} x11 1"], f"Espace referme l'aperçu ({lines()})")
+        yield pump(0.3)
         n = len(lines())
         p.model.select_names(["a.txt"])
         yield pump(0.8)

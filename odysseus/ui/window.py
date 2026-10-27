@@ -790,14 +790,8 @@ class MainWindow(FileActions, ArchiveActions, ToolActions, Adw.ApplicationWindow
         if not features.enabled("quick_look") or sushi.previewer.owner is not self:
             return
         sel = pane.selected_recs()
-        if not sel:
-            return
-        uri = sel[0].gfile.get_uri()
-
-        def visible(v):
-            if v and sushi.previewer.owner is self and [r.gfile.get_uri() for r in pane.selected_recs()[:1]] == [uri]:
-                sushi.previewer.show(self, uri, False)
-        sushi.previewer.query_visible(visible)
+        if sel and sushi.previewer.visible():
+            sushi.previewer.show(self, sel[0].gfile.get_uri(), False)
 
     def _on_quick_look_move(self, direction: int):
         """Flèches tapées dans Sushi (GtkDirectionType) : la sélection d'Odysseus avance ou recule."""

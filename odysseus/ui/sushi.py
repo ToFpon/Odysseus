@@ -24,6 +24,7 @@ class Previewer:
         self._pending = None                     # (uri, handle, close) demandé avant que Sushi réponde
         self.on_selection_event: Optional[Callable[[int], None]] = None
         self.owner = None                        # fenêtre qui a ouvert l'aperçu : elle seule le fait suivre
+        self._visible = False                    # d'après les annonces de Sushi (PropertiesChanged)
 
     # ------------------------------------------------------------------
     def _ensure(self) -> bool:
@@ -51,40 +52,44 @@ class Previewer:
         except GLib.Error:
             return
         self.ready = True
-        proxy.get_connection().signal_subscribe(NAME, IFACE, "SelectionEvent", PATH, None,
-                                                Gio.DBusSignalFlags.NONE, self._on_signal)
+        conn = proxy.get_connection()
+        conn.signal_subscribe(NAME, IFACE, "SelectionEvent", PATH, None, Gio.DBusSignalFlags.NONE, self._on_signal)
+        # Sushi ne répond pas à Properties.Get (son objet D-Bus n'a pas de lecteur pour Visible) : il
+        # annonce seulement l'ouverture et la fermeture. On écoute ces annonces nous-mêmes, comme le
+        # cache de propriétés de Nautilus ; Sushi parti (bus), l'aperçu est fermé.
+        conn.signal_subscribe(NAME, "org.freedesktop.DBus.Properties", "PropertiesChanged", PATH, IFACE,
+                              Gio.DBusSignalFlags.NONE, self._on_properties)
+        conn.signal_subscribe("org.freedesktop.DBus", "org.freedesktop.DBus", "NameOwnerChanged",
+                              "/org/freedesktop/DBus", NAME, Gio.DBusSignalFlags.NONE, self._on_owner)
         if self._pending:
             self._call_show(*self._pending)
             self._pending = None
 
     def _on_signal(self, _conn, _sender, _path, _iface, _signal, params):
+        self._visible = True                     # une flèche tapée dans Sushi : il est ouvert
         if self.on_selection_event is not None:
             self.on_selection_event(params.unpack()[0])
 
+    def _on_properties(self, _conn, _sender, _path, _iface, _signal, params):
+        _name, changed, _gone = params.unpack()
+        if "Visible" in changed:
+            self._visible = bool(changed["Visible"])
+
+    def _on_owner(self, _conn, _sender, _path, _iface, _signal, params):
+        if not params.unpack()[2]:
+            self._visible = False
+
     # ------------------------------------------------------------------
     def visible(self) -> bool:
-        """État mémorisé par le proxy (peut manquer : voir query_visible)."""
+        """Aperçu ouvert, d'après les annonces de Sushi. Ni Properties.Get (Sushi n'y répond pas : vu chez
+        Tof avec dbus-monitor, aucune réponse, l'aperçu ne suivait plus), ni le seul cache du proxy (vide
+        quand Sushi démarre après la création du proxy, au premier Espace)."""
         if not self.ready or self.proxy is None:
             return False
+        if self._visible:
+            return True
         v = self.proxy.get_cached_property("Visible")
         return bool(v.unpack()) if v is not None else False
-
-    def query_visible(self, callback: Callable[[bool], None]):
-        """Demande à Sushi s'il est ouvert. Le cache du proxy ne suffit pas : Sushi lancé par le Ping
-        après la création du proxy (cas normal : il démarre au premier Espace), la propriété Visible
-        n'y était pas toujours, et l'aperçu ne suivait plus la sélection."""
-        if not self.ready or self.proxy is None:
-            return
-
-        def done(conn, res):
-            try:
-                v = conn.call_finish(res).unpack()[0]
-            except GLib.Error:
-                return
-            callback(bool(v))
-        self.proxy.get_connection().call(NAME, PATH, "org.freedesktop.DBus.Properties", "Get",
-                                         GLib.Variant("(ss)", (IFACE, "Visible")), GLib.VariantType("(v)"),
-                                         Gio.DBusCallFlags.NO_AUTO_START, -1, None, done)
 
     def show(self, window: Gtk.Window, uri: str, close_if_visible: bool):
         self.owner = window

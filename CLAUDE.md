@@ -243,9 +243,11 @@ fenêtre de recherche dans le contenu.
   Visible, signal SelectionEvent(GtkDirectionType) → `Pane.move_selection`). Espace pris en capture par
   `MainWindow._quick_look` (avant type-ahead, sauf frappe en cours) ; l'aperçu ouvert suit la sélection
   de la fenêtre qui l'a ouvert (`previewer.owner`), clavier resté dans Odysseus compris (Sushi ne prend
-  pas toujours le focus sous X11). Visible lu par Properties.Get (`query_visible`), jamais dans le cache
-  du proxy : Sushi lancé par le Ping après la création du proxy, le cache restait vide (vu chez Tof ;
-  `fake_sushi.py --muet` le reproduit). Sushi présent = son fichier de service D-Bus (`lib:sushi`, features.LIBS),
+  pas toujours le focus sous X11). Visible : d'après les ANNONCES de Sushi (PropertiesChanged écouté
+  nous-mêmes, NameOwnerChanged = fermé, une flèche de Sushi = ouvert), jamais par Properties.Get — Sushi
+  46 n'a pas de lecteur pour Visible, Get reste sans réponse (vu chez Tof avec dbus-monitor : flèches
+  reçues, aucun ShowFile ensuite) — ni par le seul cache du proxy (vide quand Sushi démarre après lui).
+  `fake_sushi.py` imite ça (Get sans réponse ; `--muet` : pas d'annonce non plus). Sushi présent = son fichier de service D-Bus (`lib:sushi`, features.LIBS),
   `gnome-sushi` en Recommends. Testé avec `tests/fake_sushi.py` : ui_smoke sous `dbus-run-session`
   (sans bus de session, l'étape est sautée).
 - Outils image (fonctionnalité `image_tools`, reprise de nautilus-image-converter + conversion) :
