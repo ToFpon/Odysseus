@@ -539,6 +539,21 @@ def steps(win):
     check(menu_open(), "clic droit : menu contextuel ouvert")
     xdo("key", "Escape")
     yield
+    # dossier vide : la page « Dossier vide » remplace la liste, le clic droit y ouvre aussi le menu
+    vide = os.path.join(D, "tout-vide")
+    os.makedirs(vide)
+    p.open(vide)
+    yield
+    yield
+    check(p.stack.get_visible_child_name() == "empty", "dossier vide : page « Dossier vide »")
+    x, y = screen_point(win, p.empty, p.empty.get_width() / 2, p.empty.get_height() / 2)
+    xdo("mousemove", x, y, "click", 3)
+    yield
+    check(menu_open(), "clic droit dans un dossier vide : menu contextuel ouvert")
+    xdo("key", "Escape")
+    yield
+    p.open(D)
+    yield
     # double panneau : menu de l'autre panneau, puis panneau retiré (menu détaché avec lui)
     win.activate_action("win.dual", None)
     yield

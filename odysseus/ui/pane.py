@@ -10,7 +10,7 @@ import os
 import threading
 from typing import Optional
 
-from gi.repository import Adw, Gdk, Gio, GLib, GObject, Gtk
+from gi.repository import Adw, Gdk, Gio, GLib, GObject, Graphene, Gtk
 
 from .. import features
 from ..backend import archive, formats, scanner, trashwatch
@@ -215,6 +215,11 @@ class Pane(Gtk.Box):
         self.stack.add_named(self.grid_view, "grid")
         self.empty = Adw.StatusPage(icon_name="folder-symbolic", title=tr("Dossier vide"), css_classes=["compact"])
         self.stack.add_named(self.empty, "empty")
+        # dossier vide : la page remplace la vue, elle doit aussi ouvrir le menu du fond (Coller, Nouveau
+        # dossier…), comme Nautilus ; à l'appui, comme dans la vue
+        bg = Gtk.GestureClick(button=3)
+        bg.connect("pressed", self._on_empty_click)
+        self.empty.add_controller(bg)
         spin = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=12, valign=Gtk.Align.CENTER,
                        halign=Gtk.Align.CENTER)
         self.spinner = Gtk.Spinner(width_request=32, height_request=32)
@@ -862,6 +867,10 @@ class Pane(Gtk.Box):
         ou sur un conteneur du panneau (GTK y remonte le focus quand la ligne cliquée disparaît)."""
         return (focus is None or self.is_ancestor(focus)
                 or any(focus is pg or focus.is_ancestor(pg) for pg in self.pages.values()))
+
+    def _on_empty_click(self, _gesture, _n, x, y):
+        ok, pt = self.empty.compute_point(self, Graphene.Point().init(x, y))
+        self.emit("context-menu", pt.x if ok else x, pt.y if ok else y, False)
 
     def _fill_empty(self):
         if self.model.filter_text:

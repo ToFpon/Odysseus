@@ -121,6 +121,8 @@ conflits se décident sur la liste du dossier en casefold (`_Copier._existing`),
 `_kernel_vfat_lookup` imite ce comportement dans les tests (fusefat, lui, est insensible à la casse).
 Vue : un élément arrivé dans un dossier vide doit faire quitter la page « Dossier vide »
 (`Pane._on_items_changed`, testé dans ui_smoke).
+La page « Dossier vide » a son propre clic droit (`Pane._on_empty_click`) : elle remplace la vue, qui
+portait seule le menu du fond (Coller, Nouveau dossier…) ; testé avec de vrais clics dans `ui_mouse.py`.
 
 `tests/test_archive_safety.py` : archives piégées (`../`, chemins absolus, liens vers l'extérieur puis
 écriture à travers, liens durs, fichiers spéciaux, setuid) extraites par le vrai moteur dans chaque
