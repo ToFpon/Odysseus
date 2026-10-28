@@ -263,7 +263,9 @@ fenêtre de recherche dans le contenu.
 - Propriétés d'un dossier : icône personnalisée comme Nautilus 46 (crayon → Gtk.FileDialog d'images,
   croix → retirée avec « Annuler »), dans metadata::custom-icon (`folder_colors.set_custom_icon` /
   `reset_icon` / `restore_icon`, repli JSON si GVfs n'écrit pas) : Nautilus la voit aussi.
-- Propriétés = disposition de Nautilus 46 (`ui/properties.py`, Adw.NavigationView) : en tête icône, nom,
+- Propriétés = disposition de Nautilus 46 (`ui/properties.py`, Adw.NavigationView), fenêtre à la hauteur
+  du contenu (`FittedPage` : Adw.PreferencesPage ne transmet pas sa hauteur ; défilement au-delà de 85 %
+  de l'écran), nom pas sélectionné d'office : en tête icône, nom,
   « N éléments, totalisant X » / « Type, taille », espace libre ; dossier parent ; dates (« 21 octobre
   2026 à 22:27:04 », création par GIO time::created) ; ligne « Permissions » → page « Définir des
   permissions personnalisées » (accès de Nautilus : dossiers Aucun / Lister / Accès / Création et

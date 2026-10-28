@@ -10,7 +10,7 @@ import stat as st
 import threading
 import time
 
-from gi.repository import Adw, Gio, GLib, Gtk, Pango
+from gi.repository import Adw, Gdk, Gio, GLib, Gtk, Pango
 
 from ..backend import fileops, folder_colors, scanner
 from ..backend.engine import human_size
@@ -67,9 +67,35 @@ def value_row(title: str, value: str) -> Adw.ActionRow:
     return row
 
 
+class FittedPage(Gtk.ScrolledWindow):
+    """Comme Adw.PreferencesPage (mêmes marges, groupes centrés), mais la fenêtre prend la hauteur du
+    contenu : Adw.PreferencesPage ne la transmet pas, et à 640 px fixes il fallait faire défiler les
+    propriétés d'un fichier (dossier parent long, « Ouvrir avec »). Défilement seulement au-delà de
+    85 % de la hauteur de l'écran."""
+
+    def __init__(self):
+        super().__init__(hscrollbar_policy=Gtk.PolicyType.NEVER, propagate_natural_height=True,
+                         max_content_height=self._max_height())
+        self.box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=24, margin_top=24, margin_bottom=24,
+                           margin_start=12, margin_end=12)
+        self.set_child(Adw.Clamp(maximum_size=600, tightening_threshold=400, child=self.box))
+
+    @staticmethod
+    def _max_height() -> int:
+        display = Gdk.Display.get_default()
+        monitors = display.get_monitors() if display is not None else None
+        if monitors is not None and monitors.get_n_items():
+            return int(monitors.get_item(0).get_geometry().height * 0.85) - 60
+        return 700
+
+    def add(self, group: Gtk.Widget):
+        self.box.append(group)
+
+
 class PropertiesDialog(DialogWindow):
     def __init__(self, window, paths: list[str]):
-        super().__init__(title=tr("Propriétés"), content_width=480, content_height=640)
+        # hauteur : celle du contenu (comme Nautilus), sans défilement tant que l'écran le permet
+        super().__init__(title=tr("Propriétés"), content_width=480, content_height=-1)
         self.window = window
         self.paths = paths
         self._cancel = threading.Event()
@@ -79,7 +105,7 @@ class PropertiesDialog(DialogWindow):
         self.set_child(self.toast_overlay)
         tv = Adw.ToolbarView()
         tv.add_top_bar(Adw.HeaderBar(show_title=False))
-        page = Adw.PreferencesPage()
+        page = FittedPage()
         tv.set_content(page)
         self.nav.add(Adw.NavigationPage(title=tr("Propriétés"), child=tv, tag="main"))
         recs = [scanner.rec_for_path(p) for p in paths]
@@ -117,8 +143,11 @@ class PropertiesDialog(DialogWindow):
             img.set_from_gicon(icons.gicon_for(one) if one else Gio.ThemedIcon.new("edit-select-all-symbolic"))
             hero.append(img)
         title = one.name if one else ntr("{0} élément", "{0} éléments", len(recs)).format(len(recs))
-        hero.append(Gtk.Label(label=shown(title), css_classes=["title-2"], wrap=True, justify=Gtk.Justification.CENTER,
-                              selectable=True))
+        name = Gtk.Label(label=shown(title), css_classes=["title-2"], wrap=True, justify=Gtk.Justification.CENTER,
+                         selectable=True)
+        hero.append(name)
+        # nom copiable, mais pas sélectionné d'office (GTK lui donne le focus, premier élément focusable)
+        self.connect("map", lambda *_: GLib.idle_add(lambda: (name.select_region(0, 0), False)[1]))
         self.summary = Gtk.Label(label=tr("Calcul…"), wrap=True, justify=Gtk.Justification.CENTER)
         hero.append(self.summary)
         try:
