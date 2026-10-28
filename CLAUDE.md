@@ -148,11 +148,12 @@ de 3 s, un fil est ajouté (6 au plus).
 
 Captures (Gtk.WidgetPaintable) : `xvfb-run -a python3.12 tools/screenshot.py SORTIE.png [--dual]
 [--other=DOSSIER] [--grid] [--columns] [--preview] [--select=NOMS] [--action=ACTION] [--prefs=PAGE]
-[--dark] [--delay=S] [--size=LxH]` ; captures de la documentation dans `docs/captures/`, faites sur le
+[--dark] [--delay=S] [--size=LxH] [--rename=MODÈLE]` (`--rename` avec `--action=win.rename` : modèle
+rempli, « {num2} » = balise 01, 02…) ; captures de la documentation dans `docs/captures/`, faites sur le
 dossier personnel de démonstration de `tools/demo-home.py` (HOME pointé dessus, LANGUAGE=fr,
 settings.json remis à zéro avant chaque capture : la vue et le double panneau sont mémorisés).
 Les dialogues ouverts (fenêtres posées sur la principale) sont composés au centre de la capture.
-Site de présentation (`site/index.html`, anglais ; version 1.0 publiée : installation par le PPA,
+Site de présentation (`site/index.html`, anglais ; version affichée dans la pastille et l'accroche, à tenir à jour ; installation par le PPA,
 liens GitHub et Launchpad ; « Copy » ne copie que les deux commandes d'installation) : captures de
 `site/img/` faites en anglais et en sombre (`--dark`, sauf `light.png`) sur `tools/demo-home.py
 /home/tof --en` (chemin court : il s'affiche dans la recherche) ; `--search=… --replace=…` capture la

@@ -15,6 +15,10 @@
 |---|---|---|
 | ![Archive](docs/captures/archive.png) | ![Watermark](docs/captures/filigrane.png) | ![Other locations](docs/captures/autres-emplacements.png) |
 
+| Batch rename / Renommage multiple | Image tools / Outils image | Properties / Propriétés |
+|---|---|---|
+| ![Batch rename](docs/captures/renommage.png) | ![Image tools](docs/captures/outils-image.png) | ![Properties](docs/captures/proprietes.png) |
+
 | This PC / Ce PC | Features / Fonctionnalités | Dark mode / Mode sombre |
 |---|---|---|
 | ![This PC](docs/captures/ce-pc.png) | ![Features](docs/captures/fonctionnalites.png) | ![Dark](docs/captures/sombre.png) |
@@ -23,7 +27,7 @@
 
 ## English
 
-Odysseus is a file manager that looks and behaves like GNOME Files (Nautilus) and natively includes every feature of the [nautilus-extensions](https://github.com/ToFpon/nautilus-extensions) collection. Each feature can be turned off in **Preferences → Features**, without restarting. It follows your desktop's GTK4 theme (Adwaita, light/dark, accent color, or a theme installed in `~/.config/gtk-4.0/`). The archive engine comes from [Pressoir](https://github.com/ToFpon/Pressoir).
+Odysseus is a file manager that looks and behaves like GNOME Files (Nautilus) and natively includes every feature of the [nautilus-extensions](https://github.com/ToFpon/nautilus-extensions) collection. Each feature can be turned off in **Preferences → Features**, without restarting. The external programs they use (7-Zip, qpdf, FFmpeg…) are listed in **Preferences → Components**, with the command that installs the missing ones. It follows your desktop's GTK4 theme (Adwaita, light/dark, accent color, or a theme installed in `~/.config/gtk-4.0/`). The archive engine comes from [Pressoir](https://github.com/ToFpon/Pressoir).
 
 ### Speed
 
@@ -50,14 +54,18 @@ Huge folders open almost instantly: a folder of **100,000 files is displayed in 
 
 #### Files
 - Tabs, history, breadcrumb path bar with Tab completion (a mounted disk starts the path, like Nautilus), bookmarks shared with GTK, Recent (shown or hidden with GNOME's file history setting), Trash (restore, empty), Network, devices with the same eject rules as Nautilus (no eject button for fstab and internal disks).
+- **Type to jump to a file** (optional, Preferences → General): typing the start of a name selects the file without filtering the list, like Nemo or Thunar; by default, typing starts a search, like Nautilus.
 - **This PC** (optional, Preferences → General → Sidebar): for those coming from Windows, your folders and all your drives on one page, with a usage bar and the free space of each drive. The Desktop entry of the sidebar is optional too.
+- **Batch rename** (F2 on several items), the Nautilus 46 dialog: a template with tags (original name, numbering 1, 01, 001, date taken, camera, artist, album, track…) or find and replace, live preview with the changes highlighted, conflicts shown before anything is renamed, one Ctrl+Z to undo it all.
+- **Quick Look** with the space bar, like Nautilus: GNOME's previewer (Sushi) shows the selected file, and the arrow keys move through the folder.
+- **Properties** laid out like Nautilus 46: size under the name, free space, dates, a custom folder icon (seen by Nautilus too), permissions on their own page, with “Change Permissions for Enclosed Files…”.
 - Copy / move with conflict dialog (skip, rename, merge, replace, apply to all), **progress window** for long operations, undo (Ctrl+Z), drag and drop, clipboard compatible with Nautilus.
 - **Archives** (F7): browse 50+ formats like folders, extract here, extract to, compress, drag files out of an archive (Pressoir engine, 7-Zip).
 - **Content search** (F8): search and replace text in files with ripgrep or grep, with preview and backups. Recursive file name search.
 - Open in text editor, open terminal here (Ctrl+Alt+T), **run executable scripts** in a terminal that stays open, like Nautilus.
 - **Send by email** (your default mail client, files attached) and **send to your phone** with GSConnect: connected devices appear live in the context menu.
 - Several archives extracted at once: one notification at the end, not one per archive.
-- **Checksums**: in Properties, paste the checksum published on a download page (MD5, SHA-1, SHA-256, SHA-512…, alone or with the file name) to check the file; right-click a `.sha256` / `.md5` / `.sfv` / `SHA256SUMS` file to verify every file it lists.
+- **Checksums**: right-click a file → “Checksums and Comparison…” opens a separate window that computes MD5, SHA-1, SHA-256 and SHA-512 in a single read (each one copyable); paste the checksum published on the download page (alone or with the file name) and the verdict shows at once: green, red, or grey while computing. Right-click a `.sha256` / `.md5` / `.sfv` / `SHA256SUMS` file to verify every file it lists.
 
 #### Desktop integration
 - Odysseus is D-Bus activatable, like Nautilus: the dock, `gio open` or a script started outside the session (udev rule, USB notification…) open it with the session's environment, even when it is closed.
@@ -71,6 +79,7 @@ Every destructive operation is tested on throwaway trees, next to a “precious�
 - **Nothing is overwritten silently**: archives, PDF outputs, backups get “name (2)”.
 - **Trapped archives defused**: `../` paths, absolute paths and links pointing outside never escape the destination folder.
 - **Undo that doesn't bite**: undo and redo never overwrite a file created in the meantime.
+- **Batch rename without casualties**: names swapped in chains or cycles go through a hidden name, an existing file is never overwritten, an item that fails keeps its name.
 
 #### PDF (rewritten and improved)
 - **Compress** with Ghostscript: real page-by-page progress, before/after sizes, original kept if smaller.
@@ -80,6 +89,7 @@ Every destructive operation is tested on throwaway trees, next to a “precious�
 
 #### Media and system
 - **Video to audio**: MP3, M4A, OGG, OPUS, FLAC, WAV.
+- **Image tools** (from nautilus-image-converter, plus conversion): resize, rotate, convert to JPEG, PNG, WebP, TIFF, BMP or GIF — combined in one pass (phone HEIC photos → 1920 px JPEG). New images get a suffix, or replace the originals safely.
 - **Image annotation**: arrows, frames, text, highlighter, freehand.
 - **.deb installer** with dependency check and live log (pkexec).
 
@@ -177,6 +187,9 @@ Les très gros dossiers s'ouvrent quasi instantanément : un dossier de **100 00
 - Onglets, historique, fil d'Ariane avec complétion par Tab (un disque monté commence le chemin, comme dans Nautilus), signets partagés avec GTK, Récents (affichés ou non selon l'historique des fichiers de GNOME), Corbeille (restaurer, vider), Réseau, périphériques avec les mêmes règles d'éjection que Nautilus (jamais de bouton d'éjection pour les disques fstab et internes).
 - **Taper pour aller au fichier** (en option, Préférences → Général) : taper le début d'un nom sélectionne le fichier sans filtrer la liste, comme dans Nemo ou Thunar ; par défaut, taper lance la recherche, comme dans Nautilus.
 - **Ce PC** (en option, Préférences → Général → Barre latérale) : pour ceux qui viennent de Windows, tes dossiers et tous tes disques sur une seule page, avec une barre d'occupation et l'espace libre de chacun. Il montre aussi les emplacements réseau et la connexion à un serveur : « Autres emplacements » quitte alors la barre latérale (il revient si l'option est coupée). Le Bureau de la barre latérale est lui aussi en option.
+- **Renommage multiple** (F2 sur plusieurs éléments), le dialogue de Nautilus 46 : modèle avec balises (nom d'origine, numérotation 1, 01, 001, date de prise de vue, appareil photo, artiste, album, piste…) ou rechercher / remplacer, aperçu en direct avec les changements surlignés, conflits signalés avant de renommer quoi que ce soit, un seul Ctrl+Z pour tout annuler.
+- **Aperçu rapide** avec la barre d'espace, comme dans Nautilus : l'aperçu de GNOME (Sushi) montre le fichier sélectionné, et les flèches font défiler le dossier.
+- **Propriétés** disposées comme dans Nautilus 46 : taille sous le nom, espace libre, dates, icône de dossier personnalisée (vue aussi par Nautilus), permissions sur une page à part, avec « Changer les permissions des fichiers inclus… ».
 - Copie / déplacement avec gestion des conflits (ignorer, renommer, fusionner, remplacer, appliquer à tous), **fenêtre de progression** pour les opérations longues, annulation (Ctrl+Z), glisser-déposer, presse-papiers compatible avec Nautilus.
 - **Archives** (F7) : parcourir plus de 50 formats comme des dossiers, extraire ici, extraire vers, compresser, glisser des fichiers hors d'une archive (moteur Pressoir, 7-Zip).
 - **Recherche dans le contenu** (F8) : rechercher et remplacer du texte dans les fichiers avec ripgrep ou grep, avec aperçu et sauvegardes. Recherche récursive par nom.
@@ -197,6 +210,7 @@ Chaque opération destructrice est testée sur des arborescences jetables, à c�
 - **Rien n'est écrasé en silence** : archives, PDF produits, sauvegardes reçoivent « nom (2) ».
 - **Archives piégées désamorcées** : chemins `../`, chemins absolus et liens vers l'extérieur ne sortent jamais du dossier de destination.
 - **Annuler sans risque** : annuler et rétablir n'écrasent jamais un fichier créé entre-temps.
+- **Renommage multiple sans dégâts** : les noms échangés en chaîne ou en boucle passent par un nom caché, un fichier existant n'est jamais écrasé, un élément en erreur garde son nom.
 
 #### PDF (réécrits et améliorés)
 - **Compresser** avec Ghostscript : vraie progression page par page, tailles avant / après, original conservé s'il est plus petit.
@@ -206,6 +220,7 @@ Chaque opération destructrice est testée sur des arborescences jetables, à c�
 
 #### Multimédia et système
 - **Vidéo vers audio** : MP3, M4A, OGG, OPUS, FLAC, WAV.
+- **Outils image** (repris de nautilus-image-converter, plus la conversion) : redimensionner, pivoter, convertir en JPEG, PNG, WebP, TIFF, BMP ou GIF — combinables en une passe (photos HEIC du téléphone → JPEG de 1920 px). Les nouvelles images reçoivent un suffixe, ou remplacent les originaux sans risque.
 - **Annotation d'images** : flèches, cadres, texte, surligneur, main levée.
 - **Installateur .deb** avec contrôle des dépendances et journal en direct (pkexec).
 

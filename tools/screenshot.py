@@ -5,6 +5,7 @@
 
 Options : --dual --other=chemin --grid --columns --preview --zoom=N --select=nom1,nom2 --action=win.xxx
           --prefs=page --dark --delay=ms --size=LxH --search=texte [--replace=texte]
+          --rename=modèle (avec --action=win.rename sur plusieurs éléments)
 """
 import os
 import sys
@@ -80,6 +81,16 @@ def on_ready(win):
             win.pane.select_names(opts["select"].split(","))
         if "action" in opts:
             GLib.timeout_add(300, lambda: (win.activate_action(opts["action"], None), False)[1])
+        if "rename" in opts:
+            # renommage multiple : modèle rempli (« {num2} » : la balise de numérotation 01, 02, 03…)
+            def fill():
+                from odysseus.backend import batchrename as br
+                from odysseus.ui.batch_rename import BatchRenameDialog
+                for d in Gtk.Window.list_toplevels():
+                    if isinstance(d, BatchRenameDialog):
+                        d.name_entry.set_text(opts["rename"].format(num2=br.tag_text("num2")))
+                return False
+            GLib.timeout_add(700, fill)
         if "search" in opts:
             # recherche dans le contenu (fenêtre à part) : remplie, lancée, et c'est elle qu'on capture
             from odysseus.ui.search_dialog import ContentSearchWindow

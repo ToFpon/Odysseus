@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Odysseus — a fast file manager for GNOME</title>
-<meta name="description" content="Odysseus is a fast GTK4 / libadwaita file manager with twenty tools built in: dual panel, Miller columns, archives, content search & replace, PDF tools and more. Available now for Ubuntu 24.04, Zorin OS 18 and Linux Mint 22.">
+<meta name="description" content="Odysseus is a fast GTK4 / libadwaita file manager with thirty tools built in: dual panel, Miller columns, archives, content search & replace, batch rename, image and PDF tools, Quick Look and more. Available now for Ubuntu 24.04, Zorin OS 18 and Linux Mint 22.">
 <link rel="icon" href="img/icon.svg" type="image/svg+xml">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -310,7 +310,7 @@
       <a href="#all">Everything</a>
       <a href="#install">Install</a>
       <a href="https://github.com/ToFpon/Odysseus">GitHub</a>
-      <a href="#install" class="get-pill">v1.0 · available</a>
+      <a href="#install" class="get-pill">v1.3 · available</a>
     </div>
   </div>
 </nav>
@@ -320,9 +320,9 @@
   <div class="hero-bg"></div>
   <div class="wrap hero-in">
     <img class="hero-icon" src="img/icon.svg" alt="Odysseus icon">
-    <span class="eyebrow"><span class="dot" style="background:var(--green);box-shadow:0 0 8px var(--green)"></span> Version 1.0 · GTK4 · libadwaita · GPL-3.0</span>
+    <span class="eyebrow"><span class="dot" style="background:var(--green);box-shadow:0 0 8px var(--green)"></span> Version 1.3 · GTK4 · libadwaita · GPL-3.0</span>
     <h1>More than a file manager.<br>Every <span class="accent">tool</span> on board.</h1>
-    <p class="lede">Odysseus is a fast file manager for GNOME. It looks and behaves like GNOME Files, and comes with twenty extensions built in: dual panel, Miller columns, an archive browser, content search &amp; replace, PDF tools and more. Every one of them can be switched off in a click.</p>
+    <p class="lede">Odysseus is a fast file manager for GNOME. It looks and behaves like GNOME Files, and comes with the tools Nautilus needs extensions for, built in: dual panel, Miller columns, an archive browser, content search &amp; replace, batch rename, image and PDF tools, Quick Look and more. Every one of them can be switched off in a click.</p>
     <div class="hero-actions">
       <a href="#install" class="btn btn-primary">Install on Ubuntu / Zorin</a>
       <a href="https://github.com/ToFpon/Odysseus" class="btn btn-ghost">Source code on GitHub</a>
@@ -440,6 +440,53 @@
         <img class="active" src="img/archive.png" alt="Browsing inside Holiday photos.zip" width="1270" height="770" loading="lazy">
         <img src="img/compress.png" alt="New archive dialog: 7Z format, LZMA2, AES-256 encryption" width="1270" height="810" loading="lazy">
       </div>
+    </div>
+  </div>
+</section>
+
+<!-- Batch rename & images -->
+<section class="feature">
+  <div class="wrap">
+    <div class="copy">
+      <div class="ftag">Batch Rename <span class="kbd">F2</span> · Image tools</div>
+      <h3>A hundred holiday photos, renamed and resized in two clicks.</h3>
+      <p class="intro">Select several files and press F2: the batch rename dialog of Nautilus 46, with a live preview. Then shrink, rotate or convert the pictures in a single pass.</p>
+      <div class="flist">
+        <div class="fi"><span class="chk">✓</span><span><b>Templates with tags</b> — original name, numbering (1, 01, 001), date taken, camera, artist, album, track…</span></div>
+        <div class="fi"><span class="chk">✓</span><span><b>Find and replace</b> in names, changes highlighted, conflicts flagged before anything is renamed.</span></div>
+        <div class="fi"><span class="chk">✓</span><span><b>One Ctrl+Z</b> undoes the whole batch, and an existing file is never overwritten.</span></div>
+        <div class="fi"><span class="chk">✓</span><span><b>Resize, rotate, convert</b> to JPEG, PNG, WebP… combined — phone HEIC photos to 1920 px JPEG at once.</span></div>
+      </div>
+    </div>
+    <div class="visual reveal tabbed" data-tabs>
+      <div class="tabs">
+        <button class="active" data-i="0">Batch rename</button>
+        <button data-i="1">Image tools</button>
+      </div>
+      <div class="shot">
+        <img class="active" src="img/rename.png" alt="Batch rename dialog: five photos renamed Summer holidays 01 to 05" width="1270" height="770" loading="lazy">
+        <img src="img/image-tools.png" alt="Resize Images dialog: scale 50%, rotate and convert options" width="1270" height="890" loading="lazy">
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- Quick Look & Properties -->
+<section class="feature alt flip">
+  <div class="wrap">
+    <div class="copy">
+      <div class="ftag">Quick Look <span class="kbd">Space</span> · Properties</div>
+      <h3>The little things you reach for every day.</h3>
+      <p class="intro">Press the space bar to preview a file with GNOME's previewer, exactly like in Nautilus. And the Properties window is laid out like Nautilus 46 — everything visible at a glance, no scrolling.</p>
+      <div class="flist">
+        <div class="fi"><span class="chk">✓</span><span><b>Quick Look</b> follows the arrow keys through the folder, from either window.</span></div>
+        <div class="fi"><span class="chk">✓</span><span><b>Custom folder icons</b>, shared with Nautilus.</span></div>
+        <div class="fi"><span class="chk">✓</span><span><b>Permissions on their own page</b>, with “Change Permissions for Enclosed Files…”.</span></div>
+        <div class="fi"><span class="chk">✓</span><span><b>Type to jump to a file</b>, Windows-style — optional, typing searches by default.</span></div>
+      </div>
+    </div>
+    <div class="visual reveal">
+      <div class="shot"><img src="img/properties.png" alt="Properties of the Holidays 2026 folder: size, free space, dates and permissions" width="1270" height="770" loading="lazy"></div>
     </div>
   </div>
 </section>
@@ -573,8 +620,8 @@
   <div class="wrap">
     <div class="sec-head">
       <div class="sec-tag">The full collection</div>
-      <h2>Twenty extensions. One application.</h2>
-      <p>Everything from the Nautilus Extensions collection, merged into Odysseus — and each one can be switched off.</p>
+      <h2>Thirty tools. One application.</h2>
+      <p>Everything from the Nautilus Extensions collection and more, merged into Odysseus — and each one can be switched off.</p>
     </div>
     <div class="egrid">
       <div class="ecard reveal"><div class="ei">🗂️</div><h4>Dual Panel</h4><p>Two locations side by side, copy and move between them, drag &amp; drop.</p><code>F3</code></div>
@@ -583,6 +630,12 @@
       <div class="ecard reveal"><div class="ei">🔁</div><h4>Search &amp; Replace</h4><p>Content search with ripgrep, previewed replacement with backups.</p><code>F8</code></div>
       <div class="ecard reveal"><div class="ei">🗜️</div><h4>Archives</h4><p>Browse, extract, compress and edit archives in 50+ formats.</p><code>F7</code></div>
       <div class="ecard reveal"><div class="ei">📦</div><h4>Extract Here</h4><p>One-click smart extraction, multi-volume and passwords included.</p><code>Ctrl+Shift+E</code></div>
+      <div class="ecard reveal"><div class="ei">🏷️</div><h4>Batch Rename</h4><p>Templates, numbering, metadata tags or find and replace, with a live preview.</p><code>F2</code></div>
+      <div class="ecard reveal"><div class="ei">🖼️</div><h4>Image Tools</h4><p>Resize, rotate and convert pictures, combined in one pass.</p><code>ImageMagick</code></div>
+      <div class="ecard reveal"><div class="ei">👀</div><h4>Quick Look</h4><p>Preview the selected file with Sushi, arrows move through the folder.</p><code>Space</code></div>
+      <div class="ecard reveal"><div class="ei">🔐</div><h4>Properties</h4><p>Laid out like Nautilus 46: custom folder icon, permissions, enclosed files.</p><code>Alt+Enter</code></div>
+      <div class="ecard reveal"><div class="ei">#️⃣</div><h4>Checksums</h4><p>MD5, SHA-1, SHA-256, SHA-512 in one read; paste a checksum to compare.</p><code>.sha256</code></div>
+      <div class="ecard reveal"><div class="ei">⌨️</div><h4>Type-ahead</h4><p>Type the start of a name to jump to the file, without filtering. Optional.</p><code>Preferences</code></div>
       <div class="ecard reveal"><div class="ei">🗜️</div><h4>Compress PDF</h4><p>Ghostscript presets, real progress, before / after sizes.</p><code>PDF</code></div>
       <div class="ecard reveal"><div class="ei">🔗</div><h4>Merge PDF</h4><p>Any order, page ranges per file.</p><code>PDF</code></div>
       <div class="ecard reveal"><div class="ei">🔏</div><h4>Watermark PDF</h4><p>Text or image, nine positions or tiled, live preview, flattening.</p><code>PDF</code></div>
@@ -611,7 +664,7 @@
     <div class="sec-head">
       <div class="sec-tag">Install</div>
       <h2>Ready to sail.</h2>
-      <p>Odysseus 1.0 is available for <b>Ubuntu 24.04 “Noble”</b> and its derivatives — Zorin OS 18, Linux Mint 22 — from a PPA. Updates then arrive with the rest of your system.</p>
+      <p>Odysseus is available for <b>Ubuntu 24.04 “Noble”</b> and its derivatives — Zorin OS 18, Linux Mint 22 — from a PPA. Updates then arrive with the rest of your system.</p>
     </div>
     <div class="soon-card reveal">
       <div class="soon-top" style="position:relative">Terminal<button class="copy-btn" type="button" id="copy" title="Copy the two install commands" data-text="sudo add-apt-repository ppa:nourpon/odysseus&#10;sudo apt update &amp;&amp; sudo apt install odysseus">Copy</button></div>
