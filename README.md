@@ -73,7 +73,7 @@ Huge folders open almost instantly: a folder of **100,000 files is displayed in 
 
 #### Your files come first
 Every destructive operation is tested on throwaway trees, next to a “precious” folder that must never change, including real FAT USB keys and booby-trapped archives.
-- **Replace is atomic**: the new copy is written under a temporary name, synced to disk, then swapped in. If anything fails, the old file is still there.
+- **Replacing a file never loses it**: your old file stays put until the new one is completely copied. If something goes wrong halfway (disk full, USB key pulled out, power cut), you still have your old file — never half of one.
 - **A move only removes what was copied**: skipped, failed or cancelled items stay at the source, between disks too.
 - **USB keys understood**: FAT, exFAT, NTFS — forbidden characters cleaned, case clashes renamed, files over 4 GB refused before writing.
 - **Nothing is overwritten silently**: archives, PDF outputs, backups get “name (2)”.
@@ -204,7 +204,7 @@ Les très gros dossiers s'ouvrent quasi instantanément : un dossier de **100 00
 
 #### Tes fichiers d'abord
 Chaque opération destructrice est testée sur des arborescences jetables, à côté d'un dossier « précieux » qui ne doit jamais changer, y compris sur de vraies clés FAT et des archives piégées.
-- **Remplacer est atomique** : la nouvelle copie est écrite sous un nom temporaire, synchronisée sur le disque, puis échangée. Si quelque chose échoue, l'ancien fichier est toujours là.
+- **Remplacer un fichier ne le fait jamais perdre** : l'ancien reste en place tant que le nouveau n'est pas entièrement copié. Si quelque chose tourne mal en cours de route (disque plein, clé USB arrachée, coupure de courant), tu as toujours ton ancien fichier — jamais un fichier à moitié copié.
 - **Un déplacement ne supprime que ce qui a été copié** : les éléments ignorés, en échec ou annulés restent à la source, entre deux disques aussi.
 - **Clés USB comprises** : FAT, exFAT, NTFS — caractères interdits nettoyés, conflits de casse renommés, fichiers de plus de 4 Go refusés avant d'écrire.
 - **Rien n'est écrasé en silence** : archives, PDF produits, sauvegardes reçoivent « nom (2) ».

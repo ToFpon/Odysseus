@@ -605,7 +605,7 @@
       <p>Every destructive operation is tested on throwaway trees, next to a “precious” folder that must never change — including real FAT USB keys and booby-trapped archives.</p>
     </div>
     <div class="safe-grid">
-      <div class="safe reveal"><div class="si">🔁</div><div><h4>Replace is atomic</h4><p>The new copy is written under a temporary name, synced to disk, then swapped in. If anything fails, the old file is still there.</p></div></div>
+      <div class="safe reveal"><div class="si">🔁</div><div><h4>Replacing never loses your file</h4><p>Your old file stays put until the new one is completely copied. Disk full, USB key pulled out, power cut halfway? You still have your old file — never half of one.</p></div></div>
       <div class="safe reveal"><div class="si">🚚</div><div><h4>Moves only remove what was copied</h4><p>Skipped, failed or cancelled items stay at the source, between disks too.</p></div></div>
       <div class="safe reveal"><div class="si">💾</div><div><h4>USB keys understood</h4><p>FAT, exFAT, NTFS: forbidden characters cleaned, case clashes renamed, files over 4 GB refused before writing.</p></div></div>
       <div class="safe reveal"><div class="si">🛡️</div><div><h4>Nothing is overwritten silently</h4><p>Archives, PDF outputs, backups: an existing file is never replaced without asking — you get “name (2)”.</p></div></div>
