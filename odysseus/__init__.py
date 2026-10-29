@@ -2,4 +2,4 @@
 
 APP_ID = "io.github.odysseus.Odysseus"
 APP_NAME = "Odysseus"
-VERSION = "1.3.6"
+VERSION = "1.4.0"
