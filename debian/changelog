@@ -1,3 +1,10 @@
+odysseus (1.4.1~noble1) noble; urgency=medium
+
+  * À propos : remerciements à Ponce De Leon, Forpli et aux utilisateurs
+    du forum Zorin.
+
+ -- Tof <nourpon@gmail.com>  Thu, 29 Oct 2026 17:06:21 +0000
+
 odysseus (1.4.0~noble1) noble; urgency=medium
 
   * Tri propre à chaque dossier, comme Nautilus (mêmes métadonnées : un
