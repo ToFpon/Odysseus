@@ -276,6 +276,15 @@ fenêtre de recherche dans le contenu.
   dossiers rwx, valeurs proposées d'après l'umask, liens jamais suivis ni modifiés). Ne recalculer que
   la catégorie modifiée (tout recalculer changeait les autres catégories), jamais de chmod / chown à
   travers un lien.
+- Tri propre à chaque dossier comme Nautilus 46 (`backend/folder_sort.py`) : mêmes métadonnées GVfs
+  (`metadata::nautilus-icon-view-sort-by` = name / size / type / date_modified, `-sort-reversed` =
+  "true" / "false") ; nos autres tris (durée, droits…) dans `sort.json` avec la valeur de Nautilus du
+  moment (s'il la change, il gagne) — jamais dans son attribut, sa vue en liste resterait sans tri.
+  Distant / corbeille / archive : session seulement. `Pane.sort_place` / `place_sort` /
+  `_take_place_sort` (avant le chargement) ; un choix (menu, en-tête, menu du fond « Trier ») ne vaut que
+  pour ce dossier, les panneaux qui l'affichent suivent (`folder_sort.listeners`). `settings` sort_key /
+  sort_reverse = tri par défaut (Préférences), plus changé par les menus. Actions `win.sort-*` : état
+  = tri du panneau actif (`MainWindow._sync_sort_actions`).
 - GTK 4.14 / Gtk.ColumnView : NE JAMAIS changer la visibilité d'une colonne d'une vue remplie (une
   cellule libérée reste dans la liste de la colonne → segfault à la suppression suivante d'une ligne,
   `gtk_column_view_column_queue_resize`). `ListView.update_columns` reconstruit la vue avec les

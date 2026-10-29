@@ -218,11 +218,61 @@ def tri(win):
     lv = win.pane.list_view
     lv.view.sort_by_column(lv.columns["size"], Gtk.SortType.DESCENDING)   # clic sur l'en-tête « Taille »
     yield pump(0.3)
-    check(settings["sort_key"] == "size" and settings["sort_reverse"], "tri par clic sur l'en-tête")
+    m = win.pane.model
+    check(m.sort_key == "size" and m.sort_reverse, "tri par clic sur l'en-tête")
     lv.view.sort_by_column(lv.columns["name"], Gtk.SortType.ASCENDING)
     yield pump(0.3)
-    check(settings["sort_key"] == "name" and not settings["sort_reverse"]
+    check(m.sort_key == "name" and not m.sort_reverse
           and win.pane.model.items[0].name == "dossier A", "retour au tri par nom par l'en-tête")
+
+
+@step
+def tri_par_dossier(win):
+    """Chaque dossier garde son tri, comme dans Nautilus (mêmes métadonnées GVfs)."""
+    from odysseus.backend import folder_sort
+    p = win.pane
+    root = p.location
+    sub = os.path.join(root, "dossier A")
+    win.activate_action("win.sort-by", GLib.Variant.new_string("size"))
+    win.activate_action("win.sort-reverse", None)
+    yield pump(0.3)
+    check(folder_sort.get(root) == ("size", True), f"tri enregistré pour le dossier ({folder_sort.get(root)})")
+    check((settings["sort_key"], settings["sort_reverse"]) == ("name", False), "tri par défaut inchangé")
+    by = folder_sort._read_gvfs(root)[0]
+    check(by == "size" or folder_sort._fb().get(root, {}).get("key") == "size",
+          f"tri écrit pour Nautilus ou dans sort.json ({by})")
+    p.open(sub)
+    yield pump(0.5)
+    check((p.model.sort_key, p.model.sort_reverse) == ("name", False), "autre dossier : tri par défaut")
+    check(win.lookup_action("sort-by").get_state().get_string() == "name"
+          and not win.lookup_action("sort-reverse").get_state().get_boolean(), "menu Trier : tri du dossier affiché")
+    settings.data["sort_key"] = "date"
+    settings["sort_reverse"] = True                 # Préférences → Tri par défaut : « Dernière modification »
+    yield pump(0.3)
+    check((p.model.sort_key, p.model.sort_reverse) == ("date", True), "tri par défaut suivi par un dossier sans tri")
+    p.go_back()
+    yield pump(0.5)
+    check((p.model.sort_key, p.model.sort_reverse) == ("size", True)
+          and win.lookup_action("sort-by").get_state().get_string() == "size", "retour : le dossier retrouve son tri")
+    names = [r.name for r in p.model.items if not r.is_dir]
+    sizes = [r.size for r in p.model.items if not r.is_dir]
+    check(sizes == sorted(sizes, reverse=True), f"fichiers du plus gros au plus petit ({names[:4]})")
+    # menu contextuel du fond : sous-menu « Trier »
+    from odysseus.ui import menus
+    m = menus._background_menu(win, p)
+    labels = []
+    for i in range(m.get_n_items()):
+        sec = m.get_item_link(i, "section")
+        for j in range(sec.get_n_items() if sec else 0):
+            if sec.get_item_link(j, "submenu") is not None:
+                labels.append(sec.get_item_attribute_value(j, "label", None).get_string())
+    check(tr("Trier") in labels, f"sous-menu Trier dans le menu du fond ({labels})")
+    win.activate_action("win.sort-by", GLib.Variant.new_string("name"))
+    win.activate_action("win.sort-reverse", None)
+    settings.data["sort_key"] = "name"
+    settings["sort_reverse"] = False
+    yield pump(0.3)
+    check((p.model.sort_key, p.model.sort_reverse) == ("name", False), "tri par nom rétabli")
 
 
 @step

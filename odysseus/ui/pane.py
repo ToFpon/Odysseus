@@ -13,7 +13,7 @@ from typing import Optional
 from gi.repository import Adw, Gdk, Gio, GLib, GObject, Graphene, Gtk
 
 from .. import features
-from ..backend import archive, formats, scanner, trashwatch
+from ..backend import archive, folder_sort, formats, scanner, trashwatch
 from ..backend.engine import PasswordRequired, human_size
 from ..backend.scanner import Rec
 from ..i18n import ntr, tr
@@ -56,6 +56,7 @@ class Pane(Gtk.Box):
         "focused": (GObject.SignalFlags.RUN_FIRST, None, ()),
         "files-dropped": (GObject.SignalFlags.RUN_FIRST, None, (object, str, str)),
         "message": (GObject.SignalFlags.RUN_FIRST, None, (str,)),
+        "sort-changed": (GObject.SignalFlags.RUN_FIRST, None, ()),
     }
 
     def __init__(self, location: Optional[str] = None, view_mode: Optional[str] = None):
@@ -105,6 +106,7 @@ class Pane(Gtk.Box):
         self.add_controller(click)
         self._settings_cb = self._on_setting
         settings.connect(self._settings_cb)
+        folder_sort.listeners.append(self._on_folder_sort)
         self._clip_id = clipboard.state.connect("changed", lambda *_: self.refresh_rows())
         self.connect("destroy", lambda *_: self._cleanup())
         self.open(location or os.path.expanduser("~"), push=False)
@@ -139,6 +141,8 @@ class Pane(Gtk.Box):
             clipboard.state.disconnect(self._clip_id)
         except TypeError:
             pass
+        if self._on_folder_sort in folder_sort.listeners:
+            folder_sort.listeners.remove(self._on_folder_sort)
         self.model.cancel()
 
     def retire(self):
@@ -499,6 +503,7 @@ class Pane(Gtk.Box):
         self._select_after = select
         self._to_top = True              # nouvel emplacement : affiché depuis le début
         self.model.show_hidden = settings["show_hidden"]     # cachés montrés pour un fichier choisi : pas ailleurs
+        self._take_place_sort()
         self.list_view.update_columns()
         self._load_token += 1
         if self.view_mode == "columns":
@@ -539,6 +544,7 @@ class Pane(Gtk.Box):
         self._select_after = select
         self._to_top = True              # nouvel emplacement : affiché depuis le début
         self.trash_bar.set_reveal_child(False)     # affichée une fois la corbeille lue, si non vide
+        self._take_place_sort()
         self.list_view.update_columns()
         if self.view_mode == "columns":
             self.set_view_mode("list", save=False)
@@ -658,6 +664,7 @@ class Pane(Gtk.Box):
             if e.is_dir:
                 r.set("children", len(self.listing.children(e.path)))
             recs.append(r)
+        self._take_place_sort()
         self.model.set_static(f"{self.archive_path}/{self.inner}", recs)
         self._show_content()
         self.emit("location-changed")
@@ -1011,12 +1018,45 @@ class Pane(Gtk.Box):
         if self.miller is not None:
             self.miller.refresh_rows()
 
+    # -- tri propre à chaque dossier, comme Nautilus (backend/folder_sort.py) --------------------
+    def sort_place(self) -> Optional[str]:
+        """Clé sous laquelle le tri de l'emplacement affiché est enregistré (None : pas enregistré)."""
+        if self.mode in ("fs", "trash", "remote"):
+            return self.location
+        if self.mode == "archive":
+            return f"archive:{self.archive_path}/{self.inner}"
+        return None                      # recherche : tri du dossier de départ, non enregistré
+
+    def place_sort(self) -> tuple[str, bool]:
+        place = self.sort_place()
+        saved = folder_sort.get(place) if place else None
+        return saved or (settings["sort_key"], settings["sort_reverse"])
+
+    def _take_place_sort(self):
+        """Avant de charger un emplacement : son tri, sans retrier l'ancien contenu."""
+        self.model.sort_key, self.model.sort_reverse = self.place_sort()
+        self.list_view.sync_sort()
+        self.emit("sort-changed")
+
     def set_sort(self, key: str, reverse: bool):
-        """Tri choisi en cliquant sur un en-tête de colonne (un seul nouveau tri pour les deux réglages)."""
-        if key == settings["sort_key"] and reverse == settings["sort_reverse"]:
+        """Tri choisi (menu, en-tête de colonne) : pour ce dossier seulement, comme dans Nautilus."""
+        if key == self.model.sort_key and reverse == self.model.sort_reverse:
             return
-        settings.data["sort_key"] = key
-        settings["sort_reverse"] = reverse
+        place = self.sort_place()
+        if place:
+            folder_sort.save(place, key, reverse)       # chaque panneau qui l'affiche suit (_on_folder_sort)
+        else:
+            self._resort(key, reverse)
+
+    def _resort(self, key: str, reverse: bool):
+        if key != self.model.sort_key or reverse != self.model.sort_reverse:
+            self.model.set_sort(key, reverse)
+        self.list_view.sync_sort()
+        self.emit("sort-changed")
+
+    def _on_folder_sort(self, place: str, key: str, reverse: bool):
+        if place == self.sort_place():
+            self._resort(key, reverse)
 
     def _on_setting(self, key, value):
         if key == "show_hidden":
@@ -1024,9 +1064,10 @@ class Pane(Gtk.Box):
             if self.miller is not None:
                 self.miller.set_show_hidden(value)
             self._update_state()
-        elif key in ("sort_key", "sort_reverse", "folders_first"):
-            self.model.set_sort(settings["sort_key"], settings["sort_reverse"], settings["folders_first"])
-            self.list_view.sync_sort()
+        elif key == "folders_first":
+            self.model.set_sort(self.model.sort_key, self.model.sort_reverse, value)
+        elif key in ("sort_key", "sort_reverse") and self.mode != "search":
+            self._resort(*self.place_sort())         # tri par défaut changé : dossiers sans tri à eux
         elif key in ("list_zoom", "grid_zoom"):
             self.list_view.apply_zoom()
             self.refresh_rows()

@@ -531,6 +531,69 @@ if __name__ == "__main__":
     unittest.main()
 
 
+class FolderSortTest(unittest.TestCase):
+    """Tri par dossier : métadonnées de Nautilus (simulées : pas de démon GVfs ici), sort.json sinon."""
+
+    def setUp(self):
+        from odysseus.backend import folder_sort
+        self.fs = folder_sort
+        self.tmp = tempfile.mkdtemp()
+        self.meta: dict = {}                     # chemin → (sort-by, reversed) : les métadonnées GVfs
+        self.gvfs = True
+        self._saved = (folder_sort.FALLBACK, folder_sort._fallback, folder_sort._read_gvfs,
+                       folder_sort._write_gvfs, list(folder_sort.listeners), dict(folder_sort._session))
+        folder_sort.FALLBACK = os.path.join(self.tmp, "sort.json")
+        folder_sort._fallback = None
+        folder_sort._read_gvfs = lambda p: self.meta.get(p, (None, None))
+
+        def write(p, by, rev):
+            if not self.gvfs:
+                return False
+            self.meta[p] = (by, "true" if rev else "false")
+            return True
+        folder_sort._write_gvfs = write
+        folder_sort.listeners[:] = []
+
+    def tearDown(self):
+        fs = self.fs
+        (fs.FALLBACK, fs._fallback, fs._read_gvfs, fs._write_gvfs, listeners, session) = self._saved
+        fs.listeners[:] = listeners
+        fs._session.clear()
+        fs._session.update(session)
+
+    def test_shared_with_nautilus(self):
+        heard = []
+        self.fs.listeners.append(lambda *a: heard.append(a))
+        self.assertIsNone(self.fs.get("/a"))
+        self.fs.save("/a", "date", True)
+        self.assertEqual(self.meta["/a"], ("date_modified", "true"))      # « Dernière modification » de Nautilus
+        self.assertEqual(self.fs.get("/a"), ("date", True))
+        self.assertIsNone(self.fs.get("/b"))
+        self.assertEqual(heard, [("/a", "date", True)])
+        self.meta["/b"] = ("size", "true")                                   # trié dans Nautilus
+        self.assertEqual(self.fs.get("/b"), ("size", True))
+        self.meta["/c"] = ("starred", "false")                               # tri de Nautilus inconnu ici
+        self.assertIsNone(self.fs.get("/c"))
+
+    def test_own_sorts_and_nautilus_wins(self):
+        self.fs.save("/a", "duration", False)
+        self.assertNotIn("/a", self.meta)            # jamais un tri inconnu de Nautilus dans son attribut
+        self.assertEqual(self.fs.get("/a"), ("duration", False))
+        self.meta["/a"] = ("type", "false")          # puis trié par type dans Nautilus : il gagne
+        self.assertEqual(self.fs.get("/a"), ("type", False))
+        self.fs.save("/a", "name", True)             # retour à un tri connu : sort.json nettoyé
+        self.assertNotIn("/a", self.fs._fb())
+
+    def test_without_gvfs_and_remote(self):
+        self.gvfs = False
+        self.fs.save("/a", "size", False)
+        self.fs._fallback = None                     # relu depuis le disque
+        self.assertEqual(self.fs.get("/a"), ("size", False))
+        self.fs.save("sftp://serveur/x", "date", True)
+        self.assertEqual(self.fs.get("sftp://serveur/x"), ("date", True))
+        self.assertNotIn("sftp://serveur/x", self.fs._fb())     # session seulement
+
+
 class DebInstallTest(unittest.TestCase):
     """Installateur .deb : debconf non interactif (sinon messages « unable to initialize frontend:
     Dialog / Readline » sans terminal), lignes d'avancement de dpkg écartées."""

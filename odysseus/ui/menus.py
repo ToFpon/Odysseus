@@ -46,6 +46,18 @@ def main_menu(win=None) -> Gio.Menu:
     return m
 
 
+def sort_menu() -> Gio.Menu:
+    """Tri du dossier affiché (chaque dossier garde le sien, comme dans Nautilus)."""
+    sort = Gio.Menu()
+    for key, label in (("name", tr("Nom")), ("size", tr("Taille")), ("type", tr("Type")),
+                       ("date", tr("Date de modification"))):
+        sort.append(label, f"win.sort-by::{key}")
+    if features.available("duration_column"):
+        sort.append(tr("Durée"), "win.sort-by::duration")
+    sort.append(tr("Ordre inverse"), "win.sort-reverse")
+    return sort
+
+
 def view_menu() -> Gio.Menu:
     m = Gio.Menu()
     views = Gio.Menu()
@@ -54,14 +66,7 @@ def view_menu() -> Gio.Menu:
     if features.enabled("column_view"):
         views.append(tr("Colonnes"), "win.view-mode::columns")
     m.append_section(None, views)
-    sort = Gio.Menu()
-    for key, label in (("name", tr("Nom")), ("size", tr("Taille")), ("type", tr("Type")),
-                       ("date", tr("Date de modification"))):
-        sort.append(label, f"win.sort-by::{key}")
-    if features.available("duration_column"):
-        sort.append(tr("Durée"), "win.sort-by::duration")
-    sort.append(tr("Ordre inverse"), "win.sort-reverse")
-    m.append_section(tr("Trier"), sort)
+    m.append_section(tr("Trier"), sort_menu())
     cols = Gio.Menu()
     cols.append(tr("Taille"), "win.column-size")
     cols.append(tr("Type"), "win.column-type")
@@ -270,6 +275,7 @@ def _background_menu(win, pane) -> Gio.Menu:
         s = Gio.Menu()
         s.append(tr("Coller"), "win.paste")
         s.append(tr("Tout sélectionner"), "win.select-all")
+        s.append_submenu(tr("Trier"), sort_menu())
         m.append_section(None, s)
         s = Gio.Menu()
         if features.enabled("terminal"):
@@ -280,6 +286,10 @@ def _background_menu(win, pane) -> Gio.Menu:
             s.append(tr("Compresser des fichiers…"), "win.compress")
         if s.get_n_items():
             m.append_section(None, s)
+    elif pane.mode in ("trash", "remote"):
+        s = Gio.Menu()
+        s.append_submenu(tr("Trier"), sort_menu())
+        m.append_section(None, s)
     s = Gio.Menu()
     s.append(tr("Ajouter aux signets"), "win.bookmark")
     s.append(tr("Copier l'emplacement"), "win.copy-location")

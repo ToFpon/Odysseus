@@ -34,6 +34,30 @@ def _choice(title: str, key: str, labels: list[str], values: list, subtitle: str
     return row
 
 
+# les tris de Nautilus 46 (nautilus-toolbar-view-menu.ui) : (clé, inverse)
+DEFAULT_SORTS = [("name", False, lambda: tr("A-Z")), ("name", True, lambda: tr("Z-A")),
+                 ("date", True, lambda: tr("Date de modification (récents d'abord)")),
+                 ("date", False, lambda: tr("Date de modification (anciens d'abord)")),
+                 ("size", True, lambda: tr("Taille (plus gros d'abord)")), ("type", False, lambda: tr("Type"))]
+
+
+def _default_sort() -> Adw.ComboRow:
+    """Tri des dossiers qui n'ont pas le leur : un tri choisi dans un dossier ne vaut que pour lui."""
+    cur = (settings["sort_key"], settings["sort_reverse"])
+    pairs = [(k, r) for k, r, _l in DEFAULT_SORTS]
+    sel = pairs.index(cur) if cur in pairs else next((i for i, (k, _r) in enumerate(pairs) if k == cur[0]), 0)
+    row = combo_row(tr("Tri par défaut"), [label() for _k, _r, label in DEFAULT_SORTS], sel,
+                    tr("Pour les dossiers sans tri à eux : un tri choisi dans un dossier est gardé pour lui, "
+                       "comme dans Nautilus"))
+
+    def changed(r, *_):
+        key, rev, _l = DEFAULT_SORTS[r.get_selected()]
+        settings.data["sort_key"] = key
+        settings["sort_reverse"] = rev        # un seul nouveau tri pour les deux réglages
+    row.connect("notify::selected", changed)
+    return row
+
+
 class PreferencesDialog(Adw.PreferencesWindow):
     def __init__(self):
         # vraie fenêtre comme les préférences de Nautilus 46 : le thème du système s'y applique
@@ -71,6 +95,7 @@ class PreferencesDialog(Adw.PreferencesWindow):
         g = Adw.PreferencesGroup(title=tr("Affichage des dossiers"))
         g.add(_choice(tr("Vue par défaut"), "view_mode", [tr("Liste"), tr("Grille"), tr("Colonnes")],
                       ["list", "grid", "columns"]))
+        g.add(_default_sort())
         g.add(_switch(tr("Dossiers en premier"), "folders_first"))
         g.add(_switch(tr("Afficher les fichiers cachés"), "show_hidden"))
         g.add(_choice(tr("Taille des icônes de la liste"), "list_zoom",

@@ -271,6 +271,7 @@ class MainWindow(FileActions, ArchiveActions, ToolActions, Adw.ApplicationWindow
 
     def connect_pane(self, pane: Pane, ws: Workspace):
         pane.connect("location-changed", lambda p: self._on_location(p))
+        pane.connect("sort-changed", lambda p: p is self.pane and self._sync_sort_actions())
         pane.connect("selection-changed", lambda p: self._on_selection(p))
         pane.connect("activated", self._on_pane_activated)
         pane.connect("context-menu", self._on_context_menu)
@@ -344,7 +345,20 @@ class MainWindow(FileActions, ArchiveActions, ToolActions, Adw.ApplicationWindow
         self.set_title(shown(f"{pane.title()} — {APP_NAME}") + (" — " + tr("Administrateur") if admin else ""))
         self.sidebar.select(pane.location if pane.mode != "archive" else pane.archive_path)
         self._sync_view_button()
+        self._sync_sort_actions()
         self._on_selection(pane)
+
+    def _sync_sort_actions(self):
+        """Menus « Trier » : le tri du dossier du panneau actif (chaque dossier a le sien)."""
+        model = self.pane.model if self.pane is not None else None
+        if model is None:
+            return
+        a = self.lookup_action("sort-by")
+        if a:
+            a.set_state(GLib.Variant.new_string(model.sort_key))
+        a = self.lookup_action("sort-reverse")
+        if a:
+            a.set_state(GLib.Variant.new_boolean(model.sort_reverse))
 
     def update_pane_pathbar(self, pane: Pane):
         bar = getattr(pane, "pathbar", None)
@@ -410,13 +424,6 @@ class MainWindow(FileActions, ArchiveActions, ToolActions, Adw.ApplicationWindow
             a = self.lookup_action("show-hidden")
             if a:
                 a.set_state(GLib.Variant.new_boolean(settings["show_hidden"]))
-        elif key in ("sort_key", "sort_reverse"):
-            a = self.lookup_action("sort-by")
-            if a:
-                a.set_state(GLib.Variant.new_string(settings["sort_key"]))
-            a = self.lookup_action("sort-reverse")
-            if a:
-                a.set_state(GLib.Variant.new_boolean(settings["sort_reverse"]))
         elif key == "list_columns":
             for col in ("size", "type", "date", "perms", "owner", "duration"):
                 a = self.lookup_action("column-" + col)
@@ -642,9 +649,9 @@ class MainWindow(FileActions, ArchiveActions, ToolActions, Adw.ApplicationWindow
             self._add(name, cb)
         self._add_stateful("view-mode", GLib.Variant.new_string(settings["view_mode"]), self._set_view_mode)
         self._add_stateful("sort-by", GLib.Variant.new_string(settings["sort_key"]),
-                           lambda v: settings.__setitem__("sort_key", v.get_string()))
+                           lambda v: self.pane.set_sort(v.get_string(), self.pane.model.sort_reverse))
         self._add_toggle("sort-reverse", settings["sort_reverse"],
-                         lambda v: settings.__setitem__("sort_reverse", v))
+                         lambda v: self.pane.set_sort(self.pane.model.sort_key, v))
         self._add_toggle("show-hidden", settings["show_hidden"], lambda v: settings.__setitem__("show_hidden", v))
         self._add_toggle("dual", False, self._set_dual)
         self._add_toggle("preview", settings["preview_visible"] and features.enabled("preview"), self.set_preview)

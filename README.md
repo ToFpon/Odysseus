@@ -45,6 +45,7 @@ Huge folders open almost instantly: a folder of **100,000 files is displayed in 
 - **List** (compact 35 px rows like Nautilus, optional columns: size, type, date, permissions, owner, duration), **grid** (64 to 256 px) and **columns** (Miller columns, resizable, ← / → between columns). Ctrl+1 / 2 / 3, Ctrl+plus / minus / 0 or Ctrl+mouse wheel.
 - **Dual panel** (F3): two locations side by side, F6 / Shift+F6 copy or move to the other panel, Ctrl+Tab switches panels.
 - **Preview panel** (F4): images, videos, PDF pages, text, detailed information.
+- **Each folder keeps its own sort order** (menu, column header or right-click → Sort), shared with Nautilus; the default one is set in Preferences.
 - **Thumbnails** shared with Nautilus (freedesktop cache).
 - Hidden files dimmed (icon only or icon and name), cut items dimmed until pasted, a colored bar in front of copied items.
 - **Folder colors and emblems**, compatible with Folder Color.
@@ -176,6 +177,7 @@ Les très gros dossiers s'ouvrent quasi instantanément : un dossier de **100 00
 - **Liste** (lignes compactes de 35 px comme Nautilus, colonnes facultatives : taille, type, date, permissions, propriétaire, durée), **grille** (64 à 256 px) et **colonnes** (colonnes de Miller redimensionnables, ← / → d'une colonne à l'autre). Ctrl+1 / 2 / 3, Ctrl+plus / moins / 0 ou Ctrl+molette.
 - **Double panneau** (F3) : deux emplacements côte à côte, F6 / Maj+F6 pour copier ou déplacer vers l'autre panneau, Ctrl+Tab pour changer de panneau.
 - **Panneau d'aperçu** (F4) : images, vidéos, pages PDF, textes, informations détaillées.
+- **Chaque dossier garde son propre tri** (menu, en-tête de colonne ou clic droit → Trier), partagé avec Nautilus ; le tri par défaut se règle dans les Préférences.
 - **Miniatures** partagées avec Nautilus (cache freedesktop).
 - Fichiers cachés estompés (icône seule ou icône et nom), éléments coupés estompés jusqu'au collage, barre colorée devant les éléments copiés.
 - **Couleurs et emblèmes de dossiers**, compatibles avec Folder Color.
