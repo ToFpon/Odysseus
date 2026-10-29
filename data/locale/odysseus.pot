@@ -28,6 +28,10 @@ msgid "Basé sur"
 msgstr ""
 
 #: odysseus/app.py:206
+msgid "Remerciements"
+msgstr ""
+
+#: odysseus/app.py:210
 msgid "Moteurs"
 msgstr ""
 

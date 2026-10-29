@@ -203,6 +203,10 @@ class OdysseusApp(Adw.Application):
         )
         about.add_credit_section(tr("Basé sur"), [tr("Les extensions Nautilus de Tof https://github.com/ToFpon/Nautilus-Extensions"),
                                                   tr("Le moteur d'archives de Pressoir https://github.com/ToFpon/Pressoir")])
+        about.add_acknowledgement_section(tr("Remerciements"), [
+            "Ponce De Leon https://forum.zorin.com/u/Ponce-De-Leon",
+            "Forpli https://forum.zorin.com/u/Forpli",
+            "Zorin Forum Users https://forum.zorin.com/"])
         about.add_acknowledgement_section(tr("Moteurs"), ["7-Zip", "Ghostscript", "qpdf", "FFmpeg", "ripgrep",
                                                           "Poppler"])
         about.present()

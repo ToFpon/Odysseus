@@ -33,6 +33,10 @@ msgid "Basé sur"
 msgstr "Basiert auf"
 
 #: odysseus/app.py:206
+msgid "Remerciements"
+msgstr "Besonderer Dank"
+
+#: odysseus/app.py:210
 msgid "Moteurs"
 msgstr "Programme"
 
@@ -2719,8 +2723,12 @@ msgid "Tri par défaut"
 msgstr "Standard-Sortierung"
 
 #: odysseus/ui/dialogs.py:50
-msgid "Pour les dossiers sans tri à eux : un tri choisi dans un dossier est gardé pour lui, comme dans Nautilus"
-msgstr "Für Ordner ohne eigene Sortierung: eine in einem Ordner gewählte Sortierung bleibt für ihn erhalten, wie in Nautilus"
+msgid ""
+"Pour les dossiers sans tri à eux : un tri choisi dans un dossier est gardé "
+"pour lui, comme dans Nautilus"
+msgstr ""
+"Für Ordner ohne eigene Sortierung: eine in einem Ordner gewählte Sortierung "
+"bleibt für ihn erhalten, wie in Nautilus"
 
 #: odysseus/ui/dialogs.py:236
 msgid "Navigation"

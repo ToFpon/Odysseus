@@ -33,6 +33,10 @@ msgid "Basé sur"
 msgstr "Based on"
 
 #: odysseus/app.py:206
+msgid "Remerciements"
+msgstr "Special thanks"
+
+#: odysseus/app.py:210
 msgid "Moteurs"
 msgstr "Engines"
 
@@ -2688,8 +2692,12 @@ msgid "Tri par défaut"
 msgstr "Default sort order"
 
 #: odysseus/ui/dialogs.py:50
-msgid "Pour les dossiers sans tri à eux : un tri choisi dans un dossier est gardé pour lui, comme dans Nautilus"
-msgstr "For folders without their own sort order: a sort order chosen in a folder is kept for it, as in Nautilus"
+msgid ""
+"Pour les dossiers sans tri à eux : un tri choisi dans un dossier est gardé "
+"pour lui, comme dans Nautilus"
+msgstr ""
+"For folders without their own sort order: a sort order chosen in a folder is "
+"kept for it, as in Nautilus"
 
 #: odysseus/ui/dialogs.py:236
 msgid "Navigation"
