@@ -1,3 +1,12 @@
+odysseus (1.5.1~noble1) noble; urgency=medium
+
+  * Fenêtre d'archive façon Archive Browser : arborescence de l'archive
+    à gauche (dossiers dépliés sur place, filtre), dossier à droite ;
+    glisser vers ce dossier ou n'importe où ; tout extraire ou la
+    sélection dans le dossier de droite.
+
+ -- Tof <nourpon@gmail.com>  Fri, 30 Oct 2026 08:21:34 +0000
+
 odysseus (1.5.0~noble1) noble; urgency=medium
 
   * Archives : un double-clic ouvre l'archive dans sa propre fenêtre

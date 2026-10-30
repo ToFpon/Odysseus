@@ -70,6 +70,14 @@
   </requires>
   <content_rating type="oars-1.1"/>
   <releases>
+    <release version="1.5.1" date="2026-10-30">
+      <description>
+        <ul>
+          <li>Archive window like the Archive Browser extension: archive tree on the left, a folder on the right</li>
+          <li>Extract everything or the selection into the folder shown on the right</li>
+        </ul>
+      </description>
+    </release>
     <release version="1.5.0" date="2026-10-30">
       <description>
         <ul>
