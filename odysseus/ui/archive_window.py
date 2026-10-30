@@ -22,7 +22,7 @@ from ..backend.engine import PasswordRequired, human_size
 from ..i18n import ntr, tr
 from ..settings import session_passwords, settings
 from .archive_drag import DragCache
-from .common import ask_password, open_with_default, toast
+from .common import ask_password, open_with_default, popup_menu, toast
 from .icons import ctype_icon, gicon_for
 from .model import fold
 
@@ -103,8 +103,12 @@ class FolderPanel(Gtk.Box):
         home.connect("clicked", lambda *_: self.navigate(os.path.expanduser("~")))
         refresh = Gtk.Button(icon_name="view-refresh-symbolic", tooltip_text=tr("Actualiser"), css_classes=["flat"])
         refresh.connect("clicked", lambda *_: self.refresh())
-        for w in (up, self.entry, home, refresh):
+        new = Gtk.Button(icon_name="folder-new-symbolic", tooltip_text=tr("Nouveau dossier (Ctrl+Maj+N)"),
+                         css_classes=["flat"])
+        new.connect("clicked", lambda *_: self.new_folder())
+        for w in (up, self.entry, new, home, refresh):
             bar.append(w)
+        self._select_after: Optional[str] = None
         self.append(bar)
         self.append(_header(tr("Nom"), tr("Taille")))
         self.store = Gio.ListStore(item_type=FsItem)
@@ -117,6 +121,17 @@ class FolderPanel(Gtk.Box):
         self.view.connect("activate", self._on_activate)
         sw = Gtk.ScrolledWindow(vexpand=True, child=self.view)
         self.append(sw)
+        # clic droit, comme le fond d'un dossier dans Nautilus : « Nouveau dossier… »
+        actions = Gio.SimpleActionGroup()
+        act = Gio.SimpleAction.new("new-folder", None)
+        act.connect("activate", lambda *_: self.new_folder())
+        actions.add_action(act)
+        self.insert_action_group("folder", actions)
+        self._menu = Gio.Menu()
+        self._menu.append(tr("Nouveau dossier…"), "folder.new-folder")
+        menu_click = Gtk.GestureClick(button=3)
+        menu_click.connect("pressed", lambda g, _n, x, y: popup_menu(sw, self._menu, x, y))
+        sw.add_controller(menu_click)
         drop = Gtk.DropTarget.new(Gdk.FileList, Gdk.DragAction.COPY | Gdk.DragAction.MOVE)
         drop.connect("enter", lambda *_: (self.add_css_class("drop-hover"), Gdk.DragAction.COPY)[1])
         drop.connect("leave", lambda *_: self.remove_css_class("drop-hover"))
@@ -180,9 +195,40 @@ class FolderPanel(Gtk.Box):
         threading.Thread(target=work, daemon=True).start()
 
     def _fill(self, gen, recs):
-        if gen == self._gen:
-            self.store.splice(0, self.store.get_n_items(), [FsItem(r) for r in recs])
+        if gen != self._gen:
+            return False
+        cur = self.selection.get_selected_item()
+        keep = cur.rec.name if cur is not None else None      # la sélection survit à un rafraîchissement
+        self.store.splice(0, self.store.get_n_items(), [FsItem(r) for r in recs])
+        want = self._select_after or keep
+        for i, r in enumerate(recs):
+            if r.name == want:
+                self.selection.set_selected(i)
+                if want == self._select_after:
+                    self.view.scroll_to(i, Gtk.ListScrollFlags.FOCUS, None)
+                self._select_after = None
+                break
         return False
+
+    def new_folder(self):
+        """Nouveau dossier dans le dossier affiché : même question que dans Odysseus, posée sur cette
+        fenêtre ; annulable (Ctrl+Z) dans la fenêtre principale."""
+        from ..backend import fileops
+        from .common import alert
+        host, folder = self.win.host_window(), self.path
+
+        def make(name):
+            try:
+                path = fileops.make_folder(folder, name)
+            except Exception as e:  # noqa: BLE001
+                alert(self.win, tr("Création impossible"), getattr(e, "strerror", None) or str(e))
+                return
+            host._push_undo(("create", [path]))
+            if folder == self.path:
+                self._select_after = name
+                self.refresh()
+        host.ask_name(tr("Nouveau dossier"), fileops.unique_name(folder, tr("Nouveau dossier"), True),
+                      tr("Créer"), make, folder, select_stem=False, parent=self.win)
 
     def _on_activate(self, _view, pos):
         rec = self.store.get_item(pos).rec
@@ -247,6 +293,8 @@ class ArchiveWindow(Adw.ApplicationWindow):
                                            Gtk.CallbackAction.new(lambda *_: (self.close(), True)[1])))
         keys.add_shortcut(Gtk.Shortcut.new(Gtk.ShortcutTrigger.parse_string("<Control>f"),
                                            Gtk.CallbackAction.new(lambda *_: (self.filter.grab_focus(), True)[1])))
+        keys.add_shortcut(Gtk.Shortcut.new(Gtk.ShortcutTrigger.parse_string("<Control><Shift>n"),
+                                           Gtk.CallbackAction.new(lambda *_: (self.folder.new_folder(), True)[1])))
         self.add_controller(keys)
         self.connect("close-request", self._on_close)
         self._load()

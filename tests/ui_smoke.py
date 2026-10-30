@@ -621,6 +621,29 @@ def fenetre_archive(win):
     aw.folder.navigate(dest)
     yield pump(0.6)
     check(any(it.rec.name == "dossier A" for it in aw.folder.store), "dossier de droite suivi après la copie")
+    # nouveau dossier dans le panneau de droite : question posée sur la fenêtre d'archive
+    before = list(Gtk.Window.list_toplevels())
+    aw.folder.activate_action("folder.new-folder", None)          # clic droit → « Nouveau dossier… »
+    yield pump(0.5)
+    dlg = [w for w in Gtk.Window.list_toplevels() if w not in before and isinstance(w, Adw.MessageDialog)]
+    check(len(dlg) == 1 and dlg[0].get_transient_for() is aw, "nouveau dossier : question sur la fenêtre d'archive")
+    if dlg:
+        def entry(w):
+            if isinstance(w, Adw.EntryRow):
+                return w
+            c = w.get_first_child()
+            while c is not None:
+                r = entry(c)
+                if r is not None:
+                    return r
+                c = c.get_next_sibling()
+        entry(dlg[0]).set_text("rangement")
+        dlg[0].response("ok")
+        dlg[0].close()
+        yield pump(0.8)
+        sel = aw.folder.selection.get_selected_item()
+        check(os.path.isdir(os.path.join(dest, "rangement")) and sel is not None and sel.rec.name == "rangement",
+              "nouveau dossier créé et sélectionné à droite")
     aw.selection.unselect_all()
     aw.select_paths(["dossier A/sous/profond.md"])
     aw.extract(selection=True)

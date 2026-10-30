@@ -292,8 +292,10 @@ fenêtre de recherche dans le contenu.
   Odysseus : double-clic, « Parcourir l'archive », F7 → `actions_files.browse_archive_path` →
   `ui/archive_window.ArchiveWindow` (Adw.ApplicationWindow, une par archive). À gauche l'arbre de
   l'archive (Gtk.TreeListModel + TreeExpander, dossiers dépliés sur place, filtre = liste plate avec le
-  chemin), à droite `FolderPanel` (↑, chemin, accueil, actualiser, suivi par un moniteur ; dépôt sur un
-  dossier de la liste ou dans le dossier affiché). « Tout extraire » / « Extraire la sélection » vers le
+  chemin), à droite `FolderPanel` (↑, chemin, nouveau dossier — bouton, Ctrl+Maj+N, clic droit —,
+  accueil, actualiser ; suivi par un moniteur, la sélection survit aux rafraîchissements ; dépôt sur un
+  dossier de la liste ou dans le dossier affiché). `ask_name(…, parent=)` : question posée sur la
+  fenêtre d'archive, pas sur la principale. « Tout extraire » / « Extraire la sélection » vers le
   dossier de droite. Copies et extractions passent par la fenêtre principale (`host_window` :
   `drop_files`, `_extract_one` → conflits, progression, mots de passe). Réglage coupé : archive dans le
   panneau, comme avant.

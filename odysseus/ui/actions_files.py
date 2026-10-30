@@ -514,8 +514,10 @@ class FileActions:
     # Renommer, créer
     # ------------------------------------------------------------------
     def ask_name(self, heading: str, initial: str, action: str, callback, folder: str = "",
-                 select_stem: bool = True, current: str = "", taken: Optional[set] = None):
-        """Saisie d'un nom avec vérification immédiate (vide, « / », déjà existant)."""
+                 select_stem: bool = True, current: str = "", taken: Optional[set] = None,
+                 parent: Optional[Gtk.Window] = None):
+        """Saisie d'un nom avec vérification immédiate (vide, « / », déjà existant). parent : fenêtre
+        sur laquelle poser la question (la fenêtre d'archive), sinon celle-ci."""
         row = Adw.EntryRow(title=tr("Nom"), text=shown(initial))
         box = Gtk.ListBox(css_classes=["boxed-list"], selection_mode=Gtk.SelectionMode.NONE)
         box.append(row)
@@ -568,7 +570,7 @@ class FileActions:
         row.connect("entry-activated", activated)
         d.connect("response", lambda _d, r: finish(r == "ok"))
         check()
-        d.present(self)
+        d.present(parent or self)
 
         def focus():
             row.grab_focus()
