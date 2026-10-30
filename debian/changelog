@@ -1,3 +1,10 @@
+odysseus (1.5.3~noble1) noble; urgency=medium
+
+  * Disponible aussi pour Ubuntu 26.04 LTS (resolute) ; fonctionne sous
+    X11 et Wayland.
+
+ -- Tof <nourpon@gmail.com>  Fri, 30 Oct 2026 11:49:46 +0000
+
 odysseus (1.5.2~noble1) noble; urgency=medium
 
   * Fenêtre d'archive : créer un dossier dans le panneau de droite
