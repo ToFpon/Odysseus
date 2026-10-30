@@ -252,7 +252,9 @@ fenêtre de recherche dans le contenu.
   46 n'a pas de lecteur pour Visible, Get reste sans réponse (vu chez Tof avec dbus-monitor : flèches
   reçues, aucun ShowFile ensuite) — ni par le seul cache du proxy (vide quand Sushi démarre après lui).
   `fake_sushi.py` imite ça (Get sans réponse ; `--muet` : pas d'annonce non plus). Sushi présent = son fichier de service D-Bus (`lib:sushi`, features.LIBS),
-  `gnome-sushi` en Recommends. Testé avec `tests/fake_sushi.py` : ui_smoke sous `dbus-run-session`
+  `gnome-sushi` en Recommends. Sous Wayland (Zorin 18), poignée « x11:0 » : Sushi s'ouvre centré, au
+  premier plan, flèches comprises (deux retours d'utilisateurs) — pas besoin d'exporter une poignée
+  Wayland. Testé avec `tests/fake_sushi.py` : ui_smoke sous `dbus-run-session`
   (sans bus de session, l'étape est sautée).
 - Outils image (fonctionnalité `image_tools`, reprise de nautilus-image-converter + conversion) :
   `backend/images.py` + `ui/image_dialog.py`, menu « Outils image » (redimensionner / pivoter / convertir,
