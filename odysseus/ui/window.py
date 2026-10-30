@@ -32,8 +32,6 @@ SIDEBAR_MAX = 360
 
 class MainWindow(FileActions, ArchiveActions, ToolActions, Adw.ApplicationWindow):
     __gtype_name__ = "OdysseusWindow"
-    saves_state = True           # taille, barre latérale, double panneau mémorisés à la fermeture
-    is_archive_window = False
 
     def __init__(self, app, location: Optional[str] = None, dual: Optional[bool] = None):
         super().__init__(application=app, title=APP_NAME,
@@ -602,13 +600,12 @@ class MainWindow(FileActions, ArchiveActions, ToolActions, Adw.ApplicationWindow
                 p.focus_view()
 
     def _on_close(self, *_):
-        if self.saves_state:
-            w, h = self.get_default_size()
-            settings.data["window_width"], settings.data["window_height"] = w, h
-            settings.data["sidebar_visible"] = self.split.get_show_sidebar()
-            ws = self.workspace
-            settings.data["dual_panel"] = bool(ws and ws.dual)
-            settings.save()
+        w, h = self.get_default_size()
+        settings.data["window_width"], settings.data["window_height"] = w, h
+        settings.data["sidebar_visible"] = self.split.get_show_sidebar()
+        ws = self.workspace
+        settings.data["dual_panel"] = bool(ws and ws.dual)
+        settings.save()
         from ..backend.media import durations
         durations.flush()
         running = [j for j in manager.running]

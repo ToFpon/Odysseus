@@ -667,12 +667,14 @@ def archive_window_steps(win):
     from odysseus.ui.archive_window import ArchiveWindow
     src = os.path.join(TMP, "arch-src")
     os.makedirs(os.path.join(src, "rep"))
+    open(os.path.join(src, "rep", "dedans.txt"), "w").close()
     with open(os.path.join(src, "lisezmoi.txt"), "w") as fh:
         fh.write("bonjour")
     subprocess.run(["7z", "a", "-bd", os.path.join(D, "dst", "paquet.zip"), os.path.join(src, "lisezmoi.txt"),
                     os.path.join(src, "rep")], capture_output=True)
     dest = os.path.join(D, "dst", "ici")
     os.makedirs(dest)
+    os.makedirs(os.path.join(D, "dst", "autre"))
     p = win.pane
     p.open(os.path.join(D, "dst"))
     yield
@@ -694,6 +696,12 @@ def archive_window_steps(win):
     for _ in range(3):
         yield
     p.open(dest)
+    # dossier « rep » déplié au-dessus de lisezmoi.txt : le glisser doit prendre la bonne ligne
+    for _ in range(4):
+        yield
+        if aw.listing is not None:
+            break
+    aw._on_activate(aw.view, 0)
     yield
     yield
     target = screen_point(win, p, p.get_width() / 3, p.get_height() / 2)
@@ -706,6 +714,17 @@ def archive_window_steps(win):
     out = os.path.join(dest, "lisezmoi.txt")
     check(os.path.exists(out) and open(out).read() == "bonjour",
           f"vrai glisser de la fenêtre d'archive vers un dossier ({os.listdir(dest)})")
+    # vers un sous-dossier du panneau de droite de la fenêtre d'archive
+    other = os.path.join(D, "dst", "autre")
+    lx, ly = label_point(aw, aw, "lisezmoi.txt")
+    fx, fy = label_point(aw, aw.folder, "autre")
+    drag((lx + 900, ly), (fx + 900, fy))
+    for _ in range(8):
+        yield
+        if os.path.exists(os.path.join(other, "lisezmoi.txt")):
+            break
+    check(os.path.exists(os.path.join(other, "lisezmoi.txt")),
+          f"vrai glisser vers un dossier du panneau de droite ({os.listdir(other)})")
     aw.close()
     yield
 

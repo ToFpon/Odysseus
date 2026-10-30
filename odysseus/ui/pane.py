@@ -19,6 +19,7 @@ from ..backend.scanner import Rec
 from ..i18n import ntr, tr
 from ..settings import session_passwords, settings
 from . import clipboard
+from .archive_drag import DragCache
 from .common import focus_later, shown
 from .columns import MillerView
 from .model import DirModel, Selection, fold
@@ -61,15 +62,9 @@ class Pane(Gtk.Box):
 
     def __init__(self, location: Optional[str] = None, view_mode: Optional[str] = None):
         super().__init__(orientation=Gtk.Orientation.VERTICAL, css_classes=["file-pane"])
-        # glisser hors d'une archive : cache des éléments extraits d'avance
-        self._drag_root: Optional[str] = None
-        self._drag_cache: dict = {}          # chemin dans l'archive → chemin extrait
-        self._drag_dirs: dict = {}           # dossier d'extraction → éléments qu'il contient
-        self._drag_given: set = set()        # déjà glissés : leur dossier reste (copie peut-être en cours ailleurs)
-        self._drag_token = 0
-        self._prefetch_id = 0
-        self._prefetch_job = None
-        self._drag_waiting = False
+        # glisser hors d'une archive : éléments extraits d'avance (archive_drag.py)
+        self.drag = DragCache(lambda: (self.archive_path, self.password, self.listing),
+                              lambda msg: self.emit("message", msg))
         self.mode = "fs"              # fs, archive, search, trash, remote, other
         self.location = os.path.expanduser("~")
         self.view_mode = view_mode or settings["view_mode"]
@@ -152,7 +147,7 @@ class Pane(Gtk.Box):
             pass
         if self._on_folder_sort in folder_sort.listeners:
             folder_sort.listeners.remove(self._on_folder_sort)
-        self._forget_drag_cache()
+        self.drag.forget()
         self.model.cancel()
 
     def retire(self):
@@ -310,130 +305,14 @@ class Pane(Gtk.Box):
             return self._extract_for_drag()
         return [r.path for r in self.selected_recs() if r.path]
 
-    # -- glisser hors d'une archive (comme Archive Browser) -----------------------------------------
-    # Les éléments sélectionnés sont extraits en arrière-plan dans un cache : au début du glisser, ils
-    # sont déjà là (GTK veut les fichiers tout de suite, une extraction à ce moment fige la fenêtre).
-    DRAG_SYNC_MAX = 64 * 1024 * 1024         # pas encore prêt : extrait sur le moment jusqu'à cette taille
-    DRAG_PREFETCH_MAX = 4 * 1024 ** 3        # au-delà : « Extraire la sélection… »
-
-    def _inner_of(self, rec: Rec) -> str:
-        return rec.get("inner", rec.name)
-
-    def _inner_size(self, rec: Rec) -> int:
-        if not rec.is_dir:
-            return rec.size or 0
-        return sum(e.size or 0 for e in self.listing.walk(self._inner_of(rec)) if not e.is_dir) \
-            if self.listing else 0
-
-    def _drag_cached(self, inner: str) -> Optional[str]:
-        p = self._drag_cache.get(inner)
-        return p if p and os.path.lexists(p) else None
-
-    def _drag_extract(self, job, inners: list[str], archive_path: str, password: str, root: str) -> dict:
-        tmp = archive.extract_to_temp(job, archive_path, inners, password, parent=root)
-        out = {i: os.path.join(tmp, os.path.basename(i.rstrip("/"))) for i in inners}
-        return {i: p for i, p in out.items() if os.path.lexists(p)}
-
-    def _store_extracted(self, found: dict):
-        for inner, path in found.items():
-            self._drag_cache[inner] = path
-            self._drag_dirs.setdefault(os.path.dirname(path), []).append(path)
-
-    def _queue_prefetch(self):
-        if self._prefetch_id:
-            GLib.source_remove(self._prefetch_id)
-        self._prefetch_id = GLib.timeout_add(350, self._prefetch)
-
-    def _prefetch(self):
-        self._prefetch_id = 0
-        if self.mode != "archive" or not self.listing:
-            return False
-        recs = self.selected_recs()
-        missing = [self._inner_of(r) for r in recs if not self._drag_cached(self._inner_of(r))]
-        if self._prefetch_job is not None:
-            if set(self._prefetch_job.inners) >= set(missing):
-                return False                 # déjà en cours pour ces éléments
-            self._prefetch_job.cancel()
-            self._prefetch_job = None
-        if not missing or sum(self._inner_size(r) for r in recs if self._inner_of(r) in missing) \
-                > self.DRAG_PREFETCH_MAX:
-            return False
-        from ..backend.engine import Job
-        if self._drag_root is None:
-            self._drag_root = archive.drag_cache_root()
-        token, root, path, pw = self._drag_token, self._drag_root, self.archive_path, self.password
-        job = Job("drag", lambda j: self._drag_extract(j, missing, path, pw, root))
-        job.inners = missing
-        self._prefetch_job = job
-
-        def work():
-            job.run_sync()
-            GLib.idle_add(self._prefetched, job, token)
-        threading.Thread(target=work, daemon=True).start()
-        return False
-
-    def _prefetched(self, job, token):
-        if self._prefetch_job is job:
-            self._prefetch_job = None
-        if token != self._drag_token or job.state != "done" or not job.result:
-            return False
-        self._store_extracted(job.result)
-        if self._drag_waiting and all(self._drag_cached(self._inner_of(r)) for r in self.selected_recs()):
-            self._drag_waiting = False
-            self.emit("message", tr("Sélection prête : vous pouvez la glisser"))
-        return False
-
-    def _forget_drag_cache(self):
-        """Archive quittée : les extractions jamais glissées sont retirées tout de suite ; celles
-        glissées restent (un dépôt dans Nautilus peut encore copier depuis elles), jusqu'au ménage du
-        prochain démarrage (archive.sweep_drag_caches)."""
-        self._drag_token += 1
-        if self._prefetch_job is not None:
-            self._prefetch_job.cancel()
-            self._prefetch_job = None
-        if self._prefetch_id:
-            GLib.source_remove(self._prefetch_id)
-            self._prefetch_id = 0
-        import shutil
-        for folder, paths in self._drag_dirs.items():
-            if not any(p in self._drag_given for p in paths):
-                shutil.rmtree(folder, ignore_errors=True)
-        if self._drag_root and not self._drag_given:
-            shutil.rmtree(self._drag_root, ignore_errors=True)
-        self._drag_root = None
-        self._drag_cache, self._drag_dirs, self._drag_given = {}, {}, set()
-        self._drag_waiting = False
+    def _drag_items(self) -> list:
+        if self.mode != "archive":
+            return []
+        return [(r.get("inner", r.name), r.is_dir, r.size or 0) for r in self.selected_recs()]
 
     def _extract_for_drag(self) -> list[str]:
-        """Glisser hors d'une archive : les fichiers extraits d'avance (sinon, une petite sélection est
-        extraite sur le moment ; une grosse est préparée et un message le dit)."""
-        recs = self.selected_recs()
-        if not recs or not self.listing:
-            return []
-        inners = [self._inner_of(r) for r in recs]
-        missing = [r for r in recs if not self._drag_cached(self._inner_of(r))]
-        if missing:
-            size = sum(self._inner_size(r) for r in missing)
-            if size > self.DRAG_PREFETCH_MAX:
-                self.emit("message", tr("Sélection trop grosse pour un glisser : utilisez « Extraire la sélection… »"))
-                return []
-            if size > self.DRAG_SYNC_MAX or self._prefetch_job is not None:
-                self._drag_waiting = True
-                self._prefetch()
-                self.emit("message", tr("Préparation de la sélection… Glissez-la de nouveau dans un instant"))
-                return []
-            from ..backend.engine import Job
-            if self._drag_root is None:
-                self._drag_root = archive.drag_cache_root()
-            want = [self._inner_of(r) for r in missing]
-            root, path, pw = self._drag_root, self.archive_path, self.password
-            job = Job("drag", lambda j: self._drag_extract(j, want, path, pw, root)).run_sync()
-            if job.state != "done" or not job.result:
-                return []
-            self._store_extracted(job.result)
-        out = [p for p in (self._drag_cached(i) for i in inners) if p]
-        self._drag_given.update(out)
-        return out
+        """Glisser hors d'une archive : les fichiers extraits d'avance (voir archive_drag.DragCache)."""
+        return self.drag.files_for(self._drag_items())
 
     def _decide_action(self, drop: Optional[Gdk.Drop], dest: str, paths: Optional[list] = None) -> str:
         """Comme Nautilus : déplacer sur le même disque, copier ailleurs ; Ctrl copie, Maj déplace."""
@@ -605,7 +484,7 @@ class Pane(Gtk.Box):
         return False
 
     def _leave_special(self):
-        self._forget_drag_cache()
+        self.drag.forget()
         for page in self.pages.values():
             page.stop()
         self._stop_search()
@@ -1209,7 +1088,7 @@ class Pane(Gtk.Box):
     def _on_selection(self):
         self._update_floating()
         if self.mode == "archive":
-            self._queue_prefetch()
+            self.drag.queue(self._drag_items)
         self.emit("selection-changed")
 
     def selected_recs(self) -> list[Rec]:

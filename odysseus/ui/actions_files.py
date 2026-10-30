@@ -283,10 +283,10 @@ class FileActions:
 
     def browse_archive_path(self, path: str, pane=None):
         """Parcourir une archive (double-clic, menu, F7) : dans sa propre fenêtre, comme Archive Browser
-        (réglage archive_window), sinon dans le panneau. Depuis une fenêtre d'archive : sur place."""
-        if settings["archive_window"] and not self.is_archive_window:
+        (réglage archive_window), sinon dans le panneau."""
+        if settings["archive_window"]:
             from .archive_window import open_archive_window
-            return open_archive_window(self.get_application(), path)
+            return open_archive_window(self.get_application(), path, self)
         (pane or self.pane).open_archive(path)
         return None
 

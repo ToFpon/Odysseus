@@ -196,3 +196,10 @@ banner.admin-banner > revealer > widget { background-color: @warning_bg_color; c
 /* Renommage multiple : comme Nautilus 46 (style.css) */
 .batch-rename-preview { border-top: 1px solid @borders; }
 .batch-rename-preview row.conflict-row { background: @warning_bg_color; color: @warning_fg_color; }
+
+/* Fenêtre d'archive (comme Archive Browser) : listes sur le fond de la fenêtre, comme la zone des fichiers */
+.archive-browser listview { background: none; }
+.archive-browser listview > row { padding: 0 8px; margin: 1px 6px; border-radius: 6px; }
+.archive-browser-row { min-height: 30px; }
+.archive-browser-header { padding: 2px 20px 4px 20px; }
+.archive-browser-folder.drop-hover { box-shadow: inset 0 0 0 3px alpha(@accent_bg_color, 0.6); }
