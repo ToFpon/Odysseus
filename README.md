@@ -98,7 +98,7 @@ Duplicates in the original extensions were merged: Archive Browser + Extract Her
 
 ### Installation
 
-Ubuntu 24.04+ / Zorin OS 18, from the PPA (updates come with the system's):
+Ubuntu 24.04 and 26.04 LTS / Zorin OS 18, from the PPA (updates come with the system's). Works under X11 and Wayland.
 
 ```sh
 sudo add-apt-repository ppa:nourpon/odysseus
@@ -230,7 +230,7 @@ Les doublons des extensions d'origine ont été fusionnés : Archive Browser + E
 
 ### Installation
 
-Ubuntu 24.04+ / Zorin OS 18, depuis le PPA (les mises à jour arrivent avec celles du système) :
+Ubuntu 24.04 et 26.04 LTS / Zorin OS 18, depuis le PPA (les mises à jour arrivent avec celles du système). Fonctionne sous X11 et Wayland.
 
 ```sh
 sudo add-apt-repository ppa:nourpon/odysseus
