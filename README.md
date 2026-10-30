@@ -61,7 +61,7 @@ Huge folders open almost instantly: a folder of **100,000 files is displayed in 
 - **Quick Look** with the space bar, like Nautilus: GNOME's previewer (Sushi) shows the selected file, and the arrow keys move through the folder.
 - **Properties** laid out like Nautilus 46: size under the name, free space, dates, a custom folder icon (seen by Nautilus too), permissions on their own page, with “Change Permissions for Enclosed Files…”.
 - Copy / move with conflict dialog (skip, rename, merge, replace, apply to all), **progress window** for long operations, undo (Ctrl+Z), drag and drop, clipboard compatible with Nautilus.
-- **Archives** (F7): browse 50+ formats like folders, extract here, extract to, compress, drag files out of an archive (Pressoir engine, 7-Zip).
+- **Archives** (F7): browse 50+ formats like folders, extract here, extract to, compress (Pressoir engine, 7-Zip). Double-clicking an archive opens it in its own window, like the Archive Browser extension: drag anything out of it to any folder — Odysseus, Nautilus or the desktop.
 - **Content search** (F8): search and replace text in files with ripgrep or grep, with preview and backups. Recursive file name search.
 - Open in text editor, open terminal here (Ctrl+Alt+T), **run executable scripts** in a terminal that stays open, like Nautilus.
 - **Send by email** (your default mail client, files attached) and **send to your phone** with GSConnect: connected devices appear live in the context menu.
@@ -193,7 +193,7 @@ Les très gros dossiers s'ouvrent quasi instantanément : un dossier de **100 00
 - **Aperçu rapide** avec la barre d'espace, comme dans Nautilus : l'aperçu de GNOME (Sushi) montre le fichier sélectionné, et les flèches font défiler le dossier.
 - **Propriétés** disposées comme dans Nautilus 46 : taille sous le nom, espace libre, dates, icône de dossier personnalisée (vue aussi par Nautilus), permissions sur une page à part, avec « Changer les permissions des fichiers inclus… ».
 - Copie / déplacement avec gestion des conflits (ignorer, renommer, fusionner, remplacer, appliquer à tous), **fenêtre de progression** pour les opérations longues, annulation (Ctrl+Z), glisser-déposer, presse-papiers compatible avec Nautilus.
-- **Archives** (F7) : parcourir plus de 50 formats comme des dossiers, extraire ici, extraire vers, compresser, glisser des fichiers hors d'une archive (moteur Pressoir, 7-Zip).
+- **Archives** (F7) : parcourir plus de 50 formats comme des dossiers, extraire ici, extraire vers, compresser (moteur Pressoir, 7-Zip). Un double-clic sur une archive l'ouvre dans sa propre fenêtre, comme l'extension Archive Browser : n'importe quel élément se glisse vers n'importe quel dossier — Odysseus, Nautilus ou le bureau.
 - **Recherche dans le contenu** (F8) : rechercher et remplacer du texte dans les fichiers avec ripgrep ou grep, avec aperçu et sauvegardes. Recherche récursive par nom.
 - Ouvrir avec l'éditeur de texte, terminal ici (Ctrl+Alt+T), **exécuter les scripts exécutables** dans un terminal qui reste ouvert, comme dans Nautilus.
 - **Envoyer par courriel** (logiciel de courriel par défaut, fichiers joints) et **envoyer vers ton téléphone** avec GSConnect : les appareils connectés apparaissent en direct dans le menu contextuel.

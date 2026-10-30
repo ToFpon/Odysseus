@@ -34,6 +34,7 @@ DEFAULTS: dict[str, Any] = {
     "preview_visible": False,
     "preview_width": 340,
     "dual_panel": False,
+    "archive_window": True,          # double-clic sur une archive : fenêtre à part (Archive Browser)
     "sidebar_desktop": False,       # Bureau dans la barre latérale
     "sidebar_this_pc": False,       # « Ce PC » dans la barre latérale (dossiers et disques, comme Windows)
     # Comportement

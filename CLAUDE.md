@@ -285,6 +285,18 @@ fenêtre de recherche dans le contenu.
   pour ce dossier, les panneaux qui l'affichent suivent (`folder_sort.listeners`). `settings` sort_key /
   sort_reverse = tri par défaut (Préférences), plus changé par les menus. Actions `win.sort-*` : état
   = tri du panneau actif (`MainWindow._sync_sort_actions`).
+- Fenêtre d'archive à part (réglage `archive_window`, par défaut) comme Archive Browser : double-clic,
+  « Parcourir l'archive », F7 → `actions_files.browse_archive_path` → `ui/archive_window.ArchiveWindow`
+  (sous-classe de MainWindow sans barre latérale, `saves_state = False` : ne touche pas taille / double
+  panneau de la principale ; une fenêtre par archive). Le panneau d'origine quitte l'archive → fenêtre
+  fermée, autre emplacement ouvert dans la fenêtre principale (`_hand_over`).
+  Glisser hors d'une archive (`Pane._extract_for_drag`) : la sélection est extraite d'avance en fond
+  (`_prefetch`, 350 ms après la sélection, ≤ 4 Go) dans un cache `odysseus-drag-*` ; au début du glisser
+  GTK veut les fichiers tout de suite (extraire à ce moment figeait la fenêtre). Pas prêt : extrait sur le
+  moment jusqu'à 64 Mo, sinon message + préparation. Glisser en COPY seulement (un « déplacer » viderait
+  le cache). Archive quittée : extractions jamais glissées retirées ; glissées gardées (Nautilus peut
+  encore copier depuis elles) jusqu'à `archive.sweep_drag_caches` au démarrage (> 12 h). Testé dans
+  ui_smoke (`fenetre_archive`) et par un vrai glisser vers la fenêtre principale dans `ui_mouse.py`.
 - GTK 4.14 / Gtk.ColumnView : NE JAMAIS changer la visibilité d'une colonne d'une vue remplie (une
   cellule libérée reste dans la liste de la colonne → segfault à la suppression suivante d'une ligne,
   `gtk_column_view_column_queue_resize`). `ListView.update_columns` reconstruit la vue avec les

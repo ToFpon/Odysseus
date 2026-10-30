@@ -658,6 +658,56 @@ def steps(win):
     yield
     check(len(p.selected_recs()) == 1 and p.selected_recs()[0].name == "Clip (3).mp4",
           f"simple clic dans une sélection : lui seul ({[r.name for r in p.selected_recs()]})")
+    yield from archive_window_steps(win)
+
+
+def archive_window_steps(win):
+    """Double-clic sur une archive : sa propre fenêtre ; vrai glisser d'un fichier de l'archive vers la
+    fenêtre principale (comme Archive Browser vers Nautilus)."""
+    from odysseus.ui.archive_window import ArchiveWindow
+    src = os.path.join(TMP, "arch-src")
+    os.makedirs(os.path.join(src, "rep"))
+    with open(os.path.join(src, "lisezmoi.txt"), "w") as fh:
+        fh.write("bonjour")
+    subprocess.run(["7z", "a", "-bd", os.path.join(D, "dst", "paquet.zip"), os.path.join(src, "lisezmoi.txt"),
+                    os.path.join(src, "rep")], capture_output=True)
+    dest = os.path.join(D, "dst", "ici")
+    os.makedirs(dest)
+    p = win.pane
+    p.open(os.path.join(D, "dst"))
+    yield
+    yield
+    x, y = label_point(win, win, "paquet.zip")
+    xdo("mousemove", x, y, "click", "--repeat", "2", "--delay", "80", 1)
+    for _ in range(6):
+        yield
+    aws = [w for w in app.get_windows() if isinstance(w, ArchiveWindow)]
+    check(len(aws) == 1 and p.location == os.path.join(D, "dst"),
+          "double-clic sur une archive : sa propre fenêtre, le dossier reste")
+    if not aws:
+        return
+    aw = aws[0]
+    # pas de gestionnaire de fenêtres sous xvfb : la fenêtre d'archive est poussée à droite
+    gi.require_version("GdkX11", "4.0")
+    from gi.repository import GdkX11
+    xdo("windowmove", aw.get_surface().get_xid() if isinstance(aw.get_surface(), GdkX11.X11Surface) else 0, 900, 0)
+    for _ in range(3):
+        yield
+    p.open(dest)
+    yield
+    yield
+    target = screen_point(win, p, p.get_width() / 3, p.get_height() / 2)
+    lx, ly = label_point(aw, aw, "lisezmoi.txt")        # dans la fenêtre d'archive, posée à x = 900
+    drag((lx + 900, ly), target)
+    for _ in range(8):
+        yield
+        if os.path.exists(os.path.join(dest, "lisezmoi.txt")):
+            break
+    out = os.path.join(dest, "lisezmoi.txt")
+    check(os.path.exists(out) and open(out).read() == "bonjour",
+          f"vrai glisser de la fenêtre d'archive vers un dossier ({os.listdir(dest)})")
+    aw.close()
+    yield
 
 
 def on_window(_a, win):

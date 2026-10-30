@@ -594,6 +594,22 @@ class FolderSortTest(unittest.TestCase):
         self.assertNotIn("sftp://serveur/x", self.fs._fb())     # session seulement
 
 
+class DragCacheSweepTest(unittest.TestCase):
+    def test_old_caches_only(self):
+        from odysseus.backend import archive
+        old, new = archive.drag_cache_root(), archive.drag_cache_root()
+        open(os.path.join(old, "x.txt"), "w").close()
+        os.utime(old, (time.time() - 13 * 3600,) * 2)
+        try:
+            archive.sweep_drag_caches()
+            self.assertFalse(os.path.exists(old))     # plus de 12 h : retiré
+            self.assertTrue(os.path.isdir(new))       # récent : peut-être encore lu par une copie
+        finally:
+            import shutil
+            shutil.rmtree(old, ignore_errors=True)
+            shutil.rmtree(new, ignore_errors=True)
+
+
 class DebInstallTest(unittest.TestCase):
     """Installateur .deb : debconf non interactif (sinon messages « unable to initialize frontend:
     Dialog / Readline » sans terminal), lignes d'avancement de dpkg écartées."""

@@ -261,6 +261,9 @@ class _CellMixin:
             paths = pane.drag_paths()
             if not paths:
                 return None
+            # hors d'une archive : toujours une copie (déplacer viderait le cache du glisser)
+            source.set_actions(Gdk.DragAction.COPY if pane.mode == "archive"
+                               else Gdk.DragAction.COPY | Gdk.DragAction.MOVE | Gdk.DragAction.LINK)
             source._paths = paths
             DRAG_PATHS[:] = paths
             return Gdk.ContentProvider.new_for_value(

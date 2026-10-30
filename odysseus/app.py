@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import os
 import sys
+import threading
 
 import gi
 
@@ -68,6 +69,8 @@ class OdysseusApp(Adw.Application):
         apply_theme()
         from .backend import gsconnect
         gsconnect.devices.start()           # appareils GSConnect suivis dès le départ, pour le menu
+        from .backend import archive
+        threading.Thread(target=archive.sweep_drag_caches, daemon=True).start()   # anciens caches du glisser
         # new-window / dual : actions du .desktop, activées par leur nom (DBusActivatable)
         for name, cb, accels in (("new-window", self._new_window, []),
                                  ("dual", lambda: self._new_window(dual=True), []),

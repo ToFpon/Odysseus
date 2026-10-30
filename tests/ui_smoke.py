@@ -572,6 +572,65 @@ def archives(win):
 
 
 @step
+def fenetre_archive(win):
+    """Double-clic sur une archive : sa propre fenêtre (comme Archive Browser), la fenêtre principale
+    garde son dossier ; glisser un élément de l'archive vers un dossier (préparé d'avance)."""
+    from odysseus.ui.archive_window import ArchiveWindow
+    p = win.pane
+    p.open(D)
+    yield Wait(5, until=lambda: not p.model.loading)
+    rec = [r for r in p.model.items if r.name == "paquet.zip"][0]
+    win._on_activated(p, rec)
+    yield Wait(5, until=lambda: any(isinstance(w, ArchiveWindow) for w in win.get_application().get_windows()))
+    aws = [w for w in win.get_application().get_windows() if isinstance(w, ArchiveWindow)]
+    check(len(aws) == 1 and p.mode == "fs" and p.location == D, "archive dans sa propre fenêtre, dossier gardé")
+    if not aws:
+        return
+    aw = aws[0]
+    ap = aw.archive_pane
+    yield Wait(5, until=lambda: ap.listing is not None and ap.model.items)
+    check(ap.mode == "archive" and any(r.name == "dossier A" for r in ap.model.items)
+          and not aw.split.get_show_sidebar(), "fenêtre d'archive : contenu, sans barre latérale")
+    win._on_activated(p, rec)
+    yield pump(0.3)
+    check(len([w for w in win.get_application().get_windows() if isinstance(w, ArchiveWindow)]) == 1,
+          "même archive : la fenêtre existante revient devant")
+    ap.model.select_names(["dossier A"])
+    yield Wait(8, until=lambda: ap._drag_cached("dossier A") is not None)
+    cached = ap._drag_cached("dossier A")
+    check(cached is not None and os.path.exists(os.path.join(cached, "sous", "profond.md")),
+          "sélection extraite d'avance pour le glisser")
+    paths = ap.drag_paths()
+    check(paths == [cached], f"glisser : fichiers prêts ({paths})")
+    dest = tempfile.mkdtemp(dir=D, prefix="depot ")
+    win.drop_files(paths, dest, "copy")              # déposé dans la fenêtre principale
+    yield wait_jobs()
+    yield pump(0.3)
+    check(os.path.exists(os.path.join(dest, "dossier A", "sous", "profond.md")), "déposé dans un dossier")
+    root = ap._drag_root
+    aw.activate_action("win.close-archive", None)
+    yield Wait(3, until=lambda: aw not in win.get_application().get_windows())
+    check(aw not in win.get_application().get_windows(), "fermer l'archive ferme sa fenêtre")
+    check(os.path.exists(cached), "fichiers glissés gardés (une copie peut encore les lire)")
+    import shutil
+    shutil.rmtree(root, ignore_errors=True)
+    # autre emplacement choisi depuis la fenêtre d'archive (barre de chemin) : ouvert dans la principale
+    aw = win.browse_archive_path(os.path.join(D, "paquet.zip"))
+    yield Wait(5, until=lambda: aw.archive_pane.listing is not None)
+    aw.archive_pane.open(dest)
+    yield Wait(3, until=lambda: aw not in win.get_application().get_windows())
+    check(aw not in win.get_application().get_windows() and p.location == dest,
+          f"quitter l'archive vers un autre dossier : ouvert dans la fenêtre principale ({p.location})")
+    settings["archive_window"] = False
+    win._on_activated(p, rec)
+    yield Wait(5, until=lambda: p.mode == "archive")
+    check(p.mode == "archive", "réglage coupé : l'archive s'ouvre dans le panneau")
+    settings["archive_window"] = True
+    win.activate_action("win.close-archive", None)
+    yield pump(0.5)
+
+
+@step
 def emblemes_droits(win):
     """Comme Nautilus : cadenas (non modifiable), croix (non lisible), lien — plusieurs à la suite,
     après le nom. Le bac à sable tourne en root (qui a tous les droits) : on se fait passer pour

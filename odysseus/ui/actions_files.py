@@ -225,7 +225,7 @@ class FileActions:
                 self._open_uri(uri)
             return
         if features.enabled("archives") and formats.looks_like_archive(rec.name):
-            pane.open_archive(path)
+            self.browse_archive_path(path, pane)
             return
         open_with_default(self, path)
 
@@ -279,7 +279,16 @@ class FileActions:
     def browse_archive(self):
         sel = self._sel()
         if sel and sel[0].path:
-            self.pane.open_archive(sel[0].path)
+            self.browse_archive_path(sel[0].path)
+
+    def browse_archive_path(self, path: str, pane=None):
+        """Parcourir une archive (double-clic, menu, F7) : dans sa propre fenêtre, comme Archive Browser
+        (réglage archive_window), sinon dans le panneau. Depuis une fenêtre d'archive : sur place."""
+        if settings["archive_window"] and not self.is_archive_window:
+            from .archive_window import open_archive_window
+            return open_archive_window(self.get_application(), path)
+        (pane or self.pane).open_archive(path)
+        return None
 
     # ------------------------------------------------------------------
     # Presse-papiers

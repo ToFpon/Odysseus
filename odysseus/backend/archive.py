@@ -8,6 +8,7 @@ import shutil
 import subprocess
 import tempfile
 import threading
+import time
 from dataclasses import dataclass, field
 from datetime import datetime
 from typing import Optional
@@ -1088,9 +1089,39 @@ def convert(job: Job, archive: str, out: str, o: CreateOptions, password: str = 
     return out
 
 
-def extract_to_temp(job: Job, archive: str, files: list[str], password: str = "") -> str:
-    """Extrait quelques éléments dans un dossier temporaire (aperçu / ouverture)."""
-    tmp = tempfile.mkdtemp(prefix="pressoir-view-")
+def extract_to_temp(job: Job, archive: str, files: list[str], password: str = "",
+                    parent: Optional[str] = None) -> str:
+    """Extrait quelques éléments dans un dossier temporaire (aperçu / ouverture / glisser), sans leur
+    chemin dans l'archive. parent : dossier où le créer (cache du glisser)."""
+    tmp = tempfile.mkdtemp(prefix="pressoir-view-", dir=parent)
     extract(job, archive, ExtractOptions(dest=tmp, password=password, subfolder="never",
                                          overwrite="overwrite", files=files))
     return tmp
+
+
+DRAG_PREFIX = "odysseus-drag-"
+
+
+def drag_cache_root() -> str:
+    """Cache des éléments glissés hors d'une archive (un par panneau)."""
+    return tempfile.mkdtemp(prefix=DRAG_PREFIX)
+
+
+def sweep_drag_caches(max_age: float = 12 * 3600):
+    """Au démarrage : retire les caches de glisser anciens. Pas plus tôt : un fichier déposé dans
+    Nautilus ou ailleurs peut encore être en cours de copie depuis le cache après la fermeture de
+    l'archive."""
+    base = tempfile.gettempdir()
+    now = time.time()
+    try:
+        names = os.listdir(base)
+    except OSError:
+        return
+    for n in names:
+        p = os.path.join(base, n)
+        try:
+            if n.startswith(DRAG_PREFIX) and os.path.isdir(p) and not os.path.islink(p) \
+                    and os.stat(p).st_uid == os.getuid() and now - os.path.getmtime(p) > max_age:
+                shutil.rmtree(p, ignore_errors=True)
+        except OSError:
+            pass

@@ -183,6 +183,11 @@ class PreferencesDialog(Adw.PreferencesWindow):
     def _archives(self):
         from .archive_dialogs import OVERWRITE_LABELS, OVERWRITE_VALUES, SUBFOLDER_LABELS, SUBFOLDER_VALUES
         page = Adw.PreferencesPage(title=tr("Archives"), icon_name="package-x-generic-symbolic", name="archives")
+        g = Adw.PreferencesGroup(title=tr("Parcourir les archives"))
+        g.add(_switch(tr("Ouvrir les archives dans une fenêtre à part"), "archive_window",
+                      tr("Double-clic sur une archive : sa propre fenêtre, d'où glisser n'importe quel élément "
+                         "vers n'importe quel dossier ; sinon, l'archive s'ouvre dans le panneau")))
+        page.add(g)
         g = Adw.PreferencesGroup(title=tr("Extraction"))
         g.add(_choice(tr("Sous-dossier par défaut"), "extract_subfolder", SUBFOLDER_LABELS, SUBFOLDER_VALUES))
         g.add(_choice(tr("Fichiers déjà présents"), "extract_overwrite", OVERWRITE_LABELS, OVERWRITE_VALUES))

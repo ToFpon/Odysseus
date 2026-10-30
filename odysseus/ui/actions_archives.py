@@ -82,7 +82,7 @@ class ArchiveActions:
             return
         arcs = self._selected_archives()
         if arcs and self.pane.mode != "archive":
-            self.pane.open_archive(arcs[0])
+            self.browse_archive_path(arcs[0])
 
     def compress(self, sources: Optional[list] = None):
         if not features.available("archives"):
