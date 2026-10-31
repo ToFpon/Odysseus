@@ -70,6 +70,14 @@
   </requires>
   <content_rating type="oars-1.1"/>
   <releases>
+    <release version="1.5.4" date="2026-10-31">
+      <description>
+        <ul>
+          <li>Search like Nautilus: every word typed must be in the name, in any order</li>
+          <li>“Subfolders” is now a checkbox in the search bar</li>
+        </ul>
+      </description>
+    </release>
     <release version="1.5.3" date="2026-10-30">
       <description>
         <ul>
