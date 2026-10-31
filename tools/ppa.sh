@@ -8,6 +8,7 @@
 # Une fois : sudo apt install devscripts debhelper dh-python dput lintian
 #            + une clé GPG enregistrée sur Launchpad, pour l'adresse du changelog.
 # Nouvelle version : dch -v 1.0.1~noble1 "…" (puis dch -r), commit, tools/ppa.sh
+# Ensuite : étiquette vX envoyée sur GitHub, qui publie le .deb (« Releases ») pour Debian & co.
 set -e
 PPA="ppa:nourpon/odysseus"
 SERIES="noble resolute"            # la première est celle du changelog
@@ -47,3 +48,12 @@ for S in $SERIES; do
     dput "$PPA" "$OUT/$S/odysseus_${V}_source.changes"
 done
 echo "Envoyé ($SERIES). Launchpad les construit en quelques minutes : https://launchpad.net/~nourpon/+archive/ubuntu/odysseus/+packages"
+
+# Étiquette vX : GitHub construit alors le .deb et le publie dans « Releases » (.github/workflows/release-deb.yml)
+TAG="v${VERSION%%~*}"
+git rev-parse -q --verify "refs/tags/$TAG" >/dev/null || git tag -a "$TAG" -m "Odysseus ${VERSION%%~*}"
+if git push -q origin "$TAG"; then
+    echo "Étiquette $TAG envoyée : le .deb arrive dans quelques minutes sur https://github.com/ToFpon/Odysseus/releases"
+else
+    echo "Étiquette $TAG non envoyée (connexion à GitHub ?) : « git push origin $TAG » plus tard."
+fi
