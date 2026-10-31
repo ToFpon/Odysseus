@@ -3,7 +3,7 @@ odysseus (1.6.1~noble1) noble; urgency=medium
   * Partage réseau : Samba détecté par son serveur (smbd), pas seulement
     par « net » (fourni par samba-common-bin).
   * Préférences : interrupteur grisé et éteint pour une fonctionnalité
-    dont un programme indispensable manque.
+    à laquelle il manque un programme indispensable.
   * install.sh : option --help ; une option inconnue n'installe plus
     rien.
 
