@@ -106,7 +106,7 @@ sudo add-apt-repository ppa:nourpon/odysseus
 sudo apt update && sudo apt install odysseus
 ```
 
-Or by hand, from the sources. Requirements: Python 3.10+, PyGObject, GTK ≥ 4.14, libadwaita ≥ 1.5. Every other program is optional: a feature whose tool is missing tells you which package to install.
+Or by hand, from the sources (also the way to go on Debian 13, reported working with GNOME). Requirements: Python 3.10+, PyGObject, GTK ≥ 4.14, libadwaita ≥ 1.5. Every other program is optional: a feature whose tool is missing tells you which package to install.
 
 ```sh
 # Debian / Ubuntu 24.04+ / Zorin OS 18
@@ -240,7 +240,7 @@ sudo add-apt-repository ppa:nourpon/odysseus
 sudo apt update && sudo apt install odysseus
 ```
 
-Ou à la main, depuis les sources. Prérequis : Python 3.10+, PyGObject, GTK ≥ 4.14, libadwaita ≥ 1.5. Tous les autres programmes sont facultatifs : une fonctionnalité dont l'outil manque indique le paquet à installer.
+Ou à la main, depuis les sources (c'est aussi la méthode pour Debian 13, signalée fonctionnelle avec GNOME). Prérequis : Python 3.10+, PyGObject, GTK ≥ 4.14, libadwaita ≥ 1.5. Tous les autres programmes sont facultatifs : une fonctionnalité dont l'outil manque indique le paquet à installer.
 
 ```sh
 # Debian / Ubuntu 24.04+ / Zorin OS 18
