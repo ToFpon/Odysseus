@@ -121,6 +121,7 @@ tar -xzf odysseus.tar.gz && cd Odysseus-main
 ./install.sh              # installs into ~/.local (no sudo)
 ./install.sh --default    # same, and makes Odysseus the default file manager
 ./install.sh --uninstall
+./install.sh --help       # these options
 ```
 
 To try it without installing: `./bin/odysseus`.
@@ -254,6 +255,7 @@ tar -xzf odysseus.tar.gz && cd Odysseus-main
 ./install.sh              # installe dans ~/.local (sans sudo)
 ./install.sh --default    # idem, et fait d'Odysseus le gestionnaire de fichiers par défaut
 ./install.sh --uninstall
+./install.sh --help       # ces options
 ```
 
 Pour essayer sans installer : `./bin/odysseus`.

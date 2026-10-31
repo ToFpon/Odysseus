@@ -3,6 +3,7 @@
 #   ./install.sh             installe
 #   ./install.sh --default   installe et fait d'Odysseus le gestionnaire de fichiers par défaut
 #   ./install.sh --uninstall désinstalle
+#   ./install.sh --help      aide (option inconnue : aide, rien n'est installé)
 set -e
 
 PREFIX="${PREFIX:-$HOME/.local}"
@@ -11,6 +12,35 @@ APPDIR="$SHARE/odysseus"
 SRC="$(cd "$(dirname "$0")" && pwd)"
 DESKTOP="io.github.odysseus.Odysseus.desktop"
 SERVICE="io.github.odysseus.Odysseus.service"
+
+usage() {
+    case "${LC_ALL:-${LC_MESSAGES:-${LANG:-}}}" in
+    fr*) cat <<'TXT'
+Installation d'Odysseus pour l'utilisateur courant (~/.local, sans sudo).
+
+  ./install.sh              installe dans ~/.local
+  ./install.sh --default    idem, et fait d'Odysseus le gestionnaire de fichiers par défaut
+  ./install.sh --uninstall  désinstalle
+  ./install.sh --help       affiche cette aide
+TXT
+    ;;
+    *) cat <<'TXT'
+Installs Odysseus for the current user (~/.local, no sudo).
+
+  ./install.sh              installs into ~/.local
+  ./install.sh --default    same, and makes Odysseus the default file manager
+  ./install.sh --uninstall  uninstalls
+  ./install.sh --help       shows this help
+TXT
+    ;;
+    esac
+}
+
+case "${1:-}" in
+    ""|--default|--uninstall) ;;
+    -h|--help) usage; exit 0 ;;
+    *) echo "install.sh: option inconnue / unknown option: $1" >&2; echo >&2; usage >&2; exit 1 ;;
+esac
 
 if [ "$1" = "--uninstall" ]; then
     if [ "$(xdg-mime query default inode/directory 2>/dev/null)" = "$DESKTOP" ]; then
