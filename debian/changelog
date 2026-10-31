@@ -1,3 +1,14 @@
+odysseus (1.6.1~noble1) noble; urgency=medium
+
+  * Partage réseau : Samba détecté par son serveur (smbd), pas seulement
+    par « net » (fourni par samba-common-bin).
+  * Préférences : interrupteur grisé et éteint pour une fonctionnalité
+    dont un programme indispensable manque.
+  * install.sh : option --help ; une option inconnue n'installe plus
+    rien.
+
+ -- Tof <nourpon@gmail.com>  Sat, 31 Oct 2026 18:39:44 +0000
+
 odysseus (1.6.0~noble1) noble; urgency=medium
 
   * Partage réseau d'un dossier (Samba), comme nautilus-share : clic

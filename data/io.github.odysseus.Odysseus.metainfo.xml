@@ -70,6 +70,15 @@
   </requires>
   <content_rating type="oars-1.1"/>
   <releases>
+    <release version="1.6.1" date="2026-10-31">
+      <description>
+        <ul>
+          <li>Network sharing: Samba is detected by its server, not only by the “net” command</li>
+          <li>Preferences: features whose required program is missing are greyed out</li>
+          <li>install.sh: --help, and an unknown option no longer installs</li>
+        </ul>
+      </description>
+    </release>
     <release version="1.6.0" date="2026-10-31">
       <description>
         <ul>
