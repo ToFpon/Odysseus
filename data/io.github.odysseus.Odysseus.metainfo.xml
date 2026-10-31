@@ -70,6 +70,13 @@
   </requires>
   <content_rating type="oars-1.1"/>
   <releases>
+    <release version="1.5.5" date="2026-10-31">
+      <description>
+        <ul>
+          <li>Broken links are shown as “Link (broken)”, like in Nautilus, and offer to move them to the Trash</li>
+        </ul>
+      </description>
+    </release>
     <release version="1.5.4" date="2026-10-31">
       <description>
         <ul>

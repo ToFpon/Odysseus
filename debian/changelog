@@ -1,3 +1,11 @@
+odysseus (1.5.5~noble1) noble; urgency=medium
+
+  * Liens cassés reconnus comme dans Nautilus : « Lien (brisé) », icône
+    des liens, dates du lien dans les Propriétés, mise à la corbeille
+    proposée à l'ouverture.
+
+ -- Tof <nourpon@gmail.com>  Sat, 31 Oct 2026 12:39:38 +0000
+
 odysseus (1.5.4~noble1) noble; urgency=medium
 
   * Recherche comme Nautilus : chaque mot tapé doit être dans le nom,
