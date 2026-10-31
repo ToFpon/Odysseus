@@ -366,6 +366,12 @@ fenêtre de recherche dans le contenu.
   depuis le cache (`icons.shared_paths`), relu en fond au plus toutes les 10 s (`refresh_soon`, jamais
   pendant le dessin). Testé avec la vraie Samba du bac à sable (`apt install samba`, `smbd -D`) :
   `UsershareTest`, étape `partage_samba` d'ui_smoke ; l'accès depuis une autre machine n'est pas testable ici.
+  Présence de Samba = `/usr/sbin/smbd` (`lib:smbd`), pas `net` seul : `net` vient de samba-common-bin,
+  installé sur bien des Zorin sans le serveur (vu chez Tof : « Samba ✓ » alors qu'il n'est pas installé).
+- Fonctionnalité dont un programme indispensable manque (`features.blocked`, hors `GRACEFUL`) :
+  interrupteur grisé et éteint dans Préférences → Fonctionnalités (`dialogs._lock_switch` : seul le
+  Gtk.Switch interne est insensible, la ligne « ⚠ Manquant … » reste lisible) ; testé dans ui_smoke
+  (`fonction_bloquee`).
 - Lien cassé (cible absente) comme Nautilus : seul le `lstat` répond → `scanner.apply_stat` lui donne le
   type `inode/symlink` (`BROKEN_LINK`, celui de GIO), `Rec.is_broken_link`, libellé « Lien (brisé) »
   (`type_description`), icône des liens ; Propriétés : dates du lien, pas d'« Ouvrir avec » ; ouvert :

@@ -797,6 +797,61 @@ def partage_samba(win):
 
 
 @step
+def fonction_bloquee(win):
+    """Samba absent (seulement « net », de samba-common-bin, comme sur bien des Zorin) : interrupteur
+    grisé et éteint dans Préférences → Fonctionnalités, pas d'« Options de partage… »."""
+    from odysseus import features
+    from odysseus.ui import menus
+    from odysseus.ui.dialogs import PreferencesDialog
+    saved = features.LIBS["lib:smbd"]
+    features.LIBS["lib:smbd"] = "/nulle/part/smbd"
+    try:
+        check(features.blocked("samba_share") and not features.available("samba_share")
+              and features.missing_tools("samba_share") == ["lib:smbd"], "sans le serveur Samba : bloqué")
+        d = PreferencesDialog()
+        d.set_transient_for(win)
+        d.present()
+        yield pump(0.6)
+
+        def find(w):
+            if isinstance(w, Adw.SwitchRow) and w.get_title() == tr("Partage réseau (Samba)"):
+                return w
+            c = w.get_first_child()
+            while c is not None:
+                r = find(c)
+                if r is not None:
+                    return r
+                c = c.get_next_sibling()
+        row = find(d)
+
+        def switch(w):
+            if isinstance(w, Gtk.Switch):
+                return w
+            c = w.get_first_child()
+            while c is not None:
+                r = switch(c)
+                if r is not None:
+                    return r
+                c = c.get_next_sibling()
+        sw = switch(row) if row else None
+        check(sw is not None and not sw.get_sensitive() and not row.get_active(),
+              "Préférences : interrupteur du partage grisé et éteint")
+        d.close()
+        p = win.pane
+        p.open(D)
+        yield Wait(5, until=lambda: not p.model.loading)
+        p.model.select_names(["dossier A"])
+        m = menus.context_menu(win, p, True)
+        acts = [m.get_item_link(i, "section").get_item_attribute_value(j, "action", None).get_string()
+                for i in range(m.get_n_items()) if m.get_item_link(i, "section")
+                for j in range(m.get_item_link(i, "section").get_n_items())
+                if m.get_item_link(i, "section").get_item_attribute_value(j, "action", None)]
+        check("win.share-folder" not in acts, "sans Samba : pas d'« Options de partage… »")
+    finally:
+        features.LIBS["lib:smbd"] = saved
+
+
+@step
 def emblemes_droits(win):
     """Comme Nautilus : cadenas (non modifiable), croix (non lisible), lien — plusieurs à la suite,
     après le nom. Le bac à sable tourne en root (qui a tous les droits) : on se fait passer pour

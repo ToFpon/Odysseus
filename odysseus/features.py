@@ -123,7 +123,8 @@ FEATURES = [
             tr("Partager un dossier sur le réseau local, comme nautilus-share : clic droit → « Options de "
                "partage… »"),
             "folder-remote-symbolic", "files",
-            tools=(("net",),), packages="samba"),
+            # « net » seul ne suffit pas : il vient de samba-common-bin, souvent installé sans le serveur
+            tools=(("net",), ("lib:smbd",)), packages="samba"),
     Feature("image_tools", tr("Outils image"),
             tr("Redimensionner, pivoter et convertir des images (JPEG, PNG, WebP, HEIC…), plusieurs à la fois"),
             "image-x-generic-symbolic", "media",
@@ -160,7 +161,7 @@ def set_enabled(fid: str, value: bool):
 # Programme ou module Python → paquet Ubuntu 24.04 qui le fournit
 PACKAGE_OF = {"7zz": "7zip", "7z": "7zip", "7za": "7zip", "gs": "ghostscript", "ghostscript": "ghostscript",
               "qpdf": "qpdf", "ffmpeg": "ffmpeg", "magick": "imagemagick", "convert": "imagemagick",
-              "lib:heif-libde265": "libheif-plugin-libde265", "lib:sushi": "gnome-sushi", "net": "samba", "ffprobe": "ffmpeg", "ffmpegthumbnailer": "ffmpegthumbnailer",
+              "lib:heif-libde265": "libheif-plugin-libde265", "lib:sushi": "gnome-sushi", "net": "samba", "lib:smbd": "samba", "ffprobe": "ffmpeg", "ffmpegthumbnailer": "ffmpegthumbnailer",
               "rg": "ripgrep", "grep": "grep", "pdftoppm": "poppler-utils", "zstd": "zstd", "brotli": "brotli",
               "lz4": "lz4", "dpkg-deb": "dpkg", "pkexec": "pkexec", "py:pypdf": "python3-pypdf",
               "py:cairo": "python3-cairo python3-gi-cairo", "gir:Poppler": "gir1.2-poppler-0.18"}
@@ -168,7 +169,8 @@ PACKAGE_OF = {"7zz": "7zip", "7z": "7zip", "7za": "7zip", "gs": "ghostscript", "
 
 # greffons de bibliothèques (pas de programme à chercher dans le PATH) : fichier installé par le paquet
 LIBS = {"lib:heif-libde265": "/usr/lib/*/libheif/plugins/libheif-libde265.so",
-        "lib:sushi": "/usr/share/dbus-1/services/org.gnome.NautilusPreviewer.service"}
+        "lib:sushi": "/usr/share/dbus-1/services/org.gnome.NautilusPreviewer.service",
+        "lib:smbd": "/usr/sbin/smbd"}           # serveur Samba (paquet samba), pas seulement « net »
 
 
 def _lib_path(name: str) -> str:
@@ -252,7 +254,7 @@ COMPONENTS = [
     ]),
     (tr("Fichiers"), [
         ("Sushi", ("lib:sushi",), tr("Aperçu rapide avec la barre d'espace, comme dans Nautilus")),
-        ("Samba", ("net",), tr("Partager un dossier sur le réseau local")),
+        ("Samba", ("lib:smbd",), tr("Partager un dossier sur le réseau local")),
     ]),
     (tr("Recherche"), [
         ("ripgrep", ("rg",), tr("Recherche rapide dans le contenu des fichiers (sinon grep, plus lent)")),
@@ -274,10 +276,19 @@ def component_path(alternatives) -> str:
     return ""
 
 
+# outils facultatifs : la fonctionnalité marche sans eux, en moins bien (dégradation gracieuse)
+GRACEFUL = ("preview", "pdf_merge")
+
+
+def blocked(fid: str) -> bool:
+    """Impossible à utiliser : un programme indispensable manque (Préférences : interrupteur grisé)."""
+    return fid not in GRACEFUL and bool(missing_tools(fid))
+
+
 def available(fid: str) -> bool:
     """Activée et utilisable (programmes indispensables présents)."""
     if not enabled(fid):
         return False
-    if fid in ("preview", "pdf_merge"):      # outils facultatifs : dégradation gracieuse
+    if fid in GRACEFUL:
         return True
     return not missing_tools(fid)

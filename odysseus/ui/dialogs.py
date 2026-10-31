@@ -27,6 +27,21 @@ def _switch(title: str, key: str, subtitle: str = "") -> Adw.SwitchRow:
     return row
 
 
+def _lock_switch(row: Adw.SwitchRow):
+    """Interrupteur grisé, ligne lisible : seul le Gtk.Switch interne est rendu insensible (rendre la
+    ligne insensible grisait aussi « ⚠ Manquant … », qu'il faut pouvoir lire)."""
+    row.set_activatable(False)
+
+    def walk(w):
+        if isinstance(w, Gtk.Switch):
+            w.set_sensitive(False)
+        c = w.get_first_child()
+        while c is not None:
+            walk(c)
+            c = c.get_next_sibling()
+    walk(row)
+
+
 def _choice(title: str, key: str, labels: list[str], values: list, subtitle: str = "") -> Adw.ComboRow:
     cur = settings[key]
     row = combo_row(title, labels, values.index(cur) if cur in values else 0, subtitle)
@@ -152,7 +167,10 @@ class PreferencesDialog(Adw.PreferencesWindow):
         for cat, label in CATEGORIES:
             g = Adw.PreferencesGroup(title=label)
             for f in [f for f in FEATURES if f.category == cat]:
-                row = Adw.SwitchRow(title=f.title, active=features.enabled(f.id))
+                # programme indispensable absent : interrupteur grisé et éteint (on ne peut pas activer
+                # une fonction qui ne marcherait pas) ; le réglage revient quand le paquet est installé
+                blocked = features.blocked(f.id)
+                row = Adw.SwitchRow(title=f.title, active=features.enabled(f.id) and not blocked)
                 sub = f.description
                 if f.shortcut:
                     sub += "  ·  " + f.shortcut
@@ -163,7 +181,10 @@ class PreferencesDialog(Adw.PreferencesWindow):
                 from .icons import first_icon
                 row.add_prefix(Gtk.Image(icon_name=first_icon(f.icon, "view-dual-symbolic"
                                                               if f.id == "column_view" else "application-x-addon-symbolic")))
-                row.connect("notify::active", lambda r, *_a, fid=f.id: features.set_enabled(fid, r.get_active()))
+                if blocked:
+                    _lock_switch(row)
+                else:
+                    row.connect("notify::active", lambda r, *_a, fid=f.id: features.set_enabled(fid, r.get_active()))
                 g.add(row)
                 if f.id == "hidden_dim":
                     g.add(_choice(tr("Atténuation des fichiers cachés"), "hidden_dim_mode",
