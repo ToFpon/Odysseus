@@ -1,3 +1,11 @@
+odysseus (1.6.0~noble1) noble; urgency=medium
+
+  * Partage réseau d'un dossier (Samba), comme nautilus-share : clic
+    droit sur un dossier, « Options de partage… » ; emblème sur les
+    dossiers partagés.
+
+ -- Tof <nourpon@gmail.com>  Sat, 31 Oct 2026 16:33:55 +0000
+
 odysseus (1.5.5~noble1) noble; urgency=medium
 
   * Liens cassés reconnus comme dans Nautilus : « Lien (brisé) », icône

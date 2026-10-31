@@ -70,6 +70,14 @@
   </requires>
   <content_rating type="oars-1.1"/>
   <releases>
+    <release version="1.6.0" date="2026-10-31">
+      <description>
+        <ul>
+          <li>Network sharing of a folder (Samba), like nautilus-share: right-click a folder, Sharing Options</li>
+          <li>Shared folders get an emblem</li>
+        </ul>
+      </description>
+    </release>
     <release version="1.5.5" date="2026-10-31">
       <description>
         <ul>
