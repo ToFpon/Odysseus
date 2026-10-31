@@ -22,7 +22,7 @@ from . import clipboard
 from .archive_drag import DragCache
 from .common import focus_later, shown
 from .columns import MillerView
-from .model import DirModel, Selection, fold
+from .model import DirModel, Selection, fold, matches, query_words
 from .other_locations import OTHER_URI, OtherLocations
 from .this_pc import COMPUTER_URI, ThisPC
 from .views import DRAG_PATHS, GRID_ZOOM, ZOOM, GridView, ListView
@@ -724,7 +724,7 @@ class Pane(Gtk.Box):
             self.set_view_mode("list", save=False)
         cancel = threading.Event()
         self._search_cancel = cancel
-        needle = fold(query)
+        words = query_words(query)
         show_hidden = settings["show_hidden"]
         batch: list = []
         lock = threading.Lock()
@@ -740,7 +740,7 @@ class Pane(Gtk.Box):
                 for name, is_dir in [(d, True) for d in dirnames] + [(f, False) for f in filenames]:
                     if not show_hidden and name.startswith("."):
                         continue
-                    if needle in fold(name):
+                    if matches(words, fold(name)):
                         r = scanner.rec_for_path(os.path.join(dirpath, name))
                         if r is None:
                             continue
@@ -1182,14 +1182,15 @@ class Pane(Gtk.Box):
     def select_best(self, query: str):
         """Recherche : comme Nautilus, le meilleur résultat est sélectionné, Entrée l'ouvre. Nom
         identique, puis qui commence par le texte, puis le plus court ; à égalité, l'ordre affiché."""
-        needle = fold(query.strip())
+        words = query_words(query)
+        needle = " ".join(words)
         items = self.model.items
         if not needle or not items or not self.model.selection or self.view_mode == "columns":
             return
         best, key = -1, None
         for i, r in enumerate(items):
             f = fold(r.name)
-            k = (0 if f == needle else 1 if f.startswith(needle) else 2, len(f), i)
+            k = (0 if f == needle else 1 if f.startswith(words[0]) else 2, len(f), i)
             if key is None or k < key:
                 best, key = i, k
         self._auto_pick = items[best]

@@ -280,13 +280,19 @@ def filtre(win):
     win.search_btn.set_active(True)
     win.search_entry.set_text("fichier 1")
     yield pump(0.4)
-    n = len(win.pane.model.items)
-    check(n == 11, f"filtre instantané ({n} éléments)")
+    names = sorted(r.name for r in win.pane.model.items)
+    # comme Nautilus : chaque mot dans le nom (« fichier 21 » contient « fichier » et « 1 »)
+    check(len(names) == 12 and "fichier 21.txt" in names, f"filtre instantané ({len(names)} éléments)")
+    win.search_entry.set_text("2 FIC")
+    yield pump(0.4)
+    names = [r.name for r in win.pane.model.items]
+    check(len(names) == 12 and all("fichier" in n and "2" in n for n in names),
+          f"plusieurs mots, dans n'importe quel ordre, casse ignorée ({len(names)} éléments)")
     win.recursive_btn.set_active(True)
-    win.search_entry.set_text("profond")
+    win.search_entry.set_text("md prof")
     yield pump(1.5)
-    check(win.pane.mode == "search" and any(r.name == "profond.md" for r in win.pane.model.items),
-          "recherche récursive")
+    check(win.pane.mode == "search" and [r.name for r in win.pane.model.items] == ["profond.md"],
+          "recherche récursive à plusieurs mots")
     win.search_btn.set_active(False)
     win.recursive_btn.set_active(False)
     yield pump(0.5)

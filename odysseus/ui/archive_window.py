@@ -24,7 +24,7 @@ from ..settings import session_passwords, settings
 from .archive_drag import DragCache
 from .common import ask_password, open_with_default, popup_menu, toast
 from .icons import ctype_icon, gicon_for
-from .model import fold
+from .model import fold, matches, query_words
 
 PREVIEW_LIMIT = 512 * 1024 * 1024
 
@@ -422,11 +422,11 @@ class ArchiveWindow(Adw.ApplicationWindow):
     def _apply_filter(self):
         if self.listing is None:
             return
-        text = fold(self.filter.get_text().strip())
-        if not text:
+        words = query_words(self.filter.get_text())
+        if not words:
             self._set_model(self.tree)
             return
-        found = [e for e in self.listing.entries if e.path and text in fold(e.name)]
+        found = [e for e in self.listing.entries if e.path and matches(words, fold(e.name))]
         found.sort(key=lambda e: (e.path.count("/"), scanner.sort_name(e.path)))
         store = Gio.ListStore(item_type=ArchItem)
         store.splice(0, 0, [ArchItem(e) for e in found])

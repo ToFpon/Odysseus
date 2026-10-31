@@ -53,6 +53,17 @@ def fold(text: str) -> str:
     return "".join(c for c in t if not unicodedata.combining(c))
 
 
+def query_words(text: str) -> tuple:
+    """Recherche comme Nautilus (nautilus_query_matches_string) : le texte est coupé en mots,
+    « fol sy » trouve « kfoldersync.svg » et « folder-symbolic.svg »."""
+    return tuple(fold(text).split())
+
+
+def matches(words: tuple, folded_name: str) -> bool:
+    """Chaque mot dans le nom (déjà passé par fold), dans n'importe quel ordre."""
+    return all(w in folded_name for w in words)
+
+
 class DirModel(GObject.Object, Gio.ListModel):
     __gtype_name__ = "OdysseusDirModel"
     __gsignals__ = {
@@ -69,6 +80,7 @@ class DirModel(GObject.Object, Gio.ListModel):
         self.location: Optional[str] = None   # chemin local ou URI
         self.static = False              # archive, recherche : pas de surveillance
         self.filter_text = ""
+        self._filter_words: tuple = ()
         self.show_hidden = settings["show_hidden"]
         self.sort_key = settings["sort_key"]
         self.sort_reverse = settings["sort_reverse"]
@@ -248,7 +260,7 @@ class DirModel(GObject.Object, Gio.ListModel):
             if f is None:
                 f = fold(r.name)
                 r.set("fold", f)
-            return self.filter_text in f
+            return matches(self._filter_words, f)
         return True
 
     def set_sort(self, key: str, reverse: bool, folders_first: Optional[bool] = None):
@@ -266,6 +278,7 @@ class DirModel(GObject.Object, Gio.ListModel):
         if text == self.filter_text:
             return
         self.filter_text = text
+        self._filter_words = query_words(text)
         self._publish(keep_selection=True)
 
     def set_show_hidden(self, value: bool):

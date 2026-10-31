@@ -192,6 +192,10 @@ fenêtre de recherche dans le contenu.
   après un seuil de glisser dans la cible, relancé tant que le pointeur bouge. Testé avec de vrais
   glisser dans `ui_mouse.py` ; y déposer au milieu (la notification « déplacé — Annuler » du dépôt
   précédent, en bas de la fenêtre, n'accepte pas de fichiers).
+- Recherche par nom comme Nautilus (`nautilus_query_matches_string`) : le texte est coupé en mots, chacun
+  doit être dans le nom (accents et casse ignorés, ordre libre) — « fol sy » trouve « kfoldersync.svg »
+  et « folder-symbolic.svg » (`model.query_words` / `matches` : filtre du dossier, recherche dans les
+  sous-dossiers, filtre de la fenêtre d'archive).
 - Recherche comme Nautilus : le meilleur résultat est sélectionné d'office (`Pane.select_best` : nom
   identique, puis qui commence par le texte, puis le plus court), Entrée dans le champ l'ouvre
   (`_on_search_activate`) ; ouvrir un autre dossier que celui de départ (`_search_origin`) ferme la
