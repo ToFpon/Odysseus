@@ -14,6 +14,8 @@ Gestionnaire de fichiers GTK4 / libadwaita en Python, look Nautilus, intégrant 
   premier essai rapide concluant (lancement, navigation), retours sur la durée attendus.
   Debian 13 (GNOME) : installé par `install.sh`, fonctionne (retour d'utilisateur) ; Debian 12 trop ancien
   (GTK 4.8, libadwaita 1.2).
+  PCLinuxOS Debian sous KDE Plasma : le .deb resolute (Launchpad) s'installe et fonctionne, rendu correct
+  (Adwaita sombre ; libadwaita ne suit pas le thème KDE, seulement clair / sombre) — vidéo d'un utilisateur.
   PPA : `tools/ppa.sh` envoie la même entrée du changelog pour noble (24.04) puis resolute (26.04,
   version « X~resolute1 », réécrite dans une copie) ; le changelog du dépôt ne vise que noble.
 - Suivre le thème GTK du système : `data/base.css` ne fait que de la mise en page, aucune couleur fixe.
