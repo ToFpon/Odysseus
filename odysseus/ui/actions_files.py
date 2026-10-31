@@ -204,6 +204,10 @@ class FileActions:
         if len(recs) == 1 and activate:
             self._on_activated(self.pane, recs[0])
             return
+        broken = [r for r in recs if r.is_broken_link]
+        if broken:                       # comme Nautilus : le lien cassé est signalé, le reste s'ouvre
+            self.report_broken_link(broken[0])
+            recs = [r for r in recs if not r.is_broken_link]
         gfiles = [Gio.File.new_for_path(r.path) if r.path else Gio.File.new_for_uri(r.get("target_uri") or r.uri)
                   for r in recs if r.path or r.uri]
         for f in launch_defaults(self, gfiles):
@@ -224,10 +228,29 @@ class FileActions:
             if uri:
                 self._open_uri(uri)
             return
+        if rec.is_broken_link:
+            self.report_broken_link(rec)
+            return
         if features.enabled("archives") and formats.looks_like_archive(rec.name):
             self.browse_archive_path(path, pane)
             return
         open_with_default(self, path)
+
+    def report_broken_link(self, rec):
+        """Lien cassé ouvert : comme Nautilus (report_broken_symbolic_link), proposer la corbeille."""
+        try:
+            target = os.readlink(rec.path)
+        except OSError:
+            target = ""
+        detail = (tr("Impossible d’utiliser ce lien car sa cible « {0} » n’existe pas.").format(target) if target
+                  else tr("Impossible d’utiliser ce lien car il ne pointe sur rien."))
+        if self.pane.mode == "fs":
+            alert(self, tr("Le lien « {0} » est cassé. Voulez-vous le mettre à la corbeille ?").format(rec.name),
+                  detail, responses=(("cancel", tr("Annuler")), ("trash", tr("Mettre à la corbeille"))),
+                  default="cancel", callback=lambda r: r == "trash" and self._trash_paths([rec.path]))
+        else:
+            alert(self, tr("Le lien « {0} » est rompu.").format(rec.name), detail,
+                  responses=(("cancel", tr("Annuler")),), default="cancel")
 
     def open_default(self):
         p = self.pane

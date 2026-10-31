@@ -680,6 +680,54 @@ def fenetre_archive(win):
 
 
 @step
+def lien_casse(win):
+    """Lien dont la cible n'existe pas : « Lien (brisé) », pas d'« Ouvrir avec », et à l'ouverture la
+    question de Nautilus (le mettre à la corbeille)."""
+    from odysseus.ui import views
+    folder = tempfile.mkdtemp(dir=D, prefix="liens ")
+    os.symlink("/nulle/part/folder-color-revival.py", os.path.join(folder, "casse.py"))
+    p = win.pane
+    p.open(folder)
+    yield Wait(5, until=lambda: not p.model.loading and p.model.items)
+    rec = p.model.items[0]
+    check(rec.is_broken_link and views.cell_text("type", rec, p) == tr("Lien (brisé)"),
+          f"lien cassé reconnu ({views.cell_text("type", rec, p)})")
+    before = list(Gtk.Window.list_toplevels())
+    win._on_activated(p, rec)
+    yield pump(0.4)
+    dlg = [w for w in Gtk.Window.list_toplevels() if w not in before and isinstance(w, Adw.MessageDialog)]
+    check(len(dlg) == 1 and "folder-color-revival.py" in (dlg[0].get_body() or ""),
+          "ouvrir un lien cassé : la question de Nautilus, avec sa cible")
+    for d in dlg:
+        d.response("cancel")
+        d.close()
+    yield pump(0.3)
+    check(os.path.lexists(os.path.join(folder, "casse.py")), "« Annuler » : le lien reste")
+    p.model.select_names(["casse.py"])
+    before = list(Gtk.Window.list_toplevels())
+    win.activate_action("win.properties", None)
+    yield pump(0.6)
+    props = [w for w in Gtk.Window.list_toplevels() if w not in before and w.get_visible()]
+
+    def titles(w):
+        out = []
+        if isinstance(w, Adw.PreferencesRow):
+            out.append(w.get_title())
+        c = w.get_first_child()
+        while c is not None:
+            out += titles(c)
+            c = c.get_next_sibling()
+        return out
+    shown_titles = titles(props[0]) if props else []
+    check(props and tr("Ouvrir avec") not in shown_titles and tr("Dernière modification") in shown_titles,
+          f"propriétés d'un lien cassé : ses dates, pas d'« Ouvrir avec » ({shown_titles})")
+    for w in props:
+        w.close()
+    p.open(D)
+    yield Wait(5, until=lambda: not p.model.loading)
+
+
+@step
 def emblemes_droits(win):
     """Comme Nautilus : cadenas (non modifiable), croix (non lisible), lien — plusieurs à la suite,
     après le nom. Le bac à sable tourne en root (qui a tous les droits) : on se fait passer pour

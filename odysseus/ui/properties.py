@@ -187,7 +187,10 @@ class PropertiesDialog(DialogWindow):
             try:
                 s = os.stat(one.path)
             except OSError:
-                s = None
+                try:
+                    s = os.lstat(one.path)       # lien cassé : les dates du lien, comme Nautilus
+                except OSError:
+                    s = None
             if s is not None:
                 g = Adw.PreferencesGroup()
                 g.add(info_row(tr("Dernière modification"), long_date(s.st_mtime)))
@@ -198,7 +201,7 @@ class PropertiesDialog(DialogWindow):
                     g.add(info_row(tr("Dernier accès"), long_date(s.st_atime)))
                 page.add(g)
 
-        if one and not one.is_dir:
+        if one and not one.is_dir and not one.is_broken_link:      # lien cassé : rien à ouvrir
             self._open_with(page, one)
         if one:
             self._permissions_row(page, one)

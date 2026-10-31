@@ -353,6 +353,12 @@ fenêtre de recherche dans le contenu.
   (« (Lecture de la base… 45% ») écartées (`debpkg.is_progress_line`).
 - Ghostscript `pdfimage24` : `-sCompression=JPEG` en majuscules.
 - `view-column-symbolic` n'existe pas dans Adwaita : `icons.first_icon` avec repli.
+- Lien cassé (cible absente) comme Nautilus : seul le `lstat` répond → `scanner.apply_stat` lui donne le
+  type `inode/symlink` (`BROKEN_LINK`, celui de GIO), `Rec.is_broken_link`, libellé « Lien (brisé) »
+  (`type_description`), icône des liens ; Propriétés : dates du lien, pas d'« Ouvrir avec » ; ouvert :
+  question de Nautilus (`report_broken_link` : « Le lien … est cassé. Voulez-vous le mettre à la
+  corbeille ? », sa cible dans le détail). Avant : il prenait le type de son nom (script Python, ouvrir
+  avec File Roller…).
 - Emblèmes comme Nautilus (lien, `emblem-readonly`, `emblem-unreadable`, puis Folder Color), à la suite
   après le nom en liste ; en grille, dans une colonne de 16 px à droite de l'icône comme Nautilus 46. Droits calculés depuis mode / uid / gid du `stat`
   (`icons._access`, aucun appel système par ligne). Cadenas seulement si le dossier parent est

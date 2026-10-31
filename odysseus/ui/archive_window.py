@@ -234,6 +234,8 @@ class FolderPanel(Gtk.Box):
         rec = self.store.get_item(pos).rec
         if rec.is_dir:
             self.navigate(rec.path)
+        elif rec.is_broken_link:
+            toast(self, tr("Le lien « {0} » est rompu.").format(rec.name))
         elif settings["archive_window"] and archive_like(rec.name):
             open_archive_window(self.win.get_application(), rec.path, self.win.host_window())
         else:

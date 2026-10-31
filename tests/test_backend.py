@@ -125,6 +125,27 @@ class ScannerTest(unittest.TestCase):
         self.assertEqual(scanner.count_children(self.d, False), 8)
 
 
+class BrokenLinkTest(unittest.TestCase):
+    """Lien dont la cible n'existe pas : « Lien (brisé) » comme Nautilus, pas le type de son nom."""
+
+    def test_broken_link(self):
+        with tempfile.TemporaryDirectory() as d:
+            open(os.path.join(d, "vrai.py"), "w").close()
+            os.symlink("vrai.py", os.path.join(d, "bon.py"))
+            os.symlink("/nulle/part/absent.py", os.path.join(d, "casse.py"))
+            recs = {r.name: r for r in scanner.scan_local(d, threading.Event(), with_stat=True)}
+            self.assertTrue(recs["casse.py"].is_broken_link)
+            self.assertEqual(recs["casse.py"].content_type, scanner.BROKEN_LINK)
+            self.assertEqual(scanner.type_description(recs["casse.py"].content_type), tr("Lien (brisé)"))
+            self.assertFalse(recs["bon.py"].is_broken_link)
+            self.assertNotEqual(recs["bon.py"].content_type, scanner.BROKEN_LINK)
+            r = scanner.rec_for_path(os.path.join(d, "casse.py"))      # surveillance du dossier
+            self.assertTrue(r.is_broken_link and r.content_type == scanner.BROKEN_LINK)
+            fresh = [x for x in scanner.scan_local(d, threading.Event(), with_stat=False) if x.name == "casse.py"]
+            scanner.stat_all(fresh, threading.Event())                   # gros dossier : stat en second
+            self.assertTrue(fresh[0].is_broken_link)
+
+
 class FileOpsTest(unittest.TestCase):
     def setUp(self):
         self.tmp = tempfile.TemporaryDirectory()

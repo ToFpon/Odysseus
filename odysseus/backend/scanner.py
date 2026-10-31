@@ -20,6 +20,11 @@ from typing import Callable, Optional
 
 from gi.repository import Gio, GLib
 
+from ..i18n import tr
+
+# lien symbolique dont la cible n'existe pas : le type que GIO (donc Nautilus) lui donne
+BROKEN_LINK = "inode/symlink"
+
 # Un seul fil lit le disque à la fois. Deux fils Python qui enchaînent des appels système
 # (scandir, stat) se disputent le verrou global de l'interpréteur : chaque appel le rend puis
 # attend jusqu'à 5 ms pour le reprendre (« effet de convoi »). Mesuré : 100 000 stat() passent
@@ -93,6 +98,11 @@ class Rec:
         return self.ctype
 
     @property
+    def is_broken_link(self) -> bool:
+        """Lien dont la cible n'existe pas : seul le lstat a répondu (son mode est celui du lien)."""
+        return self.is_link and st.S_ISLNK(self.mode)
+
+    @property
     def is_executable(self) -> bool:
         return bool(self.mode and st.S_ISREG(self.mode) and self.mode & 0o111)
 
@@ -117,7 +127,9 @@ def apply_stat(r: Rec, s: os.stat_result):
     r.uid = s.st_uid
     r.gid = s.st_gid
     r.stat_ok = True
-    if not r.is_dir and r.ctype is None:
+    if st.S_ISLNK(s.st_mode):
+        r.ctype = BROKEN_LINK           # seul le lstat a répondu : lien cassé (« Lien (brisé) »)
+    elif not r.is_dir and r.ctype is None:
         r.ctype = sniff_type(r.name, r.path, s)
 
 
@@ -328,6 +340,8 @@ _type_desc: dict = {}
 
 
 def type_description(ctype: str) -> str:
+    if ctype == BROKEN_LINK:
+        return tr("Lien (brisé)")        # comme Nautilus (nautilus_file_get_type_as_string)
     d = _type_desc.get(ctype)
     if d is None:
         d = _type_desc[ctype] = Gio.content_type_get_description(ctype) or ctype
