@@ -631,6 +631,104 @@ class DragCacheSweepTest(unittest.TestCase):
             shutil.rmtree(new, ignore_errors=True)
 
 
+class UsershareTest(unittest.TestCase):
+    """Partage réseau (Samba) comme nautilus-share : `net usershare`, droits du dossier, erreurs."""
+
+    def setUp(self):
+        from odysseus.backend import usershare
+        self.us = usershare
+        self.tmp = tempfile.mkdtemp()
+        self._saved = (usershare.PERMS_FILE, dict(usershare._cache), usershare._stamp, os.environ.get("PATH"))
+        usershare.PERMS_FILE = os.path.join(self.tmp, "perms.json")
+
+    def tearDown(self):
+        import shutil
+        us = self.us
+        us.PERMS_FILE, cache, us._stamp, path = self._saved
+        us._cache.clear()
+        us._cache.update(cache)
+        os.environ["PATH"] = path
+        shutil.rmtree(self.tmp, ignore_errors=True)
+
+    def test_parse_info(self):
+        text = ("[photos]\npath=/home/tof/Photos\ncomment=Vacances\nusershare_acl=Everyone:R,Unix User\\tof:F,\n"
+                "guest_ok=y\n\n[docs]\npath=/home/tof/Docs/\ncomment=\nusershare_acl=Everyone:F,\nguest_ok=n\n")
+        got = self.us.parse_info(text)
+        self.assertEqual(got["/home/tof/Photos"], self.us.Share("photos", "/home/tof/Photos", "Vacances", False, True))
+        self.assertEqual(got["/home/tof/Docs"], self.us.Share("docs", "/home/tof/Docs", "", True, False))
+        self.assertEqual(self.us.parse_info(""), {})
+
+    def test_validate_name(self):
+        self.us._cache.clear()
+        self.us._cache["/a"] = self.us.Share("Photos", "/a")
+        self.assertEqual(self.us.validate_name("  ", "/b")[0], tr("Le nom du partage ne peut pas être vide"))
+        self.assertEqual(self.us.validate_name("photos", "/b")[0], tr("Un autre partage a déjà le même nom"))
+        self.assertEqual(self.us.validate_name("Photos", "/a"), ("", ""))      # le sien
+        self.assertTrue(self.us.validate_name("a:b", "/b")[0])
+        self.assertEqual(self.us.validate_name("un-nom-tres-long", "/b"), ("", tr("Le nom du partage est trop long")))
+
+    def test_folder_permissions(self):
+        d = os.path.join(self.tmp, "partage")
+        os.mkdir(d, 0o700)
+        os.chmod(d, 0o700)
+        bits = self.us.missing_bits(d, guest_ok=True, writable=True)
+        self.assertEqual(bits, self.us.GUEST_BITS | self.us.WRITE_BITS)
+        self.assertEqual(len(self.us.describe_bits(bits)), 3)
+        self.us.add_bits(d, bits)
+        self.assertEqual(os.stat(d).st_mode & 0o777, 0o777)
+        self.assertEqual(self.us.missing_bits(d, True, True), 0)
+        self.us.restore_bits(d, keep=self.us.GUEST_BITS)            # écriture retirée du partage
+        self.assertEqual(os.stat(d).st_mode & 0o777, 0o755)
+        self.us.restore_bits(d, keep=0)                             # partage arrêté : comme avant
+        self.assertEqual(os.stat(d).st_mode & 0o777, 0o700)
+        os.chmod(d, 0o755)                                          # droits de l'utilisateur : jamais retirés
+        self.us.restore_bits(d, keep=0)
+        self.assertEqual(os.stat(d).st_mode & 0o777, 0o755)
+
+    def _fake_net(self, message):
+        bindir = os.path.join(self.tmp, "bin")
+        os.makedirs(bindir, exist_ok=True)
+        with open(os.path.join(bindir, "net"), "w") as fh:
+            fh.write(f"#!/bin/sh\necho '{message}' >&2\nexit 255\n")
+        os.chmod(os.path.join(bindir, "net"), 0o755)
+        os.environ["PATH"] = bindir + os.pathsep + self._saved[3]
+
+    def test_error_kinds(self):
+        self._fake_net("You do not have permission to create a usershare. Ask your administrator.")
+        with self.assertRaises(self.us.ShareError) as c:
+            self.us.add(self.us.Share("x", self.tmp), guests=False)
+        self.assertEqual(c.exception.kind, "group")
+        self._fake_net("net usershare add: cannot convert name. Maybe smbd is not running.")
+        with self.assertRaises(self.us.ShareError) as c:
+            self.us.refresh()
+        self.assertEqual(c.exception.kind, "service")
+
+    def test_real_samba(self):
+        """Vrai `net usershare` (Samba installé, smbd lancé) : créer, renommer, retirer."""
+        import shutil
+        import subprocess
+        if not shutil.which("net") or subprocess.run(["pgrep", "-x", "smbd"], capture_output=True).returncode:
+            self.skipTest("Samba (smbd) absent")
+        d = os.path.join(self.tmp, "Partage réel")
+        os.mkdir(d)
+        name, name2 = "odytest%d" % os.getpid(), "odytest%db" % os.getpid()
+        try:
+            self.us.apply(None, self.us.Share(name, d, "essai", False, True))
+            got = self.us.refresh()[os.path.normpath(d)]
+            self.assertEqual((got.name, got.comment, got.writable), (name, "essai", False))
+            self.assertEqual(got.guest_ok, self.us.guests_allowed())
+            self.us.apply(got, self.us.Share(name2, d, "", True, False))       # renommé, en écriture
+            names = {s.name for s in self.us.refresh().values()}
+            self.assertIn(name2, names)
+            self.assertNotIn(name, names)
+            self.assertTrue(self.us.refresh()[os.path.normpath(d)].writable)
+            self.us.apply(self.us.share_for(d), None)
+            self.assertNotIn(os.path.normpath(d), self.us.refresh())
+        finally:
+            for n in (name, name2):
+                subprocess.run(["net", "usershare", "delete", n], capture_output=True)
+
+
 class DebInstallTest(unittest.TestCase):
     """Installateur .deb : debconf non interactif (sinon messages « unable to initialize frontend:
     Dialog / Readline » sans terminal), lignes d'avancement de dpkg écartées."""

@@ -99,6 +99,7 @@ class FileActions:
             "edit-text": self.edit_text, "undo": self.undo, "redo": self.redo,
             "open-admin": self.open_admin, "open-admin-folder": self.open_admin_folder,
             "folder-restore": self.folder_restore, "browse-archive": self.browse_archive,
+            "share-folder": self.share_folder,
         }
         for name, cb in acts.items():
             self._add(name, cb)
@@ -298,6 +299,14 @@ class FileActions:
         sel = self._sel()
         if sel and sel[0].path:
             self.pane.open(os.path.dirname(sel[0].path), select=[sel[0].name])
+
+    def share_folder(self):
+        """Options de partage (Samba) du dossier sélectionné, comme nautilus-share."""
+        sel = self._sel()
+        if not features.available("samba_share") or len(sel) != 1 or not sel[0].is_dir or not sel[0].path:
+            return
+        from .share_dialog import ShareDialog
+        ShareDialog(self, sel[0].path).present(self)
 
     def browse_archive(self):
         sel = self._sel()

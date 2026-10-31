@@ -353,6 +353,17 @@ fenêtre de recherche dans le contenu.
   (« (Lecture de la base… 45% ») écartées (`debpkg.is_progress_line`).
 - Ghostscript `pdfimage24` : `-sCompression=JPEG` en majuscules.
 - `view-column-symbolic` n'existe pas dans Adwaita : `icons.first_icon` avec repli.
+- Partage réseau (fonctionnalité `samba_share`, comme nautilus-share) : `backend/usershare.py` (`net usershare`
+  add / delete / info ; droits « Everyone:R,<moi>:F » ou « Everyone:F » ; `guest_ok` seulement si testparm
+  « usershare allow guests ») + `ui/share_dialog.py` (clic droit sur un dossier → « Options de partage… »,
+  libellés de nautilus-share). Erreurs reconnues : pas dans le groupe `sambashare` (« do not have
+  permission » / « Permission denied ») → commande usermod + reconnexion ; smbd arrêté (« smbd is not
+  running ») → systemctl. Noms comparés sans casse (Samba remplaçait « test » par « Test »). Droits du
+  dossier manquants (invité : r-x autres, écriture : w autres) ajoutés après accord, notés dans
+  share-permissions.json, retirés à l'arrêt ou quand l'écriture est retirée. Emblème `emblem-shared`
+  depuis le cache (`icons.shared_paths`), relu en fond au plus toutes les 10 s (`refresh_soon`, jamais
+  pendant le dessin). Testé avec la vraie Samba du bac à sable (`apt install samba`, `smbd -D`) :
+  `UsershareTest`, étape `partage_samba` d'ui_smoke ; l'accès depuis une autre machine n'est pas testable ici.
 - Lien cassé (cible absente) comme Nautilus : seul le `lstat` répond → `scanner.apply_stat` lui donne le
   type `inode/symlink` (`BROKEN_LINK`, celui de GIO), `Rec.is_broken_link`, libellé « Lien (brisé) »
   (`type_description`), icône des liens ; Propriétés : dates du lien, pas d'« Ouvrir avec » ; ouvert :

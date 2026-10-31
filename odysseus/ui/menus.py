@@ -196,6 +196,8 @@ def context_menu(win, pane, on_item: bool) -> Gio.Menu:
     regular = [r for r in sel if r.path and not r.is_dir]
     if regular and len(regular) == len(sel):
         s.append(tr("Courriel…"), "win.email")
+    if one is not None and one.is_dir and one.path and pane.mode == "fs" and features.available("samba_share"):
+        s.append(tr("Options de partage…"), "win.share-folder")      # comme nautilus-share
     m.append_section(None, s)
 
     # Outils issus des extensions

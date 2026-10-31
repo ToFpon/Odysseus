@@ -142,10 +142,21 @@ def emblems_for(rec: Rec) -> list[str]:
         out.append("emblem-readonly")
     if not readable:
         out.append("emblem-unreadable")
+    if rec.is_dir and rec.path and rec.path in shared_paths():
+        out.append("emblem-shared")              # partagé sur le réseau (Samba), comme nautilus-share
     meta = rec.get("meta")
     if meta and meta.get("emblems"):
-        out.extend(meta["emblems"])
+        out.extend(e for e in meta["emblems"] if e not in out)
     return out
+
+
+def shared_paths() -> dict:
+    """Dossiers partagés connus (lus en arrière-plan, jamais pendant le dessin d'une ligne)."""
+    from .. import features
+    if not features.enabled("samba_share"):
+        return {}
+    from ..backend import usershare
+    return usershare.cached()
 
 
 # ---------------------------------------------------------------------------

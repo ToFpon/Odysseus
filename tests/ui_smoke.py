@@ -728,6 +728,75 @@ def lien_casse(win):
 
 
 @step
+def partage_samba(win):
+    """Options de partage d'un dossier (Samba, comme nautilus-share) avec le vrai `net usershare`."""
+    import shutil as _sh
+    from odysseus.backend import usershare
+    from odysseus.ui import icons, menus, share_dialog
+    if not _sh.which("net") or subprocess.run(["pgrep", "-x", "smbd"], capture_output=True).returncode:
+        print("(Samba absent : étape sautée)")
+        return
+    folder = os.path.join(D, "a partager")
+    os.makedirs(folder, exist_ok=True)
+    os.chmod(folder, 0o700)
+    name = "odysmoke%d" % os.getpid()
+    p = win.pane
+    p.open(D)
+    yield Wait(5, until=lambda: not p.model.loading)
+    p.model.select_names(["a partager"])
+    yield pump(0.2)
+    m = menus.context_menu(win, p, True)
+    actions = []
+    for i in range(m.get_n_items()):
+        sec = m.get_item_link(i, "section")
+        for j in range(sec.get_n_items() if sec else 0):
+            v = sec.get_item_attribute_value(j, "action", None)
+            if v is not None:
+                actions.append(v.get_string())
+    check("win.share-folder" in actions, "clic droit sur un dossier : « Options de partage… »")
+    win.activate_action("win.share-folder", None)
+    yield pump(0.5)
+    d = share_dialog._last
+    check(d is not None and not d.share_row.get_active() and d.name_row.get_text() == "a partager",
+          "fenêtre de partage : pas encore partagé, nom proposé = celui du dossier")
+    d.share_row.set_active(True)
+    d.name_row.set_text(name)
+    d.write_row.set_active(True)
+    if d.guests:
+        d.guest_row.set_active(True)
+    yield pump(0.2)
+    before = list(Gtk.Window.list_toplevels())
+    d.action.emit("clicked")
+    yield pump(0.4)
+    ask = [w for w in Gtk.Window.list_toplevels() if w not in before and isinstance(w, Adw.MessageDialog)]
+    check(len(ask) == 1, "droits manquants du dossier : question avant de les ajouter")
+    for a in ask:
+        a.response("add")
+        a.close()
+    yield pump(0.8)
+    try:
+        sh = usershare.refresh().get(folder)
+        check(sh is not None and sh.name == name and sh.writable and os.stat(folder).st_mode & 0o777 != 0o700,
+              f"dossier partagé en écriture, droits ajoutés ({oct(os.stat(folder).st_mode & 0o777)})")
+        rec = [r for r in p.model.items if r.name == "a partager"][0]
+        check("emblem-shared" in icons.emblems_for(rec), "emblème « partagé » sur le dossier")
+        p.model.select_names(["a partager"])
+        win.activate_action("win.share-folder", None)
+        yield pump(0.5)
+        d = share_dialog._last
+        check(d.share_row.get_active() and d.name_row.get_text() == name
+              and d.action.get_label() == tr("Modifier le partage"), "déjà partagé : la fenêtre le montre")
+        d.share_row.set_active(False)
+        yield pump(0.2)
+        d.action.emit("clicked")
+        yield pump(0.8)
+        check(usershare.refresh().get(folder) is None and os.stat(folder).st_mode & 0o777 == 0o700,
+              f"partage arrêté, droits du dossier remis ({oct(os.stat(folder).st_mode & 0o777)})")
+    finally:
+        subprocess.run(["net", "usershare", "delete", name], capture_output=True)
+
+
+@step
 def emblemes_droits(win):
     """Comme Nautilus : cadenas (non modifiable), croix (non lisible), lien — plusieurs à la suite,
     après le nom. Le bac à sable tourne en root (qui a tous les droits) : on se fait passer pour

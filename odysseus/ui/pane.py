@@ -513,6 +513,9 @@ class Pane(Gtk.Box):
             self._ensure_miller().open(path)
         else:
             self.model.load(path)
+        if features.enabled("samba_share"):
+            from .share_dialog import refresh_soon       # emblème « partagé » à jour (nautilus-share)
+            refresh_soon(self.refresh_rows)
         self._show_content()
         self.emit("location-changed")
 

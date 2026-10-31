@@ -119,6 +119,11 @@ FEATURES = [
                "au fichier suivant"),
             "view-reveal-symbolic", "files",
             tools=(("lib:sushi",),), packages="gnome-sushi"),
+    Feature("samba_share", tr("Partage réseau (Samba)"),
+            tr("Partager un dossier sur le réseau local, comme nautilus-share : clic droit → « Options de "
+               "partage… »"),
+            "folder-remote-symbolic", "files",
+            tools=(("net",),), packages="samba"),
     Feature("image_tools", tr("Outils image"),
             tr("Redimensionner, pivoter et convertir des images (JPEG, PNG, WebP, HEIC…), plusieurs à la fois"),
             "image-x-generic-symbolic", "media",
@@ -155,7 +160,7 @@ def set_enabled(fid: str, value: bool):
 # Programme ou module Python → paquet Ubuntu 24.04 qui le fournit
 PACKAGE_OF = {"7zz": "7zip", "7z": "7zip", "7za": "7zip", "gs": "ghostscript", "ghostscript": "ghostscript",
               "qpdf": "qpdf", "ffmpeg": "ffmpeg", "magick": "imagemagick", "convert": "imagemagick",
-              "lib:heif-libde265": "libheif-plugin-libde265", "lib:sushi": "gnome-sushi", "ffprobe": "ffmpeg", "ffmpegthumbnailer": "ffmpegthumbnailer",
+              "lib:heif-libde265": "libheif-plugin-libde265", "lib:sushi": "gnome-sushi", "net": "samba", "ffprobe": "ffmpeg", "ffmpegthumbnailer": "ffmpegthumbnailer",
               "rg": "ripgrep", "grep": "grep", "pdftoppm": "poppler-utils", "zstd": "zstd", "brotli": "brotli",
               "lz4": "lz4", "dpkg-deb": "dpkg", "pkexec": "pkexec", "py:pypdf": "python3-pypdf",
               "py:cairo": "python3-cairo python3-gi-cairo", "gir:Poppler": "gir1.2-poppler-0.18"}
@@ -247,6 +252,7 @@ COMPONENTS = [
     ]),
     (tr("Fichiers"), [
         ("Sushi", ("lib:sushi",), tr("Aperçu rapide avec la barre d'espace, comme dans Nautilus")),
+        ("Samba", ("net",), tr("Partager un dossier sur le réseau local")),
     ]),
     (tr("Recherche"), [
         ("ripgrep", ("rg",), tr("Recherche rapide dans le contenu des fichiers (sinon grep, plus lent)")),
