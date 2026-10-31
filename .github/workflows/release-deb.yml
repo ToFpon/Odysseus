@@ -23,7 +23,7 @@ jobs:
       - name: Outils de construction
         run: |
           sudo apt-get update -q
-          sudo apt-get install -y -q --no-install-recommends devscripts debhelper dh-python python3 lintian
+          sudo apt-get install -y -q --no-install-recommends build-essential devscripts debhelper dh-python python3 lintian
 
       - name: Version
         run: |
