@@ -161,8 +161,9 @@ class MainWindow(FileActions, ArchiveActions, ToolActions, Adw.ApplicationWindow
         sbox = Gtk.Box(spacing=8)
         self.search_entry = Gtk.SearchEntry(placeholder_text=tr("Rechercher dans ce dossier…"), hexpand=True)
         sbox.append(self.search_entry)
-        self.recursive_btn = Gtk.ToggleButton(label=tr("Sous-dossiers"), active=settings["search_recursive"],
-                                              tooltip_text=tr("Chercher aussi dans les sous-dossiers"))
+        # case à cocher (plus lisible qu'un bouton bascule : on voit d'un coup d'œil si elle est cochée)
+        self.recursive_btn = Gtk.CheckButton(label=tr("Sous-dossiers"), active=settings["search_recursive"],
+                                             tooltip_text=tr("Chercher aussi dans les sous-dossiers"))
         self.recursive_btn.connect("toggled", self._on_recursive_toggled)
         sbox.append(self.recursive_btn)
         content_btn = Gtk.Button(icon_name="edit-find-replace-symbolic", action_name="win.content-search",
