@@ -305,7 +305,7 @@ fenêtre de recherche dans le contenu.
   (`$XDG_DATA_HOME/nautilus/tags`, ontologie /usr/share/nautilus/ontology — copie identique dans
   data/nautilus-ontology si Nautilus est absent), mêmes requêtes que nautilus-tag-manager.c
   (`nautilus:File` / `nautilus:starred`, sujets = URI GIO), `backend/starred.py` (gir Tsparql ou
-  Tracker 3.0). Base relue quand ses fichiers changent (moniteur) : une étoile de Nautilus apparaît ;
+  Tracker 3.0 ; validé par un utilisateur sur Zorin 18 et Debian 13, dépendance tirée par le paquet). Base relue quand ses fichiers changent (moniteur) : une étoile de Nautilus apparaît ;
   Nautilus, lui, ne relit qu'à son démarrage. Seulement dans le dossier personnel (pas lui-même).
   Barre latérale « Favoris » sous Récents (`starred:///`, déposer dessus = marquer), page `mode
   "starred"` (liste statique + colonne Emplacement, vide : « Aucun fichier favori »), colonne étoile
