@@ -1026,7 +1026,7 @@ def add_to_archive(job: Job, archive: str, files: list[str], inner_dir: str = ""
         job.run_tool(argv, label=tr("Ajout"))
         return
     # 7-Zip n'a pas d'option « ajouter dans un sous-dossier » : on prépare l'arborescence
-    with tempfile.TemporaryDirectory(prefix="pressoir-") as tmp:
+    with tempfile.TemporaryDirectory(prefix="odysseus-") as tmp:
         stage = os.path.join(tmp, inner_dir)
         os.makedirs(stage, exist_ok=True)
         for f in files:
@@ -1060,7 +1060,7 @@ def rename_in_archive(job: Job, archive: str, old: str, new: str, password: str 
 
 
 def new_folder_in_archive(job: Job, archive: str, inner_path: str, password: str = "") -> None:
-    with tempfile.TemporaryDirectory(prefix="pressoir-") as tmp:
+    with tempfile.TemporaryDirectory(prefix="odysseus-") as tmp:
         os.makedirs(os.path.join(tmp, inner_path.strip("/")))
         top = inner_path.strip("/").split("/", 1)[0]
         argv = [_7z(), "a"] + (["-p" + password] if password else []) + SEVENZ_PROGRESS + \
@@ -1071,7 +1071,7 @@ def new_folder_in_archive(job: Job, archive: str, inner_path: str, password: str
 def convert(job: Job, archive: str, out: str, o: CreateOptions, password: str = "") -> str:
     """Convertit une archive vers un autre format (extraction temporaire puis recompression)."""
     parent = os.path.dirname(os.path.abspath(out))
-    with tempfile.TemporaryDirectory(prefix=".pressoir-conv-", dir=parent) as tmp:
+    with tempfile.TemporaryDirectory(prefix=".odysseus-conv-", dir=parent) as tmp:
         sub = Job(job.title, lambda j: None)
         sub._cancel, sub._procs = job._cancel, job._procs
         sub.subscribe(lambda sj: job.progress(sj.fraction * 0.5, "1/2 " + sj.status))
@@ -1093,7 +1093,7 @@ def extract_to_temp(job: Job, archive: str, files: list[str], password: str = ""
                     parent: Optional[str] = None) -> str:
     """Extrait quelques éléments dans un dossier temporaire (aperçu / ouverture / glisser), sans leur
     chemin dans l'archive. parent : dossier où le créer (cache du glisser)."""
-    tmp = tempfile.mkdtemp(prefix="pressoir-view-", dir=parent)
+    tmp = tempfile.mkdtemp(prefix="odysseus-view-", dir=parent)
     extract(job, archive, ExtractOptions(dest=tmp, password=password, subfolder="never",
                                          overwrite="overwrite", files=files))
     return tmp

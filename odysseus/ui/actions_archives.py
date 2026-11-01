@@ -1,4 +1,4 @@
-"""Archives : parcourir, extraire, compresser, modifier (moteur et dialogues de Pressoir).
+"""Archives : parcourir, extraire, compresser, modifier (moteur 7-Zip).
 
 Remplace Archive Browser et Extract Here : les deux extensions faisaient en partie la même chose,
 elles sont fusionnées ici.

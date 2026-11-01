@@ -1,4 +1,4 @@
-"""Dialogues d'archives repris de Pressoir : créer, extraire, propriétés de l'archive."""
+"""Dialogues d'archives : créer, extraire, propriétés de l'archive."""
 
 from __future__ import annotations
 

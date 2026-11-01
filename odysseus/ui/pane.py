@@ -168,7 +168,7 @@ class Pane(Gtk.Box):
     # Construction
     # ------------------------------------------------------------------
     def _build_strip(self):
-        """Bandeau d'archive (repris de Pressoir), sur deux lignes pour tenir dans un demi-écran."""
+        """Bandeau d'archive, sur deux lignes pour tenir dans un demi-écran."""
         self.strip = Gtk.Revealer(transition_type=Gtk.RevealerTransitionType.SLIDE_DOWN)
         box = Gtk.Box(spacing=14, css_classes=["archive-strip"])
         box.append(Gtk.Image(icon_name="package-x-generic", pixel_size=40, valign=Gtk.Align.CENTER))
@@ -242,7 +242,7 @@ class Pane(Gtk.Box):
         self.stack.add_named(spin, "loading")
         self.error_page = Adw.StatusPage(icon_name="dialog-error-symbolic", title=tr("Impossible d'ouvrir"))
         self.stack.add_named(self.error_page, "error")
-        # archive protégée : déverrouillage intégré (Pressoir)
+        # archive protégée : déverrouillage intégré
         self.lock_page = Adw.StatusPage(icon_name="channel-secure-symbolic", title=tr("Archive protégée"),
                                         description=tr("Les noms de fichiers sont chiffrés. Saisissez le mot de passe."))
         lock_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=12, halign=Gtk.Align.CENTER,
@@ -638,7 +638,7 @@ class Pane(Gtk.Box):
         f.mount_enclosing_volume(Gio.MountMountFlags.NONE, op, None, done)
 
     # ------------------------------------------------------------------
-    # Archives (moteur Pressoir)
+    # Archives
     # ------------------------------------------------------------------
     def open_archive(self, path: str, inner: str = "", push: bool = True, password: Optional[str] = None):
         path = os.path.abspath(path)

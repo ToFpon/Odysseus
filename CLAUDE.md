@@ -1,7 +1,7 @@
 # Odysseus — notes de travail
 
 Gestionnaire de fichiers GTK4 / libadwaita en Python, look Nautilus, intégrant les extensions de
-`ToFpon/nautilus-extensions` (dépôt en lecture seule) ; moteur d'archives repris de Pressoir.
+`ToFpon/nautilus-extensions` (dépôt en lecture seule) ; moteur d'archives maison sur 7-Zip.
 
 ## Règles
 
@@ -32,7 +32,7 @@ Gestionnaire de fichiers GTK4 / libadwaita en Python, look Nautilus, intégrant 
   Adw.AlertDialog (feuilles dessinées dans la fenêtre). Libellés des confirmations : ceux de Nautilus.
   La fenêtre de progression s'efface pendant une question « Remplacer ? ».
 - Barre latérale : l'emplacement courant y est sélectionné ; jamais de bouton d'éjection pour les
-  disques fstab ou internes (mêmes règles que Pressoir / Nautilus).
+  disques fstab ou internes (mêmes règles que Nautilus).
   Bureau et « Ce PC » en option (`sidebar_desktop`, `sidebar_this_pc`, suivis en direct par
   `Sidebar.fill_places`). « Ce PC » (`ui/this_pc.py`, `computer:///`) : page spéciale comme « Autres
   emplacements » (`pane.PAGES`, mode « other ») ; espace des disques lu par GIO en asynchrone.

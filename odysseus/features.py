@@ -71,7 +71,7 @@ FEATURES = [
             "media-playback-start-symbolic", "view",
             tools=(("ffprobe",),), packages="ffmpeg"),
     Feature("archives", tr("Archives"),
-            tr("Parcourir les archives comme des dossiers, extraire ici, compresser (moteur de Pressoir)"),
+            tr("Parcourir les archives comme des dossiers, extraire ici, compresser"),
             "package-x-generic-symbolic", "files", "F7",
             tools=(("7zz", "7z", "7za"),), packages="7zip"),
     Feature("content_search", tr("Recherche dans le contenu"),

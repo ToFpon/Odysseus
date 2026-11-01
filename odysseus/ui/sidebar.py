@@ -1,7 +1,6 @@
 """Barre latérale à la manière de Nautilus : emplacements, signets, périphériques.
 
-Les signets sont ceux de GTK (partagés avec Nautilus). Les périphériques reprennent la logique
-de Pressoir : clés USB et disques amovibles (montage en un clic, bouton d'éjection) et disques
+Les signets sont ceux de GTK (partagés avec Nautilus). Les périphériques : clés USB et disques amovibles (montage en un clic, bouton d'éjection) et disques
 montés en permanence ; jamais de bouton d'éjection pour un disque de /etc/fstab ni un disque interne.
 """
 
@@ -213,7 +212,7 @@ class Sidebar(Gtk.Box):
         self.select(self.current)
         return False
 
-    # -- périphériques (Pressoir) ---------------------------------------------------
+    # -- périphériques -----------------------------------------------------------
     def _watch_devices(self):
         self.monitor = Gio.VolumeMonitor.get()
         for sig in ("mount-added", "mount-removed", "mount-changed", "volume-added", "volume-removed",

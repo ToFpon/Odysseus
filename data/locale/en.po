@@ -32,11 +32,11 @@ msgstr "Show version"
 msgid "Basé sur"
 msgstr "Based on"
 
-#: odysseus/app.py:209
+#: odysseus/app.py:208
 msgid "Remerciements"
 msgstr "Special thanks"
 
-#: odysseus/app.py:213
+#: odysseus/app.py:212
 msgid "Moteurs"
 msgstr "Engines"
 
@@ -54,10 +54,6 @@ msgid ""
 "Les extensions Nautilus de Tof https://github.com/ToFpon/Nautilus-Extensions"
 msgstr ""
 "Tof's Nautilus extensions https://github.com/ToFpon/Nautilus-Extensions"
-
-#: odysseus/app.py:208
-msgid "Le moteur d'archives de Pressoir https://github.com/ToFpon/Pressoir"
-msgstr "Pressoir's archive engine https://github.com/ToFpon/Pressoir"
 
 #: odysseus/app.py:183 odysseus/app.py:155 odysseus/ui/archive_window.py:155
 #: odysseus/ui/pane.py:492
@@ -855,16 +851,16 @@ msgstr "“net usershare” failed ({0})"
 msgid "Affichage"
 msgstr "Display"
 
-#: odysseus/features.py:37 odysseus/features.py:266
+#: odysseus/features.py:37 odysseus/features.py:267
 #: odysseus/ui/actions_archives.py:240 odysseus/ui/archive_dialogs.py:460
 msgid "Fichiers"
 msgstr "Files"
 
-#: odysseus/features.py:38 odysseus/features.py:253
+#: odysseus/features.py:38 odysseus/features.py:254
 msgid "PDF"
 msgstr "PDF"
 
-#: odysseus/features.py:39 odysseus/features.py:258
+#: odysseus/features.py:39 odysseus/features.py:259
 msgid "Multimédia"
 msgstr "Multimedia"
 
@@ -950,7 +946,7 @@ msgid ""
 msgstr ""
 "Colour folders and add emblems, compatible with Folder Color for Nautilus"
 
-#: odysseus/features.py:69 odysseus/features.py:260
+#: odysseus/features.py:69 odysseus/features.py:261
 msgid "Colonne Durée"
 msgstr "Duration column"
 
@@ -958,15 +954,14 @@ msgstr "Duration column"
 msgid "Durée des fichiers audio et vidéo (ffprobe), avec cache"
 msgstr "Duration of audio and video files (ffprobe), cached"
 
-#: odysseus/features.py:73 odysseus/features.py:246 odysseus/ui/dialogs.py:206
+#: odysseus/features.py:73 odysseus/features.py:247 odysseus/ui/dialogs.py:206
 msgid "Archives"
 msgstr "Archives"
 
+#
 #: odysseus/features.py:74
-msgid ""
-"Parcourir les archives comme des dossiers, extraire ici, compresser (moteur "
-"de Pressoir)"
-msgstr "Browse archives like folders, extract here, compress (Pressoir engine)"
+msgid "Parcourir les archives comme des dossiers, extraire ici, compresser"
+msgstr "Browse archives like folders, extract here, compress"
 
 #: odysseus/features.py:77 odysseus/ui/search_dialog.py:35
 msgid "Recherche dans le contenu"
@@ -1077,9 +1072,9 @@ msgstr ""
 "The space bar opens the GNOME previewer (Sushi) as in GNOME Files; the arrow "
 "keys move to the next file"
 
-#: odysseus/features.py:122 odysseus/ui/pane.py:31 odysseus/ui/pathbar.py:102
-#: odysseus/ui/sidebar.py:137
 #
+#: odysseus/features.py:122 odysseus/ui/pane.py:31 odysseus/ui/pathbar.py:102
+#: odysseus/ui/sidebar.py:136
 msgid "Favoris"
 msgstr "Starred"
 
@@ -1087,13 +1082,14 @@ msgstr "Starred"
 msgid ""
 "Marquer des fichiers d'une étoile et les retrouver dans « Favoris », avec "
 "les mêmes favoris que Nautilus"
-msgstr "Star files and find them again in “Starred”, with the same stars as Nautilus"
+msgstr ""
+"Star files and find them again in “Starred”, with the same stars as Nautilus"
 
-#: odysseus/features.py:127
+#: odysseus/features.py:128
 msgid "Partage réseau (Samba)"
 msgstr "Network sharing (Samba)"
 
-#: odysseus/features.py:128
+#: odysseus/features.py:129
 msgid ""
 "Partager un dossier sur le réseau local, comme nautilus-share : clic droit → "
 "« Options de partage… »"
@@ -1101,31 +1097,31 @@ msgstr ""
 "Share a folder on the local network, like nautilus-share: right-click → "
 "“Sharing Options…”"
 
-#: odysseus/features.py:133 odysseus/ui/menus.py:235
+#: odysseus/features.py:134 odysseus/ui/menus.py:235
 msgid "Outils image"
 msgstr "Image Tools"
 
-#: odysseus/features.py:134
+#: odysseus/features.py:135
 msgid ""
 "Redimensionner, pivoter et convertir des images (JPEG, PNG, WebP, HEIC…), "
 "plusieurs à la fois"
 msgstr ""
 "Resize, rotate and convert images (JPEG, PNG, WebP, HEIC…), several at once"
 
-#: odysseus/features.py:137
+#: odysseus/features.py:138
 msgid "Annoter une image"
 msgstr "Annotate an image"
 
-#: odysseus/features.py:138
+#: odysseus/features.py:139
 msgid "Flèches, cadres, texte, surligneur et dessin à main levée sur une image"
 msgstr "Arrows, boxes, text, highlighter and freehand drawing on an image"
 
-#: odysseus/features.py:140 odysseus/ui/menus.py:169 odysseus/ui/menus.py:306
+#: odysseus/features.py:141 odysseus/ui/menus.py:169 odysseus/ui/menus.py:306
 #: odysseus/ui/menus.py:336
 msgid "Ouvrir en tant qu'administrateur"
 msgstr "Open as Administrator"
 
-#: odysseus/features.py:141
+#: odysseus/features.py:142
 msgid ""
 "Ouvrir un dossier dans une fenêtre administrateur, ou un fichier avec les "
 "droits root (emplacement admin:// de GVfs, mot de passe demandé par polkit)"
@@ -1133,85 +1129,85 @@ msgstr ""
 "Open a folder in an administrator window, or a file with root privileges "
 "(GVfs admin:// location, password asked by polkit)"
 
-#: odysseus/features.py:144
+#: odysseus/features.py:145
 msgid "Installateur de paquets .deb"
 msgstr ".deb package installer"
 
-#: odysseus/features.py:145
+#: odysseus/features.py:146
 msgid ""
 "Installer un paquet .deb avec contrôle des dépendances et suivi en direct"
 msgstr "Install a .deb package with dependency check and live output"
 
-#: odysseus/features.py:271
+#: odysseus/features.py:272
 msgid "Recherche"
 msgstr "Search"
 
-#: odysseus/features.py:247
+#: odysseus/features.py:248
 msgid "Compresser, extraire et parcourir les archives (indispensable)"
 msgstr "Compress, extract and browse archives (required)"
 
 #
-#: odysseus/features.py:248
+#: odysseus/features.py:249
 msgid "Extraire les archives RAR"
 msgstr "Extract RAR archives"
 
-#: odysseus/features.py:249
+#: odysseus/features.py:250
 msgid "Archives .tar.zst"
 msgstr ".tar.zst archives"
 
-#: odysseus/features.py:250
+#: odysseus/features.py:251
 msgid "Archives .tar.br"
 msgstr ".tar.br archives"
 
-#: odysseus/features.py:251
+#: odysseus/features.py:252
 msgid "Archives .tar.lz4"
 msgstr ".tar.lz4 archives"
 
-#: odysseus/features.py:254
+#: odysseus/features.py:255
 msgid "Compresser un PDF ; fusion en secours"
 msgstr "Compress a PDF; fallback for merging"
 
-#: odysseus/features.py:255
+#: odysseus/features.py:256
 msgid "Fusionner, filigrane, pages d'un PDF"
 msgstr "Merge, watermark, PDF pages"
 
-#: odysseus/features.py:256
+#: odysseus/features.py:257
 msgid "Aperçu et miniatures des PDF"
 msgstr "PDF preview and thumbnails"
 
-#: odysseus/features.py:259
+#: odysseus/features.py:260
 msgid "Vidéo vers audio, miniatures des vidéos"
 msgstr "Video to audio, video thumbnails"
 
-#: odysseus/features.py:261
+#: odysseus/features.py:262
 msgid "Miniatures des vidéos, plus rapides qu'avec FFmpeg seul"
 msgstr "Video thumbnails, faster than with FFmpeg alone"
 
-#: odysseus/features.py:262
+#: odysseus/features.py:263
 msgid "Redimensionner, pivoter et convertir des images"
 msgstr "Resize, rotate and convert images"
 
-#: odysseus/features.py:263
+#: odysseus/features.py:264
 msgid "Lire les photos HEIC des iPhone (outils image, miniatures)"
 msgstr "Read HEIC photos from iPhones (image tools, thumbnails)"
 
-#: odysseus/features.py:264
+#: odysseus/features.py:265
 msgid "Annoter une image, filigrane PDF"
 msgstr "Annotate an image, PDF watermark"
 
-#: odysseus/features.py:267
+#: odysseus/features.py:268
 msgid "Aperçu rapide avec la barre d'espace, comme dans Nautilus"
 msgstr "Quick preview with the space bar, as in GNOME Files"
 
-#: odysseus/features.py:268
+#: odysseus/features.py:269
 msgid "Partager un dossier sur le réseau local"
 msgstr "Share a folder on the local network"
 
-#: odysseus/features.py:269
+#: odysseus/features.py:270
 msgid "Favoris partagés avec Nautilus"
 msgstr "Stars shared with Nautilus"
 
-#: odysseus/features.py:272
+#: odysseus/features.py:273
 msgid "Recherche rapide dans le contenu des fichiers (sinon grep, plus lent)"
 msgstr "Fast search in file contents (otherwise grep, slower)"
 
@@ -1597,13 +1593,13 @@ msgstr "Unable to open"
 msgid "Impossible d’utiliser ce lien car sa cible « {0} » n’existe pas."
 msgstr "This link cannot be used because its target “{0}” doesn’t exist."
 
-#: odysseus/ui/actions_files.py:314
 #
+#: odysseus/ui/actions_files.py:314
 msgid "« {0} » est démarqué"
 msgstr "“{0}” unstarred"
 
-#: odysseus/ui/actions_files.py:315
 #
+#: odysseus/ui/actions_files.py:315
 msgid "{0} fichier démarqué"
 msgid_plural "{0} fichiers démarqués"
 msgstr[0] "{0} file unstarred"
@@ -3778,12 +3774,12 @@ msgstr "Open With…"
 msgid "Exécuter comme un programme"
 msgstr "Run as a Program"
 
-#: odysseus/ui/menus.py:160 odysseus/ui/sidebar.py:408
+#: odysseus/ui/menus.py:160 odysseus/ui/sidebar.py:407
 #: odysseus/ui/this_pc.py:339
 msgid "Ouvrir dans un nouvel onglet"
 msgstr "Open in new tab"
 
-#: odysseus/ui/menus.py:161 odysseus/ui/sidebar.py:409
+#: odysseus/ui/menus.py:161 odysseus/ui/sidebar.py:408
 #: odysseus/ui/this_pc.py:340
 msgid "Ouvrir dans une nouvelle fenêtre"
 msgstr "Open in New Window"
@@ -3808,7 +3804,7 @@ msgstr "Copy to the other panel"
 msgid "Déplacer vers l'autre panneau"
 msgstr "Move to the other panel"
 
-#: odysseus/ui/menus.py:186 odysseus/ui/menus.py:385 odysseus/ui/sidebar.py:415
+#: odysseus/ui/menus.py:186 odysseus/ui/menus.py:385 odysseus/ui/sidebar.py:414
 msgid "Renommer…"
 msgstr "Rename…"
 
@@ -3872,11 +3868,11 @@ msgstr "Add files…"
 msgid "Restaurer"
 msgstr "Restore"
 
-#: odysseus/ui/menus.py:138 odysseus/ui/pane.py:208 odysseus/ui/sidebar.py:425
+#: odysseus/ui/menus.py:138 odysseus/ui/pane.py:208 odysseus/ui/sidebar.py:424
 msgid "Vider la corbeille…"
 msgstr "Empty trash…"
 
-#: odysseus/ui/menus.py:163 odysseus/ui/sidebar.py:411
+#: odysseus/ui/menus.py:163 odysseus/ui/sidebar.py:410
 #: odysseus/ui/this_pc.py:342
 msgid "Ouvrir dans l'autre panneau"
 msgstr "Open in the other panel"
@@ -3889,8 +3885,8 @@ msgstr "Browse archive"
 msgid "Marquer comme favori"
 msgstr "Star"
 
-#: odysseus/ui/menus.py:207 odysseus/ui/views.py:575
 #
+#: odysseus/ui/menus.py:207 odysseus/ui/views.py:575
 msgid "Démarquer"
 msgstr "Unstar"
 
@@ -3998,7 +3994,7 @@ msgstr "On This Computer"
 msgid "Réseaux"
 msgstr "Networks"
 
-#: odysseus/ui/other_locations.py:178 odysseus/ui/sidebar.py:299
+#: odysseus/ui/other_locations.py:178 odysseus/ui/sidebar.py:298
 #: odysseus/ui/this_pc.py:77
 msgid "Cliquez pour monter"
 msgstr "Click to mount"
@@ -4008,7 +4004,7 @@ msgstr "Click to mount"
 msgid "Corbeille"
 msgstr "Trash"
 
-#: odysseus/ui/pane.py:31 odysseus/ui/pathbar.py:101 odysseus/ui/sidebar.py:99
+#: odysseus/ui/pane.py:31 odysseus/ui/pathbar.py:101 odysseus/ui/sidebar.py:98
 msgid "Récents"
 msgstr "Recent"
 
@@ -4016,11 +4012,11 @@ msgstr "Recent"
 msgid "Réseau"
 msgstr "Network"
 
-#: odysseus/ui/pane.py:33 odysseus/ui/pathbar.py:104 odysseus/ui/sidebar.py:115
+#: odysseus/ui/pane.py:33 odysseus/ui/pathbar.py:104 odysseus/ui/sidebar.py:114
 msgid "Autres emplacements"
 msgstr "Other Locations"
 
-#: odysseus/ui/pane.py:33 odysseus/ui/pathbar.py:105 odysseus/ui/sidebar.py:131
+#: odysseus/ui/pane.py:33 odysseus/ui/pathbar.py:105 odysseus/ui/sidebar.py:130
 msgid "Ce PC"
 msgstr "This PC"
 
@@ -4071,8 +4067,8 @@ msgid_plural "{0} dossiers"
 msgstr[0] "{0} folder"
 msgstr[1] "{0} folders"
 
-#: odysseus/ui/pane.py:961
 #
+#: odysseus/ui/pane.py:961
 msgid "Aucun fichier favori"
 msgstr "No Starred Files"
 
@@ -4278,7 +4274,7 @@ msgstr "Compression finished"
 msgid "Pages à garder, ex. 1-3, 5, 8-"
 msgstr "Pages to keep, e.g. 1-3, 5, 8-"
 
-#: odysseus/ui/pdf_dialogs.py:125 odysseus/ui/sidebar.py:421
+#: odysseus/ui/pdf_dialogs.py:125 odysseus/ui/sidebar.py:420
 #: odysseus/ui/this_pc.py:334
 msgid "Monter"
 msgstr "Move up"
@@ -4972,41 +4968,41 @@ msgid ""
 msgstr ""
 "The folder “{0}” needs the following extra permissions for sharing to work:"
 
-#: odysseus/ui/sidebar.py:112
+#: odysseus/ui/sidebar.py:111
 msgid "Périphériques"
 msgstr "Devices"
 
-#: odysseus/ui/sidebar.py:439
+#: odysseus/ui/sidebar.py:438
 msgid "Renommer le signet"
 msgstr "Rename bookmark"
 
-#: odysseus/ui/sidebar.py:416
+#: odysseus/ui/sidebar.py:415
 msgid "Retirer des signets"
 msgstr "Remove from bookmarks"
 
-#: odysseus/ui/sidebar.py:256 odysseus/ui/this_pc.py:90
+#: odysseus/ui/sidebar.py:255 odysseus/ui/this_pc.py:90
 msgid "{0} libres sur {1}"
 msgstr "{0} free of {1}"
 
-#: odysseus/ui/sidebar.py:269 odysseus/ui/sidebar.py:423
+#: odysseus/ui/sidebar.py:268 odysseus/ui/sidebar.py:422
 #: odysseus/ui/this_pc.py:349 odysseus/ui/this_pc.py:351
 msgid "Éjecter"
 msgstr "Eject"
 
-#: odysseus/ui/sidebar.py:270 odysseus/ui/sidebar.py:423
+#: odysseus/ui/sidebar.py:269 odysseus/ui/sidebar.py:422
 #: odysseus/ui/this_pc.py:349
 msgid "Démonter"
 msgstr "Unmount"
 
-#: odysseus/ui/sidebar.py:346
+#: odysseus/ui/sidebar.py:345
 msgid "{0} peut être retiré en toute sécurité"
 msgstr "{0} can be safely removed"
 
-#: odysseus/ui/sidebar.py:322
+#: odysseus/ui/sidebar.py:321
 msgid "Impossible de monter {0}"
 msgstr "Unable to mount {0}"
 
-#: odysseus/ui/sidebar.py:344
+#: odysseus/ui/sidebar.py:343
 msgid "Impossible d'éjecter {0}"
 msgstr "Unable to eject {0}"
 
@@ -5159,52 +5155,3 @@ msgstr "Continue"
 #: odysseus/ui/window.py:629
 msgid "Quitter"
 msgstr "Quit"
-
-#, fuzzy
-#~ msgid "Première modification"
-#~ msgstr "Modified"
-
-#~ msgid "Ouvrir l'emplacement"
-#~ msgstr "Open location"
-
-#~ msgid "octets"
-#~ msgstr "bytes"
-
-#~ msgid "Application par défaut pour ce type"
-#~ msgstr "Default application for this type"
-
-#~ msgid "Accès du propriétaire"
-#~ msgstr "Owner access"
-
-#~ msgid "Accès du groupe"
-#~ msgstr "Group access"
-
-#~ msgid "Accès des autres"
-#~ msgstr "Others access"
-
-#~ msgid "Autoriser l'exécution comme programme"
-#~ msgstr "Allow executing as a program"
-
-#~ msgid "Espace libre"
-#~ msgstr "Free space"
-
-#~ msgid "Métadonnées modifiées"
-#~ msgstr "Metadata changed"
-
-#~ msgid "Type MIME"
-#~ msgstr "MIME type"
-
-#~ msgid "Programmes utilisés"
-#~ msgstr "Programs used"
-
-#~ msgid "non installé"
-#~ msgstr "not installed"
-
-#~ msgid "Non calculées"
-#~ msgstr "Not computed"
-
-#~ msgid "Calculer"
-#~ msgstr "Compute"
-
-#~ msgid "Comparer"
-#~ msgstr "Compare"

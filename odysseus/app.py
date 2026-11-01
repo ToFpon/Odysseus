@@ -204,8 +204,7 @@ class OdysseusApp(Adw.Application):
             issue_url="https://github.com/ToFpon/Odysseus/issues",
             license_type=Gtk.License.GPL_3_0,
         )
-        about.add_credit_section(tr("Basé sur"), [tr("Les extensions Nautilus de Tof https://github.com/ToFpon/Nautilus-Extensions"),
-                                                  tr("Le moteur d'archives de Pressoir https://github.com/ToFpon/Pressoir")])
+        about.add_credit_section(tr("Basé sur"), [tr("Les extensions Nautilus de Tof https://github.com/ToFpon/Nautilus-Extensions")])
         about.add_acknowledgement_section(tr("Remerciements"), [
             "Ponce De Leon https://forum.zorin.com/u/Ponce-De-Leon",
             "Forpli https://forum.zorin.com/u/Forpli",

@@ -27,7 +27,7 @@
 
 ## English
 
-Odysseus is a file manager that looks and behaves like GNOME Files (Nautilus) and natively includes every feature of the [nautilus-extensions](https://github.com/ToFpon/nautilus-extensions) collection. Each feature can be turned off in **Preferences → Features**, without restarting. The external programs they use (7-Zip, qpdf, FFmpeg…) are listed in **Preferences → Components**, with the command that installs the missing ones. It follows your desktop's GTK4 theme (Adwaita, light/dark, accent color, or a theme installed in `~/.config/gtk-4.0/`). The archive engine comes from [Pressoir](https://github.com/ToFpon/Pressoir).
+Odysseus is a file manager that looks and behaves like GNOME Files (Nautilus) and natively includes every feature of the [nautilus-extensions](https://github.com/ToFpon/nautilus-extensions) collection. Each feature can be turned off in **Preferences → Features**, without restarting. The external programs they use (7-Zip, qpdf, FFmpeg…) are listed in **Preferences → Components**, with the command that installs the missing ones. It follows your desktop's GTK4 theme (Adwaita, light/dark, accent color, or a theme installed in `~/.config/gtk-4.0/`).
 
 ### Speed
 
@@ -61,7 +61,7 @@ Huge folders open almost instantly: a folder of **100,000 files is displayed in 
 - **Quick Look** with the space bar, like Nautilus: GNOME's previewer (Sushi) shows the selected file, and the arrow keys move through the folder.
 - **Properties** laid out like Nautilus 46: size under the name, free space, dates, a custom folder icon (seen by Nautilus too), permissions on their own page, with “Change Permissions for Enclosed Files…”.
 - Copy / move with conflict dialog (skip, rename, merge, replace, apply to all), **progress window** for long operations, undo (Ctrl+Z), drag and drop, clipboard compatible with Nautilus.
-- **Archives** (F7): browse 50+ formats like folders, extract here, extract to, compress (Pressoir engine, 7-Zip). Double-clicking an archive opens it in a small window, like the Archive Browser extension: the archive tree on the left (folders unfold in place, filter by name), a folder on the right; drag anything out of it to any folder — that one, Odysseus, Nautilus or the desktop — or extract everything or the selection there.
+- **Archives** (F7): browse 50+ formats like folders, extract here, extract to, compress (7-Zip). Double-clicking an archive opens it in a small window, like the Archive Browser extension: the archive tree on the left (folders unfold in place, filter by name), a folder on the right; drag anything out of it to any folder — that one, Odysseus, Nautilus or the desktop — or extract everything or the selection there.
 - **Content search** (F8): search and replace text in files with ripgrep or grep, with preview and backups. Recursive file name search.
 - Open in text editor, open terminal here (Ctrl+Alt+T), **run executable scripts** in a terminal that stays open, like Nautilus.
 - **Starred files**, shared with Nautilus: click the star at the end of a row (or right-click → Star) and find them under Starred in the sidebar. Same stars as Nautilus, in both directions; they follow renamed and moved items. Off by default: turn it on in Preferences → Features.
@@ -144,7 +144,7 @@ French (source), English and German. The language follows the system (`LANGUAGE`
 
 ### Architecture
 
-- `odysseus/backend/`: no GTK — folder scanning (`scanner.py`), file operations, trash, bookmarks, thumbnails, folder colors, archives (Pressoir engine), PDF, content search, media, .deb.
+- `odysseus/backend/`: no GTK — folder scanning (`scanner.py`), file operations, trash, bookmarks, thumbnails, folder colors, archives (7-Zip), PDF, content search, media, .deb.
 - `odysseus/ui/`: virtual model and selection (`model.py`), list/grid views, Miller columns, panes, workspace (dual panel), window, sidebar, path bar, dialogs.
 - `odysseus/features.py`: the list of features, their required tools and their on/off state.
 
@@ -164,7 +164,7 @@ GPL-3.0-or-later.
 
 ## Français
 
-Odysseus est un gestionnaire de fichiers qui ressemble à Fichiers (Nautilus) et se comporte comme lui, en intégrant nativement toutes les fonctionnalités des extensions [nautilus-extensions](https://github.com/ToFpon/nautilus-extensions). Chacune se désactive dans **Préférences → Fonctionnalités**, sans redémarrer. Les programmes externes qu'elles utilisent (7-Zip, qpdf, FFmpeg…) sont listés dans **Préférences → Composants**, avec la commande qui installe ceux qui manquent. Il suit le thème GTK4 du bureau (Adwaita, clair/sombre, couleur d'accentuation ou thème installé dans `~/.config/gtk-4.0/`). Le moteur d'archives vient de [Pressoir](https://github.com/ToFpon/Pressoir).
+Odysseus est un gestionnaire de fichiers qui ressemble à Fichiers (Nautilus) et se comporte comme lui, en intégrant nativement toutes les fonctionnalités des extensions [nautilus-extensions](https://github.com/ToFpon/nautilus-extensions). Chacune se désactive dans **Préférences → Fonctionnalités**, sans redémarrer. Les programmes externes qu'elles utilisent (7-Zip, qpdf, FFmpeg…) sont listés dans **Préférences → Composants**, avec la commande qui installe ceux qui manquent. Il suit le thème GTK4 du bureau (Adwaita, clair/sombre, couleur d'accentuation ou thème installé dans `~/.config/gtk-4.0/`).
 
 ### Rapidité
 
@@ -198,7 +198,7 @@ Les très gros dossiers s'ouvrent quasi instantanément : un dossier de **100 00
 - **Aperçu rapide** avec la barre d'espace, comme dans Nautilus : l'aperçu de GNOME (Sushi) montre le fichier sélectionné, et les flèches font défiler le dossier.
 - **Propriétés** disposées comme dans Nautilus 46 : taille sous le nom, espace libre, dates, icône de dossier personnalisée (vue aussi par Nautilus), permissions sur une page à part, avec « Changer les permissions des fichiers inclus… ».
 - Copie / déplacement avec gestion des conflits (ignorer, renommer, fusionner, remplacer, appliquer à tous), **fenêtre de progression** pour les opérations longues, annulation (Ctrl+Z), glisser-déposer, presse-papiers compatible avec Nautilus.
-- **Archives** (F7) : parcourir plus de 50 formats comme des dossiers, extraire ici, extraire vers, compresser (moteur Pressoir, 7-Zip). Un double-clic sur une archive l'ouvre dans une petite fenêtre, comme l'extension Archive Browser : l'arborescence de l'archive à gauche (dossiers dépliés sur place, filtre par nom), un dossier à droite ; n'importe quel élément se glisse vers n'importe quel dossier — celui-là, Odysseus, Nautilus ou le bureau — ou tout / la sélection s'y extrait.
+- **Archives** (F7) : parcourir plus de 50 formats comme des dossiers, extraire ici, extraire vers, compresser (7-Zip). Un double-clic sur une archive l'ouvre dans une petite fenêtre, comme l'extension Archive Browser : l'arborescence de l'archive à gauche (dossiers dépliés sur place, filtre par nom), un dossier à droite ; n'importe quel élément se glisse vers n'importe quel dossier — celui-là, Odysseus, Nautilus ou le bureau — ou tout / la sélection s'y extrait.
 - **Recherche dans le contenu** (F8) : rechercher et remplacer du texte dans les fichiers avec ripgrep ou grep, avec aperçu et sauvegardes. Recherche récursive par nom.
 - Ouvrir avec l'éditeur de texte, terminal ici (Ctrl+Alt+T), **exécuter les scripts exécutables** dans un terminal qui reste ouvert, comme dans Nautilus.
 - **Favoris**, partagés avec Nautilus : un clic sur l'étoile en fin de ligne (ou clic droit → Marquer comme favori), et ils se retrouvent dans Favoris, dans la barre latérale. Mêmes favoris que Nautilus, dans les deux sens ; ils suivent les éléments renommés ou déplacés. Désactivés par défaut : à activer dans Préférences → Fonctionnalités.
@@ -281,7 +281,7 @@ Français (langue source), anglais et allemand. La langue suit le système (`LAN
 
 ### Architecture
 
-- `odysseus/backend/` : sans GTK — lecture des dossiers (`scanner.py`), opérations sur les fichiers, corbeille, signets, miniatures, couleurs de dossiers, archives (moteur Pressoir), PDF, recherche dans le contenu, multimédia, .deb.
+- `odysseus/backend/` : sans GTK — lecture des dossiers (`scanner.py`), opérations sur les fichiers, corbeille, signets, miniatures, couleurs de dossiers, archives (7-Zip), PDF, recherche dans le contenu, multimédia, .deb.
 - `odysseus/ui/` : modèle virtuel et sélection (`model.py`), vues liste/grille, colonnes de Miller, panneaux, espace de travail (double panneau), fenêtre, barre latérale, fil d'Ariane, dialogues.
 - `odysseus/features.py` : la liste des fonctionnalités, leurs outils nécessaires et leur état activé / désactivé.
 

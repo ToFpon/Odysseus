@@ -94,7 +94,7 @@ for name in n(("Budget familial.ods", "Lettre de motivation.odt", "Recettes.odt"
 write(os.path.join(D, n("Notes de réunion.md", "Meeting notes.md")),
       n("# Réunion du 14 octobre\n\n- Odysseus : captures à jour\n", "# Meeting, October 14\n\n- Odysseus: new screenshots\n").encode())
 write(os.path.join(D, n("liste-courses.txt", "shopping-list.txt")), n("pain\nlait\ncafé\n", "bread\nmilk\ncoffee\n").encode())
-for sub in (f"{PROJ}/Odysseus/docs", f"{PROJ}/Odysseus/src", f"{PROJ}/{n('Site web', 'Website')}/images", f"{PROJ}/Pressoir",
+for sub in (f"{PROJ}/Odysseus/docs", f"{PROJ}/Odysseus/src", f"{PROJ}/{n('Site web', 'Website')}/images", f"{PROJ}/{n('Rénovation', 'Renovation')}",
             f"{ADMIN}/{TAX}", f"{ADMIN}/{n('Banque', 'Bank')}", f"{ADMIN}/{n('Santé', 'Health')}"):
     os.makedirs(os.path.join(D, sub), exist_ok=True)
 SOURCES = {  # du texte à chercher / remplacer pour la capture de la recherche dans le contenu

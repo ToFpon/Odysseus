@@ -47,7 +47,7 @@ DEFAULTS: dict[str, Any] = {
     "hidden_dim_mode": "icon",      # icon (icône seule) ou all (icône et nom)
     "progress_window_delay": 0.5,   # secondes avant d'afficher la fenêtre de progression
     "features": {},                 # fonctionnalités activées / désactivées (voir features.py)
-    # Archives (moteur Pressoir)
+    # Archives
     "create_format": "7z",
     "create_level": 3,
     "create_solid": True,
