@@ -16,7 +16,7 @@ from typing import Callable, Optional
 from gi.repository import GLib
 
 from ..i18n import tr
-from . import fileops, fsinfo, media
+from . import fileops, fsinfo, media, scanner
 
 # balises de numérotation : (identifiant, largeur)
 NUMBERING = (("num1", 1), ("num2", 2), ("num3", 3))
@@ -101,8 +101,8 @@ class Item:
         return os.path.dirname(self.path)
 
 
-def _collate(name: str):
-    return GLib.utf8_collate_key_for_filename(name, -1)
+def _collate(name: str) -> bytes:
+    return scanner.collate_key(name)
 
 
 def ordered(items: list[Item], sort: str) -> list[Item]:

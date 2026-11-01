@@ -13,6 +13,7 @@ from typing import Callable, Optional
 
 from gi.repository import Gdk, Gio, GLib, GObject, Gtk
 
+from ..backend import scanner
 from ..i18n import tr
 from .common import SpringLoad
 from .common import shown as _shown
@@ -312,7 +313,7 @@ class PathBar(Gtk.Box):
                          and e.is_dir()]
             except OSError:
                 names = []
-            names.sort(key=lambda n: GLib.utf8_collate_key_for_filename(n, -1))
+            names.sort(key=scanner.collate_key)
             GLib.idle_add(lambda: (self._show_suggestions(token, shown_folder, folder, prefix, names), False)[1])
         threading.Thread(target=work, daemon=True).start()
         return False

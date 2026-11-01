@@ -13,6 +13,8 @@ principal.
 from __future__ import annotations
 
 import contextlib
+import ctypes
+import ctypes.util
 import os
 import stat as st
 import threading
@@ -107,17 +109,44 @@ class Rec:
         return bool(self.mode and st.S_ISREG(self.mode) and self.mode & 0o111)
 
 
-def sort_name(name: str) -> str:
+def _glib_collate():
+    lib = ctypes.CDLL(ctypes.util.find_library("glib-2.0") or "libglib-2.0.so.0")
+    fn = lib.g_utf8_collate_key_for_filename
+    fn.argtypes, fn.restype = [ctypes.c_char_p, ctypes.c_ssize_t], ctypes.c_void_p
+    free = lib.g_free
+    free.argtypes, free.restype = [ctypes.c_void_p], None
+    return fn, free
+
+
+_collate_fn, _g_free = _glib_collate()
+_string_at = ctypes.string_at
+
+
+def collate_key(name: str) -> bytes:
+    """g_utf8_collate_key_for_filename, en octets bruts (ordre naturel de Nautilus : 2 < 10).
+
+    La clé vient de strxfrm : selon la langue (de_DE…), elle contient des octets qui ne sont pas de
+    l'UTF-8 (0xed pour certains caractères CJK, symboles…). Par PyGObject, qui la décode en texte,
+    tout le dossier devenait illisible (« 'utf-8' codec can't decode byte 0xed »). Comparée octet
+    par octet, comme le strcmp de GLib. Nom non UTF-8 : octets invalides remplacés (comme GLib)."""
+    try:
+        raw = name.encode("utf-8")
+    except UnicodeEncodeError:
+        raw = name.encode("utf-8", "surrogateescape").decode("utf-8", "replace").encode("utf-8")
+    if b"\0" in raw:
+        raw = raw.replace(b"\0", b"")
+    ptr = _collate_fn(raw, -1)
+    key = _string_at(ptr)
+    _g_free(ptr)
+    return key
+
+
+def sort_name(name: str) -> bytes:
     """Clé de tri des noms identique à Nautilus (g_utf8_collate_key_for_filename : 2 < 10).
 
     Comme Nautilus, les noms commençant par « . » ou « # » (fichiers cachés, sauvegardes)
     passent après les autres."""
-    last = "1" if name[:1] in (".", "#") else "0"
-    try:
-        return last + GLib.utf8_collate_key_for_filename(name, -1)
-    except (TypeError, UnicodeError):
-        return last + GLib.utf8_collate_key_for_filename(
-            name.encode("utf-8", "surrogateescape").decode("utf-8", "replace"), -1)
+    return (b"1" if name[:1] in (".", "#") else b"0") + collate_key(name)
 
 
 def apply_stat(r: Rec, s: os.stat_result):

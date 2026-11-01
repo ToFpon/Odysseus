@@ -125,6 +125,37 @@ class ScannerTest(unittest.TestCase):
         self.assertEqual(scanner.count_children(self.d, False), 8)
 
 
+class CollateKeyTest(unittest.TestCase):
+    """Clé de tri de GLib en allemand : octets non UTF-8 (0xed) pour certains caractères ; par
+    PyGObject, tout le dossier devenait « Accès impossible » ('utf-8' codec can't decode byte 0xed)."""
+
+    def setUp(self):
+        import locale
+        self.old = locale.setlocale(locale.LC_COLLATE)
+        try:
+            locale.setlocale(locale.LC_COLLATE, "de_DE.UTF-8")
+        except locale.Error:
+            self.skipTest("locale de_DE.UTF-8 absente (localedef -i de_DE -f UTF-8 de_DE.UTF-8)")
+        self.tmp = tempfile.TemporaryDirectory()
+
+    def tearDown(self):
+        import locale
+        locale.setlocale(locale.LC_COLLATE, self.old)
+        self.tmp.cleanup()
+
+    def test_folder_with_cjk_radical(self):
+        d = self.tmp.name.encode()
+        for n in ("\u2f68 Radikal.txt", "Datei 10.txt", "Datei 2.txt", "Ärger.txt", "Zebra.txt"):
+            open(os.path.join(d, n.encode()), "w").close()
+        open(os.path.join(d, b"Mart\xedn.txt"), "w").close()        # nom qui n'est pas de l'UTF-8
+        recs = scanner.scan_local(self.tmp.name, threading.Event())
+        names = [r.name for r in scanner.sort_recs(recs)]
+        self.assertEqual(len(names), 6)
+        self.assertLess(names.index("Datei 2.txt"), names.index("Datei 10.txt"))      # ordre naturel
+        self.assertLess(names.index("Ärger.txt"), names.index("Datei 2.txt"))         # accents ignorés
+        self.assertIsInstance(scanner.collate_key("\u2f68"), bytes)
+
+
 class BrokenLinkTest(unittest.TestCase):
     """Lien dont la cible n'existe pas : « Lien (brisé) » comme Nautilus, pas le type de son nom."""
 

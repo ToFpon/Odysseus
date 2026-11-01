@@ -13,7 +13,7 @@ from typing import Optional
 from gi.repository import Gdk, Gio, GLib, GObject, Graphene, Gtk
 
 from .. import features
-from ..backend import bookmarks, devices
+from ..backend import bookmarks, devices, scanner
 from ..backend.engine import human_size
 from ..i18n import tr
 from ..settings import settings
@@ -46,7 +46,7 @@ def places(desktop: bool = True, trash: bool = True) -> list[tuple[str, str, str
         p = GLib.get_user_special_dir(d)
         if p and p != home and os.path.isdir(p):
             dirs.append((icon, GLib.filename_display_basename(p), p))
-    dirs.sort(key=lambda e: GLib.utf8_collate_key_for_filename(e[1], -1))
+    dirs.sort(key=lambda e: scanner.collate_key(e[1]))
     out.extend(dirs)
     if trash:
         out.append(("user-trash-symbolic", tr("Corbeille"), TRASH))

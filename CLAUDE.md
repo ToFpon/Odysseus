@@ -53,8 +53,10 @@ Gestionnaire de fichiers GTK4 / libadwaita en Python, look Nautilus, intégrant 
 ## Lecture rapide des dossiers (ne pas casser)
 
 - `backend/scanner.py` : `os.scandir` dans un fil ; au-delà de 4000 éléments les noms sont affichés
-  avant le `stat` (`stat_all` en seconde phase). Tri en Python avec
-  `GLib.utf8_collate_key_for_filename` (ordre naturel de Nautilus).
+  avant le `stat` (`stat_all` en seconde phase). Tri en Python avec `scanner.collate_key`
+  (`g_utf8_collate_key_for_filename` par ctypes, en octets : ordre naturel de Nautilus). Jamais par
+  PyGObject : la clé vient de strxfrm et n'est pas toujours de l'UTF-8 (allemand : 0xed pour « ⽨ »…),
+  le dossier entier devenait « Accès impossible » (`CollateKeyTest`).
 - `scanner.scan_slot()` (verrou `SCAN_LOCK`) sérialise les lectures locales massives (panneaux,
   colonnes, comptage des dossiers). Sans lui, deux fils qui font des `stat` en parallèle se battent
   pour le GIL (« convoi ») : ×10 à ×50. L'attente est plafonnée à 0,3 s : un périphérique bloqué dans

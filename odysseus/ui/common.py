@@ -16,6 +16,7 @@ gi.require_version("Adw", "1")
 from gi.repository import Adw, Gdk, Gio, GLib, GObject, Gtk  # noqa: E402
 
 from ..i18n import ntr, tr  # noqa: E402
+from ..backend import scanner  # noqa: E402
 
 
 def shown(text) -> str:
@@ -341,8 +342,8 @@ def launch_default(parent: Optional[Gtk.Widget], f: Gio.File) -> bool:
 def name_order(files: list) -> list:
     """Fichiers (Gio.File) dans l'ordre naturel des noms, celui de Nautilus : « (2) » avant « (10) »,
     pistes « 01 - », « 02 - »…"""
-    return sorted(files, key=lambda f: GLib.utf8_collate_key_for_filename(
-        GLib.filename_display_name(f.get_basename() or ""), -1))
+    return sorted(files, key=lambda f: scanner.collate_key(
+        GLib.filename_display_name(f.get_basename() or "")))
 
 
 def launch_defaults(parent: Optional[Gtk.Widget], files: list) -> list:
