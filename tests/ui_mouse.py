@@ -659,7 +659,37 @@ def steps(win):
     check(len(p.selected_recs()) == 1 and p.selected_recs()[0].name == "Clip (3).mp4",
           f"simple clic dans une sélection : lui seul ({[r.name for r in p.selected_recs()]})")
     yield from star_steps(win)
+    yield from properties_steps(win)
     yield from archive_window_steps(win)
+
+
+def properties_steps(win):
+    """Propriétés ouvertes : la fenêtre principale répond encore aux clics (pas modale, comme
+    Nautilus 46) ; on peut ouvrir celles d'un autre fichier à côté."""
+    from odysseus.ui.properties import PropertiesDialog
+    p = win.pane
+    folder = os.path.join(os.environ["HOME"], "etoiles")       # a.txt, b.txt (star_steps)
+    p.open(folder)
+    yield
+    yield
+    x, y = label_point(win, p, "a.txt")
+    xdo("mousemove", x, y, "click", 1)
+    yield
+    win.activate_action("win.properties", None)
+    yield
+    yield
+    props = [w for w in Gtk.Window.list_toplevels() if isinstance(w, PropertiesDialog) and w.get_visible()]
+    win.present()
+    yield
+    x, y = label_point(win, p, "b.txt")
+    xdo("mousemove", x, y, "click", 1)
+    yield
+    yield
+    check([r.name for r in p.selected_recs()] == ["b.txt"],
+          f"Propriétés ouvertes : un clic dans la fenêtre principale sélectionne ({[r.name for r in p.selected_recs()]})")
+    for w in props:
+        w.close()
+    yield
 
 
 def star_steps(win):

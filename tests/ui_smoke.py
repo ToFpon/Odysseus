@@ -2512,6 +2512,33 @@ def favoris(win):
 
 
 @step
+def proprietes_cote_a_cote(win):
+    """Propriétés pas modales, comme Nautilus 46 : celles d'un second élément s'ouvrent à côté
+    (retour d'un utilisateur : comparer une archive et son original, comme dans Dolphin)."""
+    from odysseus.ui.properties import PropertiesDialog
+    folder = tempfile.mkdtemp(dir=D, prefix="props ")
+    for n in ("original.txt", "archive.7z"):
+        with open(os.path.join(folder, n), "w") as fh:
+            fh.write(n)
+    p = win.pane
+    p.open(folder)
+    yield Wait(5, until=lambda: not p.model.loading and len(p.model.items) == 2)
+    opened = []
+    for name in ("archive.7z", "original.txt"):
+        p.model.select_names([name])
+        before = list(Gtk.Window.list_toplevels())
+        win.activate_action("win.properties", None)
+        yield pump(0.4)
+        opened += [w for w in Gtk.Window.list_toplevels() if w not in before and isinstance(w, PropertiesDialog)]
+    check(len(opened) == 2 and all(w.get_visible() and not w.get_modal() for w in opened),
+          "propriétés de deux éléments ouvertes côte à côte (fenêtres non modales)")
+    for w in opened:
+        w.close()
+    p.open(D)
+    yield Wait(5, until=lambda: not p.model.loading)
+
+
+@step
 def fonctionnalites(win):
     from odysseus import features
     features.set_enabled("dual_panel", False)

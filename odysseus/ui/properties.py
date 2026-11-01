@@ -96,6 +96,9 @@ class PropertiesDialog(DialogWindow):
     def __init__(self, window, paths: list[str]):
         # hauteur : celle du contenu (comme Nautilus), sans défilement tant que l'écran le permet
         super().__init__(title=tr("Propriétés"), content_width=480, content_height=-1)
+        # comme Nautilus 46 : pas modale. On peut ouvrir les propriétés d'un autre élément à côté (comparer
+        # une archive et l'original) ; avant, la fenêtre principale ne répondait plus tant qu'elle était ouverte.
+        self.set_modal(False)
         self.window = window
         self.paths = paths
         self._cancel = threading.Event()
