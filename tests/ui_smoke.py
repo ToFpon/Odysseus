@@ -2438,6 +2438,14 @@ def favoris(win):
     if not starred.available():
         log.append("favoris : TinySPARQL absent, sauté")
         return
+    rows = []
+    row = win.sidebar.places_list.get_first_child()
+    while row is not None:
+        rows.append(getattr(row, "target", None))
+        row = row.get_next_sibling()
+    check(not features.enabled("starred") and starred.URI not in rows, "Favoris coupés par défaut")
+    features.set_enabled("starred", True)
+    yield pump(0.3)
     folder = tempfile.mkdtemp(dir=os.environ["HOME"], prefix="favoris ")
     for n in ("rapport.pdf", "notes.txt"):
         open(os.path.join(folder, n), "w").close()
@@ -2498,7 +2506,6 @@ def favoris(win):
         rows.append(getattr(row, "target", None))
         row = row.get_next_sibling()
     check(starred.URI not in rows and p.mode != "starred", "Favoris désactivés : entrée retirée, page quittée")
-    features.set_enabled("starred", True)
     starred.unstar([new])
     p.open(D)
     yield Wait(5, until=lambda: not p.model.loading)

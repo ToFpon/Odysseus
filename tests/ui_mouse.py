@@ -669,6 +669,8 @@ def star_steps(win):
     if not starred.available():
         print("favoris : TinySPARQL absent, sauté")
         return
+    from odysseus import features
+    features.set_enabled("starred", True)          # coupé par défaut
     p = win.pane
     folder = os.path.join(os.environ["HOME"], "etoiles")
     os.makedirs(folder, exist_ok=True)

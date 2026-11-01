@@ -123,7 +123,8 @@ FEATURES = [
             tr("Marquer des fichiers d'une étoile et les retrouver dans « Favoris », avec les mêmes favoris "
                "que Nautilus"),
             "starred-symbolic", "files",
-            tools=(("gir:Tsparql", "gir:Tracker"),), packages="gir1.2-tracker-3.0"),
+            tools=(("gir:Tsparql", "gir:Tracker"),), packages="gir1.2-tracker-3.0",
+            default=False),                  # coupé par défaut (choix de Tof) : activable dans les Préférences
     Feature("samba_share", tr("Partage réseau (Samba)"),
             tr("Partager un dossier sur le réseau local, comme nautilus-share : clic droit → « Options de "
                "partage… »"),
