@@ -1,6 +1,6 @@
 #!/bin/sh
 # Envoie le site de présentation (dossier site/) sur les pages perso Free, comme FileZilla :
-#   tools/site.sh            envoie les fichiers modifiés depuis le dernier envoi
+#   tools/site.sh            envoie tout le dossier (2-3 Mo)
 #   tools/site.sh --essai    montre ce qui serait envoyé, sans rien envoyer
 # Appelé à la fin de tools/ppa.sh.
 #
@@ -31,8 +31,9 @@ if [ -n "$(find "$HOME/.netrc" -perm /077)" ]; then
 fi
 DRY=""
 [ "$1" = "--essai" ] && DRY="--dry-run"
-# --only-newer : seulement ce qui a changé ; jamais --delete (rien n'est retiré du serveur)
+# --transfer-all : tout est renvoyé (2-3 Mo) ; comparer les dates trompait (sur le serveur, heure du
+# dernier envoi FileZilla ; ici, heure du git pull). Jamais --delete : rien n'est retiré du serveur.
 lftp -e "set ftp:ssl-allow no; set net:max-retries 2; set net:timeout 30; \
-mirror --reverse --only-newer --no-perms --verbose=1 $DRY site/ $DIR/; bye" -p "$PORT" "$HOST"
+mirror --reverse --transfer-all --no-perms --verbose=1 $DRY site/ $DIR/; bye" -p "$PORT" "$HOST"
 [ -z "$DRY" ] && echo "Site envoyé : https://tofmicro.pages-perso.free.fr/$DIR/"
 exit 0

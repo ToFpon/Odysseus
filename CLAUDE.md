@@ -172,7 +172,7 @@ dossier personnel de démonstration de `tools/demo-home.py` (HOME pointé dessus
 settings.json remis à zéro avant chaque capture : la vue et le double panneau sont mémorisés).
 Les dialogues ouverts (fenêtres posées sur la principale) sont composés au centre de la capture.
 Site de présentation (`site/index.html`, anglais ; en ligne sur https://tofmicro.pages-perso.free.fr/Odysseus/, envoyé par FTP
-à la fin de `tools/ppa.sh` via `tools/site.sh` — lftp, identifiants dans ~/.netrc de Tof, `--only-newer`, jamais de suppression ; version affichée dans la pastille et l'accroche, à tenir à jour ; installation par le PPA,
+à la fin de `tools/ppa.sh` via `tools/site.sh` — lftp, identifiants dans ~/.netrc de Tof, tout renvoyé (`--transfer-all` : les dates trompaient), jamais de suppression ; version affichée dans la pastille et l'accroche, à tenir à jour ; installation par le PPA,
 liens GitHub et Launchpad ; « Copy » ne copie que les deux commandes d'installation) : captures de
 `site/img/` faites en anglais et en sombre (`--dark`, sauf `light.png`) sur `tools/demo-home.py
 /home/tof --en` (chemin court : il s'affiche dans la recherche) ; `--search=… --replace=…` capture la
