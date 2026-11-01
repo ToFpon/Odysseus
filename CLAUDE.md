@@ -18,10 +18,11 @@ Gestionnaire de fichiers GTK4 / libadwaita en Python, look Nautilus, intégrant 
   (Adwaita sombre ; libadwaita ne suit pas le thème KDE, seulement clair / sombre) — vidéo d'un utilisateur.
   PPA : `tools/ppa.sh` envoie la même entrée du changelog pour noble (24.04) puis resolute (26.04,
   version « X~resolute1 », réécrite dans une copie) ; le changelog du dépôt ne vise que noble.
-  Puis `tools/ppa.sh` pose et envoie l'étiquette `vX` : `.github/workflows/release-deb.yml` construit le
+  Commit « Version X » poussé sur main (debian/changelog change) : `.github/workflows/release-deb.yml` construit le
   .deb sur ubuntu-24.04 (version « X~deb1 », plus ancienne que « X~noble1 » : le PPA prend le relais) et le
   publie dans les Releases (`odysseus_X_all.deb`, notes en anglais tirées de la fiche AppStream). Aussi
-  lançable à la main (workflow_dispatch). Pour Debian 13, PCLinuxOS Debian…
+  lançable à la main (workflow_dispatch). Pour Debian 13, PCLinuxOS Debian… L'étiquette `vX` est créée par
+  la publication (`gh release create --target`) : le clone HTTPS de Tof n'a pas d'identifiants pour pousser.
 - Suivre le thème GTK du système : `data/base.css` ne fait que de la mise en page, aucune couleur fixe.
   La zone des fichiers utilise le fond / texte de la fenêtre (pas `view`), classe `nautilus-list-view`,
   lignes de liste compactes (~35 px).

@@ -1,6 +1,7 @@
 # Paquet .deb publié sur la page « Releases » de GitHub, pour les distributions basées sur Debian qui
-# n'utilisent pas le PPA (Debian 13, PCLinuxOS Debian…). Déclenché par l'étiquette vX que pose
-# tools/ppa.sh après l'envoi sur Launchpad (ou à la main : onglet Actions → Run workflow).
+# n'utilisent pas le PPA (Debian 13, PCLinuxOS Debian…). Déclenché quand debian/changelog change sur
+# main (commit « Version X ») ; l'étiquette vX est créée par la publication. Aussi à la main (onglet
+# Actions → Run workflow). Rien à envoyer depuis le poste de Tof (pas d'identifiants GitHub en HTTPS).
 #
 # Version du paquet : « X~deb1 » (le changelog vise noble, « X~noble1 ») ; « ~deb1 » est plus ancien
 # que « ~noble1 » pour apt, donc quelqu'un qui ajoute ensuite le PPA passe à son paquet sans rien faire.
@@ -8,7 +9,8 @@ name: Paquet .deb (GitHub)
 
 on:
   push:
-    tags: ["v*"]
+    branches: [main]
+    paths: [debian/changelog]
   workflow_dispatch:
 
 permissions:
