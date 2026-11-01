@@ -1,3 +1,11 @@
+odysseus (1.7.2~noble1) noble; urgency=medium
+
+  * Propriétés : la fenêtre ne bloque plus la fenêtre principale ; on
+    peut ouvrir les propriétés de plusieurs éléments côte à côte
+    (comparer une archive et l'original, par exemple).
+
+ -- Tof <nourpon@gmail.com>  Sun, 01 Nov 2026 20:08:08 +0000
+
 odysseus (1.7.1~noble1) noble; urgency=medium
 
   * Réorganisation de la fenêtre « À propos ».

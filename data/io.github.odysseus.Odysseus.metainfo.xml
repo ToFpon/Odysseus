@@ -70,6 +70,13 @@
   </requires>
   <content_rating type="oars-1.1"/>
   <releases>
+    <release version="1.7.2" date="2026-11-01">
+      <description>
+        <ul>
+          <li>Properties: the window no longer blocks the main window, so the properties of several items can be opened side by side (to compare an archive with the original, for instance)</li>
+        </ul>
+      </description>
+    </release>
     <release version="1.7.1" date="2026-11-01">
       <description>
         <ul>
