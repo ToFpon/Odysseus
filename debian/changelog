@@ -1,3 +1,9 @@
+odysseus (1.7.1~noble1) noble; urgency=medium
+
+  * Réorganisation de la fenêtre « À propos ».
+
+ -- Tof <nourpon@gmail.com>  Sun, 01 Nov 2026 17:45:56 +0000
+
 odysseus (1.7.0~noble1) noble; urgency=medium
 
   * Favoris comme dans Nautilus, partagés avec lui dans les deux sens :

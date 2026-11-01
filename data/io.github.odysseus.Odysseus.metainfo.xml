@@ -70,6 +70,14 @@
   </requires>
   <content_rating type="oars-1.1"/>
   <releases>
+    <release version="1.7.1" date="2026-11-01">
+      <description>
+        <ul>
+          <li>About window reorganized</li>
+          <li>Website: the .deb install command stays on one line</li>
+        </ul>
+      </description>
+    </release>
     <release version="1.7.0" date="2026-11-01">
       <description>
         <ul>
