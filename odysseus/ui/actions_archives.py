@@ -89,7 +89,7 @@ class ArchiveActions:
             return
         p = self.pane
         if sources is None:
-            sources = p.selected_paths() if p.mode in ("fs", "search") else []
+            sources = p.selected_paths() if p.mode in ("fs", "search", "starred") else []
         if not sources:
             choose_files(self, tr("Choisir les fichiers à compresser"), p.current_dir(),
                          lambda paths: self.compress(paths))

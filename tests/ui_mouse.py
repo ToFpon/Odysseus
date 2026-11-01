@@ -658,7 +658,54 @@ def steps(win):
     yield
     check(len(p.selected_recs()) == 1 and p.selected_recs()[0].name == "Clip (3).mp4",
           f"simple clic dans une sélection : lui seul ({[r.name for r in p.selected_recs()]})")
+    yield from star_steps(win)
     yield from archive_window_steps(win)
+
+
+def star_steps(win):
+    """Favoris : un vrai clic sur l'étoile en fin de ligne marque le fichier, un second le démarque
+    (le clic ne doit pas être pris par la sélection de la ligne)."""
+    from odysseus.backend import starred
+    if not starred.available():
+        print("favoris : TinySPARQL absent, sauté")
+        return
+    p = win.pane
+    folder = os.path.join(os.environ["HOME"], "etoiles")
+    os.makedirs(folder, exist_ok=True)
+    for n in ("a.txt", "b.txt"):
+        open(os.path.join(folder, n), "w").close()
+    p.open(folder)
+    yield
+    yield
+
+    def star_button(name):
+        def walk(w):
+            if isinstance(w, Gtk.Button) and w.has_css_class("star") and w.get_mapped() and \
+                    getattr(getattr(w, "_rec", None), "name", None) == name:
+                return w
+            c = w.get_first_child()
+            while c is not None:
+                r = walk(c)
+                if r is not None:
+                    return r
+                c = c.get_next_sibling()
+        return walk(p)
+    btn = star_button("a.txt")
+    check(btn is not None, "étoile affichée en fin de ligne")
+    if btn is None:
+        return
+    target = os.path.join(folder, "a.txt")
+    x, y = screen_point(win, btn, btn.get_width() / 2, btn.get_height() / 2)
+    xdo("mousemove", x, y, "click", 1)
+    yield
+    yield
+    check(starred.is_starred(target) and btn.get_icon_name() == "starred-symbolic",
+          "clic sur l'étoile : marqué comme favori (étoile pleine)")
+    xdo("mousemove", x, y, "click", 1)
+    yield
+    yield
+    check(not starred.is_starred(target) and btn.get_icon_name() == "non-starred-symbolic",
+          "second clic : démarqué (étoile creuse)")
 
 
 def archive_window_steps(win):

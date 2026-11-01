@@ -2429,6 +2429,82 @@ def corbeille_relance_gvfs(win):
 
 
 @step
+def favoris(win):
+    """Favoris comme Nautilus 46 : étoile en fin de ligne, « Marquer comme favori » / « Démarquer »,
+    page « Favoris » sous Récents, l'étoile suit un renommage ; désactivable sans redémarrer."""
+    from odysseus import features
+    from odysseus.backend import starred
+    from odysseus.ui import menus
+    if not starred.available():
+        log.append("favoris : TinySPARQL absent, sauté")
+        return
+    folder = tempfile.mkdtemp(dir=os.environ["HOME"], prefix="favoris ")
+    for n in ("rapport.pdf", "notes.txt"):
+        open(os.path.join(folder, n), "w").close()
+    p = win.pane
+    p.open(folder)
+    yield Wait(5, until=lambda: not p.model.loading and len(p.model.items) == 2)
+    check("star" in p.list_view.columns, "colonne des étoiles dans le dossier personnel")
+    p.model.select_names(["rapport.pdf"])
+
+    def labels(menu):
+        out = []
+        for i in range(menu.get_n_items()):
+            lab = menu.get_item_attribute_value(i, "label", None)
+            if lab is not None:
+                out.append(lab.get_string())
+            for link in ("section", "submenu"):
+                sub = menu.get_item_link(i, link)
+                if sub is not None:
+                    out += labels(sub)
+        return out
+    check(tr("Marquer comme favori") in labels(menus.context_menu(win, p, True)), "menu : « Marquer comme favori »")
+    win.activate_action("win.star", None)
+    yield pump(0.3)
+    target = os.path.join(folder, "rapport.pdf")
+    check(starred.is_starred(target), "marqué comme favori")
+    menu = labels(menus.context_menu(win, p, True))
+    check(tr("Démarquer") in menu and tr("Marquer comme favori") not in menu, "menu : « Démarquer »")
+    rows = []
+    row = win.sidebar.places_list.get_first_child()
+    while row is not None:
+        rows.append(getattr(row, "target", None))
+        row = row.get_next_sibling()
+    check(starred.URI in rows, "« Favoris » dans la barre latérale")
+    # renommé dans Odysseus : l'étoile suit (comme nautilus_tag_manager_update_moved_uris)
+    new = os.path.join(folder, "rapport 2026.pdf")
+    os.rename(target, new)
+    win._follow_rename(target, new)
+    check(starred.is_starred(new) and not starred.is_starred(target), "l'étoile suit le renommage")
+    p.open(starred.URI)
+    yield Wait(5, until=lambda: not p.model.loading and any(r.path == new for r in p.model.items))
+    check(p.mode == "starred" and [r.path for r in p.model.items] == [new], "page « Favoris »")
+    check("location" in p.list_view.columns and p.title() == tr("Favoris"), "Favoris : colonne Emplacement, titre")
+    p.model.select_names(["rapport 2026.pdf"])
+    win.activate_action("win.unstar", None)
+    yield Wait(5, until=lambda: not p.model.items)
+    check(not starred.is_starred(new), "démarqué")
+    yield pump(0.3)
+    check(p.stack.get_visible_child_name() == "empty" and p.empty.get_title() == tr("Aucun fichier favori"),
+          "Favoris vide : « Aucun fichier favori »")
+    starred.star([new])
+    yield Wait(5, until=lambda: bool(p.model.items))
+    check([r.path for r in p.model.items] == [new], "étoile posée ailleurs : la page se met à jour")
+    features.set_enabled("starred", False)
+    yield pump(0.4)
+    rows = []
+    row = win.sidebar.places_list.get_first_child()
+    while row is not None:
+        rows.append(getattr(row, "target", None))
+        row = row.get_next_sibling()
+    check(starred.URI not in rows and p.mode != "starred", "Favoris désactivés : entrée retirée, page quittée")
+    features.set_enabled("starred", True)
+    starred.unstar([new])
+    p.open(D)
+    yield Wait(5, until=lambda: not p.model.loading)
+
+
+@step
 def fonctionnalites(win):
     from odysseus import features
     features.set_enabled("dual_panel", False)

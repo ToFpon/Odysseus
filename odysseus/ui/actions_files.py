@@ -12,7 +12,7 @@ from typing import Optional
 from gi.repository import Adw, Gio, GLib, Gtk
 
 from .. import features
-from ..backend import batchrename, fileops, folder_colors, formats, gioops
+from ..backend import batchrename, fileops, folder_colors, formats, gioops, starred
 from ..backend.engine import Job, ToolError, human_size
 from ..i18n import ntr, tr
 from ..settings import settings
@@ -99,7 +99,7 @@ class FileActions:
             "edit-text": self.edit_text, "undo": self.undo, "redo": self.redo,
             "open-admin": self.open_admin, "open-admin-folder": self.open_admin_folder,
             "folder-restore": self.folder_restore, "browse-archive": self.browse_archive,
-            "share-folder": self.share_folder,
+            "share-folder": self.share_folder, "star": self.star_selected, "unstar": self.unstar_selected,
         }
         for name, cb in acts.items():
             self._add(name, cb)
@@ -299,6 +299,21 @@ class FileActions:
         sel = self._sel()
         if sel and sel[0].path:
             self.pane.open(os.path.dirname(sel[0].path), select=[sel[0].name])
+
+    def star_selected(self):
+        paths = [r.path for r in self._sel() if r.path and starred.can_star(r.path)]
+        if paths and features.enabled("starred"):
+            starred.star(paths)
+
+    def unstar_selected(self):
+        """« Démarquer », avec la notification de Nautilus et « Annuler » (marquées de nouveau)."""
+        paths = [r.path for r in self._sel() if r.path and starred.cached_starred(r.path)]
+        if not paths:
+            return
+        starred.unstar(paths)
+        msg = (tr("« {0} » est démarqué").format(os.path.basename(paths[0])) if len(paths) == 1 else
+               ntr("{0} fichier démarqué", "{0} fichiers démarqués", len(paths)).format(len(paths)))
+        toast(self, msg, tr("Annuler"), lambda: starred.star(paths), timeout=6)
 
     def share_folder(self):
         """Options de partage (Samba) du dossier sélectionné, comme nautilus-share."""
@@ -510,6 +525,8 @@ class FileActions:
         alert(self, tr("{0} : certains éléments n'ont pas pu être traités").format(title), text)
 
     def _follow_moves(self, res: fileops.Result):
+        if res.moved and starred.available():
+            starred.moved(list(res.moved))          # comme Nautilus : l'étoile suit l'élément
         for src, dst in res.moved:
             if os.path.isdir(dst):
                 for p in self.all_panes():
@@ -517,6 +534,8 @@ class FileActions:
 
     def _follow_rename(self, old: str, new: str):
         """Annuler / rétablir un renommage de dossier : les panneaux ouverts dedans le suivent."""
+        if starred.available():
+            starred.moved([(old, new)])
         if os.path.isdir(new):
             for p in self.all_panes():
                 p.follow_move(old, new)
@@ -645,6 +664,8 @@ class FileActions:
                 alert(self, tr("Renommage impossible"), getattr(e, "strerror", None) or str(e))
                 return
             self._push_undo(("rename", rec.path, target))
+            if starred.available():
+                starred.moved([(rec.path, target)])
             if rec.is_dir:
                 for other in self.all_panes():           # panneaux ouverts dans ce dossier : suivre
                     other.follow_move(rec.path, target)

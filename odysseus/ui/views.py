@@ -7,12 +7,13 @@ données paresseuses arrivent (miniature, couleur de dossier, nombre d'élément
 
 from __future__ import annotations
 
+import os
 from typing import TYPE_CHECKING
 
 from gi.repository import Adw, Gdk, Gio, GLib, Graphene, Gtk, Pango
 
 from .. import features
-from ..backend import media, scanner
+from ..backend import media, scanner, starred
 from ..backend.engine import human_size
 from ..backend.scanner import Rec
 from ..backend.workers import pool
@@ -45,6 +46,7 @@ COLUMNS = [
     ("owner", tr("Propriétaire"), 110, 0.0, "owner"),
     ("duration", tr("Durée"), 90, 1.0, "duration"),
     ("location", tr("Emplacement"), 240, 0.0, "location"),
+    ("star", "", 44, 0.5, None),          # étoile des favoris, en fin de ligne, sans titre (Nautilus 46)
 ]
 OPTIONAL_COLUMNS = [("size", tr("Taille")), ("type", tr("Type")), ("date", tr("Modifié")),
                     ("perms", tr("Droits")), ("owner", tr("Propriétaire")), ("duration", tr("Durée"))]
@@ -52,6 +54,18 @@ SORT_TO_COLUMN = {c[4]: c[0] for c in COLUMNS if c[4]}
 
 # Chemins en cours de glisser depuis Odysseus (pour choisir copier ou déplacer à l'arrivée)
 DRAG_PATHS: list[str] = []
+
+
+def star_column_wanted(pane: "Pane") -> bool:
+    """Comme Nautilus : colonne des étoiles dans le dossier personnel et ses sous-dossiers, et dans
+    Favoris."""
+    if not features.enabled("starred") or not starred.available():
+        return False
+    if pane.mode == "starred":
+        return True
+    loc = pane.search_root if pane.mode == "search" else pane.location if pane.mode == "fs" else ""
+    home = os.path.expanduser("~")
+    return bool(loc) and (loc == home or starred.can_star(loc))
 
 
 def cell_text(key: str, rec: Rec, pane: "Pane") -> str:
@@ -419,11 +433,14 @@ class ListView(Gtk.ScrolledWindow, _CellMixin):
             if key == "name":
                 f.connect("setup", self._setup_name)
                 f.connect("bind", self._bind_name)
+            elif key == "star":
+                f.connect("setup", self._setup_star)
+                f.connect("bind", self._bind_star)
             else:
                 f.connect("setup", self._setup_text, xalign)
                 f.connect("bind", self._bind_text, key)
             f.connect("unbind", lambda _f, li: self._untrack(li.get_child()))
-            col = Gtk.ColumnViewColumn(title=title, factory=f, resizable=True, expand=(key == "name"))
+            col = Gtk.ColumnViewColumn(title=title, factory=f, resizable=(key != "star"), expand=(key == "name"))
             w = self._widths.get(key, width or -1)
             if w and w > 0:
                 col.set_fixed_width(w)
@@ -462,7 +479,9 @@ class ListView(Gtk.ScrolledWindow, _CellMixin):
             elif key in ("packed", "ratio"):
                 vis = mode == "archive"
             elif key == "location":
-                vis = mode in ("search", "trash")
+                vis = mode in ("search", "trash", "starred")
+            elif key == "star":
+                vis = star_column_wanted(self.pane)
             elif key == "duration":
                 vis = key in wanted and features.available("duration_column") and mode != "archive"
             elif key in ("perms", "owner"):
@@ -533,6 +552,40 @@ class ListView(Gtk.ScrolledWindow, _CellMixin):
         label.set_tooltip_text(shown(rec.name) if len(rec.name) > 50 else None)
         self._apply_copy_mark(mark, rec)
         self._apply_dim(box, img, rec)
+
+    def _setup_star(self, _f, li):
+        """Étoile de Nautilus 46 (nautilus-star-cell.c) : bouton plat, « starred-symbolic » /
+        « non-starred-symbolic », bulle « Favori » / « Démarquer », un clic marque ou démarque."""
+        btn = Gtk.Button(halign=Gtk.Align.END, valign=Gtk.Align.CENTER,
+                         css_classes=["dim-label", "star", "flat", "circular"])
+        btn.connect("clicked", self._on_star_clicked)
+        li.set_child(btn)
+
+    def _bind_star(self, _f, li):
+        entry = li.get_item()
+        btn = li.get_child()
+        btn._rec = entry.rec
+
+        def fill():
+            rec = getattr(btn, "_rec", None)
+            ok = rec is not None and starred.can_star(rec.path)
+            on = ok and starred.cached_starred(rec.path)
+            btn.set_visible(ok)
+            btn.set_icon_name("starred-symbolic" if on else "non-starred-symbolic")
+            btn.set_tooltip_text(tr("Démarquer") if on else tr("Marquer comme favori"))
+            (btn.add_css_class if on else btn.remove_css_class)("starred")
+        self._track(btn, entry, fill)
+        fill()
+
+    @staticmethod
+    def _on_star_clicked(btn):
+        rec = getattr(btn, "_rec", None)
+        if rec is None or not rec.path:
+            return
+        if starred.cached_starred(rec.path):
+            starred.unstar([rec.path])
+        else:
+            starred.star([rec.path])
 
     def _setup_text(self, _f, li, xalign):
         lbl = Gtk.Label(xalign=xalign, ellipsize=Pango.EllipsizeMode.END, css_classes=["dim-label", "numeric"])

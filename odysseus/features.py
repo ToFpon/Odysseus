@@ -119,6 +119,11 @@ FEATURES = [
                "au fichier suivant"),
             "view-reveal-symbolic", "files",
             tools=(("lib:sushi",),), packages="gnome-sushi"),
+    Feature("starred", tr("Favoris"),
+            tr("Marquer des fichiers d'une étoile et les retrouver dans « Favoris », avec les mêmes favoris "
+               "que Nautilus"),
+            "starred-symbolic", "files",
+            tools=(("gir:Tsparql", "gir:Tracker"),), packages="gir1.2-tracker-3.0"),
     Feature("samba_share", tr("Partage réseau (Samba)"),
             tr("Partager un dossier sur le réseau local, comme nautilus-share : clic droit → « Options de "
                "partage… »"),
@@ -164,7 +169,8 @@ PACKAGE_OF = {"7zz": "7zip", "7z": "7zip", "7za": "7zip", "gs": "ghostscript", "
               "lib:heif-libde265": "libheif-plugin-libde265", "lib:sushi": "gnome-sushi", "net": "samba", "lib:smbd": "samba", "lib:7zip-rar": "7zip-rar", "ffprobe": "ffmpeg", "ffmpegthumbnailer": "ffmpegthumbnailer",
               "rg": "ripgrep", "grep": "grep", "pdftoppm": "poppler-utils", "zstd": "zstd", "brotli": "brotli",
               "lz4": "lz4", "dpkg-deb": "dpkg", "pkexec": "pkexec", "py:pypdf": "python3-pypdf",
-              "py:cairo": "python3-cairo python3-gi-cairo", "gir:Poppler": "gir1.2-poppler-0.18"}
+              "py:cairo": "python3-cairo python3-gi-cairo", "gir:Poppler": "gir1.2-poppler-0.18",
+              "gir:Tracker": "gir1.2-tracker-3.0", "gir:Tsparql": "gir1.2-tracker-3.0"}
 
 
 # greffons de bibliothèques (pas de programme à chercher dans le PATH) : fichier installé par le paquet
@@ -193,7 +199,7 @@ def present(name: str) -> bool:
     if name.startswith("gir:"):
         import gi
         try:
-            gi.require_version(name[4:], {"Poppler": "0.18"}.get(name[4:], "1.0"))
+            gi.require_version(name[4:], {"Poppler": "0.18", "Tracker": "3.0", "Tsparql": "3.0"}.get(name[4:], "1.0"))
             return True
         except ValueError:
             return False
@@ -260,6 +266,7 @@ COMPONENTS = [
     (tr("Fichiers"), [
         ("Sushi", ("lib:sushi",), tr("Aperçu rapide avec la barre d'espace, comme dans Nautilus")),
         ("Samba", ("lib:smbd",), tr("Partager un dossier sur le réseau local")),
+        ("TinySPARQL", ("gir:Tsparql", "gir:Tracker"), tr("Favoris partagés avec Nautilus")),
     ]),
     (tr("Recherche"), [
         ("ripgrep", ("rg",), tr("Recherche rapide dans le contenu des fichiers (sinon grep, plus lent)")),

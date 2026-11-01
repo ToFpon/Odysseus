@@ -288,7 +288,8 @@ class MainWindow(FileActions, ArchiveActions, ToolActions, Adw.ApplicationWindow
         tp.set_title(shown(p.title()))
         tp.set_tooltip(shown(p.location_text()))
         icon = {"archive": "package-x-generic-symbolic", "search": "system-search-symbolic",
-                "trash": "user-trash-symbolic", "remote": "folder-remote-symbolic"}.get(p.mode, "folder-symbolic")
+                "trash": "user-trash-symbolic", "remote": "folder-remote-symbolic",
+                "starred": "starred-symbolic"}.get(p.mode, "folder-symbolic")
         tp.set_icon(Gio.ThemedIcon.new(icon))
 
     def _on_close_page(self, view, tp):
@@ -432,6 +433,7 @@ class MainWindow(FileActions, ArchiveActions, ToolActions, Adw.ApplicationWindow
                     a.set_state(GLib.Variant.new_boolean(col in settings["list_columns"]))
         elif key == "features":
             self._apply_features()
+            self.sidebar.fill_places()          # « Favoris » suit la fonctionnalité
         elif key == "type_ahead":
             self.search_bar.set_key_capture_widget(None if settings["type_ahead"] else self)
             for p in self.all_panes():
@@ -458,6 +460,10 @@ class MainWindow(FileActions, ArchiveActions, ToolActions, Adw.ApplicationWindow
             self._sync_dual()
         if not features.enabled("preview") and self.preview is not None:
             self.set_preview(False)
+        if not features.enabled("starred"):
+            for p in self.all_panes():
+                if p.mode == "starred":
+                    p.open(os.path.expanduser("~"), push=False)
         self.view_btn.set_menu_model(menus.view_menu())
         self._update_sensitivity()
 
@@ -468,15 +474,16 @@ class MainWindow(FileActions, ArchiveActions, ToolActions, Adw.ApplicationWindow
         sel = p.selected_recs()
         # emplacements GVfs (admin://, smb://…) : par le chemin local que GVfs expose, sinon par GIO
         gvfs = p.mode == "remote" and not p.location.startswith(("network:", "recent:"))
-        fs = p.mode in ("fs", "search") or gvfs
+        fs = p.mode in ("fs", "search", "starred") or gvfs
         local_sel = [r for r in sel if r.path or (gvfs and r.uri)]
         has_dir = (bool(p.current_dir()) and p.mode == "fs") or gvfs
         can = {
             "back": bool(p.back_stack), "forward": bool(p.forward_stack), "up": p.can_go_up(),
             "cut": fs and bool(local_sel), "copy": fs and bool(local_sel),
             "paste": has_dir, "rename": (len(sel) == 1 and (fs or p.mode == "archive"))
-            or (len(sel) > 1 and p.mode in ("fs", "search") and all(r.path for r in sel)),
-            "trash": fs and bool(local_sel), "delete": bool(sel) and (p.mode in ("fs", "search", "trash") or gvfs),
+            or (len(sel) > 1 and p.mode in ("fs", "search", "starred") and all(r.path for r in sel)),
+            "trash": fs and bool(local_sel),
+            "delete": bool(sel) and (p.mode in ("fs", "search", "starred", "trash") or gvfs),
             "new-folder": has_dir or p.mode == "archive", "new-file": has_dir, "new-empty-file": has_dir,
             "copy-to-other": fs and bool(local_sel), "move-to-other": fs and bool(local_sel),
             "restore": p.mode == "trash" and bool(sel), "properties": bool(sel) or bool(p.current_dir()),
@@ -751,7 +758,7 @@ class MainWindow(FileActions, ArchiveActions, ToolActions, Adw.ApplicationWindow
         focus = self.get_focus()
         # seulement dans la vue des fichiers : pas dans un champ, un menu, la barre latérale…
         if p is None or not (p.lost_focus(focus) or focus.is_ancestor(p) and not isinstance(focus, Gtk.Editable)) \
-                or p.mode not in ("fs", "search", "trash", "remote", "archive") or p.view_mode == "columns":
+                or p.mode not in ("fs", "search", "starred", "trash", "remote", "archive") or p.view_mode == "columns":
             return False
         if p.type_ahead_active and keyval == Gdk.KEY_Escape:
             p.type_ahead_cancel()

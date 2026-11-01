@@ -13,7 +13,7 @@ from typing import Optional
 from gi.repository import Adw, Gdk, Gio, GLib, GObject, Graphene, Gtk
 
 from .. import features
-from ..backend import archive, folder_sort, formats, scanner, trashwatch
+from ..backend import archive, folder_sort, formats, scanner, starred, trashwatch
 from ..backend.engine import PasswordRequired, human_size
 from ..backend.scanner import Rec
 from ..i18n import ntr, tr
@@ -28,7 +28,8 @@ from .this_pc import COMPUTER_URI, ThisPC
 from .views import DRAG_PATHS, GRID_ZOOM, ZOOM, GridView, ListView
 
 TRASH_URI = "trash:///"
-SPECIAL_URIS = {"trash:///": tr("Corbeille"), "recent:///": tr("Récents"), "network:///": tr("Réseau"),
+SPECIAL_URIS = {"trash:///": tr("Corbeille"), "recent:///": tr("Récents"), starred.URI: tr("Favoris"),
+                "network:///": tr("Réseau"),
                 OTHER_URI: tr("Autres emplacements"), COMPUTER_URI: tr("Ce PC")}
 # pages qui ne sont pas des dossiers : adresse → (classe, nom dans la pile)
 PAGES = {OTHER_URI: (OtherLocations, "other"), COMPUTER_URI: (ThisPC, "computer")}
@@ -65,7 +66,7 @@ class Pane(Gtk.Box):
         # glisser hors d'une archive : éléments extraits d'avance (archive_drag.py)
         self.drag = DragCache(lambda: (self.archive_path, self.password, self.listing),
                               lambda msg: self.emit("message", msg))
-        self.mode = "fs"              # fs, archive, search, trash, remote, other
+        self.mode = "fs"              # fs, archive, search, trash, remote, other, starred
         self.location = os.path.expanduser("~")
         self.view_mode = view_mode or settings["view_mode"]
         if self.view_mode == "columns" and not features.enabled("column_view"):
@@ -111,6 +112,7 @@ class Pane(Gtk.Box):
         self._settings_cb = self._on_setting
         settings.connect(self._settings_cb)
         folder_sort.listeners.append(self._on_folder_sort)
+        starred.listeners.append(self._on_starred)
         self._clip_id = clipboard.state.connect("changed", lambda *_: self.refresh_rows())
         self.connect("destroy", lambda *_: self._cleanup())
         self.open(location or os.path.expanduser("~"), push=False)
@@ -147,6 +149,8 @@ class Pane(Gtk.Box):
             pass
         if self._on_folder_sort in folder_sort.listeners:
             folder_sort.listeners.remove(self._on_folder_sort)
+        if self._on_starred in starred.listeners:
+            starred.listeners.remove(self._on_starred)
         self.drag.forget()
         self.model.cancel()
 
@@ -444,6 +448,8 @@ class Pane(Gtk.Box):
             self.open_archive(self.archive_path, self.inner, push=False, password=self.password)
         elif self.mode == "search":
             self.start_search(self.search_query, recursive=True)
+        elif self.mode == "starred":
+            self._load_starred(keep=[r.path for r in self.selected_recs() if r.path])
         else:
             sel = [r.name for r in self.selected_recs()]
             self._select_after = sel
@@ -459,6 +465,9 @@ class Pane(Gtk.Box):
             loc = Gio.File.new_for_uri(loc).get_path() or loc
         if loc in PAGES:
             self._open_other(loc, push)
+            return True
+        if loc == starred.URI:
+            self._open_starred(push, select)
             return True
         if is_uri(loc):
             self._open_uri(loc, push, select)
@@ -537,6 +546,66 @@ class Pane(Gtk.Box):
         self._show_content()
         self._update_floating()
         self.emit("location-changed")
+
+    def _open_starred(self, push: bool, select: Optional[list] = None):
+        """Page « Favoris » de Nautilus : les éléments marqués d'une étoile, d'où qu'ils viennent,
+        avec la colonne Emplacement (comme une recherche)."""
+        if push and self.location != starred.URI:
+            self._push()
+        self._leave_special()
+        self.mode = "starred"
+        self.location = starred.URI
+        self._select_after = select
+        self._to_top = True
+        self._take_place_sort()
+        self.list_view.update_columns()
+        if self.view_mode == "columns":
+            self.set_view_mode("list", save=False)
+        self.model.set_static(starred.URI, [])
+        self.model.loading = True                 # pas de page « Aucun fichier favori » avant la lecture
+        self.model.emit("state", "loading")
+        self._load_starred()
+        self.emit("location-changed")
+
+    def _load_starred(self, keep: Optional[list] = None):
+        self._load_token += 1
+        token = self._load_token
+        home = os.path.expanduser("~")
+
+        def work():
+            recs = []
+            for path in starred.starred_paths():
+                r = scanner.rec_for_path(path)
+                if r is None:
+                    continue
+                parent = os.path.dirname(path)
+                r.set("location", tr("Dossier personnel") if parent == home else os.path.relpath(parent, home))
+                recs.append(r)
+            GLib.idle_add(done, recs)
+
+        def done(recs):
+            if token != self._load_token or self.mode != "starred":
+                return False
+            self.model.set_static(starred.URI, recs)
+            names = keep if keep is not None else self._select_after
+            self._select_after = None
+            if names:
+                self.select_paths(names)
+            self._update_state()
+            return False
+        threading.Thread(target=work, daemon=True).start()
+
+    def _on_starred(self):
+        """Étoiles changées (ici, dans une autre fenêtre ou par Nautilus) : page relue, étoiles redessinées."""
+        if self.mode == "starred":
+            self._load_starred(keep=[r.path for r in self.selected_recs() if r.path])
+        else:
+            self.refresh_rows()
+
+    def select_paths(self, paths: list[str]):
+        """Sélection par chemin (Favoris : deux éléments de même nom peuvent venir de dossiers différents)."""
+        want = set(paths)
+        self.model.select_recs([r for r in self.model.items if r.path in want])
 
     def _open_uri(self, uri: str, push: bool, select: Optional[list]):
         if push and self.location != uri:
@@ -887,6 +956,10 @@ class Pane(Gtk.Box):
             self.empty.set_icon_name("edit-find-symbolic")
             self.empty.set_title(tr("Aucun résultat"))
             self.empty.set_description(tr("Rien ne correspond à « {0} »").format(self.model.filter_text))
+        elif self.mode == "starred":
+            self.empty.set_icon_name("starred-symbolic")         # comme Nautilus
+            self.empty.set_title(tr("Aucun fichier favori"))
+            self.empty.set_description("")
         elif self.mode == "trash":
             self.empty.set_icon_name("user-trash-symbolic")
             self.empty.set_title(tr("La corbeille est vide"))
@@ -1024,7 +1097,7 @@ class Pane(Gtk.Box):
     # -- tri propre à chaque dossier, comme Nautilus (backend/folder_sort.py) --------------------
     def sort_place(self) -> Optional[str]:
         """Clé sous laquelle le tri de l'emplacement affiché est enregistré (None : pas enregistré)."""
-        if self.mode in ("fs", "trash", "remote"):
+        if self.mode in ("fs", "trash", "remote", "starred"):
             return self.location
         if self.mode == "archive":
             return f"archive:{self.archive_path}/{self.inner}"
@@ -1112,6 +1185,8 @@ class Pane(Gtk.Box):
             return os.path.dirname(self.archive_path)
         if self.mode == "search":
             return self.search_root
+        if self.mode == "starred":
+            return ""
         f = Gio.File.new_for_uri(self.location) if is_uri(self.location) else None
         return f.get_path() if f is not None and f.get_path() else ""
 

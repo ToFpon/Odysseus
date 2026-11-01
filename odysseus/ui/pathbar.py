@@ -99,6 +99,7 @@ class PathBar(Gtk.Box):
             segs = []
             special = {"trash:///": (tr("Corbeille"), "user-trash-symbolic"),
                        "recent:///": (tr("Récents"), "document-open-recent-symbolic"),
+                       "starred:///": (tr("Favoris"), "starred-symbolic"),
                        "network:///": (tr("Réseau"), "network-workgroup-symbolic"),
                        "other-locations:///": (tr("Autres emplacements"), "list-add-symbolic"),
                        "computer:///": (tr("Ce PC"), "computer-symbolic"),

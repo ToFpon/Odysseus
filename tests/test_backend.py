@@ -177,6 +177,68 @@ class RarCodecTest(unittest.TestCase):
             engine.rar_codec = old
 
 
+class StarredTest(unittest.TestCase):
+    """Favoris dans la base de Nautilus 46 (TinySPARQL, son ontologie) : marquer, démarquer, suivre un
+    déplacement, voir une étoile posée par un autre processus (Nautilus)."""
+
+    def setUp(self):
+        from odysseus.backend import starred
+        if not starred.available():
+            self.skipTest("TinySPARQL (gir1.2-tracker-3.0) absent")
+        self.s = starred
+        self.tmp = tempfile.TemporaryDirectory()
+        self.home = os.path.join(self.tmp.name, "home")
+        os.makedirs(os.path.join(self.home, "Docs", "sous"))
+        for n in ("a b.txt", "sous/c.txt"):
+            open(os.path.join(self.home, "Docs", n), "w").close()
+        self.old_home = os.environ["HOME"]
+        os.environ["HOME"] = self.home
+        starred.use_store(os.path.join(self.home, ".local/share/nautilus/tags"))
+
+    def tearDown(self):
+        self.s.use_store(None)
+        os.environ["HOME"] = self.old_home
+        self.tmp.cleanup()
+
+    def p(self, *parts):
+        return os.path.join(self.home, *parts)
+
+    def test_star_move_unstar(self):
+        s = self.s
+        self.assertTrue(s.star([self.p("Docs", "a b.txt"), self.p("Docs", "sous"), "/etc/passwd"]))
+        self.assertEqual(sorted(s.starred_paths()), [self.p("Docs", "a b.txt"), self.p("Docs", "sous")])
+        self.assertIn("a%20b.txt", " ".join(s.starred_uris()))          # URI de GIO, comme Nautilus
+        self.assertFalse(s.can_star("/etc/passwd"))
+        self.assertFalse(s.can_star(self.home))
+        os.rename(self.p("Docs"), self.p("Papiers"))
+        s.moved([(self.p("Docs"), self.p("Papiers"))])
+        self.assertEqual(sorted(s.starred_paths()), [self.p("Papiers", "a b.txt"), self.p("Papiers", "sous")])
+        s.unstar([self.p("Papiers", "a b.txt")])
+        self.assertEqual(s.starred_paths(), [self.p("Papiers", "sous")])
+
+    def test_other_process(self):
+        """Une étoile posée par un autre processus (Nautilus) est vue sans redémarrer."""
+        s = self.s
+        s.star([self.p("Docs", "a b.txt")])
+        script = (
+            "import sys; sys.path.insert(0, %r)\n"
+            "from odysseus.backend import starred as s\n"
+            "s.use_store(%r)\n"
+            "s.star([%r])\n") % (os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
+                                   s.store_dir(), self.p("Docs", "sous", "c.txt"))
+        import subprocess
+        subprocess.run([sys.executable, "-c", script], check=True, env=dict(os.environ, HOME=self.home))
+        self.assertIn(self.p("Docs", "sous", "c.txt"), s.starred_paths())
+
+    def test_nautilus_schema(self):
+        """Même schéma que Nautilus : la copie embarquée est identique à son ontologie."""
+        s = self.s
+        if os.path.isdir(s.NAUTILUS_ONTOLOGY):
+            for n in ("nautilus.ontology", "nautilus.description"):
+                with open(os.path.join(s.NAUTILUS_ONTOLOGY, n)) as a, open(os.path.join(s.BUNDLED_ONTOLOGY, n)) as b:
+                    self.assertEqual(a.read(), b.read())
+
+
 class BrokenLinkTest(unittest.TestCase):
     """Lien dont la cible n'existe pas : « Lien (brisé) » comme Nautilus, pas le type de son nom."""
 

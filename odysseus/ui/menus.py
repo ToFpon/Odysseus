@@ -8,7 +8,7 @@ from typing import Optional
 from gi.repository import Gio, GLib
 
 from .. import features
-from ..backend import folder_colors, formats, media
+from ..backend import folder_colors, formats, media, starred
 from ..i18n import tr
 from ..settings import settings
 
@@ -161,7 +161,7 @@ def context_menu(win, pane, on_item: bool) -> Gio.Menu:
         s.append(tr("Ouvrir dans une nouvelle fenêtre"), "win.open-window")
         if features.enabled("dual_panel"):
             s.append(tr("Ouvrir dans l'autre panneau"), "win.open-other")
-    if pane.mode in ("search", "remote") and one is not None and one.path:
+    if pane.mode in ("search", "remote", "starred") and one is not None and one.path:
         s.append(tr("Ouvrir l'emplacement de l'élément"), "win.open-location")
     if one is not None and one.is_dir and features.enabled("terminal"):
         s.append(tr("Ouvrir dans un terminal"), "win.terminal-selected")
@@ -198,6 +198,13 @@ def context_menu(win, pane, on_item: bool) -> Gio.Menu:
         s.append(tr("Courriel…"), "win.email")
     if one is not None and one.is_dir and one.path and pane.mode == "fs" and features.available("samba_share"):
         s.append(tr("Options de partage…"), "win.share-folder")      # comme nautilus-share
+    if features.enabled("starred") and starred.available():
+        # Nautilus 46 n'a que « Démarquer » ici (on marque avec l'étoile de la liste) : les deux
+        can = [p for p in paths if starred.can_star(p)]
+        if any(not starred.cached_starred(p) for p in can):
+            s.append(tr("Marquer comme favori"), "win.star")
+        if any(starred.cached_starred(p) for p in can):
+            s.append(tr("Démarquer"), "win.unstar")
     m.append_section(None, s)
 
     # Outils issus des extensions

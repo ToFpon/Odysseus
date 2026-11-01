@@ -301,6 +301,20 @@ fenêtre de recherche dans le contenu.
   dossiers rwx, valeurs proposées d'après l'umask, liens jamais suivis ni modifiés). Ne recalculer que
   la catégorie modifiée (tout recalculer changeait les autres catégories), jamais de chmod / chown à
   travers un lien.
+- Favoris (fonctionnalité `starred`) = ceux de Nautilus 46 : MÊME base TinySPARQL privée
+  (`$XDG_DATA_HOME/nautilus/tags`, ontologie /usr/share/nautilus/ontology — copie identique dans
+  data/nautilus-ontology si Nautilus est absent), mêmes requêtes que nautilus-tag-manager.c
+  (`nautilus:File` / `nautilus:starred`, sujets = URI GIO), `backend/starred.py` (gir Tsparql ou
+  Tracker 3.0). Base relue quand ses fichiers changent (moniteur) : une étoile de Nautilus apparaît ;
+  Nautilus, lui, ne relit qu'à son démarrage. Seulement dans le dossier personnel (pas lui-même).
+  Barre latérale « Favoris » sous Récents (`starred:///`, déposer dessus = marquer), page `mode
+  "starred"` (liste statique + colonne Emplacement, vide : « Aucun fichier favori »), colonne étoile
+  en fin de ligne (`star`, sans titre, nautilus-star-cell.c : starred / non-starred-symbolic), menu
+  « Marquer comme favori » (absent de Nautilus 46, qui marque par l'étoile) / « Démarquer » + toast
+  « Annuler ». Pas de raccourci : Ctrl+D = signet, comme Nautilus. Déplacements / renommages (y compris
+  annuler, renommage multiple) : `starred.moved` dans `_follow_moves` / `_follow_rename`. Testé :
+  `StarredTest` (autre processus = Nautilus), étape `favoris` d'ui_smoke, vrai clic sur l'étoile
+  (`star_steps` d'ui_mouse).
 - Tri propre à chaque dossier comme Nautilus 46 (`backend/folder_sort.py`) : mêmes métadonnées GVfs
   (`metadata::nautilus-icon-view-sort-by` = name / size / type / date_modified, `-sort-reversed` =
   "true" / "false") ; nos autres tris (durée, droits…) dans `sort.json` avec la valeur de Nautilus du

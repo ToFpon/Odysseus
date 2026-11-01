@@ -13,7 +13,7 @@ from typing import Optional
 from gi.repository import Gdk, Gio, GLib, GObject, Graphene, Gtk
 
 from .. import features
-from ..backend import bookmarks, devices, scanner
+from ..backend import bookmarks, devices, scanner, starred
 from ..backend.engine import human_size
 from ..i18n import tr
 from ..settings import settings
@@ -129,6 +129,12 @@ class Sidebar(Gtk.Box):
             row = nxt
         if settings["sidebar_this_pc"]:
             self.places_list.prepend(SidebarRow("computer-symbolic", tr("Ce PC"), COMPUTER))
+        if features.enabled("starred") and starred.available():
+            starred.start()
+            # comme Nautilus : « Favoris » juste après « Récents »
+            pos = self.recent_row.get_index() + 1 if self.recent_row is not None else \
+                (1 if settings["sidebar_this_pc"] else 0)
+            self.places_list.insert(SidebarRow("starred-symbolic", tr("Favoris"), starred.URI), pos)
         for icon, label, target in places(desktop=settings["sidebar_desktop"]):
             self.places_list.append(SidebarRow(icon, label, target))
         self.select(self.current)
@@ -436,7 +442,7 @@ class Sidebar(Gtk.Box):
     # -- déposer ----------------------------------------------------------------
     def _spring_open(self):
         row = getattr(self, "_spring_row", None)
-        if row is not None and row.get_parent() is not None and row.target and row.target != TRASH:
+        if row is not None and row.get_parent() is not None and row.target and row.target not in (TRASH, starred.URI):
             self.emit("open", row.target, "here")
 
     def _spring_leave(self):
@@ -457,6 +463,9 @@ class Sidebar(Gtk.Box):
             self._spring.enter(x, y)
         else:
             self._spring.motion(x, y)
+        if isinstance(row, SidebarRow) and row.target == starred.URI:
+            row.add_css_class("drop-row")            # comme Nautilus : déposer sur Favoris les marque
+            return Gdk.DragAction.LINK
         if isinstance(row, SidebarRow) and row.target and (row.target == TRASH or "://" not in row.target):
             row.add_css_class("drop-row")
             return Gdk.DragAction.MOVE if row.target == TRASH else Gdk.DragAction.COPY
@@ -479,6 +488,11 @@ class Sidebar(Gtk.Box):
         if not paths:
             return False
         row = lb.get_row_at_y(int(y))
+        if isinstance(row, SidebarRow) and row.target == starred.URI:
+            ok = [p for p in paths if starred.can_star(p)]
+            if ok:
+                starred.star(ok)
+            return bool(ok)
         if isinstance(row, SidebarRow) and row.target and (row.target == TRASH or "://" not in row.target):
             self.emit("drop", paths, row.target)
             return True
