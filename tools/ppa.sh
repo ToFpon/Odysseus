@@ -5,10 +5,11 @@
 #   tools/ppa.sh           construit les paquets source, les signe et les envoie sur ppa:nourpon/odysseus
 #   tools/ppa.sh --build   construit et signe seulement (rien n'est envoyé)
 #
-# Une fois : sudo apt install devscripts debhelper dh-python dput lintian
+# Une fois : sudo apt install devscripts debhelper dh-python dput lintian lftp
 #            + une clé GPG enregistrée sur Launchpad, pour l'adresse du changelog.
 # Nouvelle version : dch -v 1.0.1~noble1 "…" (puis dch -r), commit, tools/ppa.sh
 # Le .deb de GitHub (« Releases », Debian & co) : publié par l'Action au commit « Version X ».
+# Puis le site (tools/site.sh, pages perso Free par FTP, identifiants dans ~/.netrc).
 set -e
 PPA="ppa:nourpon/odysseus"
 SERIES="noble resolute"            # la première est celle du changelog
@@ -50,3 +51,7 @@ done
 echo "Envoyé ($SERIES). Launchpad les construit en quelques minutes : https://launchpad.net/~nourpon/+archive/ubuntu/odysseus/+packages"
 
 echo "Le .deb pour GitHub (Releases) est publié par l'Action dès le commit « Version X » : rien à faire ici."
+
+# Site de présentation (pages perso Free, FTP) : envoyé à chaque publication pour ne pas l'oublier.
+# Un échec n'annule rien de ce qui précède (le PPA est déjà parti).
+tools/site.sh || echo "Le site pourra être envoyé plus tard : tools/site.sh"
