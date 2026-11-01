@@ -1,3 +1,13 @@
+odysseus (1.7.0~noble1) noble; urgency=medium
+
+  * Favoris comme dans Nautilus, partagés avec lui dans les deux sens :
+    étoile en fin de ligne, clic droit « Marquer comme favori » / «
+    Démarquer », « Favoris » dans la barre latérale ; l'étoile suit les
+    éléments renommés ou déplacés. Désactivés par défaut : à activer
+    dans Préférences → Fonctionnalités.
+
+ -- Tof <nourpon@gmail.com>  Sun, 01 Nov 2026 12:16:13 +0000
+
 odysseus (1.6.3~noble1) noble; urgency=medium
 
   * Archives RAR : quand 7-Zip n'a pas le décodeur RAR, message clair
