@@ -1,3 +1,12 @@
+odysseus (1.6.3~noble1) noble; urgency=medium
+
+  * Archives RAR : quand 7-Zip n'a pas le décodeur RAR, message clair
+    avec le paquet à installer (7zip-rar) au lieu de « Unsupported
+    Method » ; ligne « RAR » dans Préférences → Composants ; 7zip-rar
+    recommandé par le paquet.
+
+ -- Tof <nourpon@gmail.com>  Sun, 01 Nov 2026 08:31:14 +0000
+
 odysseus (1.6.2~noble1) noble; urgency=medium
 
   * Correction : avec certaines langues (allemand…), un dossier
