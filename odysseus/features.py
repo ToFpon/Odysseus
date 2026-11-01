@@ -161,7 +161,7 @@ def set_enabled(fid: str, value: bool):
 # Programme ou module Python → paquet Ubuntu 24.04 qui le fournit
 PACKAGE_OF = {"7zz": "7zip", "7z": "7zip", "7za": "7zip", "gs": "ghostscript", "ghostscript": "ghostscript",
               "qpdf": "qpdf", "ffmpeg": "ffmpeg", "magick": "imagemagick", "convert": "imagemagick",
-              "lib:heif-libde265": "libheif-plugin-libde265", "lib:sushi": "gnome-sushi", "net": "samba", "lib:smbd": "samba", "ffprobe": "ffmpeg", "ffmpegthumbnailer": "ffmpegthumbnailer",
+              "lib:heif-libde265": "libheif-plugin-libde265", "lib:sushi": "gnome-sushi", "net": "samba", "lib:smbd": "samba", "lib:7zip-rar": "7zip-rar", "ffprobe": "ffmpeg", "ffmpegthumbnailer": "ffmpegthumbnailer",
               "rg": "ripgrep", "grep": "grep", "pdftoppm": "poppler-utils", "zstd": "zstd", "brotli": "brotli",
               "lz4": "lz4", "dpkg-deb": "dpkg", "pkexec": "pkexec", "py:pypdf": "python3-pypdf",
               "py:cairo": "python3-cairo python3-gi-cairo", "gir:Poppler": "gir1.2-poppler-0.18"}
@@ -170,7 +170,11 @@ PACKAGE_OF = {"7zz": "7zip", "7z": "7zip", "7za": "7zip", "gs": "ghostscript", "
 # greffons de bibliothèques (pas de programme à chercher dans le PATH) : fichier installé par le paquet
 LIBS = {"lib:heif-libde265": "/usr/lib/*/libheif/plugins/libheif-libde265.so",
         "lib:sushi": "/usr/share/dbus-1/services/org.gnome.NautilusPreviewer.service",
-        "lib:smbd": "/usr/sbin/smbd"}           # serveur Samba (paquet samba), pas seulement « net »
+        "lib:smbd": "/usr/sbin/smbd",           # serveur Samba (paquet samba), pas seulement « net »
+        # décodeur RAR de 7-Zip : retiré du paquet 7zip de Debian / Ubuntu (licence non libre), fourni par
+        # 7zip-rar (multiverse) ou p7zip-rar ; sans lui, liste lisible mais « Unsupported Method » à
+        # l'extraction des fichiers compressés. 7zz (7-Zip officiel) l'a déjà.
+        "lib:7zip-rar": "/usr/lib/*7zip/Codecs/Rar.so"}
 
 
 def _lib_path(name: str) -> str:
@@ -235,6 +239,7 @@ def apt_command(packages) -> str:
 COMPONENTS = [
     (tr("Archives"), [
         ("7-Zip", ("7zz", "7z", "7za"), tr("Compresser, extraire et parcourir les archives (indispensable)")),
+        ("RAR", ("lib:7zip-rar", "7zz"), tr("Extraire les archives RAR")),
         ("Zstandard", ("zstd",), tr("Archives .tar.zst")),
         ("Brotli", ("brotli",), tr("Archives .tar.br")),
         ("LZ4", ("lz4",), tr("Archives .tar.lz4")),

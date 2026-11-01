@@ -156,6 +156,27 @@ class CollateKeyTest(unittest.TestCase):
         self.assertIsInstance(scanner.collate_key("\u2f68"), bytes)
 
 
+class RarCodecTest(unittest.TestCase):
+    """7-Zip d'Ubuntu sans 7zip-rar : la liste d'un RAR se lit, l'extraction dit « Unsupported Method »
+    (archive d'un utilisateur). Message : le paquet à installer, pas l'erreur brute."""
+
+    def test_message(self):
+        from odysseus.backend import engine
+        out = "ERROR: Unsupported Method : game/call screens.rpy\n\nSub items Errors: 1\n"
+        old = engine.rar_codec
+        try:
+            engine.rar_codec = lambda: False
+            with self.assertRaises(engine.ToolError) as cm:
+                engine.raise_for_7z(out, 2)
+            self.assertIn("sudo apt install 7zip-rar", str(cm.exception))
+            engine.rar_codec = lambda: True        # décodeur présent : autre cause, message de 7-Zip
+            with self.assertRaises(engine.ToolError) as cm:
+                engine.raise_for_7z(out, 2)
+            self.assertIn("Unsupported Method", str(cm.exception))
+        finally:
+            engine.rar_codec = old
+
+
 class BrokenLinkTest(unittest.TestCase):
     """Lien dont la cible n'existe pas : « Lien (brisé) » comme Nautilus, pas le type de son nom."""
 

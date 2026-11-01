@@ -362,6 +362,12 @@ fenêtre de recherche dans le contenu.
   stdin fermé ; sans ça, debconf sans terminal affichait « unable to initialize frontend: Dialog /
   Readline… » (bénin mais inquiétant, reproduit avec apt-utils). Lignes d'avancement de dpkg
   (« (Lecture de la base… 45% ») écartées (`debpkg.is_progress_line`).
+- RAR : le 7z d'Ubuntu / Debian n'a pas le décodeur RAR (licence) — la liste se lit, l'extraction des
+  fichiers compressés dit « Unsupported Method » (les fichiers « stockés » passent : tester avec
+  `rar a -m5`). Il vient de `7zip-rar` (multiverse ; Debian non-free) ou p7zip-rar, 7zz l'a déjà
+  (`engine.rar_codec`). Sans lui : message avec `sudo apt install 7zip-rar` (`raise_for_7z`),
+  composant « RAR » (`lib:7zip-rar`), Recommends du paquet, suggéré par install.sh. Les extensions de
+  Tof passaient par `unrar`.
 - Ghostscript `pdfimage24` : `-sCompression=JPEG` en majuscules.
 - `view-column-symbolic` n'existe pas dans Adwaita : `icons.first_icon` avec repli.
 - Partage réseau (fonctionnalité `samba_share`, comme nautilus-share) : `backend/usershare.py` (`net usershare`

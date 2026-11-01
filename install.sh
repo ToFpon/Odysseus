@@ -81,6 +81,8 @@ optional=""
 for prog in 7z:7zip lbzip2:lbzip2 pigz:pigz gs:ghostscript qpdf:qpdf ffmpeg:ffmpeg ffmpegthumbnailer:ffmpegthumbnailer rg:ripgrep pdftoppm:poppler-utils; do
     command -v "${prog%%:*}" >/dev/null 2>&1 || optional="$optional ${prog#*:}"
 done
+# décodeur RAR de 7-Zip (retiré du paquet 7zip pour sa licence ; Debian : section non-free)
+command -v 7zz >/dev/null 2>&1 || ls /usr/lib/*7zip/Codecs/Rar.so >/dev/null 2>&1 || optional="$optional 7zip-rar"
 python3 -c "import cairo" 2>/dev/null || optional="$optional python3-cairo python3-gi-cairo"
 python3 -c "import gi; gi.require_version('Poppler','0.18')" 2>/dev/null || optional="$optional gir1.2-poppler-0.18"
 

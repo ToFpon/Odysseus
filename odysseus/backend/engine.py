@@ -47,6 +47,14 @@ def sevenzip_path() -> Optional[str]:
     return None
 
 
+def rar_codec() -> bool:
+    """7-Zip sait-il décompresser le RAR ? 7zz (officiel) oui ; 7z d'Ubuntu / Debian seulement avec
+    7zip-rar (ou p7zip-rar). Sans lui, la liste se lit mais l'extraction dit « Unsupported Method »."""
+    import glob
+    exe = sevenzip_path() or ""
+    return os.path.basename(exe) == "7zz" or bool(glob.glob("/usr/lib/*7zip/Codecs/Rar.so"))
+
+
 def sevenzip_version() -> str:
     exe = sevenzip_path()
     if not exe:
@@ -263,6 +271,10 @@ def raise_for_7z(text: str, code: int):
     if "wrong password" in low or "can not open encrypted" in low or \
             "cannot open encrypted" in low or "data error in encrypted" in low:
         raise PasswordRequired(tr("Mot de passe manquant ou incorrect"), text, code)
+    if "unsupported method" in low and not rar_codec():
+        raise ToolError(tr("7-Zip n'a pas le décodeur RAR (retiré du paquet 7zip d'Ubuntu et de Debian pour "
+                           "des raisons de licence). Installez-le avec :") + "\n\nsudo apt install 7zip-rar",
+                        text, code)
     lines = [l.strip() for l in text.splitlines() if l.strip()]
     # les récapitulatifs (« Sub items Errors: 1 », « Archives with Errors: 1 », « ERRORS: ») ne disent
     # rien : on garde la première vraie ligne d'erreur
