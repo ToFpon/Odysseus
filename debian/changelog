@@ -1,3 +1,11 @@
+odysseus (1.6.2~noble1) noble; urgency=medium
+
+  * Correction : avec certaines langues (allemand…), un dossier
+    contenant certains caractères dans un nom de fichier affichait «
+    Accès impossible » (clé de tri de GLib qui n'était pas de l'UTF-8).
+
+ -- Tof <nourpon@gmail.com>  Sun, 01 Nov 2026 05:22:55 +0000
+
 odysseus (1.6.1~noble1) noble; urgency=medium
 
   * Partage réseau : Samba détecté par son serveur (smbd), pas seulement
