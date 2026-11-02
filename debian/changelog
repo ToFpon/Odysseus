@@ -1,3 +1,10 @@
+odysseus (1.7.5~noble1) noble; urgency=medium
+
+  * Éjecter une clé ou un disque amovible : si sa corbeille contient des
+    éléments, Odysseus propose de la vider d'abord, comme Nautilus.
+
+ -- Tof <nourpon@gmail.com>  Mon, 02 Nov 2026 12:28:10 +0000
+
 odysseus (1.7.4~noble1) noble; urgency=medium
 
   * Barre latérale : nombre d'éléments à côté de « Corbeille », icône

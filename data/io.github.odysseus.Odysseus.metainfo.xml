@@ -70,6 +70,13 @@
   </requires>
   <content_rating type="oars-1.1"/>
   <releases>
+    <release version="1.7.5" date="2026-11-02">
+      <description>
+        <ul>
+          <li>Ejecting a USB key or a removable disk whose trash is not empty asks, like Nautilus, whether to empty it first</li>
+        </ul>
+      </description>
+    </release>
     <release version="1.7.4" date="2026-11-02">
       <description>
         <ul>
