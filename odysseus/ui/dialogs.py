@@ -130,6 +130,7 @@ class PreferencesDialog(Adw.PreferencesWindow):
         g.add(_switch(tr("Afficher « Ce PC »"), "sidebar_this_pc",
                       tr("Dossiers et disques avec leur espace libre sur une seule page, comme sous Windows")))
         g.add(_switch(tr("Afficher le Bureau"), "sidebar_desktop"))
+        g.add(_switch(tr("Nombre d'éléments à côté de la Corbeille"), "sidebar_trash_count"))
         page.add(g)
 
         g = Adw.PreferencesGroup(title=tr("Comportement"))

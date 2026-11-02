@@ -10,6 +10,9 @@
 .sidebar-separator { margin: 6px 12px; opacity: 0.5; }
 .navigation-sidebar { background: transparent; }
 .navigation-sidebar > row { border-radius: 8px; margin: 1px 8px; min-height: 34px; }
+/* nombre d'éléments de la corbeille, comme un compteur de courriels (couleur d'accent du thème) */
+.trash-count { background-color: @accent_bg_color; color: @accent_fg_color; border-radius: 999px;
+               padding: 0 7px; min-width: 10px; font-size: smaller; font-weight: bold; }
 .row-eject { min-height: 22px; min-width: 22px; padding: 0; opacity: 0.75; }
 .navigation-sidebar > row.drop-row,
 .navigation-sidebar.drop-bookmark { box-shadow: inset 0 0 0 2px alpha(@accent_bg_color, 0.7); }

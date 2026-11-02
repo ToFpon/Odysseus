@@ -12,6 +12,7 @@ from __future__ import annotations
 import os
 import subprocess
 import time
+from typing import Optional
 
 from . import fsinfo
 
@@ -68,3 +69,25 @@ def restart_gvfs_trash() -> bool:
     except (OSError, subprocess.SubprocessError):
         return False
     return True
+
+
+def gvfs_count() -> Optional[int]:
+    """Nombre d'éléments que GVfs annonce pour trash:/// (celui que lisent le dash, Nautilus…)."""
+    try:
+        from gi.repository import Gio
+        info = Gio.File.new_for_uri("trash:///").query_info("trash::item-count", Gio.FileQueryInfoFlags.NONE, None)
+        return info.get_attribute_uint32("trash::item-count")
+    except Exception:  # noqa: BLE001 — GVfs absent, bus indisponible…
+        return None
+
+
+def count_and_sync() -> int:
+    """Compte des corbeilles (le nôtre, juste même quand GVfs se trompe) ; si GVfs en annonce moins,
+    gvfsd-trash est relancé (une fois par minute au plus) : le dash et Nautilus revoient les éléments
+    des autres disques. À appeler dans un fil (stat des disques)."""
+    n = expected_count()
+    if n:
+        shown = gvfs_count()
+        if shown is not None and shown < n:
+            restart_gvfs_trash()
+    return n

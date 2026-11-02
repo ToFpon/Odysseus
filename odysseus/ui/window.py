@@ -438,6 +438,8 @@ class MainWindow(FileActions, ArchiveActions, ToolActions, Adw.ApplicationWindow
             self.search_bar.set_key_capture_widget(None if settings["type_ahead"] else self)
             for p in self.all_panes():
                 p.type_ahead_cancel()
+        elif key == "sidebar_trash_count":
+            self.sidebar._show_trash_count(getattr(self.sidebar, "_trash_n", 0) or 0)
         elif key in ("sidebar_desktop", "sidebar_this_pc"):
             self.sidebar.fill_places()
             self.fit_sidebar()

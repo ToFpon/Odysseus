@@ -510,6 +510,8 @@ class FileActions:
                     self._select_created(res)
                     if res.kind in ("move", "rename"):
                         self._follow_moves(res)
+                    if res.kind in ("trash", "delete", "restore", "move"):
+                        self.sidebar.refresh_trash_count()     # corbeille d'un disque créée à l'instant
                 if on_done:
                     on_done(job)
             else:

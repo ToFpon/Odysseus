@@ -2582,6 +2582,43 @@ def proprietes_cote_a_cote(win):
 
 
 @step
+def compteur_corbeille(win):
+    """Compteur à côté de « Corbeille » : compté par nous (pas par GVfs), suivi en direct quand un autre
+    programme met à la corbeille ou la vide, icône pleine / vide, réglage pour le masquer."""
+    sb = win.sidebar
+    trash = os.path.join(os.environ["XDG_DATA_HOME"], "Trash")
+    files, info = os.path.join(trash, "files"), os.path.join(trash, "info")
+    os.makedirs(files, exist_ok=True)
+    os.makedirs(info, exist_ok=True)
+    sb.refresh_trash_count()
+    yield Wait(5, until=lambda: getattr(sb, "_trash_n", None) is not None and sb._trash_monitors)
+    base = sb._trash_n
+    made = []
+    for i in range(2):
+        name = f"compteur-{i}.txt"
+        open(os.path.join(files, name), "w").close()
+        with open(os.path.join(info, name + ".trashinfo"), "w") as fh:
+            fh.write(f"[Trash Info]\nPath=/tmp/{name}\nDeletionDate=2026-11-02T10:00:00\n")
+        made.append(name)
+    yield Wait(5, until=lambda: sb._trash_n == base + 2)
+    row = sb.trash_row
+    check(sb._trash_n == base + 2 and row.count.get_visible() and row.count.get_text() == str(base + 2),
+          f"compteur de la corbeille suivi en direct ({row.count.get_text()!r}, attendu {base + 2})")
+    check(row.icon.get_icon_name() == "user-trash-full-symbolic", "icône de corbeille pleine")
+    settings["sidebar_trash_count"] = False
+    yield pump(0.2)
+    check(not row.count.get_visible(), "réglage : compteur masqué")
+    settings["sidebar_trash_count"] = True
+    yield pump(0.2)
+    for name in made:
+        os.remove(os.path.join(files, name))
+        os.remove(os.path.join(info, name + ".trashinfo"))
+    yield Wait(5, until=lambda: sb._trash_n == base)
+    check(sb._trash_n == base and (row.count.get_visible() == bool(base)),
+          f"corbeille vidée ailleurs : compteur à jour ({sb._trash_n})")
+
+
+@step
 def fonctionnalites(win):
     from odysseus import features
     features.set_enabled("dual_panel", False)

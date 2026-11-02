@@ -239,6 +239,30 @@ class StarredTest(unittest.TestCase):
                     self.assertEqual(a.read(), b.read())
 
 
+class TrashSyncTest(unittest.TestCase):
+    """GVfs annonce moins d'éléments que les corbeilles n'en contiennent (bug de gvfsd-trash, le dash
+    montre une corbeille vide) : gvfsd-trash est relancé ; sinon, rien."""
+
+    def test_restart_only_when_gvfs_is_behind(self):
+        from odysseus.backend import trashwatch as t
+        calls = []
+        saved = (t.expected_count, t.gvfs_count, t.restart_gvfs_trash)
+        try:
+            t.restart_gvfs_trash = lambda: calls.append(1) or True
+            t.expected_count, t.gvfs_count = (lambda: 3), (lambda: 1)
+            self.assertEqual(t.count_and_sync(), 3)
+            self.assertEqual(calls, [1])
+            t.gvfs_count = lambda: 3
+            t.count_and_sync()
+            t.gvfs_count = lambda: None              # pas de GVfs : rien à relancer
+            t.count_and_sync()
+            t.expected_count = lambda: 0
+            t.count_and_sync()
+            self.assertEqual(calls, [1])
+        finally:
+            t.expected_count, t.gvfs_count, t.restart_gvfs_trash = saved
+
+
 class BrokenLinkTest(unittest.TestCase):
     """Lien dont la cible n'existe pas : « Lien (brisé) » comme Nautilus, pas le type de son nom."""
 

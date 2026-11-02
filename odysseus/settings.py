@@ -37,6 +37,7 @@ DEFAULTS: dict[str, Any] = {
     "archive_window": True,          # double-clic sur une archive : fenêtre à part (Archive Browser)
     "sidebar_desktop": False,       # Bureau dans la barre latérale
     "sidebar_this_pc": False,       # « Ce PC » dans la barre latérale (dossiers et disques, comme Windows)
+    "sidebar_trash_count": True,    # nombre d'éléments à côté de « Corbeille »
     # Comportement
     "confirm_trash": False,
     "confirm_delete": True,

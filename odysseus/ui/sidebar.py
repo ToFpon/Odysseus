@@ -7,14 +7,15 @@ montés en permanence ; jamais de bouton d'éjection pour un disque de /etc/fsta
 from __future__ import annotations
 
 import os
+import threading
 from typing import Optional
 
 from gi.repository import Gdk, Gio, GLib, GObject, Graphene, Gtk
 
 from .. import features
-from ..backend import bookmarks, devices, scanner, starred
+from ..backend import bookmarks, devices, scanner, starred, trashwatch
 from ..backend.engine import human_size
-from ..i18n import tr
+from ..i18n import ntr, tr
 from ..settings import settings
 from .common import SpringLoad, alert, ask_text, popup_menu, toast
 
@@ -135,11 +136,70 @@ class Sidebar(Gtk.Box):
                 (1 if settings["sidebar_this_pc"] else 0)
             self.places_list.insert(SidebarRow("starred-symbolic", tr("Favoris"), starred.URI), pos)
         for icon, label, target in places(desktop=settings["sidebar_desktop"]):
-            self.places_list.append(SidebarRow(icon, label, target))
+            row = SidebarRow(icon, label, target)
+            self.places_list.append(row)
+            if target == TRASH:
+                self._setup_trash_row(row)
         self.select(self.current)
         self._sync_other()
         if getattr(self, "bm_list", None) is not None:     # Bureau affiché ou non : son signet aussi
             self._fill_bookmarks()
+
+    # -- nombre d'éléments de la corbeille ------------------------------------------------
+    def _setup_trash_row(self, row: SidebarRow):
+        """Compteur à côté de « Corbeille » (et icône pleine / vide, comme Nautilus). Compté par nous
+        (trashwatch), pas par GVfs, qui perd les corbeilles des autres disques ; suivi par inotify sur
+        les dossiers des corbeilles, sans relecture périodique (un disque interne au repos le reste)."""
+        self.trash_row = row
+        row.count = Gtk.Label(css_classes=["trash-count", "numeric"], visible=False, valign=Gtk.Align.CENTER)
+        row.box.append(row.count)
+        if getattr(self, "_trash_n", None) is not None:
+            self._show_trash_count(self._trash_n)
+        if not getattr(self, "_trash_watching", False):
+            self._trash_watching = True
+            self._trash_monitors = {}
+            self.refresh_trash_count()
+
+    def refresh_trash_count(self):
+        """Recompte (dans un fil : un disque peut être lent), au plus deux fois par seconde."""
+        if getattr(self, "_trash_pending", 0):
+            return
+        def run():
+            self._trash_pending = 0
+            def work():
+                n = trashwatch.count_and_sync()
+                dirs = [d for d in trashwatch.trash_dirs() if os.path.isdir(d)]
+                GLib.idle_add(lambda: (self._trash_counted(n, dirs), False)[1])
+            threading.Thread(target=work, daemon=True).start()
+            return False
+        self._trash_pending = GLib.timeout_add(500, run)
+
+    def _trash_counted(self, n: int, dirs: list):
+        self._trash_n = n
+        self._show_trash_count(n)
+        mons = self._trash_monitors
+        for d in list(mons):
+            if d not in dirs:
+                mons.pop(d).cancel()
+        for d in dirs:
+            if d not in mons:
+                try:
+                    m = Gio.File.new_for_path(d).monitor_directory(Gio.FileMonitorFlags.WATCH_MOVES, None)
+                except GLib.Error:
+                    continue
+                m.connect("changed", lambda *_: self.refresh_trash_count())
+                mons[d] = m
+
+    def _show_trash_count(self, n: int):
+        row = getattr(self, "trash_row", None)
+        if row is None or row.get_parent() is None:
+            return
+        shown = settings["sidebar_trash_count"] and n > 0
+        row.count.set_text(str(n) if n < 1000 else "999+")
+        row.count.set_visible(shown)
+        row.icon.set_from_icon_name("user-trash-full-symbolic" if n else "user-trash-symbolic")
+        row.set_tooltip_text(ntr("{0} élément dans la corbeille", "{0} éléments dans la corbeille", n).format(n)
+                             if n else tr("La corbeille est vide"))
 
     def fixed_width(self) -> int:
         """Largeur qu'il faut pour lire en entier les emplacements fixes (« Autres emplacements »,
@@ -275,6 +335,8 @@ class Sidebar(Gtk.Box):
 
     def _fill_devices(self):
         self._dev_pending = False
+        if getattr(self, "_trash_watching", False):
+            self.refresh_trash_count()             # disque monté / démonté : sa corbeille compte ou plus
         while (c := self.dev_list.get_first_child()) is not None:
             self.dev_list.remove(c)
         rows, seen = [], set()

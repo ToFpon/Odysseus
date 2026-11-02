@@ -419,6 +419,13 @@ fenêtre de recherche dans le contenu.
   tri « date » dessus, par défaut les derniers d'abord : `Pane.place_sort`), « Emplacement d'origine »
   rempli depuis `trash::orig-path` (`scanner.trash_origin_label`, relatif au dossier personnel) — la
   colonne restait vide. Testé avec la vraie corbeille GVfs (`corbeille_colonnes` d'ui_smoke).
+- Compteur à côté de « Corbeille » (réglage `sidebar_trash_count`, idée de Tof) : `Sidebar._setup_trash_row`,
+  compté par nous (`trashwatch.expected_count`, toutes les corbeilles, pas GVfs), suivi par inotify sur les
+  dossiers `files/` (aucune relecture périodique : un disque au repos le reste), recompté aussi après nos
+  opérations et au montage d'un disque ; pastille aux couleurs d'accent du thème (`.trash-count`), icône
+  pleine / vide comme Nautilus. `trashwatch.count_and_sync` : si GVfs annonce moins (trash::item-count),
+  gvfsd-trash est relancé → le dash du bureau revoit les éléments des autres disques. Testé :
+  `compteur_corbeille` d'ui_smoke, `TrashSyncTest`.
 - Corbeille / GVfs : au bout d'un moment, gvfsd-trash ne voit plus les `.Trash-1000` des autres disques
   (les fichiers y sont, trash:/// ne les montre plus ; `pkill gvfsd-trash` répare). `backend/trashwatch.py` :
   à chaque lecture de la corbeille, on compte nous-mêmes (éléments de `files/` ayant leur `.trashinfo`,
