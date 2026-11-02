@@ -438,7 +438,7 @@ fenêtre de recherche dans le contenu.
   `Sidebar.eject` → `_ask_empty_trash` → `_do_eject`. Seule la corbeille de CE support est vidée
   (`trashwatch.empty_mount_trash` : .Trash-UID et .Trash/UID, contenu de files/ info/ expunged/, aucun
   lien suivi), par `_run` (progression, erreur → pas d'éjection). Idée d'un utilisateur (fork « Mira »).
-  Testé : `MountTrashTest`, `ejecter_vider_corbeille` d'ui_smoke.
+  Testé : `MountTrashTest`, `ejecter_vider_corbeille` d'ui_smoke ; validé chez Tof avec une vraie clé (1.7.5).
 - Corbeille / GVfs : au bout d'un moment, gvfsd-trash ne voit plus les `.Trash-1000` des autres disques
   (les fichiers y sont, trash:/// ne les montre plus ; `pkill gvfsd-trash` répare). `backend/trashwatch.py` :
   à chaque lecture de la corbeille, on compte nous-mêmes (éléments de `files/` ayant leur `.trashinfo`,
