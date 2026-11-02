@@ -1,3 +1,12 @@
+odysseus (1.7.4~noble1) noble; urgency=medium
+
+  * Barre latérale : nombre d'éléments à côté de « Corbeille », icône
+    pleine ou vide. La Corbeille du dock ouvre Odysseus à chaque clic
+    (elle ne réagissait plus après le premier). Quand GVfs perd la
+    corbeille des autres disques, il est relancé : le dock les revoit.
+
+ -- Tof <nourpon@gmail.com>  Mon, 02 Nov 2026 12:00:39 +0000
+
 odysseus (1.7.3~noble1) noble; urgency=medium
 
   * Corbeille comme dans Nautilus : colonne « Mis à la corbeille le »,

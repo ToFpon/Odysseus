@@ -70,6 +70,16 @@
   </requires>
   <content_rating type="oars-1.1"/>
   <releases>
+    <release version="1.7.4" date="2026-11-02">
+      <description>
+        <ul>
+          <li>Sidebar: number of items next to Trash, full or empty trash icon</li>
+          <li>The dock's Trash opens Odysseus on every click (it stopped responding after the first one)</li>
+          <li>When GVfs loses the trash of other disks, it is restarted so the dock sees them again</li>
+          <li>README: how to make Odysseus the default file manager</li>
+        </ul>
+      </description>
+    </release>
     <release version="1.7.3" date="2026-11-02">
       <description>
         <ul>
