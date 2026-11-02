@@ -1,3 +1,11 @@
+odysseus (1.7.3~noble1) noble; urgency=medium
+
+  * Corbeille comme dans Nautilus : colonne « Mis à la corbeille le »,
+    les plus récents en premier ; l'emplacement d'origine, qui restait
+    vide, est affiché.
+
+ -- Tof <nourpon@gmail.com>  Mon, 02 Nov 2026 09:32:44 +0000
+
 odysseus (1.7.2~noble1) noble; urgency=medium
 
   * Propriétés : la fenêtre ne bloque plus la fenêtre principale ; on
