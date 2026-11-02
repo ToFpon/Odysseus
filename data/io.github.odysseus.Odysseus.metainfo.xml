@@ -70,6 +70,13 @@
   </requires>
   <content_rating type="oars-1.1"/>
   <releases>
+    <release version="1.7.6" date="2026-11-02">
+      <description>
+        <ul>
+          <li>Preferences: a single “Default file manager” switch sets Odysseus as the default for folders (like xdg-mime) and for “Show in folder”; off, Nautilus takes over again</li>
+        </ul>
+      </description>
+    </release>
     <release version="1.7.5" date="2026-11-02">
       <description>
         <ul>

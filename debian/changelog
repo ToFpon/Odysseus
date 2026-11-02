@@ -1,3 +1,12 @@
+odysseus (1.7.6~noble1) noble; urgency=medium
+
+  * Préférences : un seul interrupteur « Gestionnaire de fichiers par
+    défaut » fait d'Odysseus l'application des dossiers (comme xdg-mime)
+    et de « Afficher dans le dossier » ; coupé, Nautilus reprend la
+    main.
+
+ -- Tof <nourpon@gmail.com>  Mon, 02 Nov 2026 20:24:56 +0000
+
 odysseus (1.7.5~noble1) noble; urgency=medium
 
   * Éjecter une clé ou un disque amovible : si sa corbeille contient des
