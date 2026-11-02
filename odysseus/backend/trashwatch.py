@@ -10,6 +10,7 @@ corrigé, les comptes sont égaux et rien ne se passe.
 from __future__ import annotations
 
 import os
+import shutil
 import subprocess
 import time
 from typing import Optional
@@ -91,3 +92,49 @@ def count_and_sync() -> int:
         if shown is not None and shown < n:
             restart_gvfs_trash()
     return n
+
+
+# -- corbeille d'un support qu'on démonte (comme Nautilus) -------------------------------------
+def mount_trash_dirs(root: str, uid: int = -1) -> list[str]:
+    """Corbeilles de l'utilisateur sur ce support : .Trash-UID et .Trash/UID (norme freedesktop)."""
+    uid = os.getuid() if uid < 0 else uid
+    out = []
+    for d in (os.path.join(root, f".Trash-{uid}"), os.path.join(root, ".Trash", str(uid))):
+        if os.path.isdir(d) and not os.path.islink(d):
+            out.append(d)
+    return out
+
+
+def has_trash_files(root: str) -> bool:
+    """Le support a-t-il des éléments dans sa corbeille ? (nautilus : has_trash_files)"""
+    for d in mount_trash_dirs(root):
+        for sub in ("files", "info"):
+            try:
+                with os.scandir(os.path.join(d, sub)) as it:
+                    if any(True for _ in it):
+                        return True
+            except OSError:
+                continue
+    return False
+
+
+def empty_mount_trash(root: str) -> list[tuple[str, str]]:
+    """Vide la corbeille de ce support seulement (le contenu de files/, info/, expunged/ ; les
+    dossiers restent). Aucun lien n'est suivi. Renvoie les erreurs (chemin, message)."""
+    errors = []
+    for d in mount_trash_dirs(root):
+        for sub in ("files", "info", "expunged"):
+            folder = os.path.join(d, sub)
+            try:
+                entries = list(os.scandir(folder))
+            except OSError:
+                continue
+            for e in entries:
+                try:
+                    if e.is_dir(follow_symlinks=False):
+                        shutil.rmtree(e.path)
+                    else:
+                        os.unlink(e.path)
+                except OSError as err:
+                    errors.append((e.path, err.strerror or str(err)))
+    return errors

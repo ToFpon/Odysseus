@@ -432,6 +432,12 @@ fenêtre de recherche dans le contenu.
   pleine / vide comme Nautilus. `trashwatch.count_and_sync` : si GVfs annonce moins (trash::item-count),
   gvfsd-trash est relancé → le dash du bureau revoit les éléments des autres disques. Testé :
   `compteur_corbeille` d'ui_smoke, `TrashSyncTest`.
+- Éjecter / démonter un support dont la corbeille n'est pas vide : question de Nautilus (« Souhaitez-vous
+  vider la corbeille avant de démonter ? », Annuler / Ne pas vider la corbeille / Vider la corbeille),
+  `Sidebar.eject` → `_ask_empty_trash` → `_do_eject`. Seule la corbeille de CE support est vidée
+  (`trashwatch.empty_mount_trash` : .Trash-UID et .Trash/UID, contenu de files/ info/ expunged/, aucun
+  lien suivi), par `_run` (progression, erreur → pas d'éjection). Idée d'un utilisateur (fork « Mira »).
+  Testé : `MountTrashTest`, `ejecter_vider_corbeille` d'ui_smoke.
 - Corbeille / GVfs : au bout d'un moment, gvfsd-trash ne voit plus les `.Trash-1000` des autres disques
   (les fichiers y sont, trash:/// ne les montre plus ; `pkill gvfsd-trash` répare). `backend/trashwatch.py` :
   à chaque lecture de la corbeille, on compte nous-mêmes (éléments de `files/` ayant leur `.trashinfo`,

@@ -1654,7 +1654,7 @@ msgstr "Permanent deletion"
 msgid "La corbeille est vide"
 msgstr "The trash is empty"
 
-#: odysseus/ui/actions_files.py:889
+#: odysseus/ui/actions_files.py:889 odysseus/ui/sidebar.py:431
 msgid "Vidage de la corbeille"
 msgstr "Emptying the trash"
 
@@ -1715,7 +1715,7 @@ msgstr "Cannot create"
 msgid "Corbeille vidée"
 msgstr "Trash emptied"
 
-#: odysseus/ui/actions_files.py:892
+#: odysseus/ui/actions_files.py:892 odysseus/ui/sidebar.py:439
 msgid "Vider la corbeille"
 msgstr "Empty the trash"
 
@@ -3779,12 +3779,12 @@ msgstr "Open With…"
 msgid "Exécuter comme un programme"
 msgstr "Run as a Program"
 
-#: odysseus/ui/menus.py:160 odysseus/ui/sidebar.py:469
+#: odysseus/ui/menus.py:160 odysseus/ui/sidebar.py:519
 #: odysseus/ui/this_pc.py:339
 msgid "Ouvrir dans un nouvel onglet"
 msgstr "Open in new tab"
 
-#: odysseus/ui/menus.py:161 odysseus/ui/sidebar.py:470
+#: odysseus/ui/menus.py:161 odysseus/ui/sidebar.py:520
 #: odysseus/ui/this_pc.py:340
 msgid "Ouvrir dans une nouvelle fenêtre"
 msgstr "Open in New Window"
@@ -3809,7 +3809,7 @@ msgstr "Copy to the other panel"
 msgid "Déplacer vers l'autre panneau"
 msgstr "Move to the other panel"
 
-#: odysseus/ui/menus.py:186 odysseus/ui/menus.py:385 odysseus/ui/sidebar.py:476
+#: odysseus/ui/menus.py:186 odysseus/ui/menus.py:385 odysseus/ui/sidebar.py:526
 msgid "Renommer…"
 msgstr "Rename…"
 
@@ -3873,11 +3873,11 @@ msgstr "Add files…"
 msgid "Restaurer"
 msgstr "Restore"
 
-#: odysseus/ui/menus.py:138 odysseus/ui/pane.py:208 odysseus/ui/sidebar.py:486
+#: odysseus/ui/menus.py:138 odysseus/ui/pane.py:208 odysseus/ui/sidebar.py:536
 msgid "Vider la corbeille…"
 msgstr "Empty trash…"
 
-#: odysseus/ui/menus.py:163 odysseus/ui/sidebar.py:472
+#: odysseus/ui/menus.py:163 odysseus/ui/sidebar.py:522
 #: odysseus/ui/this_pc.py:342
 msgid "Ouvrir dans l'autre panneau"
 msgstr "Open in the other panel"
@@ -4139,7 +4139,7 @@ msgstr[1] "(containing a total of {0} items)"
 msgid "Menu du dossier"
 msgstr "Folder menu"
 
-#: odysseus/ui/pathbar.py:106 odysseus/ui/window.py:347
+#: odysseus/ui/pathbar.py:106 odysseus/ui/window.py:353
 msgid "Administrateur"
 msgstr "Administrator"
 
@@ -4279,7 +4279,7 @@ msgstr "Compression finished"
 msgid "Pages à garder, ex. 1-3, 5, 8-"
 msgstr "Pages to keep, e.g. 1-3, 5, 8-"
 
-#: odysseus/ui/pdf_dialogs.py:125 odysseus/ui/sidebar.py:482
+#: odysseus/ui/pdf_dialogs.py:125 odysseus/ui/sidebar.py:532
 #: odysseus/ui/this_pc.py:334
 msgid "Monter"
 msgstr "Move up"
@@ -4978,11 +4978,22 @@ msgstr ""
 msgid "Périphériques"
 msgstr "Devices"
 
-#: odysseus/ui/sidebar.py:500
+#: odysseus/ui/sidebar.py:435
+msgid "Souhaitez-vous vider la corbeille avant de démonter ?"
+msgstr "Do you want to empty the trash before you unmount?"
+
+#: odysseus/ui/sidebar.py:436
+msgid ""
+"Afin de récupérer l'espace libre sur ce volume, la corbeille doit être "
+"vidée. Tous les éléments de ce volume dans la corbeille seront "
+"définitivement perdus."
+msgstr "In order to regain the free space on this volume the trash must be emptied. All trashed items on the volume will be permanently lost."
+
+#: odysseus/ui/sidebar.py:550
 msgid "Renommer le signet"
 msgstr "Rename bookmark"
 
-#: odysseus/ui/sidebar.py:477
+#: odysseus/ui/sidebar.py:527
 msgid "Retirer des signets"
 msgstr "Remove from bookmarks"
 
@@ -4996,17 +5007,22 @@ msgid_plural "{0} éléments dans la corbeille"
 msgstr[0] "{0} item in the trash"
 msgstr[1] "{0} items in the trash"
 
-#: odysseus/ui/sidebar.py:328 odysseus/ui/sidebar.py:484
+#: odysseus/ui/sidebar.py:328 odysseus/ui/sidebar.py:534
 #: odysseus/ui/this_pc.py:349 odysseus/ui/this_pc.py:351
 msgid "Éjecter"
 msgstr "Eject"
 
-#: odysseus/ui/sidebar.py:329 odysseus/ui/sidebar.py:484
+#: odysseus/ui/sidebar.py:329 odysseus/ui/sidebar.py:534
 #: odysseus/ui/this_pc.py:349
 msgid "Démonter"
 msgstr "Unmount"
 
-#: odysseus/ui/sidebar.py:407
+#: odysseus/ui/sidebar.py:438
+#
+msgid "Ne pas vider la corbeille"
+msgstr "Do not Empty Trash"
+
+#: odysseus/ui/sidebar.py:457
 msgid "{0} peut être retiré en toute sécurité"
 msgstr "{0} can be safely removed"
 
@@ -5014,7 +5030,7 @@ msgstr "{0} can be safely removed"
 msgid "Impossible de monter {0}"
 msgstr "Unable to mount {0}"
 
-#: odysseus/ui/sidebar.py:405
+#: odysseus/ui/sidebar.py:455
 msgid "Impossible d'éjecter {0}"
 msgstr "Unable to eject {0}"
 
@@ -5120,54 +5136,54 @@ msgstr "Copy to the other panel (F6)"
 msgid "Déplacer vers l'autre panneau (Maj+F6)"
 msgstr "Move to the other panel (Shift+F6)"
 
-#: odysseus/ui/window.py:413
+#: odysseus/ui/window.py:419
 msgid "Copier →"
 msgstr "Copy →"
 
-#: odysseus/ui/window.py:413
+#: odysseus/ui/window.py:419
 msgid "← Copier"
 msgstr "← Copy"
 
-#: odysseus/ui/window.py:414
+#: odysseus/ui/window.py:420
 msgid "Déplacer →"
 msgstr "Move →"
 
-#: odysseus/ui/window.py:414
+#: odysseus/ui/window.py:420
 msgid "← Déplacer"
 msgstr "← Move"
 
-#: odysseus/ui/window.py:630
+#: odysseus/ui/window.py:636
 msgid "Des opérations sont en cours"
 msgstr "Operations are in progress"
 
-#: odysseus/ui/window.py:630
+#: odysseus/ui/window.py:636
 msgid "Quitter maintenant les annulera."
 msgstr "Quitting now will cancel them."
 
-#: odysseus/ui/window.py:957
+#: odysseus/ui/window.py:963
 msgid "Réduire (Ctrl+−)"
 msgstr "Smaller (Ctrl+−)"
 
-#: odysseus/ui/window.py:958
+#: odysseus/ui/window.py:964
 msgid "Agrandir (Ctrl++)"
 msgstr "Larger (Ctrl++)"
 
-#: odysseus/ui/window.py:1066
+#: odysseus/ui/window.py:1072
 msgid "Ajouté aux signets"
 msgstr "Added to bookmarks"
 
-#: odysseus/ui/window.py:1066
+#: odysseus/ui/window.py:1072
 msgid "Retiré des signets"
 msgstr "Removed from bookmarks"
 
-#: odysseus/ui/window.py:956
+#: odysseus/ui/window.py:962
 msgid "Taille d'icône"
 msgstr "Icon Size"
 
-#: odysseus/ui/window.py:631
+#: odysseus/ui/window.py:637
 msgid "Continuer"
 msgstr "Continue"
 
-#: odysseus/ui/window.py:631
+#: odysseus/ui/window.py:637
 msgid "Quitter"
 msgstr "Quit"

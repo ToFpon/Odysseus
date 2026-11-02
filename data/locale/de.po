@@ -1684,7 +1684,7 @@ msgstr "Endgültiges Löschen"
 msgid "La corbeille est vide"
 msgstr "Der Papierkorb ist leer"
 
-#: odysseus/ui/actions_files.py:889
+#: odysseus/ui/actions_files.py:889 odysseus/ui/sidebar.py:431
 msgid "Vidage de la corbeille"
 msgstr "Papierkorb leeren"
 
@@ -1747,7 +1747,7 @@ msgstr "Erstellen nicht möglich"
 msgid "Corbeille vidée"
 msgstr "Papierkorb geleert"
 
-#: odysseus/ui/actions_files.py:892
+#: odysseus/ui/actions_files.py:892 odysseus/ui/sidebar.py:439
 msgid "Vider la corbeille"
 msgstr "Papierkorb leeren"
 
@@ -3819,12 +3819,12 @@ msgstr "Öffnen mit …"
 msgid "Exécuter comme un programme"
 msgstr "Als Programm ausführen"
 
-#: odysseus/ui/menus.py:160 odysseus/ui/sidebar.py:469
+#: odysseus/ui/menus.py:160 odysseus/ui/sidebar.py:519
 #: odysseus/ui/this_pc.py:339
 msgid "Ouvrir dans un nouvel onglet"
 msgstr "In neuem Reiter öffnen"
 
-#: odysseus/ui/menus.py:161 odysseus/ui/sidebar.py:470
+#: odysseus/ui/menus.py:161 odysseus/ui/sidebar.py:520
 #: odysseus/ui/this_pc.py:340
 msgid "Ouvrir dans une nouvelle fenêtre"
 msgstr "In neuem Fenster öffnen"
@@ -3849,7 +3849,7 @@ msgstr "In das andere Fenster kopieren"
 msgid "Déplacer vers l'autre panneau"
 msgstr "In das andere Fenster verschieben"
 
-#: odysseus/ui/menus.py:186 odysseus/ui/menus.py:385 odysseus/ui/sidebar.py:476
+#: odysseus/ui/menus.py:186 odysseus/ui/menus.py:385 odysseus/ui/sidebar.py:526
 msgid "Renommer…"
 msgstr "Umbenennen …"
 
@@ -3913,11 +3913,11 @@ msgstr "Dateien hinzufügen …"
 msgid "Restaurer"
 msgstr "Wiederherstellen"
 
-#: odysseus/ui/menus.py:138 odysseus/ui/pane.py:208 odysseus/ui/sidebar.py:486
+#: odysseus/ui/menus.py:138 odysseus/ui/pane.py:208 odysseus/ui/sidebar.py:536
 msgid "Vider la corbeille…"
 msgstr "Papierkorb leeren …"
 
-#: odysseus/ui/menus.py:163 odysseus/ui/sidebar.py:472
+#: odysseus/ui/menus.py:163 odysseus/ui/sidebar.py:522
 #: odysseus/ui/this_pc.py:342
 msgid "Ouvrir dans l'autre panneau"
 msgstr "Im anderen Fenster öffnen"
@@ -4179,7 +4179,7 @@ msgstr[1] "(enthält insgesamt {0} Elemente)"
 msgid "Menu du dossier"
 msgstr "Ordnermenü"
 
-#: odysseus/ui/pathbar.py:106 odysseus/ui/window.py:347
+#: odysseus/ui/pathbar.py:106 odysseus/ui/window.py:353
 msgid "Administrateur"
 msgstr "Administrator"
 
@@ -4319,7 +4319,7 @@ msgstr "Komprimierung abgeschlossen"
 msgid "Pages à garder, ex. 1-3, 5, 8-"
 msgstr "Zu behaltende Seiten, z. B. 1-3, 5, 8-"
 
-#: odysseus/ui/pdf_dialogs.py:125 odysseus/ui/sidebar.py:482
+#: odysseus/ui/pdf_dialogs.py:125 odysseus/ui/sidebar.py:532
 #: odysseus/ui/this_pc.py:334
 msgid "Monter"
 msgstr "Nach oben"
@@ -5024,11 +5024,22 @@ msgstr ""
 msgid "Périphériques"
 msgstr "Geräte"
 
-#: odysseus/ui/sidebar.py:500
+#: odysseus/ui/sidebar.py:435
+msgid "Souhaitez-vous vider la corbeille avant de démonter ?"
+msgstr "Soll der Papierkorb vor dem Aushängen geleert werden?"
+
+#: odysseus/ui/sidebar.py:436
+msgid ""
+"Afin de récupérer l'espace libre sur ce volume, la corbeille doit être "
+"vidée. Tous les éléments de ce volume dans la corbeille seront "
+"définitivement perdus."
+msgstr "Um den freien Speicherplatz auf diesem Datenträger verfügbar zu machen, muss der Papierkorb geleert werden. Alle im Papierkorb dieses Datenträgers enthaltenen Objekte werden dauerhaft gelöscht."
+
+#: odysseus/ui/sidebar.py:550
 msgid "Renommer le signet"
 msgstr "Lesezeichen umbenennen"
 
-#: odysseus/ui/sidebar.py:477
+#: odysseus/ui/sidebar.py:527
 msgid "Retirer des signets"
 msgstr "Aus Lesezeichen entfernen"
 
@@ -5042,17 +5053,22 @@ msgid_plural "{0} éléments dans la corbeille"
 msgstr[0] "{0} Objekt im Papierkorb"
 msgstr[1] "{0} Objekte im Papierkorb"
 
-#: odysseus/ui/sidebar.py:328 odysseus/ui/sidebar.py:484
+#: odysseus/ui/sidebar.py:328 odysseus/ui/sidebar.py:534
 #: odysseus/ui/this_pc.py:349 odysseus/ui/this_pc.py:351
 msgid "Éjecter"
 msgstr "Auswerfen"
 
-#: odysseus/ui/sidebar.py:329 odysseus/ui/sidebar.py:484
+#: odysseus/ui/sidebar.py:329 odysseus/ui/sidebar.py:534
 #: odysseus/ui/this_pc.py:349
 msgid "Démonter"
 msgstr "Aushängen"
 
-#: odysseus/ui/sidebar.py:407
+#: odysseus/ui/sidebar.py:438
+#
+msgid "Ne pas vider la corbeille"
+msgstr "Papierkorb nicht leeren"
+
+#: odysseus/ui/sidebar.py:457
 msgid "{0} peut être retiré en toute sécurité"
 msgstr "{0} kann sicher entfernt werden"
 
@@ -5060,7 +5076,7 @@ msgstr "{0} kann sicher entfernt werden"
 msgid "Impossible de monter {0}"
 msgstr "{0} kann nicht eingehängt werden"
 
-#: odysseus/ui/sidebar.py:405
+#: odysseus/ui/sidebar.py:455
 msgid "Impossible d'éjecter {0}"
 msgstr "{0} kann nicht ausgeworfen werden"
 
@@ -5168,54 +5184,54 @@ msgstr "In das andere Fenster kopieren (F6)"
 msgid "Déplacer vers l'autre panneau (Maj+F6)"
 msgstr "In das andere Fenster verschieben (Umschalt+F6)"
 
-#: odysseus/ui/window.py:413
+#: odysseus/ui/window.py:419
 msgid "Copier →"
 msgstr "Kopieren →"
 
-#: odysseus/ui/window.py:413
+#: odysseus/ui/window.py:419
 msgid "← Copier"
 msgstr "← Kopieren"
 
-#: odysseus/ui/window.py:414
+#: odysseus/ui/window.py:420
 msgid "Déplacer →"
 msgstr "Verschieben →"
 
-#: odysseus/ui/window.py:414
+#: odysseus/ui/window.py:420
 msgid "← Déplacer"
 msgstr "← Verschieben"
 
-#: odysseus/ui/window.py:630
+#: odysseus/ui/window.py:636
 msgid "Des opérations sont en cours"
 msgstr "Es laufen noch Vorgänge"
 
-#: odysseus/ui/window.py:630
+#: odysseus/ui/window.py:636
 msgid "Quitter maintenant les annulera."
 msgstr "Beim Beenden werden sie abgebrochen."
 
-#: odysseus/ui/window.py:957
+#: odysseus/ui/window.py:963
 msgid "Réduire (Ctrl+−)"
 msgstr "Kleiner (Strg+−)"
 
-#: odysseus/ui/window.py:958
+#: odysseus/ui/window.py:964
 msgid "Agrandir (Ctrl++)"
 msgstr "Größer (Strg++)"
 
-#: odysseus/ui/window.py:1066
+#: odysseus/ui/window.py:1072
 msgid "Ajouté aux signets"
 msgstr "Zu Lesezeichen hinzugefügt"
 
-#: odysseus/ui/window.py:1066
+#: odysseus/ui/window.py:1072
 msgid "Retiré des signets"
 msgstr "Aus Lesezeichen entfernt"
 
-#: odysseus/ui/window.py:956
+#: odysseus/ui/window.py:962
 msgid "Taille d'icône"
 msgstr "Symbolgröße"
 
-#: odysseus/ui/window.py:631
+#: odysseus/ui/window.py:637
 msgid "Continuer"
 msgstr "Fortfahren"
 
-#: odysseus/ui/window.py:631
+#: odysseus/ui/window.py:637
 msgid "Quitter"
 msgstr "Beenden"

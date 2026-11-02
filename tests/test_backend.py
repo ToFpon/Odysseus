@@ -263,6 +263,32 @@ class TrashSyncTest(unittest.TestCase):
             t.expected_count, t.gvfs_count, t.restart_gvfs_trash = saved
 
 
+class MountTrashTest(unittest.TestCase):
+    """Corbeille d'un support avant éjection (comme Nautilus) : détectée, vidée sans suivre aucun lien,
+    rien d'autre sur le support n'est touché."""
+
+    def test_detect_and_empty(self):
+        from odysseus.backend import trashwatch as t
+        with tempfile.TemporaryDirectory() as root, tempfile.TemporaryDirectory() as outside:
+            keep = os.path.join(root, "photo.jpg")
+            open(keep, "w").close()
+            precious = os.path.join(outside, "precieux.txt")
+            open(precious, "w").close()
+            self.assertFalse(t.has_trash_files(root))
+            tr_dir = os.path.join(root, f".Trash-{os.getuid()}")
+            os.makedirs(os.path.join(tr_dir, "files", "dossier", "sous"))
+            os.makedirs(os.path.join(tr_dir, "info"))
+            open(os.path.join(tr_dir, "files", "a.txt"), "w").close()
+            open(os.path.join(tr_dir, "files", "dossier", "sous", "b.txt"), "w").close()
+            os.symlink(outside, os.path.join(tr_dir, "files", "lien-dehors"))
+            open(os.path.join(tr_dir, "info", "a.txt.trashinfo"), "w").close()
+            self.assertTrue(t.has_trash_files(root))
+            self.assertEqual(t.empty_mount_trash(root), [])
+            self.assertFalse(t.has_trash_files(root))
+            self.assertEqual(os.listdir(os.path.join(tr_dir, "files")), [])
+            self.assertTrue(os.path.exists(keep) and os.path.exists(precious))
+
+
 class BrokenLinkTest(unittest.TestCase):
     """Lien dont la cible n'existe pas : « Lien (brisé) » comme Nautilus, pas le type de son nom."""
 

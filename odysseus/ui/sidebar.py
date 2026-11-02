@@ -390,6 +390,56 @@ class Sidebar(Gtk.Box):
         row.volume.mount(Gio.MountMountFlags.NONE, op, None, done)
 
     def eject(self, row: SidebarRow):
+        """Comme Nautilus : si le support a des éléments dans sa corbeille, proposer de la vider
+        d'abord (sinon ils occupent la place sans être visibles ailleurs)."""
+        root = self._mount_root(row)
+        if not root:
+            self._do_eject(row)
+            return
+
+        def check():
+            full = trashwatch.has_trash_files(root)
+            GLib.idle_add(lambda: (self._ask_empty_trash(row, root) if full else self._do_eject(row), False)[1])
+        threading.Thread(target=check, daemon=True).start()
+
+    @staticmethod
+    def _mount_root(row: SidebarRow) -> str:
+        if row.mount is not None:
+            r = row.mount.get_root()
+            if r is not None and r.get_path():
+                return r.get_path()
+        return row.target if row.target and "://" not in row.target else ""
+
+    def _ask_empty_trash(self, row: SidebarRow, root: str):
+        win = self.get_root()
+
+        def answer(r):
+            if r == "keep":
+                self._do_eject(row)
+            elif r == "empty":
+                def work(_job):
+                    errors = trashwatch.empty_mount_trash(root)
+                    if errors:
+                        raise OSError(errors[0][1] + " : " + errors[0][0])
+                    return True
+
+                def done(job):
+                    self.refresh_trash_count()
+                    if getattr(job, "state", "done") == "done":
+                        self._do_eject(row)
+                if hasattr(win, "_run"):
+                    win._run(tr("Vidage de la corbeille"), work, on_done=done)
+                else:
+                    trashwatch.empty_mount_trash(root)
+                    self._do_eject(row)
+        alert(self, tr("Souhaitez-vous vider la corbeille avant de démonter ?"),
+              tr("Afin de récupérer l'espace libre sur ce volume, la corbeille doit être vidée. Tous les éléments "
+                 "de ce volume dans la corbeille seront définitivement perdus."),
+              responses=(("cancel", tr("Annuler")), ("keep", tr("Ne pas vider la corbeille")),
+                         ("empty", tr("Vider la corbeille"))),
+              destructive="empty", default="empty", callback=answer)
+
+    def _do_eject(self, row: SidebarRow):
         mount, volume = row.mount, row.volume
         name = (mount or volume).get_name()
         win = self.get_root()

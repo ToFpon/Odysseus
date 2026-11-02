@@ -2648,6 +2648,55 @@ def dock_fenetres_ouvertes(win):
 
 
 @step
+def ejecter_vider_corbeille(win):
+    """Éjecter un support dont la corbeille n'est pas vide : la question de Nautilus, « Vider la
+    corbeille » la vide puis éjecte ; « Ne pas vider » éjecte sans y toucher ; « Annuler » ne fait rien."""
+    from odysseus.ui.sidebar import SidebarRow
+    sb = win.sidebar
+    root = tempfile.mkdtemp(dir=D, prefix="cle ")
+    tr_dir = os.path.join(root, f".Trash-{os.getuid()}")
+    ejected = []
+    saved = sb._do_eject
+    sb._do_eject = lambda row: ejected.append(row.target)
+
+    def fill():
+        os.makedirs(os.path.join(tr_dir, "files"), exist_ok=True)
+        os.makedirs(os.path.join(tr_dir, "info"), exist_ok=True)
+        open(os.path.join(tr_dir, "files", "vieux.txt"), "w").close()
+        open(os.path.join(tr_dir, "info", "vieux.txt.trashinfo"), "w").close()
+    try:
+        for answer, want_ejected, want_empty in (("cancel", False, False), ("keep", True, False),
+                                                 ("empty", True, True)):
+            fill()
+            ejected.clear()
+            row = SidebarRow("drive-removable-media-symbolic", "Clé", root, kind="device")
+            before = list(Gtk.Window.list_toplevels())
+            sb.eject(row)
+            yield Wait(3, until=lambda: any(isinstance(w, Adw.MessageDialog) for w in Gtk.Window.list_toplevels()
+                                            if w not in before))
+            dlg = [w for w in Gtk.Window.list_toplevels() if w not in before and isinstance(w, Adw.MessageDialog)]
+            check(len(dlg) == 1 and dlg[0].get_heading() == tr("Souhaitez-vous vider la corbeille avant de démonter ?"),
+                  f"éjection : question de Nautilus ({answer})")
+            if dlg:
+                dlg[0].response(answer)
+                dlg[0].close()
+            yield wait_jobs()
+            yield pump(0.4)
+            emptied = not os.listdir(os.path.join(tr_dir, "files"))
+            check(bool(ejected) == want_ejected and emptied == want_empty,
+                  f"« {answer} » : éjecté={bool(ejected)}, vidé={emptied}")
+        ejected.clear()
+        before = list(Gtk.Window.list_toplevels())
+        sb.eject(SidebarRow("drive-removable-media-symbolic", "Clé", root, kind="device"))
+        yield pump(0.5)
+        check(ejected == [root] and not [w for w in Gtk.Window.list_toplevels()
+                                         if w not in before and isinstance(w, Adw.MessageDialog)],
+              "corbeille vide : éjecté sans question")
+    finally:
+        sb._do_eject = saved
+
+
+@step
 def fonctionnalites(win):
     from odysseus import features
     features.set_enabled("dual_panel", False)
