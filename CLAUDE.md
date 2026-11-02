@@ -415,6 +415,10 @@ fenêtre de recherche dans le contenu.
   modifiable (dans / ou /usr : aucun cadenas, comme Nautilus) ; parent lu une fois par dossier
   (`_parent_writable`, cache de 5 s). Le bac à sable tourne en root (aucun
   emblème) : les tests posent `icons._ids = (1000, {1000})`.
+- Corbeille comme Nautilus : colonne date = « Mis à la corbeille le » (`trash::deletion-date` → `trashed`,
+  tri « date » dessus, par défaut les derniers d'abord : `Pane.place_sort`), « Emplacement d'origine »
+  rempli depuis `trash::orig-path` (`scanner.trash_origin_label`, relatif au dossier personnel) — la
+  colonne restait vide. Testé avec la vraie corbeille GVfs (`corbeille_colonnes` d'ui_smoke).
 - Corbeille / GVfs : au bout d'un moment, gvfsd-trash ne voit plus les `.Trash-1000` des autres disques
   (les fichiers y sont, trash:/// ne les montre plus ; `pkill gvfsd-trash` répare). `backend/trashwatch.py` :
   à chaque lecture de la corbeille, on compte nous-mêmes (éléments de `files/` ayant leur `.trashinfo`,

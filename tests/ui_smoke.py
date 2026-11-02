@@ -2399,6 +2399,49 @@ def corbeille_retablir(win):
 
 
 @step
+def corbeille_colonnes(win):
+    """Corbeille comme Nautilus : « Mis à la corbeille le » (les derniers d'abord) et l'emplacement
+    d'origine rempli (il restait vide)."""
+    from odysseus.backend import fileops
+    from odysseus.ui import views
+    sub = os.path.join(os.environ["HOME"], "Images", "Captures")
+    os.makedirs(sub, exist_ok=True)
+    old = os.path.join(sub, "ancienne.png")
+    new = os.path.join(os.environ["HOME"], "recente.txt")
+    for f in (old, new):
+        open(f, "w").close()
+    os.utime(old, (1_000_000_000, 1_000_000_000))       # modifié en 2001 : la date affichée doit être celle du jour
+    win._trash_paths([old])
+    yield wait_jobs()
+    if not any(i.get_attribute_byte_string("trash::orig-path") == old for i, _f in fileops.trash_items(None)):
+        print("- trash:/// ne voit pas la corbeille de test (ODYSSEUS_UI_GVFS=1 sous dbus-run-session) : test sauté")
+        return
+    yield pump(1.1)                                      # deux dates de corbeille différentes (à la seconde)
+    win._trash_paths([new])
+    yield wait_jobs()
+    p = win.pane
+    p.open("trash:///")
+    yield Wait(5, until=lambda: not p.model.loading and len([r for r in p.model.items if r.name in
+                                                               ("ancienne.png", "recente.txt")]) == 2)
+    recs = {r.name: r for r in p.model.items}
+    a, b = recs.get("ancienne.png"), recs.get("recente.txt")
+    check(a is not None and views.cell_text("location", a, p) == os.path.join("Images", "Captures")
+          and views.cell_text("location", b, p) == tr("Dossier personnel"),
+          f"emplacement d'origine rempli ({a and views.cell_text('location', a, p)!r})")
+    check(a is not None and "2001" not in views.cell_text("date", a, p) and a.get("trashed"),
+          f"date de mise à la corbeille, pas de modification ({a and views.cell_text('date', a, p)})")
+    col = p.list_view.columns.get("date")
+    check(col is not None and col.get_title() == tr("Mis à la corbeille le"), "colonne « Mis à la corbeille le »")
+    names = [r.name for r in p.model.items if r.name in ("ancienne.png", "recente.txt")]
+    check(p.model.sort_key == "date" and p.model.sort_reverse and names == ["recente.txt", "ancienne.png"],
+          f"les derniers mis à la corbeille d'abord ({names})")
+    p.open(D)
+    yield Wait(5, until=lambda: not p.model.loading)
+    check(p.list_view.columns.get("date") is None or
+          p.list_view.columns["date"].get_title() == tr("Dernière modification"), "hors corbeille : « Dernière modification »")
+
+
+@step
 def corbeille_relance_gvfs(win):
     """Si trash:/// montre moins d'éléments que les corbeilles n'en contiennent (gvfsd-trash a perdu
     un disque), Odysseus relance gvfsd-trash puis relit la corbeille ; sinon, rien."""

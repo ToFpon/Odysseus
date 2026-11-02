@@ -1106,6 +1106,8 @@ class Pane(Gtk.Box):
     def place_sort(self) -> tuple[str, bool]:
         place = self.sort_place()
         saved = folder_sort.get(place) if place else None
+        if saved is None and self.mode == "trash":
+            return ("date", True)          # comme Nautilus : les derniers mis à la corbeille d'abord
         return saved or (settings["sort_key"], settings["sort_reverse"])
 
     def _take_place_sort(self):

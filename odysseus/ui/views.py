@@ -89,6 +89,8 @@ def cell_text(key: str, rec: Rec, pane: "Pane") -> str:
     if key == "type":
         return tr("Dossier") if rec.is_dir else scanner.type_description(rec.content_type)
     if key == "date":
+        if pane.mode == "trash" and rec.get("trashed"):
+            return date_label(rec.get("trashed"))          # « Mis à la corbeille le », comme Nautilus
         return date_label(rec.mtime) if rec.stat_ok else ""
     if key == "perms":
         return perms_label(rec.mode)
@@ -408,6 +410,9 @@ class ListView(Gtk.ScrolledWindow, _CellMixin):
         loc = self.columns.get("location")
         if loc is not None:
             loc.set_title(tr("Emplacement d'origine") if self.pane.mode == "trash" else tr("Emplacement"))
+        date = self.columns.get("date")
+        if date is not None:
+            date.set_title(tr("Mis à la corbeille le") if self.pane.mode == "trash" else tr("Dernière modification"))
 
     def _rebuild(self, keys: list):
         old = self.view

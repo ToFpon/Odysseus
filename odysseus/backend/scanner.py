@@ -244,6 +244,18 @@ def stat_all(recs: list[Rec], cancel: threading.Event, every: int = 0, on_chunk:
             on_chunk()
 
 
+def trash_origin_label(orig: str) -> str:
+    """Dossier d'origine d'un élément de la corbeille, comme Nautilus : relatif au dossier personnel
+    (« Images/Captures d'écran »), « Dossier personnel », ou chemin complet ailleurs."""
+    parent = os.path.dirname(orig.rstrip("/")) or "/"
+    home = os.path.expanduser("~")
+    if parent == home:
+        return tr("Dossier personnel")
+    if parent.startswith(home + os.sep):
+        return os.path.relpath(parent, home)
+    return parent
+
+
 def rec_from_info(info: Gio.FileInfo, parent: Gio.File) -> Rec:
     # Lecture par get_attribute_* : certains backends GVfs (réseau, Freebox…) ne fournissent pas
     # tous les attributs, et get_is_hidden(), get_size()… émettent alors des avertissements critiques.
@@ -265,9 +277,13 @@ def rec_from_info(info: Gio.FileInfo, parent: Gio.File) -> Rec:
     orig = info.get_attribute_byte_string("trash::orig-path") if info.has_attribute("trash::orig-path") else None
     if orig:
         r.set("orig_path", orig)
+        r.set("location", trash_origin_label(os.fsdecode(orig)))      # colonne « Emplacement d'origine »
         dt = info.get_attribute_string("trash::deletion-date")
         if dt:
             r.set("deletion_date", dt)
+            when = GLib.DateTime.new_from_iso8601(dt, GLib.TimeZone.new_local())
+            if when is not None:
+                r.set("trashed", float(when.to_unix()))           # « Mis à la corbeille le » (Nautilus)
     target = info.get_attribute_string("standard::target-uri")
     if target:
         r.set("target_uri", target)
@@ -336,8 +352,8 @@ SORT_KEYS = ("name", "size", "type", "date", "duration", "perms", "owner", "loca
 def _key_func(key: str) -> Callable:
     if key == "size":
         return lambda r: (r.get("count", -1) if r.is_dir else r.size, r.key)
-    if key == "date":
-        return lambda r: (r.mtime, r.key)
+    if key == "date":           # corbeille : date de mise à la corbeille, comme Nautilus
+        return lambda r: (r.get("trashed", r.mtime), r.key)
     if key == "type":
         return lambda r: (type_description(r.content_type), r.key)
     if key == "duration":
