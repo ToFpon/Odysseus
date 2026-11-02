@@ -195,6 +195,11 @@ fenêtre de recherche dans le contenu.
   le bus lance Odysseus (`--gapplication-service`, fichier de service écrit par `install.sh`) avec
   l'environnement de la session — un lanceur hors session (script udev) n'a plus besoin de DISPLAY /
   XAUTHORITY. Les actions du .desktop sont alors activées par leur nom : `app.new-window`, `app.dual`.
+- Préférences → Général → « Gestionnaire de fichiers par défaut » : UN interrupteur (`defaultapp.py`, idée
+  reprise de « Mira ») = `inode/directory` → notre .desktop dans mimeapps.list (comme `xdg-mime default`, la
+  commande est écrite dans le sous-titre) + `dbus_file_manager` ; coupé : Nautilus redevient l'application
+  par défaut. État affiché = celui du système. L'ancien interrupteur « Répondre à Afficher dans le dossier »
+  a disparu (le réglage `dbus_file_manager` reste, piloté par celui-ci). Testé : `gestionnaire_par_defaut`.
 - « Afficher dans le dossier » (org.freedesktop.FileManager1, option `dbus_file_manager`) : Odysseus
   fermé, le bus lançait Nautilus (son service dans /usr/share). Option active, `dbus.sync_service`
   écrit le nôtre dans ~/.local/share/dbus-1/services (prioritaire, 1re ligne `# Odysseus`) ; option
@@ -204,7 +209,7 @@ fenêtre de recherche dans le contenu.
   onglets, republiée (PropertiesChanged) à l'ouverture / fermeture d'une fenêtre, d'un onglet, à chaque
   changement de dossier. dash-to-dock (fileManager1API.js) s'en sert : sa Corbeille passe en STARTING au
   clic et n'en sort que sur cette propriété ; sans elle, après le premier clic, plus rien ne se passait
-  (activate_full n'a pas de cas STARTING). Demande l'option « Répondre à Afficher dans le dossier ».
+  (activate_full n'a pas de cas STARTING). Demande l'interrupteur « Gestionnaire de fichiers par défaut ».
   Validé chez Tof (Zorin 18, 1.7.4) : clics répétés OK, et l'icône du dash passe bien en « pleine ».
 - Glisser au-dessus d'un dossier (vue, barre latérale sauf Corbeille, barre de chemin) l'ouvre après
   500 ms comme Nautilus 46 (`common.SpringLoad`, réglage `dnd_hover_open`) : minuteur lancé seulement

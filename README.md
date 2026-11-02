@@ -109,13 +109,11 @@ sudo apt update && sudo apt install odysseus
 
 Other Debian-based distributions (Debian 13, PCLinuxOS Debian…): download `odysseus_<version>_all.deb` from the [Releases page](https://github.com/ToFpon/Odysseus/releases), then `sudo apt install ./odysseus_<version>_all.deb` (dependencies come with it).
 
-To make Odysseus the default file manager (folders opened from other applications, the dock, the desktop…):
+To make Odysseus the default file manager, turn on **Preferences → General → Default file manager**: folders opened from the desktop, the dock and other applications, and “Show in folder” (Firefox, downloads…) then open Odysseus; turn it off and Nautilus takes over again. For folders, it does the same as:
 
 ```sh
 xdg-mime default io.github.odysseus.Odysseus.desktop inode/directory
 ```
-
-Then, in **Preferences → General**, turn on **Handle “Show in folder”** so that Firefox, downloads… and the dock's Trash also open Odysseus.
 
 Or by hand, from the sources (Debian 13 reported working this way too, with GNOME). Requirements: Python 3.10+, PyGObject, GTK ≥ 4.14, libadwaita ≥ 1.5. Every other program is optional: a feature whose tool is missing tells you which package to install.
 
@@ -254,13 +252,11 @@ sudo apt update && sudo apt install odysseus
 
 Autres distributions basées sur Debian (Debian 13, PCLinuxOS Debian…) : téléchargez `odysseus_<version>_all.deb` sur la [page Releases](https://github.com/ToFpon/Odysseus/releases), puis `sudo apt install ./odysseus_<version>_all.deb` (les dépendances suivent).
 
-Pour faire d'Odysseus le gestionnaire de fichiers par défaut (dossiers ouverts depuis les autres applications, le dock, le bureau…) :
+Pour faire d'Odysseus le gestionnaire de fichiers par défaut, activez **Préférences → Général → Gestionnaire de fichiers par défaut** : les dossiers ouverts depuis le bureau, le dock et les autres applications, et « Afficher dans le dossier » (Firefox, téléchargements…) ouvrent alors Odysseus ; coupé, Nautilus reprend la main. Pour les dossiers, c'est l'équivalent de :
 
 ```sh
 xdg-mime default io.github.odysseus.Odysseus.desktop inode/directory
 ```
-
-Puis, dans **Préférences → Général**, activez **Répondre à « Afficher dans le dossier »** : Firefox, les téléchargements… et la Corbeille du dock ouvrent alors aussi Odysseus.
 
 Ou à la main, depuis les sources (Debian 13 signalé fonctionnel ainsi aussi, avec GNOME). Prérequis : Python 3.10+, PyGObject, GTK ≥ 4.14, libadwaita ≥ 1.5. Tous les autres programmes sont facultatifs : une fonctionnalité dont l'outil manque indique le paquet à installer.
 

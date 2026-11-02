@@ -2697,6 +2697,36 @@ def ejecter_vider_corbeille(win):
 
 
 @step
+def gestionnaire_par_defaut(win):
+    """Préférences : un seul interrupteur « Gestionnaire de fichiers par défaut » = xdg-mime (inode/directory)
+    + « Afficher dans le dossier » ; coupé, Nautilus reprend la main."""
+    import shutil
+    from odysseus import defaultapp
+    from odysseus.ui import dialogs
+    apps = os.path.join(os.environ["XDG_DATA_HOME"], "applications")
+    os.makedirs(apps, exist_ok=True)
+    shutil.copy(os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "data",
+                             defaultapp.DESKTOP), apps)
+    yield Wait(5, until=defaultapp.installed)
+    if not defaultapp.installed():
+        log.append("gestionnaire par défaut : .desktop introuvable par GIO, sauté")
+        return
+    cls = next(c for c in vars(dialogs).values() if isinstance(c, type) and hasattr(c, "_default_fm_row"))
+    row = cls._default_fm_row()
+    check(not row.get_active() and defaultapp.COMMAND in row.get_subtitle(), "interrupteur : coupé, commande indiquée")
+    row.set_active(True)
+    yield pump(0.3)
+    mimeapps = os.path.join(os.environ["XDG_CONFIG_HOME"], "mimeapps.list")
+    text = open(mimeapps).read() if os.path.exists(mimeapps) else ""
+    check(defaultapp.is_default() and f"inode/directory={defaultapp.DESKTOP}" in text and settings["dbus_file_manager"],
+          "activé : gestionnaire par défaut (mimeapps.list) et « Afficher dans le dossier »")
+    row.set_active(False)
+    yield pump(0.3)
+    check(not defaultapp.is_default() and not settings["dbus_file_manager"], "coupé : la main est rendue")
+    check(cls._default_fm_row().get_active() is False, "état relu depuis le système")
+
+
+@step
 def fonctionnalites(win):
     from odysseus import features
     features.set_enabled("dual_panel", False)

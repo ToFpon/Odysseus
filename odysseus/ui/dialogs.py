@@ -152,10 +152,30 @@ class PreferencesDialog(Adw.PreferencesWindow):
         exts = Adw.EntryRow(title=tr("Extensions ouvertes dans l'éditeur"), text=settings["text_editor_exts"])
         exts.connect("changed", lambda r: settings.__setitem__("text_editor_exts", r.get_text()))
         g.add(exts)
-        g.add(_switch(tr("Répondre à « Afficher dans le dossier »"), "dbus_file_manager",
-                      tr("Firefox, téléchargements… ouvrent Odysseus au lieu de Nautilus, même s'il est fermé")))
+        g.add(self._default_fm_row())
         page.add(g)
         return page
+
+    @staticmethod
+    def _default_fm_row() -> Adw.SwitchRow:
+        """Un seul interrupteur : dossiers (xdg-mime) + « Afficher dans le dossier » (FileManager1)."""
+        from .. import defaultapp
+        row = Adw.SwitchRow(title=tr("Gestionnaire de fichiers par défaut"),
+                            active=defaultapp.is_default())
+        row.set_subtitle(tr("Dossiers ouverts depuis le bureau, le dock et les autres applications, « Afficher "
+                            "dans le dossier » (Firefox, téléchargements…) ; coupé, Nautilus reprend la main.")
+                         + "\n" + defaultapp.COMMAND)
+        row.set_subtitle_lines(0)
+        if not defaultapp.installed():
+            row.set_subtitle(row.get_subtitle() + "\n" + tr("Odysseus n'est pas installé (lancé depuis les sources)"))
+            _lock_switch(row)
+            return row
+
+        def toggled(r, *_):
+            if r.get_active() != defaultapp.is_default() and not defaultapp.set_default(r.get_active()):
+                r.set_active(defaultapp.is_default())
+        row.connect("notify::active", toggled)
+        return row
 
     # ------------------------------------------------------------------
     def _features(self):
