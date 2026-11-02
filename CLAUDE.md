@@ -205,6 +205,7 @@ fenêtre de recherche dans le contenu.
   changement de dossier. dash-to-dock (fileManager1API.js) s'en sert : sa Corbeille passe en STARTING au
   clic et n'en sort que sur cette propriété ; sans elle, après le premier clic, plus rien ne se passait
   (activate_full n'a pas de cas STARTING). Demande l'option « Répondre à Afficher dans le dossier ».
+  Validé chez Tof (Zorin 18, 1.7.4) : clics répétés OK, et l'icône du dash passe bien en « pleine ».
 - Glisser au-dessus d'un dossier (vue, barre latérale sauf Corbeille, barre de chemin) l'ouvre après
   500 ms comme Nautilus 46 (`common.SpringLoad`, réglage `dnd_hover_open`) : minuteur lancé seulement
   après un seuil de glisser dans la cible, relancé tant que le pointeur bouge. Testé avec de vrais
