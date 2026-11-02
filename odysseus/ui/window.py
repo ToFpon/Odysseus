@@ -297,6 +297,9 @@ class MainWindow(FileActions, ArchiveActions, ToolActions, Adw.ApplicationWindow
         for p in ws.panes:
             p.retire()
         view.close_page_finish(tp, True)
+        fm1 = getattr(self.get_application(), "_fm1", None)
+        if fm1 is not None:
+            fm1.queue_update()
         return True
 
     def _check_empty(self):
@@ -326,6 +329,9 @@ class MainWindow(FileActions, ArchiveActions, ToolActions, Adw.ApplicationWindow
     # États
     # ------------------------------------------------------------------
     def _on_location(self, pane: Pane):
+        fm1 = getattr(self.get_application(), "_fm1", None)
+        if fm1 is not None:
+            fm1.queue_update()          # dash-to-dock : quelle fenêtre montre quel dossier
         ws = self._workspace_of(pane)
         if ws is not None:
             self._update_tab(ws)

@@ -199,6 +199,12 @@ fenêtre de recherche dans le contenu.
   fermé, le bus lançait Nautilus (son service dans /usr/share). Option active, `dbus.sync_service`
   écrit le nôtre dans ~/.local/share/dbus-1/services (prioritaire, 1re ligne `# Odysseus`) ; option
   coupée, il est retiré et le nom rendu, sans redémarrage. Un fichier qui n'est pas à nous : jamais touché.
+- FileManager1 publie aussi `OpenWindowsWithLocations` (a{sas}, propriété de Nautilus hors norme) : chemin
+  D-Bus de chaque MainWindow (`<app>/window/<id>`, = _GTK_WINDOW_OBJECT_PATH vérifié avec xprop) → URI des
+  onglets, republiée (PropertiesChanged) à l'ouverture / fermeture d'une fenêtre, d'un onglet, à chaque
+  changement de dossier. dash-to-dock (fileManager1API.js) s'en sert : sa Corbeille passe en STARTING au
+  clic et n'en sort que sur cette propriété ; sans elle, après le premier clic, plus rien ne se passait
+  (activate_full n'a pas de cas STARTING). Demande l'option « Répondre à Afficher dans le dossier ».
 - Glisser au-dessus d'un dossier (vue, barre latérale sauf Corbeille, barre de chemin) l'ouvre après
   500 ms comme Nautilus 46 (`common.SpringLoad`, réglage `dnd_hover_open`) : minuteur lancé seulement
   après un seuil de glisser dans la cible, relancé tant que le pointeur bouge. Testé avec de vrais

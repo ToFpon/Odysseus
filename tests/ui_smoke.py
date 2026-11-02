@@ -2619,6 +2619,35 @@ def compteur_corbeille(win):
 
 
 @step
+def dock_fenetres_ouvertes(win):
+    """org.freedesktop.FileManager1 publie OpenWindowsWithLocations comme Nautilus (dash-to-dock s'en sert :
+    sans elle, la Corbeille du dock restait « en cours de lancement » et ne réagissait plus)."""
+    if not os.environ.get("DBUS_SESSION_BUS_ADDRESS"):
+        log.append("dock : pas de bus de session, sauté")
+        return
+    from odysseus import dbus
+    app = win.get_application()
+    settings["dbus_file_manager"] = True
+    yield pump(0.5)
+    fm1 = app._fm1
+    p = win.pane
+    p.open("trash:///")
+    yield pump(0.5)
+    path = f"{app.get_dbus_object_path()}/window/{win.get_id()}"
+    locs = fm1.locations()
+    check(path in locs and "trash:///" in locs[path], f"fenêtre → emplacements publiés ({locs})")
+    v = fm1._get_property(None, None, dbus.PATH, dbus.NAME, "OpenWindowsWithLocations")
+    check(v is not None and v.get_type_string() == "a{sas}" and "trash:///" in v.unpack().get(path, []),
+          "propriété OpenWindowsWithLocations (a{sas})")
+    p.open(D)
+    yield pump(0.5)
+    check("trash:///" not in fm1.locations().get(path, []) and fm1._last == fm1.locations(),
+          "dossier changé : propriété republiée")
+    settings["dbus_file_manager"] = False
+    yield pump(0.3)
+
+
+@step
 def fonctionnalites(win):
     from odysseus import features
     features.set_enabled("dual_panel", False)

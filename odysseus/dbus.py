@@ -5,6 +5,11 @@ Thunderbird, le gestionnaire de téléchargements… Activée seulement si l'uti
 Odysseus fermé, le bus lance le programme du fichier de service de ce nom : celui de Nautilus
 (/usr/share/dbus-1/services). Option active, on écrit le nôtre dans ~/.local/share/dbus-1/services,
 qui passe avant ; on le retire quand l'option est coupée.
+
+Propriété OpenWindowsWithLocations (a{sas}), publiée par Nautilus hors de la norme : chemin D-Bus de
+chaque fenêtre (celui que GTK donne à la fenêtre : _GTK_WINDOW_OBJECT_PATH) → dossiers de ses onglets.
+dash-to-dock s'en sert pour savoir si la « Corbeille » du dock a une fenêtre : sans elle, après un
+premier clic, son icône restait « en cours de lancement » et les clics suivants ne faisaient plus rien.
 """
 
 from __future__ import annotations
@@ -22,6 +27,7 @@ XML = """<node>
     <method name="ShowFolders"><arg type="as" name="URIs" direction="in"/><arg type="s" name="StartupId" direction="in"/></method>
     <method name="ShowItems"><arg type="as" name="URIs" direction="in"/><arg type="s" name="StartupId" direction="in"/></method>
     <method name="ShowItemProperties"><arg type="as" name="URIs" direction="in"/><arg type="s" name="StartupId" direction="in"/></method>
+    <property name="OpenWindowsWithLocations" type="a{sas}" access="read"/>
   </interface>
 </node>"""
 
@@ -85,18 +91,88 @@ def sync_service(enabled: bool):
         pass
 
 
+def _location_uri(pane) -> str:
+    """URI de l'emplacement d'un panneau, comme g_file_get_uri (corbeille : « trash:/// »)."""
+    if pane.mode == "archive":
+        loc = pane.archive_path
+    elif pane.mode == "search":
+        loc = pane.search_root
+    else:
+        loc = pane.location
+    if not loc:
+        return ""
+    if "://" in loc and not loc.startswith("/"):
+        return Gio.File.new_for_uri(loc).get_uri()
+    return Gio.File.new_for_path(loc).get_uri()
+
+
 class FileManager1:
     def __init__(self, app):
         self.app = app
         self.owner_id = 0
         self.reg_id = 0
+        self.conn = None
+        self._last = None
+        self._pending = 0
+        self._app_ids = []
 
     def start(self):
         self.owner_id = Gio.bus_own_name(Gio.BusType.SESSION, NAME,
                                          Gio.BusNameOwnerFlags.ALLOW_REPLACEMENT | Gio.BusNameOwnerFlags.REPLACE,
                                          self._acquired, None, None)
+        self._app_ids = [self.app.connect(sig, lambda *_: self.queue_update())
+                         for sig in ("window-added", "window-removed")]
+
+    # -- OpenWindowsWithLocations ------------------------------------------------------------
+    def locations(self) -> dict:
+        """Chemin D-Bus de chaque fenêtre → URI des emplacements de ses onglets (comme Nautilus)."""
+        from .ui.window import MainWindow
+        base = self.app.get_dbus_object_path()
+        out = {}
+        if not base:
+            return out
+        for w in self.app.get_windows():
+            if not isinstance(w, MainWindow) or not w.get_visible():
+                continue
+            uris = []
+            for p in w.all_panes():
+                uri = _location_uri(p)
+                if uri and uri not in uris:
+                    uris.append(uri)
+            out[f"{base}/window/{w.get_id()}"] = uris
+        return out
+
+    def queue_update(self):
+        """Fenêtre ouverte / fermée, onglet fermé, dossier changé : propriété republiée si elle change."""
+        if self._pending or self.conn is None:
+            return
+        def run():
+            self._pending = 0
+            now = self.locations()
+            if now != self._last:
+                self._last = now
+                try:
+                    self.conn.emit_signal(None, PATH, "org.freedesktop.DBus.Properties", "PropertiesChanged",
+                                          GLib.Variant("(sa{sv}as)", (NAME, {
+                                              "OpenWindowsWithLocations": GLib.Variant("a{sas}", now)}, [])))
+                except GLib.Error:
+                    pass
+            return False
+        self._pending = GLib.timeout_add(100, run)
+
+    def _get_property(self, _conn, _sender, _path, _iface, name):
+        if name == "OpenWindowsWithLocations":
+            self._last = self.locations()
+            return GLib.Variant("a{sas}", self._last)
+        return None
 
     def stop(self):
+        for hid in self._app_ids:
+            self.app.disconnect(hid)
+        self._app_ids = []
+        if self._pending:
+            GLib.source_remove(self._pending)
+            self._pending = 0
         if self.owner_id:
             Gio.bus_unown_name(self.owner_id)
             self.owner_id = 0
@@ -108,7 +184,9 @@ class FileManager1:
     def _acquired(self, conn, _name):
         info = Gio.DBusNodeInfo.new_for_xml(XML).interfaces[0]
         # register_object() de PyGObject correspond à g_dbus_connection_register_object_with_closures()
-        self.reg_id = conn.register_object(PATH, info, self._call, None, None)
+        self.reg_id = conn.register_object(PATH, info, self._call, self._get_property, None)
+        self.conn = conn
+        self.queue_update()
 
     def _call(self, conn, sender, path, iface, method, params, invocation):
         uris = params.unpack()[0]
