@@ -7,6 +7,8 @@
 #
 # Une fois : sudo apt install devscripts debhelper dh-python dput lintian lftp
 #            + une clé GPG enregistrée sur Launchpad, pour l'adresse du changelog.
+#            + si son nom n'est pas « Tof » (celui du changelog), debsign ne la trouve pas :
+#              echo 'DEBSIGN_KEYID=EMPREINTE_DE_LA_CLÉ' >> ~/.devscripts   (gpg --list-secret-keys)
 # Nouvelle version : dch -v 1.0.1~noble1 "…" (puis dch -r), commit, tools/ppa.sh
 # Le .deb de GitHub (« Releases », Debian & co) : publié par l'Action au commit « Version X ».
 # Puis le site (tools/site.sh, pages perso Free par FTP, identifiants dans ~/.netrc).
