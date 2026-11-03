@@ -16,6 +16,8 @@ Gestionnaire de fichiers GTK4 / libadwaita en Python, look Nautilus, intégrant 
   (GTK 4.8, libadwaita 1.2).
   PCLinuxOS Debian sous KDE Plasma : le .deb resolute (Launchpad) s'installe et fonctionne, rendu correct
   (Adwaita sombre ; libadwaita ne suit pas le thème KDE, seulement clair / sombre) — vidéo d'un utilisateur.
+  Pop!_OS 24.04 sous COSMIC 1.11 (base Ubuntu 24.04, PPA noble) : fonctionne, premier retour d'utilisateur
+  (pas tout essayé).
   PPA : `tools/ppa.sh` envoie la même entrée du changelog pour noble (24.04) puis resolute (26.04,
   version « X~resolute1 », réécrite dans une copie) ; le changelog du dépôt ne vise que noble.
   Commit « Version X » poussé sur main (debian/changelog change) : `.github/workflows/release-deb.yml` construit le
