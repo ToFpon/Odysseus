@@ -308,5 +308,3 @@ xvfb-run -a -s "-screen 0 1600x1000x24" python3 tests/ui_mouse.py   # vrais clic
 ### Licence
 
 GPL-3.0-or-later.
-
-<!-- essai d’autorisation n° 2, à retirer -->
