@@ -1,3 +1,13 @@
+odysseus (1.7.7~noble1) noble; urgency=medium
+
+  * Favoris : l'étoile ne rend plus les lignes de la liste plus hautes
+    avec les thèmes aux boutons hauts.
+  * Gestionnaire de fichiers par défaut : « Afficher dans le dossier »
+    remis d'accord avec l'interrupteur au démarrage (vieux fichier de
+    réglages remis en place).
+
+ -- Tof <nourpon@gmail.com>  Tue, 03 Nov 2026 07:39:53 +0000
+
 odysseus (1.7.6~noble1) noble; urgency=medium
 
   * Préférences : un seul interrupteur « Gestionnaire de fichiers par
