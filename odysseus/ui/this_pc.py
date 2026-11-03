@@ -188,6 +188,10 @@ class ThisPC(Gtk.Box):
         folders = self._clear("folders")
         for icon, label, path in places(desktop=True, trash=False):
             folders.append(Tile(_Place(path), icon.replace("-symbolic", ""), label, False, path))
+        # réglage `this_pc_folders` (idée d'un utilisateur) : les dossiers sont déjà dans la barre
+        # latérale, certains ne veulent ici que les disques
+        for w in self.sections["folders"]:
+            w.set_visible(bool(settings["this_pc_folders"]))
 
         drives = self._clear("drives")
         network = self._clear("network")

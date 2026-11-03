@@ -40,6 +40,8 @@ Gestionnaire de fichiers GTK4 / libadwaita en Python, look Nautilus, intégrant 
   emplacements » (`pane.PAGES`, mode « other ») ; espace des disques lu par GIO en asynchrone.
   Ses tuiles portent les noms CSS de la grille des fichiers (`gridview > child.activatable`,
   `set_css_name`) : survol / sélection viennent du thème, comme dans la vue grille.
+  Réglage `this_pc_folders` (idée d'un utilisateur, Préférences, grisé sans « Ce PC ») : coupé, la section
+  « Dossiers » est masquée en direct (déjà dans la barre latérale), restent disques et réseau.
   « Ce PC » actif : « Autres emplacements » quitte la barre latérale (`Sidebar._sync_other`), donc
   Ce PC montre aussi le réseau découvert et la barre « Se connecter à un serveur » (`other_locations.
   connect_bar` / `discover_network`, partagés). Largeur de la barre latérale : assez pour lire en entier

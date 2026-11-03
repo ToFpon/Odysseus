@@ -1153,6 +1153,16 @@ def ce_pc_et_bureau(win):
         c = c.get_next_sibling()
     root = drives.get_first_child()
     check(n_folders >= 1 and root is not None and root.place.target == "/", "Ce PC : dossiers et disque système")
+    check(all(w.get_visible() for w in page.sections["folders"]), "Ce PC : dossiers affichés par défaut")
+    settings["this_pc_folders"] = False
+    yield pump(0.2)
+    tile = drives.get_first_child()           # tuiles recréées par _fill
+    check(not any(w.get_visible() for w in page.sections["folders"]) and tile is not None and tile.get_mapped(),
+          "Ce PC : dossiers masqués en direct, disques toujours là")
+    settings["this_pc_folders"] = True
+    yield pump(0.2)
+    check(all(w.get_visible() for w in page.sections["folders"]), "Ce PC : dossiers revenus")
+    root = drives.get_first_child()
     check(root.bar.get_visible() and 0 < root.bar.get_value() <= 1,
           f"Ce PC : espace du disque système ({root.info.get_text()})")
     check(win.sidebar.current == "computer:///", "barre latérale : « Ce PC » sélectionné")

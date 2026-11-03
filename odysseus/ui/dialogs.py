@@ -4,7 +4,7 @@ raccourcis clavier et choix d'une application."""
 from __future__ import annotations
 
 
-from gi.repository import Adw, Gio, GLib, Gtk
+from gi.repository import Adw, Gio, GLib, GObject, Gtk
 
 from .. import features
 from ..i18n import LANGUAGE_NAMES, ntr, tr
@@ -127,8 +127,13 @@ class PreferencesDialog(Adw.PreferencesWindow):
         page.add(g)
 
         g = Adw.PreferencesGroup(title=tr("Barre latérale"))
-        g.add(_switch(tr("Afficher « Ce PC »"), "sidebar_this_pc",
-                      tr("Dossiers et disques avec leur espace libre sur une seule page, comme sous Windows")))
+        this_pc = _switch(tr("Afficher « Ce PC »"), "sidebar_this_pc",
+                          tr("Dossiers et disques avec leur espace libre sur une seule page, comme sous Windows"))
+        g.add(this_pc)
+        pc_folders = _switch(tr("Dossiers dans « Ce PC »"), "this_pc_folders",
+                             tr("Sinon, seulement les disques et le réseau : les dossiers restent dans la barre latérale"))
+        this_pc.bind_property("active", pc_folders, "sensitive", GObject.BindingFlags.SYNC_CREATE)
+        g.add(pc_folders)
         g.add(_switch(tr("Afficher le Bureau"), "sidebar_desktop"))
         g.add(_switch(tr("Nombre d'éléments à côté de la Corbeille"), "sidebar_trash_count"))
         page.add(g)

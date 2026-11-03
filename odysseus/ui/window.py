@@ -449,6 +449,11 @@ class MainWindow(FileActions, ArchiveActions, ToolActions, Adw.ApplicationWindow
         elif key in ("sidebar_desktop", "sidebar_this_pc"):
             self.sidebar.fill_places()
             self.fit_sidebar()
+        elif key == "this_pc_folders":
+            for p in self.all_panes():
+                page = p.pages.get("computer:///")
+                if page is not None:
+                    page._fill()
 
     def fit_sidebar(self):
         """Barre latérale assez large pour ses emplacements fixes dans la langue choisie
