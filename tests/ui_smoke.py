@@ -2720,9 +2720,15 @@ def gestionnaire_par_defaut(win):
     text = open(mimeapps).read() if os.path.exists(mimeapps) else ""
     check(defaultapp.is_default() and f"inode/directory={defaultapp.DESKTOP}" in text and settings["dbus_file_manager"],
           "activé : gestionnaire par défaut (mimeapps.list) et « Afficher dans le dossier »")
+    settings["dbus_file_manager"] = False           # vieux settings.json remis en place
+    defaultapp.reconcile()
+    yield pump(0.3)
+    check(settings["dbus_file_manager"], "démarrage : « Afficher dans le dossier » remis d'accord avec l'interrupteur")
     row.set_active(False)
     yield pump(0.3)
     check(not defaultapp.is_default() and not settings["dbus_file_manager"], "coupé : la main est rendue")
+    defaultapp.reconcile()
+    check(not settings["dbus_file_manager"], "démarrage : coupé, rien n'est réactivé")
     check(cls._default_fm_row().get_active() is False, "état relu depuis le système")
 
 

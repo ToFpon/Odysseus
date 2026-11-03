@@ -202,6 +202,9 @@ fenêtre de recherche dans le contenu.
   a disparu (le réglage `dbus_file_manager` reste, piloté par celui-ci). Testé : `gestionnaire_par_defaut`.
   Validé chez Tof dans les deux sens (1.7.6). La Corbeille du dock ne suit le changement qu'après une
   reconnexion (dash-to-dock garde l'application de la corbeille en mémoire) : normal, pas un bug à chercher.
+  Au démarrage, `defaultapp.reconcile` : Odysseus par défaut mais `dbus_file_manager` faux (vieux settings.json
+  remis après un Timeshift, vu chez Tof : Firefox et le dock repartaient chez Nautilus, interrupteur « actif »)
+  → remis à vrai. Jamais dans l'autre sens (FileManager1 activé à part avant 1.7.6 : on n'y touche pas).
 - « Afficher dans le dossier » (org.freedesktop.FileManager1, option `dbus_file_manager`) : Odysseus
   fermé, le bus lançait Nautilus (son service dans /usr/share). Option active, `dbus.sync_service`
   écrit le nôtre dans ~/.local/share/dbus-1/services (prioritaire, 1re ligne `# Odysseus`) ; option

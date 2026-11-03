@@ -85,6 +85,8 @@ class OdysseusApp(Adw.Application):
                 self.set_accels_for_action(f"app.{name}", accels)
 
         from .settings import settings
+        from . import defaultapp
+        defaultapp.reconcile()          # avant de lire dbus_file_manager
         self._fm1 = None
         self._file_manager1(settings["dbus_file_manager"])
         settings.connect(lambda key, value: key == "dbus_file_manager" and self._file_manager1(value))

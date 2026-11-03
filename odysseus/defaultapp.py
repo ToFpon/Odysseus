@@ -55,3 +55,13 @@ def set_default(on: bool) -> bool:
         return False
     settings["dbus_file_manager"] = on          # « Afficher dans le dossier » et Corbeille du dock
     return True
+
+
+def reconcile():
+    """Au démarrage : Odysseus gestionnaire par défaut (mimeapps.list) mais « Afficher dans le
+    dossier » coupé — un vieux settings.json remis en place (vu chez Tof après un Timeshift) : la
+    Corbeille du dock et Firefox repartaient chez Nautilus alors que l'interrupteur paraissait actif.
+    On remet les deux d'accord. Seulement dans ce sens : un FileManager1 activé à part (ancien
+    interrupteur, avant 1.7.6) n'est jamais coupé d'office."""
+    if not settings["dbus_file_manager"] and installed() and is_default():
+        settings["dbus_file_manager"] = True
