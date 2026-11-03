@@ -327,7 +327,8 @@ fenêtre de recherche dans le contenu.
   Nautilus, lui, ne relit qu'à son démarrage. Seulement dans le dossier personnel (pas lui-même).
   Barre latérale « Favoris » sous Récents (`starred:///`, déposer dessus = marquer), page `mode
   "starred"` (liste statique + colonne Emplacement, vide : « Aucun fichier favori »), colonne étoile
-  en fin de ligne (`star`, sans titre, nautilus-star-cell.c : starred / non-starred-symbolic), menu
+  en fin de ligne (`star`, sans titre, nautilus-star-cell.c : starred / non-starred-symbolic ; une Gtk.Image +
+  GestureClick comme Nautilus, jamais un bouton : sa hauteur minimale du thème grossissait toutes les lignes), menu
   « Marquer comme favori » (absent de Nautilus 46, qui marque par l'étoile) / « Démarquer » + toast
   « Annuler ». Pas de raccourci : Ctrl+D = signet, comme Nautilus. Déplacements / renommages (y compris
   annuler, renommage multiple) : `starred.moved` dans `_follow_moves` / `_follow_rename`. Testé :

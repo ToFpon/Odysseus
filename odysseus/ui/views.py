@@ -559,12 +559,17 @@ class ListView(Gtk.ScrolledWindow, _CellMixin):
         self._apply_dim(box, img, rec)
 
     def _setup_star(self, _f, li):
-        """Étoile de Nautilus 46 (nautilus-star-cell.c) : bouton plat, « starred-symbolic » /
-        « non-starred-symbolic », bulle « Favori » / « Démarquer », un clic marque ou démarque."""
-        btn = Gtk.Button(halign=Gtk.Align.END, valign=Gtk.Align.CENTER,
-                         css_classes=["dim-label", "star", "flat", "circular"])
-        btn.connect("clicked", self._on_star_clicked)
-        li.set_child(btn)
+        """Étoile de Nautilus 46 (nautilus-star-cell.c) : une IMAGE avec un geste de clic, pas un bouton
+        (un bouton prend la hauteur minimale des boutons du thème : lignes plus hautes dès que les
+        favoris sont activés). « starred-symbolic » / « non-starred-symbolic », bulle « Marquer comme
+        favori » / « Démarquer », un clic marque ou démarque."""
+        img = Gtk.Image(halign=Gtk.Align.END, valign=Gtk.Align.CENTER, pixel_size=16,
+                        css_classes=["dim-label", "star"])
+        img.set_cursor_from_name("pointer")
+        click = Gtk.GestureClick(button=Gdk.BUTTON_PRIMARY)
+        click.connect("pressed", self._on_star_pressed)
+        img.add_controller(click)
+        li.set_child(img)
 
     def _bind_star(self, _f, li):
         entry = li.get_item()
@@ -576,15 +581,16 @@ class ListView(Gtk.ScrolledWindow, _CellMixin):
             ok = rec is not None and starred.can_star(rec.path)
             on = ok and starred.cached_starred(rec.path)
             btn.set_visible(ok)
-            btn.set_icon_name("starred-symbolic" if on else "non-starred-symbolic")
+            btn.set_from_icon_name("starred-symbolic" if on else "non-starred-symbolic")
             btn.set_tooltip_text(tr("Démarquer") if on else tr("Marquer comme favori"))
             (btn.add_css_class if on else btn.remove_css_class)("starred")
         self._track(btn, entry, fill)
         fill()
 
     @staticmethod
-    def _on_star_clicked(btn):
-        rec = getattr(btn, "_rec", None)
+    def _on_star_pressed(gesture, _n, _x, _y):
+        gesture.set_state(Gtk.EventSequenceState.CLAIMED)     # ni sélection ni ouverture de la ligne
+        rec = getattr(gesture.get_widget(), "_rec", None)
         if rec is None or not rec.path:
             return
         if starred.cached_starred(rec.path):

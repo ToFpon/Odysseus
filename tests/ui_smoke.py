@@ -2496,6 +2496,19 @@ def favoris(win):
     p.open(folder)
     yield Wait(5, until=lambda: not p.model.loading and len(p.model.items) == 2)
     check("star" in p.list_view.columns, "colonne des étoiles dans le dossier personnel")
+    yield pump(0.3)
+    stars = []
+
+    def walk(w):
+        if w.has_css_class("star"):
+            stars.append(w)
+        c = w.get_first_child()
+        while c is not None:
+            walk(c)
+            c = c.get_next_sibling()
+    walk(p.list_view)
+    check(stars and all(isinstance(w, Gtk.Image) and w.get_height() <= 20 for w in stars if w.get_mapped()),
+          "étoile = image de 16 px, pas un bouton : la hauteur des lignes ne change pas")
     p.model.select_names(["rapport.pdf"])
 
     def labels(menu):

@@ -712,7 +712,7 @@ def star_steps(win):
 
     def star_button(name):
         def walk(w):
-            if isinstance(w, Gtk.Button) and w.has_css_class("star") and w.get_mapped() and \
+            if isinstance(w, Gtk.Image) and w.has_css_class("star") and w.get_mapped() and \
                     getattr(getattr(w, "_rec", None), "name", None) == name:
                 return w
             c = w.get_first_child()
