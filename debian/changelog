@@ -1,3 +1,11 @@
+odysseus (1.7.8~noble1) noble; urgency=medium
+
+  * Ce PC : nouvel interrupteur « Dossiers dans « Ce PC » »
+    (Préférences, Barre latérale) pour ne garder que les disques et le
+    réseau.
+
+ -- Tof <nourpon@gmail.com>  Tue, 03 Nov 2026 22:11:50 +0000
+
 odysseus (1.7.7~noble1) noble; urgency=medium
 
   * Favoris : l'étoile ne rend plus les lignes de la liste plus hautes
