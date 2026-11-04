@@ -1,3 +1,11 @@
+odysseus (1.7.9~noble1) noble; urgency=medium
+
+  * Bureau : « Propriétés » n'ouvre plus que la fenêtre des propriétés,
+    comme Nautilus (la fenêtre principale d'Odysseus apparaissait
+    aussi).
+
+ -- Tof <nourpon@gmail.com>  Wed, 04 Nov 2026 11:29:47 +0000
+
 odysseus (1.7.8~noble1) noble; urgency=medium
 
   * Ce PC : nouvel interrupteur « Dossiers dans « Ce PC » »
