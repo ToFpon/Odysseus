@@ -114,9 +114,9 @@ class OdysseusApp(Adw.Application):
         return win
 
     def _window(self):
+        from .ui.window import MainWindow
         win = self.get_active_window()
-        if win is None:
-            from .ui.window import MainWindow
+        if not isinstance(win, MainWindow):     # les Propriétés ouvertes depuis le bureau en sont une aussi
             wins = [w for w in self.get_windows() if isinstance(w, MainWindow)]
             win = wins[0] if wins else None
         return win

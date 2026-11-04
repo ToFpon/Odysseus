@@ -195,6 +195,11 @@ class FileManager1:
         invocation.return_value(None)
 
     def _handle(self, method, paths):
+        if method == "ShowItemProperties":
+            existing = [p for p in paths if os.path.lexists(p)]
+            if existing:                 # chemin inexistant : pas de fenêtre de propriétés vide
+                self.show_properties(existing)
+            return False
         win = self.app._window() or self.app._new_window()
         if method == "ShowFolders":
             for i, p in enumerate(paths):
@@ -211,9 +216,29 @@ class FileManager1:
                 else:
                     ws = win.new_tab(folder)
                     ws.active.open(folder, push=False, select=names)
-        elif method == "ShowItemProperties":
-            existing = [p for p in paths if os.path.lexists(p)]
-            if existing:                 # chemin inexistant : pas de fenêtre de propriétés vide
-                win._show_properties(existing)
         win.present()
         return False
+
+    def show_properties(self, paths):
+        """« Propriétés » du bureau (DING…) ou d'une autre application : seule la fenêtre des propriétés
+        apparaît, comme chez Nautilus (avant : la fenêtre principale venait aussi au premier plan).
+        Odysseus fermé : une fenêtre principale cachée sert d'hôte (permissions des fichiers inclus,
+        « Ouvrir le dossier parent » qui l'affiche) et disparaît avec les propriétés si on ne l'a pas montrée."""
+        from .ui.properties import PropertiesDialog
+        from .ui.window import MainWindow
+        host = self.app._window()
+        hidden = None
+        if host is None:
+            hidden = host = MainWindow(self.app)
+        dlg = PropertiesDialog(host, paths)
+        dlg.set_application(self.app)            # garde Odysseus ouvert tant qu'elle l'est
+        if hidden is not None:
+            def closed(*_):
+                def drop():
+                    if not hidden.get_visible():
+                        hidden.destroy()
+                    return False
+                GLib.idle_add(drop)              # « Ouvrir le dossier parent » ferme puis l'affiche
+            dlg.connect("closed", closed)
+        dlg.present()                            # sans parent : la fenêtre principale ne bouge pas
+        return dlg

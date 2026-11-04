@@ -168,7 +168,7 @@ class PropertiesDialog(DialogWindow):
         loc = info_row(tr("Dossier parent"), shown(parent.rstrip("/") + "/"))
         btn = Gtk.Button(icon_name="folder-open-symbolic", valign=Gtk.Align.CENTER, css_classes=["flat"],
                          tooltip_text=tr("Ouvrir le dossier parent"))
-        btn.connect("clicked", lambda *_: (self.close(), window.open_location(parent)))
+        btn.connect("clicked", lambda *_: (self.close(), window.open_location(parent), window.present()))
         loc.add_suffix(btn)
         g.add(loc)
         if one and one.is_link:
@@ -178,7 +178,8 @@ class PropertiesDialog(DialogWindow):
                 full = os.path.normpath(os.path.join(parent, target))
                 b = Gtk.Button(icon_name="folder-open-symbolic", valign=Gtk.Align.CENTER, css_classes=["flat"],
                                tooltip_text=tr("Ouvrir la cible du lien"))
-                b.connect("clicked", lambda *_: (self.close(), window.open_location(os.path.dirname(full))))
+                b.connect("clicked", lambda *_: (self.close(), window.open_location(os.path.dirname(full)),
+                                                 window.present()))
                 row.add_suffix(b)
                 g.add(row)
             except OSError:

@@ -213,6 +213,11 @@ fenêtre de recherche dans le contenu.
   fermé, le bus lançait Nautilus (son service dans /usr/share). Option active, `dbus.sync_service`
   écrit le nôtre dans ~/.local/share/dbus-1/services (prioritaire, 1re ligne `# Odysseus`) ; option
   coupée, il est retiré et le nom rendu, sans redémarrage. Un fichier qui n'est pas à nous : jamais touché.
+  `ShowItemProperties` (« Propriétés » du bureau DING, Zorin et Debian) : seule la fenêtre des propriétés,
+  comme Nautilus (`FileManager1.show_properties`, sans parent, rattachée à l'application) ; Odysseus fermé :
+  MainWindow CACHÉE comme hôte, détruite avec elle sauf si « Ouvrir le dossier parent » l'a montrée. Avant,
+  la fenêtre principale venait au premier plan derrière. `app._window` ne renvoie qu'une MainWindow.
+  Testé : `proprietes_depuis_le_bureau` d'ui_smoke.
 - FileManager1 publie aussi `OpenWindowsWithLocations` (a{sas}, propriété de Nautilus hors norme) : chemin
   D-Bus de chaque MainWindow (`<app>/window/<id>`, = _GTK_WINDOW_OBJECT_PATH vérifié avec xprop) → URI des
   onglets, republiée (PropertiesChanged) à l'ouverture / fermeture d'une fenêtre, d'un onglet, à chaque

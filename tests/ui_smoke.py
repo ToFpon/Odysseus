@@ -2671,6 +2671,49 @@ def dock_fenetres_ouvertes(win):
 
 
 @step
+def proprietes_depuis_le_bureau(win):
+    """« Propriétés » du bureau (FileManager1.ShowItemProperties) : seule la fenêtre des propriétés
+    apparaît, comme chez Nautilus ; Odysseus fermé, la fenêtre principale cachée disparaît avec elle."""
+    from odysseus import dbus
+    from odysseus.ui.properties import PropertiesDialog
+    from odysseus.ui.window import MainWindow
+    app = win.get_application()
+    fm1 = dbus.FileManager1(app)
+    target = tempfile.mkdtemp(dir=D, prefix="Zeug ")
+    presented = []
+    real_present = MainWindow.present
+    MainWindow.present = lambda self, *a: (presented.append(self), real_present(self, *a))[1]
+    try:
+        fm1._handle("ShowItemProperties", [target])
+        yield pump(0.4)
+        dlgs = [w for w in app.get_windows() if isinstance(w, PropertiesDialog)]
+        check(len(dlgs) == 1 and dlgs[0].get_visible() and dlgs[0].get_transient_for() is None and not presented,
+              "bureau → Propriétés : la fenêtre principale ne vient pas au premier plan")
+        check(app._window() is win, "Propriétés au premier plan : la fenêtre principale reste celle de l'appli")
+        for d in dlgs:
+            d.close()
+        yield pump(0.3)
+        # Odysseus « fermé » : aucune fenêtre principale connue
+        real_window = app._window
+        app._window = lambda: None
+        try:
+            before = [w for w in app.get_windows() if isinstance(w, MainWindow)]
+            dlg = fm1.show_properties([target])
+            yield pump(0.4)
+            hidden = [w for w in app.get_windows() if isinstance(w, MainWindow) and w not in before]
+            check(len(hidden) == 1 and not hidden[0].get_visible() and dlg.get_visible() and not presented,
+                  "Odysseus fermé : seules les Propriétés s'affichent")
+            dlg.close()
+            yield pump(0.4)
+            after = [w for w in app.get_windows() if isinstance(w, MainWindow) and w not in before]
+            check(not after, "Propriétés fermées : la fenêtre cachée est partie aussi")
+        finally:
+            app._window = real_window
+    finally:
+        MainWindow.present = real_present
+
+
+@step
 def ejecter_vider_corbeille(win):
     """Éjecter un support dont la corbeille n'est pas vide : la question de Nautilus, « Vider la
     corbeille » la vide puis éjecte ; « Ne pas vider » éjecte sans y toucher ; « Annuler » ne fait rien."""
