@@ -1,3 +1,24 @@
+odysseus (1.8.0~noble1) noble; urgency=medium
+
+  * Version de robustesse : revue des cas limites, chaque correction
+    couverte par un test.
+  * Copies et déplacements : un support presque plein ne laisse plus un
+    fichier tronqué à la place de l'original supprimé ; « Remplacer »
+    sur clé FAT ou NTFS, annulation d'un déplacement en partie raté,
+    copies simultanées de dossiers du même nom.
+  * Archives : « Supprimer les originaux » ne retire plus ce qui n'est
+    pas dans l'archive ; archive contenant un fichier de son propre nom
+    protégée ; noms exacts, liens stockés comme liens, tous les volumes
+    RAR et ZIP retirés, fichiers temporaires nettoyés.
+  * Démarrage possible avec un fichier de signets ou de réglages abîmé ;
+    « Retirer des signets » ne crée plus de doublon.
+  * Noms avec « & », « < » ou non UTF-8 affichés partout (corbeille,
+    propriétés, notifications, fenêtre d'archive).
+  * Vue en colonnes : le retour à la liste montre le bon dossier ;
+    fenêtres et onglets fermés ne travaillent plus en arrière-plan.
+
+ -- Tof <nourpon@gmail.com>  Fri, 06 Nov 2026 17:55:36 +0000
+
 odysseus (1.7.9~noble1) noble; urgency=medium
 
   * Bureau : « Propriétés » n'ouvre plus que la fenêtre des propriétés,
