@@ -58,10 +58,25 @@ class DragCache:
         out = {i: os.path.join(tmp, os.path.basename(i.rstrip("/"))) for i in inners}
         return {i: p for i, p in out.items() if os.path.lexists(p)}
 
-    def _store(self, found: dict):
+    def _store(self, found: dict, keep=()):
         for inner, path in found.items():
             self.cache[inner] = path
             self.dirs.setdefault(os.path.dirname(path), []).append(path)
+        self._evict(set(found) | set(keep))
+
+    def _evict(self, keep: set):
+        """Ne garde que la sélection du moment et ce qui a déjà été glissé : chaque changement de
+        sélection ajoutait jusqu'à 4 Go au cache, jamais retirés avant de quitter l'archive."""
+        for folder, paths in list(self.dirs.items()):
+            if any(p in self.given for p in paths):
+                continue
+            inners = [i for i, p in self.cache.items() if p in paths]
+            if any(i in keep for i in inners):
+                continue
+            shutil.rmtree(folder, ignore_errors=True)
+            for i in inners:
+                del self.cache[i]
+            del self.dirs[folder]
 
     def _ensure_root(self) -> str:
         if self.root is None:
@@ -109,7 +124,7 @@ class DragCache:
             self.job = None
         if token != self.token or job.state != "done" or not job.result:
             return False
-        self._store(job.result)
+        self._store(job.result, keep=[it[0] for it in items])
         if self.waiting and all(self.cached(it[0]) for it in items):
             self.waiting = False
             self.message(tr("Sélection prête : vous pouvez la glisser"))
@@ -137,7 +152,7 @@ class DragCache:
             job = Job("drag", lambda j: self._extract(j, inners, path, password, root)).run_sync()
             if job.state != "done" or not job.result:
                 return []
-            self._store(job.result)
+            self._store(job.result, keep=[it[0] for it in items])
         out = [p for p in (self.cached(it[0]) for it in items) if p]
         self.given.update(out)
         return out

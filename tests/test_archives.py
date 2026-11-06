@@ -443,3 +443,131 @@ class AuditArchiveTest(unittest.TestCase):
         run(lambda j: archive.delete_from_archive(j, arc, ["*.txt"]))
         names = {e.path for e in archive.list_archive(arc).entries}
         self.assertEqual(names, {"abc.txt"})
+
+
+class AuditListingTest(unittest.TestCase):
+    """Audit : les noms de la liste sont ceux de l'archive (espaces, octets non UTF-8, « ./ »)."""
+
+    def setUp(self):
+        self.tmp = tempfile.TemporaryDirectory()
+        self.root = self.tmp.name
+
+    def tearDown(self):
+        self.tmp.cleanup()
+
+    def _roundtrip(self, arc, src_dir, names):
+        listing = archive.list_archive(arc)
+        paths = {e.name: e.path for e in listing.entries}
+        for n in names:
+            with self.subTest(name=n):
+                self.assertIn(n, paths, sorted(paths))
+                out = tempfile.mkdtemp(dir=self.root)
+                run(lambda j: archive.extract(j, arc, archive.ExtractOptions(
+                    dest=out, subfolder="never", files=[paths[n]])))
+                self.assertEqual(os.listdir(out), [n])
+
+    def test_spaces_and_bytes(self):
+        src = os.path.join(self.root, "src")
+        os.makedirs(src)
+        names = ["  lead.txt", "trail.txt ", os.fsdecode(b"caf\xe9.txt")]
+        for n in names:
+            with open(os.path.join(src, n), "w") as f:
+                f.write("x")
+        tar = os.path.join(self.root, "n.tar")
+        import subprocess
+        subprocess.run(["tar", "-cf", tar, "-C", src] + names, check=True)
+        self._roundtrip(tar, src, names)
+        arc7 = os.path.join(self.root, "n.7z")
+        run(lambda j: archive.create(j, [os.path.join(src, n) for n in names[:2]], arc7,
+                                     archive.CreateOptions(fmt="7z")))
+        self._roundtrip(arc7, src, names[:2])
+
+    def test_dot_prefix_tar(self):
+        """« tar -cf x.tar . » : pas de faux dossier « . », ses éléments s'extraient."""
+        src = os.path.join(self.root, "src")
+        os.makedirs(os.path.join(src, "sub"))
+        for n in ("abc.txt", "sub/in.txt"):
+            with open(os.path.join(src, n), "w") as f:
+                f.write("x")
+        tar = os.path.join(self.root, "dot.tar")
+        import subprocess
+        subprocess.run(["tar", "-cf", tar, "-C", src, "."], check=True)
+        listing = archive.list_archive(tar)
+        self.assertEqual(sorted(e.name for e in listing.top_level()), ["abc.txt", "sub"])
+        self.assertEqual([e.name for e in listing.children("./sub")], ["in.txt"])
+        self._roundtrip(tar, src, ["abc.txt", "sub"])
+
+
+class AuditLinksTest(unittest.TestCase):
+    def test_links_stored_as_links(self):
+        """Audit : un lien « up -> .. » dans le dossier compressé n'est pas suivi (archive sans fin)."""
+        with tempfile.TemporaryDirectory() as root:
+            src = os.path.join(root, "proj")
+            os.makedirs(src)
+            with open(os.path.join(src, "a.txt"), "w") as f:
+                f.write("a")
+            os.symlink("..", os.path.join(src, "up"))
+            os.symlink("a.txt", os.path.join(src, "lien"))
+            for fmt in ("7z", "zip"):
+                with self.subTest(fmt=fmt):
+                    out = os.path.join(root, "p." + fmt)
+                    run(lambda j: archive.create(j, [src], out, archive.CreateOptions(fmt=fmt)))
+                    names = sorted(e.path for e in archive.list_archive(out).entries)
+                    self.assertEqual(names, ["proj", "proj/a.txt", "proj/lien", "proj/up"])
+                    dest = tempfile.mkdtemp(dir=root)
+                    run(lambda j: archive.extract(j, out, archive.ExtractOptions(dest=dest, subfolder="never")))
+                    # « up -> .. » est écarté à l'extraction (lien dangereux, voir test_archive_safety)
+                    self.assertEqual(os.readlink(os.path.join(dest, "proj", "lien")), "a.txt")
+
+
+class AuditDragCacheTest(unittest.TestCase):
+    def test_cache_keeps_only_selection_and_given(self):
+        """Audit : changer de sélection ne fait plus grossir le cache du glisser sans fin."""
+        from odysseus.ui.archive_drag import DragCache
+        with tempfile.TemporaryDirectory() as root:
+            def extracted(name):
+                folder = tempfile.mkdtemp(dir=root)
+                p = os.path.join(folder, name)
+                with open(p, "w") as f:
+                    f.write(name)
+                return p
+            d = DragCache(lambda: (None, "", None), lambda m: None)
+            a, b, c = extracted("a"), extracted("b"), extracted("c")
+            d._store({"a": a}, keep=["a"])
+            d.given.add(a)                       # déjà glissé : Nautilus peut encore le copier
+            d._store({"b": b}, keep=["b"])
+            d._store({"c": c}, keep=["c"])
+            self.assertTrue(os.path.exists(a), "élément glissé gardé")
+            self.assertFalse(os.path.exists(b), "ancienne sélection jamais glissée : retirée")
+            self.assertTrue(os.path.exists(c))
+            self.assertEqual(set(d.cache), {"a", "c"})
+
+
+class AuditVolumesTest(unittest.TestCase):
+    def test_volume_sets(self):
+        with tempfile.TemporaryDirectory() as d:
+            def touch(*names):
+                for n in names:
+                    open(os.path.join(d, n), "w").close()
+                return [os.path.join(d, n) for n in names]
+            self.assertEqual(archive.volume_set(touch("a.7z.001", "a.7z.002")[0]), touch("a.7z.001", "a.7z.002"))
+            parts = touch("mv.part1.rar", "mv.part2.rar", "mv.part3.rar")
+            self.assertEqual(archive.volume_set(parts[0]), parts)
+            parts = touch("w.part01.rar", "w.part02.rar")
+            self.assertEqual(archive.volume_set(parts[0]), parts)
+            z = touch("sp.z01", "sp.z02", "sp.zip")
+            self.assertEqual(archive.volume_set(z[2]), z)
+            old = touch("o.rar", "o.r00", "o.r01")
+            self.assertEqual(archive.volume_set(old[0]), old)
+            self.assertEqual(archive.volume_set(touch("seul.zip")[0]), [os.path.join(d, "seul.zip")])
+
+
+class AuditFailedExtractTest(unittest.TestCase):
+    def test_failed_extract_leaves_no_empty_folder(self):
+        with tempfile.TemporaryDirectory() as d:
+            arc = os.path.join(d, "abime.7z")
+            with open(arc, "wb") as f:
+                f.write(b"7z\xbc\xaf\x27\x1c" + os.urandom(200))
+            j = Job("x", lambda j: archive.extract(j, arc, archive.ExtractOptions(subfolder="always"))).run_sync()
+            self.assertNotEqual(j.state, "done")
+            self.assertEqual(os.listdir(d), ["abime.7z"])

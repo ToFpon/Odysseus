@@ -355,9 +355,9 @@ class ArchiveWindow(Adw.ApplicationWindow):
             entry, flat = item.entry, True
         w._item = item           # pas la position : elle change quand un dossier au-dessus se déplie
         w._img.set_from_gicon(_icon_for_entry(entry))
-        w._name.set_text(entry.name)
+        w._name.set_text(shown(entry.name))
         parent = entry.path.rpartition("/")[0]
-        w._sub.set_text(parent)
+        w._sub.set_text(shown(parent))
         w._sub.set_visible(flat and bool(parent))
         if entry.is_dir:
             n = len(self.listing.children(entry.path)) if self.listing else 0

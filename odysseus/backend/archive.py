@@ -82,14 +82,18 @@ class ArchiveListing:
         # dossiers implicites
         for e in list(self.entries):
             parent = e.parent
-            while parent and parent not in self._by_path:
+            while parent and parent != "." and parent not in self._by_path:
                 d = Entry(parent, is_dir=True, implicit=True)
                 self._by_path[parent] = d
                 self.entries.append(d)
                 parent = d.parent
+        # « tar -cf x.tar . » : tout commence par « ./ ». Le « . » n'est pas montré comme un dossier
+        # (on ne pouvait ni l'extraire ni le glisser) ; ses éléments gardent leur chemin réel pour 7-Zip.
+        self.entries = [e for e in self.entries if e.path != "."]
         for e in self.entries:
             if e.path:
-                self._children.setdefault(e.parent, []).append(e)
+                parent = e.parent
+                self._children.setdefault("" if parent == "." else parent, []).append(e)
 
     def children(self, folder: str) -> list[Entry]:
         return list(self._children.get(folder.strip("/"), []))
@@ -148,7 +152,9 @@ def _parse_block(text: str) -> dict:
     for line in text.splitlines():
         if " = " in line:
             k, v = line.split(" = ", 1)
-            d[k.strip()] = v.strip()
+            # valeur gardée telle quelle : « Path =   lead.txt » est bien « ··lead.txt » (strip donnait
+            # un nom introuvable à l'extraction, au glisser, à la suppression)
+            d[k.strip()] = v
         elif line.endswith(" ="):
             d[line[:-2].strip()] = ""
     return d
@@ -268,7 +274,9 @@ def _run_decompress_into(job: Job, archive: str, stream: str, consumer_argv: lis
     if dec.returncode != 0:
         raise ToolError(tr("Décompression impossible : ") + dec_err.decode("utf-8", "replace").strip()[-300:],
                         dec_err.decode("utf-8", "replace"), dec.returncode)
-    text = (text or b"").decode("utf-8", "replace")
+    # surrogateescape : un nom non UTF-8 garde ses octets (« caf\\xe9.txt » devenait « caf�.txt », introuvable
+    # ensuite pour 7-Zip) ; l'affichage passe par shown()
+    text = (text or b"").decode("utf-8", "surrogateescape")
     if code not in (0, 1):
         raise_for_7z(text, code)
     return text
@@ -296,7 +304,7 @@ def list_archive(path: str, password: Optional[str] = None, job: Optional[Job] =
     argv = [_7z(), "l", "-slt", "-sccUTF-8"] + _pw_args(password) + ["--", path]
     job.commands.append(quote_cmd(argv))
     proc = subprocess.run(argv, capture_output=True, stdin=subprocess.DEVNULL)
-    text = proc.stdout.decode("utf-8", "replace") + proc.stderr.decode("utf-8", "replace")
+    text = proc.stdout.decode("utf-8", "surrogateescape") + proc.stderr.decode("utf-8", "replace")
     if proc.returncode not in (0, 1):
         raise_for_7z(text, proc.returncode)
     info, entries = parse_slt(text, det.base_name or "contenu")
@@ -382,6 +390,9 @@ def build_7z_create(sources: list[str], out: str, o: CreateOptions) -> list[str]
         argv.append("-ur0")      # ne met à jour que les fichiers déjà présents
     if fmt.key in ("7z", "zip"):
         argv.append(f"-mx={o.level}")
+        # liens symboliques stockés comme liens (comme tar) : suivis, un lien « up -> .. » ou vers / faisait
+        # archiver le disque entier, en boucle
+        argv.append("-snl")
     if o.method and fmt.methods:
         if fmt.key == "7z":
             argv.append(f"-m0={o.method}")
@@ -990,6 +1001,7 @@ def _extract(job: Job, archive: str, o: ExtractOptions) -> str:
         # écrivait à travers un lien symbolique déjà présent à destination (« x » → dossier
         # extérieur : « x/f.txt » atterrissait dehors). Une annulation ne laisse rien derrière elle.
         dest = resolve_destination(archive, o)
+        created = not os.path.isdir(dest)
         os.makedirs(dest, exist_ok=True)
         tmp = tempfile.mkdtemp(prefix=".odysseus-extract-", dir=dest)
         try:
@@ -997,6 +1009,14 @@ def _extract(job: Job, archive: str, o: ExtractOptions) -> str:
             job.check_cancel()
             if _merge_into(tmp, dest, o.overwrite):
                 job.extract_skipped = True
+        except BaseException:
+            shutil.rmtree(tmp, ignore_errors=True)
+            if created:                  # échec (codec RAR absent, annulation…) : pas de dossier vide laissé
+                try:
+                    os.rmdir(dest)
+                except OSError:
+                    pass
+            raise
         finally:
             shutil.rmtree(tmp, ignore_errors=True)
     if o.delete_after:
@@ -1047,14 +1067,27 @@ def _merge_into(src_dir: str, dest_dir: str, overwrite: str) -> bool:
 
 
 def volume_set(archive: str) -> list[str]:
-    """Tous les volumes d'une archive découpée (.001, .002…), ou l'archive seule."""
-    if archive.endswith(".001"):
-        root = archive[:-4]
-        vols, i = [], 1
-        while os.path.exists(f"{root}.{i:03d}"):
-            vols.append(f"{root}.{i:03d}")
+    """Tous les volumes d'une archive découpée, ou l'archive seule : .001 / .002…, RAR « .part1.rar »
+    (et l'ancien .rar + .r00…), ZIP découpé .z01… + .zip. « Supprimer l'archive après » ne retirait que
+    le premier volume des RAR et ZIP découpés."""
+    def series(fmt, start):
+        out, i = [], start
+        while os.path.exists(fmt.format(i)):
+            out.append(fmt.format(i))
             i += 1
-        return vols
+        return out
+    if archive.endswith(".001"):
+        return series(archive[:-4] + ".{:03d}", 1) or [archive]
+    m = re.match(r"(.*)\.part(\d+)\.rar$", archive, re.IGNORECASE)
+    if m:
+        width, ext = len(m.group(2)), archive[-4:]
+        return series(m.group(1) + ".part{:0%dd}" % width + ext, 1) or [archive]
+    low = archive.lower()
+    if low.endswith(".rar"):
+        old = series(archive[:-4] + ".r{:02d}", 0)
+        return [archive] + old
+    if low.endswith(".zip"):
+        return series(archive[:-4] + ".z{:02d}", 1) + [archive]
     return [archive]
 
 
@@ -1188,7 +1221,9 @@ def sweep_drag_caches(max_age: float = 12 * 3600):
     for n in names:
         p = os.path.join(base, n)
         try:
-            if n.startswith(DRAG_PREFIX) and os.path.isdir(p) and not os.path.islink(p) \
+            # aussi les fichiers ouverts depuis une archive (double-clic) : rien ne les retirait, et
+            # /tmp est en mémoire sous Debian 13 ; contenu déchiffré des archives à mot de passe
+            if n.startswith((DRAG_PREFIX, "odysseus-view-")) and os.path.isdir(p) and not os.path.islink(p) \
                     and os.stat(p).st_uid == os.getuid() and now - os.path.getmtime(p) > max_age:
                 shutil.rmtree(p, ignore_errors=True)
         except OSError:
