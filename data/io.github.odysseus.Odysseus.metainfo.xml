@@ -70,6 +70,13 @@
   </requires>
   <content_rating type="oars-1.1"/>
   <releases>
+    <release version="1.8.1" date="2026-11-06">
+      <description>
+        <ul>
+          <li>AZERTY keyboards: Ctrl+1 / 2 / 3 switch between list, grid and column views, Ctrl+0 resets the zoom (the number row gives “&amp; é " à” without Shift, and nothing happened)</li>
+        </ul>
+      </description>
+    </release>
     <release version="1.8.0" date="2026-11-06">
       <description>
         <p>Robustness release: a review of the corner cases, every fix covered by a test.</p>

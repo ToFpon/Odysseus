@@ -1,3 +1,11 @@
+odysseus (1.8.1~noble1) noble; urgency=medium
+
+  * Clavier AZERTY : Ctrl+1, 2 et 3 changent de vue (liste, grille,
+    colonnes), Ctrl+0 remet le zoom ; sans Maj, ces touches donnent « &
+    é " à » et rien ne se passait.
+
+ -- Tof <nourpon@gmail.com>  Fri, 06 Nov 2026 20:10:25 +0000
+
 odysseus (1.8.0~noble1) noble; urgency=medium
 
   * Version de robustesse : revue des cas limites, chaque correction
