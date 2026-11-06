@@ -580,6 +580,41 @@ class MiscTest(unittest.TestCase):
             self.assertFalse(bookmarks.toggle("/tmp/a b", f))
             self.assertEqual(bookmarks.load(f), [])
 
+    def test_bookmarks_like_gtk(self):
+        """Audit : URI écrites comme GTK / Nautilus (« Retirer » ajoutait un doublon pour « Docs (old)
+        & co »), nom non UTF-8, fichier qui contient une ligne non UTF-8 (la fenêtre ne s'ouvrait plus)."""
+        with tempfile.TemporaryDirectory() as d:
+            f = os.path.join(d, "bookmarks")
+            weird = os.path.join(d, "Docs (old) & co, l'été")
+            raw = os.fsdecode(os.path.join(d, "caf").encode() + b"\xe9")
+            with open(f, "wb") as fh:
+                fh.write(Gio.File.new_for_path(weird).get_uri().encode() + b"\n")
+                fh.write(Gio.File.new_for_path(raw).get_uri().encode() + b" Libell\xe9\n")
+            self.assertEqual(len(bookmarks.load(f)), 2)
+            self.assertEqual(bookmarks.load(f)[1].path, raw)
+            self.assertTrue(bookmarks.contains(weird, f))
+            self.assertFalse(bookmarks.toggle(weird, f), "retiré, pas ajouté une seconde fois")
+            self.assertFalse(bookmarks.toggle(raw, f))
+            self.assertEqual(bookmarks.load(f), [])
+            for p in (weird, raw):
+                self.assertTrue(bookmarks.toggle(p, f))
+                self.assertEqual(bookmarks.load(f)[-1].uri, Gio.File.new_for_path(p).get_uri())
+
+    def test_settings_wrong_types(self):
+        """Audit : un réglage du mauvais type (fichier retouché) est ignoré, il ne bloque plus l'ouverture."""
+        import json
+        from odysseus.settings import DEFAULTS, Settings
+        with tempfile.TemporaryDirectory() as d:
+            f = os.path.join(d, "settings.json")
+            with open(f, "w") as fh:
+                json.dump({"features": None, "window_width": "1180", "sidebar_trash_count": False,
+                           "inconnu": 3}, fh)
+            s = Settings(f)
+            self.assertEqual(s["features"], DEFAULTS["features"])
+            self.assertEqual(s["window_width"], DEFAULTS["window_width"])
+            self.assertIs(s["sidebar_trash_count"], False)
+            self.assertEqual(s["inconnu"], 3)
+
     def test_formats(self):
         self.assertTrue(formats.looks_like_archive("a.tar.gz"))
         self.assertTrue(formats.looks_like_archive("a.zip"))

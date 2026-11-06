@@ -46,6 +46,8 @@ def _fb() -> dict:
                 _fallback = json.load(fh)
         except (OSError, ValueError):
             _fallback = {}
+        if not isinstance(_fallback, dict):      # fichier abîmé : pas de quoi bloquer l'ouverture
+            _fallback = {}
     return _fallback
 
 
@@ -88,7 +90,7 @@ def get(place: str) -> Optional[tuple[str, bool]]:
         return None
     by, rev = _read_gvfs(place)
     own = _fb().get(place)
-    if own and own.get("base") == by:
+    if isinstance(own, dict) and own.get("base") == by and "key" in own:
         return own["key"], bool(own["reverse"])
     key = FROM_NAUTILUS.get(by or "")
     if key is None:

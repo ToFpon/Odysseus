@@ -162,6 +162,20 @@ explicite du dialogue), fichier temporaire `_tmp_name` (jamais un « X.part » e
 Pages / filigrane (`pdf_dialogs._free_output`, au lancement). Compression + « supprimer après » :
 les fichiers illisibles (absents de l'archive) restent (`_remove_sources(keep=…)`).
 
+Audit de novembre 2026 (agents, corrigé, tests `AuditFileopsTest` / `AuditArchiveTest`) : écriture
+courte vers un autre disque complétée (boucle sur `os.write`) + taille vérifiée avant de poser le fichier ;
+« Remplacer » sur FAT note le nom (`_created`, sinon la casse suivante écrasait) ; nouveau dossier créé
+en exclusif (`copy_tree(fresh=True)` → `_Taken`, deux copies ne fusionnent plus) ; déplacement en partie
+raté : l'annulation ramène les éléments partis (`_moved_parts`), jamais « annuler une copie » (corbeille) ;
+`move_new` vers un autre disque sans `shutil.move` (nom caché, mise sur disque, puis suppression) ; EXDEV
+sur un même st_dev (bind, mergerfs) → copie. Archives, « supprimer après » : rien n'est supprimé avec des
+exclusions / options 7-Zip, en « Rafraîchir », ou si l'archive est dans un dossier compressé
+(`_keep_sources_reason`, message « Originaux conservés ») ; extraction : l'archive (même inode,
+`_protected`) n'est jamais remplacée ni prise pour un élément extrait ; `-spd` pour les noms passés à 7-Zip
+(`*.txt` est un nom). Signets : URI comme `g_file_get_uri` (`to_uri`, comparées par chemin `_same`),
+lecture tolérante. Réglages d'un mauvais type ignorés (`settings._fits`), sort.json / share-permissions.json
+non-dict ignorés. `net usershare <cmd> -- …`.
+
 `workers.Pool` : un fil bloqué dans un appel système ne se tue pas ; si tous sont pris depuis plus
 de 3 s, un fil est ajouté (6 au plus).
 

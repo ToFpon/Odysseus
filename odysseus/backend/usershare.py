@@ -68,6 +68,11 @@ def available() -> bool:
 def _run(args: list[str]) -> str:
     if not available():
         raise ShareError(tr("Samba n'est pas installé"), "missing")
+    if len(args) > 1:
+        # « -- » : un nom de partage ou un commentaire qui commence par « - » n'est pas une option
+        # (un commentaire « -v » faisait passer « Everyone:F » pour le commentaire : partage en
+        # lecture seule alors que l'écriture était demandée)
+        args = [args[0], "--", *args[1:]]
     try:
         p = subprocess.run(["net", "usershare", *args], capture_output=True, text=True, timeout=30,
                            stdin=subprocess.DEVNULL)
@@ -231,9 +236,10 @@ def describe_bits(bits: int) -> list[str]:
 def _load_perms() -> dict:
     try:
         with open(PERMS_FILE, encoding="utf-8") as fh:
-            return json.load(fh)
+            data = json.load(fh)
     except (OSError, ValueError):
         return {}
+    return data if isinstance(data, dict) else {}
 
 
 def _save_perms(data: dict):

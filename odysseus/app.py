@@ -144,6 +144,9 @@ class OdysseusApp(Adw.Application):
             return 0
         cwd = cmd.get_cwd() or _cwd()
         args = cmd.get_arguments()[1:]
+        if "--" in args:                 # « odysseus -- -dossier » : GApplication garde le « -- »
+            i = args.index("--")
+            args = args[:i] + args[i + 1:]
         locs, missing = [], []
         for a in args:
             if "://" in a and not a.startswith("file://"):
