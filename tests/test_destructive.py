@@ -961,5 +961,125 @@ class FsInfoTest(unittest.TestCase):
         self.assertEqual(fsinfo.fs_type("/proc/self"), "proc")
 
 
+class AuditFileopsTest(unittest.TestCase):
+    """Trouvailles de l'audit (novembre 2026)."""
+
+    def setUp(self):
+        self.tmp = tempfile.TemporaryDirectory()
+        self.d = self.tmp.name
+
+    def tearDown(self):
+        self.tmp.cleanup()
+
+    def test_short_write_is_completed(self):
+        """Écriture courte (support presque plein) : le reste du bloc est écrit, jamais un fichier
+        troué « déplacé » dont l'original est supprimé."""
+        data = os.urandom(3 << 20)
+        src = os.path.join(self.d, "a", "gros.bin")
+        write(src, data)
+        dest = os.path.join(self.d, "b")
+        os.makedirs(dest)
+        real_write = os.write
+        state = {"short": True}
+
+        def short_write(fd, buf):
+            if state["short"] and len(buf) > 4096:
+                state["short"] = False
+                return real_write(fd, bytes(buf[: len(buf) // 3]))
+            return real_write(fd, buf)
+        no_cfr = mock.patch("os.copy_file_range", side_effect=OSError(18, "EXDEV"))
+        real_rename = fileops._rename_new
+
+        def exdev(a, b):       # autre disque : copie par blocs
+            if os.path.abspath(a) == src:
+                raise OSError(18, "EXDEV")
+            return real_rename(a, b)
+        with no_cfr, mock.patch("os.write", short_write), mock.patch.object(fileops, "_rename_new", exdev):
+            run(lambda j: fileops.transfer(j, [src], dest, ask("skip"), move=True))
+        self.assertFalse(state["short"], "l'écriture courte n'a pas été simulée")
+        self.assertEqual(open(os.path.join(dest, "gros.bin"), "rb").read(), data)
+
+    def test_partial_move_undoes_as_move(self):
+        """Dossier en partie déplacé (un fichier spécial reste) : l'annulation ramène les fichiers
+        déplacés, elle ne les met pas à la corbeille comme une copie."""
+        src = os.path.join(self.d, "src", "Photos")
+        for i in range(3):
+            write(os.path.join(src, f"img{i}.jpg"), b"precieux %d" % i)
+        os.mkfifo(os.path.join(src, "tube"))
+        dest = os.path.join(self.d, "dest")
+        os.makedirs(dest)
+        import errno as _errno
+        real_rename = fileops._rename_new
+
+        def exdev(a, b):       # comme deux disques (ou un montage bind) : copie puis suppression
+            if os.path.abspath(a) == src:
+                raise OSError(_errno.EXDEV, "EXDEV")
+            return real_rename(a, b)
+        with mock.patch.object(fileops, "_rename_new", exdev):
+            j = Job("t", lambda j: fileops.transfer(j, [src], dest, ask("skip"), move=True)).run_sync()
+        res = j.result
+        moved = sorted(os.path.basename(s) for s, _d in res.new_moves)
+        self.assertEqual(moved, ["img0.jpg", "img1.jpg", "img2.jpg"], res.new_moves)
+        for s, d in res.new_moves:
+            fileops.move_new(d, s)
+        self.assertEqual(sorted(os.listdir(src)), ["img0.jpg", "img1.jpg", "img2.jpg", "tube"])
+
+    def test_concurrent_new_folders_do_not_merge(self):
+        """Deux copies en même temps de dossiers du même nom : la seconde repose le conflit au lieu de
+        fusionner en silence (annuler l'une jetait les fichiers de l'autre)."""
+        dest = os.path.join(self.d, "dest")
+        os.makedirs(dest)
+        srcs = []
+        for w in ("un", "deux"):
+            write(os.path.join(self.d, w, "Photos", w + ".jpg"), w.encode())
+            srcs.append(os.path.join(self.d, w, "Photos"))
+        target = os.path.join(dest, "Photos")
+        real, seen, barrier, asked = os.path.lexists, {}, threading.Barrier(2, timeout=5), []
+
+        def lexists(p):
+            if os.fspath(p) != target:
+                return real(p)
+            me = threading.get_ident()
+            seen[me] = seen.get(me, 0) + 1
+            if seen[me] == 1:
+                barrier.wait()
+                return False
+            return real(p)
+
+        def go(s):
+            Job("t", lambda j: fileops.transfer(
+                j, [s], dest, lambda c: (asked.append(c), ("rename", False))[1])).run_sync()
+        with mock.patch("os.path.lexists", lexists):
+            ts = [threading.Thread(target=go, args=(s,)) for s in srcs]
+            [t.start() for t in ts]
+            [t.join() for t in ts]
+        self.assertEqual(sorted(os.listdir(dest)), ["Photos", "Photos (2)"])
+        self.assertEqual(len(os.listdir(target)), 1)
+        self.assertEqual(len(asked), 1)
+
+    def test_move_new_other_disk_never_truncates(self):
+        """Annuler un déplacement vers un autre disque, disque plein : rien sous le vrai nom, l'élément
+        reste où il est (avant : shutil.move laissait un fichier tronqué sous le vrai nom)."""
+        import errno as _errno
+        src = os.path.join(self.d, "video.mkv")
+        write(src, os.urandom(1 << 20))
+        dst = os.path.join(self.d, "cle", "video.mkv")
+        os.makedirs(os.path.dirname(dst))
+
+        def exdev(a, b):
+            raise OSError(_errno.EXDEV, "EXDEV")
+
+        def full(a, b, **kw):
+            with open(b, "wb") as f:
+                f.write(b"x" * 1000)
+            raise OSError(_errno.ENOSPC, "ENOSPC")
+        with mock.patch.object(fileops, "_rename_new", exdev), mock.patch("shutil.copy2", full):
+            with self.assertRaises(OSError):
+                fileops.move_new(src, dst)
+        self.assertFalse(os.path.lexists(dst))
+        self.assertEqual(os.listdir(os.path.dirname(dst)), [])
+        self.assertTrue(os.path.exists(src))
+
+
 if __name__ == "__main__":
     unittest.main()

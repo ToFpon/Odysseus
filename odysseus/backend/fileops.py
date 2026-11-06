@@ -265,7 +265,15 @@ class _Copier:
                         else:
                             data = fin.read(CHUNK)
                             if data:
-                                os.write(fd, data)
+                                # écriture courte (support presque plein) : on continue jusqu'au bout
+                                # du bloc ; ignorer le reste donnait un fichier troué, « déplacé »,
+                                # dont l'original était ensuite supprimé
+                                view = memoryview(data)
+                                while view:
+                                    w = os.write(fd, view)
+                                    if w <= 0:
+                                        raise OSError(errno.ENOSPC, os.strerror(errno.ENOSPC))
+                                    view = view[w:]
                                 n = len(data)
                         if not n:
                             break
@@ -275,6 +283,9 @@ class _Copier:
                         os.fsync(fd)       # contenu réellement écrit avant l'échange
                 finally:
                     os.close(fd)
+            # filet : jamais un fichier plus court que l'original sous le vrai nom
+            if os.stat(tmp).st_size != os.stat(src).st_size:
+                raise OSError(errno.EIO, tr("copie incomplète (taille différente de l'original)"))
             try:
                 shutil.copystat(src, tmp)
             except OSError:
@@ -297,8 +308,9 @@ class _Copier:
         self._created(dst)
         self._made(src, dst)
 
-    def copy_tree(self, src: str, dst: str):
-        """Copie récursive ; dst n'existe pas, ou est un dossier à fusionner."""
+    def copy_tree(self, src: str, dst: str, fresh: bool = False):
+        """Copie récursive ; dst n'existe pas, ou est un dossier à fusionner. fresh : dst a été vu
+        libre (pas de fusion choisie) — un dossier apparu entre-temps repose le conflit."""
         self.job.check_cancel()
         try:
             s = os.lstat(src)
@@ -320,8 +332,14 @@ class _Copier:
                 self._created(dst)
                 self._made(src, dst)
             elif st.S_ISDIR(s.st_mode):
-                existed = os.path.isdir(dst) and not os.path.islink(dst)
-                os.makedirs(dst, exist_ok=True)
+                existed = not fresh and os.path.isdir(dst) and not os.path.islink(dst)
+                if not existed:
+                    # création exclusive, comme les fichiers : deux copies lancées en même temps vers
+                    # le même nom ne fusionnent plus en silence (annuler l'une jetait l'autre)
+                    try:
+                        os.mkdir(dst)
+                    except FileExistsError:
+                        raise _Taken(dst) from None
                 self.copied.add(src)
                 self._created(dst)
                 if not existed:
@@ -389,7 +407,10 @@ class _Copier:
                 pass
             else:   # replace
                 return self._replace(src, dst)
-        self.copy_tree(src, dst)
+            if choice == "merge":
+                self.copy_tree(src, dst)
+                return dst
+        self.copy_tree(src, dst, fresh=True)
         return dst
 
     def _replace(self, src: str, dst: str) -> Optional[str]:
@@ -417,6 +438,9 @@ class _Copier:
             _fsync_dir(os.path.dirname(dst))
             del self.roots[roots_before:]          # ce qui était sous le nom temporaire
             self._made(src, dst)
+            # FAT / NTFS : un second élément qui ne diffère que par la casse sera renommé, pas posé
+            # par-dessus celui-ci (il écrasait A avec B, puis A était supprimé de la source)
+            self._created(dst)
         except OSError as e:
             self.errors.append((dst, e.strerror or str(e)))
             if os.path.lexists(tmp):
@@ -529,7 +553,25 @@ def move_new(src: str, dst: str):
             raise
         if os.path.lexists(dst):
             raise FileExistsError(errno.EEXIST, os.strerror(errno.EEXIST), dst) from None
-        shutil.move(src, dst)
+        # autre disque (annuler / rétablir un déplacement) : copie complète sous un nom caché, mise
+        # sur disque, pose sans écraser, puis seulement l'original retiré. shutil.move écrivait sous
+        # le vrai nom (fichier tronqué si le disque est plein) et supprimait sans mise sur disque.
+        tmp = _tmp_name(os.path.dirname(dst) or ".", "copie")
+        try:
+            if os.path.isdir(src) and not os.path.islink(src):
+                shutil.copytree(src, tmp, symlinks=True)
+            elif os.path.islink(src):
+                os.symlink(os.readlink(src), tmp)
+            else:
+                shutil.copy2(src, tmp)
+            flush_to_disk(tmp)
+            _rename_new(tmp, dst)
+        except BaseException:
+            if os.path.lexists(tmp):
+                _remove(tmp)
+            raise
+        flush_to_disk(dst)
+        _remove(src)
 
 
 def _rename2(a: str, b: str, flags: int) -> bool:
@@ -656,6 +698,10 @@ def _move_same_disk(src: str, dst: str, dest_dir: str, name: str, copier: "_Copi
         except FileExistsError:
             continue                          # pris à l'instant : on repose la question
         except OSError as e:
+            if e.errno == errno.EXDEV:
+                # même st_dev mais deux montages (bind, mergerfs) : copie puis suppression, comme GIO
+                to_copy.append((src, dst, False))
+                return
             res.errors.append((src, e.strerror or str(e)))
             return
         res.moved.append((src, dst))
@@ -750,10 +796,39 @@ def transfer(job: Job, sources: list[str], dest_dir: str, ask: Asker, move: bool
         copier.tick(force=True)
     res.new_items = [d for _s, d in direct] + [d for _s, d in copier.roots]
     if move:
-        res.new_moves = list(direct) + [(s_, d) for s_, d in copier.roots if not os.path.lexists(s_)]
+        res.new_moves = list(direct)
+        for s_, d in copier.roots:
+            if not os.path.lexists(s_):
+                res.new_moves.append((s_, d))
+            elif os.path.isdir(s_) and not os.path.islink(s_):
+                # dossier en partie déplacé (un élément refusé est resté) : annuler doit ramener ce qui
+                # est parti, élément par élément — avant, l'annulation devenait celle d'une COPIE et
+                # mettait à la corbeille les seuls exemplaires des fichiers déplacés
+                res.new_moves.extend(_moved_parts(s_, d))
     res.errors.extend(copier.errors)
     _raise_partial(res)
     return res
+
+
+def _moved_parts(src_root: str, dst_root: str) -> list:
+    """(source, destination) des éléments réellement partis d'un dossier dont la source reste :
+    les plus hauts dont la source n'existe plus."""
+    out = []
+    stack = [(src_root, dst_root)]
+    while stack:
+        s_dir, d_dir = stack.pop()
+        try:
+            names = os.listdir(d_dir)
+        except OSError:
+            continue
+        for name in names:
+            s_x, d_x = os.path.join(s_dir, name), os.path.join(d_dir, name)
+            if not os.path.lexists(s_x):
+                out.append((s_x, d_x))
+            elif os.path.isdir(s_x) and not os.path.islink(s_x) and os.path.isdir(d_x) \
+                    and not os.path.islink(d_x):
+                stack.append((s_x, d_x))
+    return out
 
 
 def _raise_partial(res: Result):

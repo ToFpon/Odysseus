@@ -634,10 +634,33 @@ def create(job: Job, sources: list[str], out: str, o: CreateOptions) -> str:
     return out
 
 
+def _keep_sources_reason(sources: list[str], o: CreateOptions, out: str) -> str:
+    """Pourquoi « supprimer après » ne doit rien supprimer (vide : on peut). Avant, le dossier
+    entier partait même quand l'archive n'en contenait qu'une partie."""
+    if o.excludes or o.extra_args.strip():
+        return tr("Des exclusions ou des options 7-Zip étaient actives : l'archive ne contient peut-être "
+                  "pas tout, les originaux sont conservés.")
+    if o.update_mode == "fresh":
+        return tr("« Rafraîchir » ne met à jour que les fichiers déjà présents dans l'archive : "
+                  "les originaux sont conservés.")
+    real_out = os.path.realpath(out)
+    for s in sources:
+        rs = os.path.realpath(s).rstrip("/")
+        if os.path.isdir(rs) and (real_out + "/").startswith(rs + "/"):
+            return tr("L'archive a été enregistrée dans un dossier compressé : les originaux sont conservés.")
+    return ""
+
+
 def _delete_sources_after(job: Job, sources: list[str], o: CreateOptions, out: str):
     """« Supprimer après » : seulement une fois l'archive posée sous son vrai nom ET écrite sur le
     disque (coupure de courant), et jamais les fichiers que l'outil n'a pas pu lire."""
     if not o.delete_after:
+        return
+    reason = _keep_sources_reason(sources, o, out)
+    if reason:
+        # l'archive ne contient pas forcément tout : on ne supprime rien, et on le dit
+        job.sources_kept = True
+        job.sources_kept_reason = reason
         return
     from .fileops import flush_to_disk
     flush_to_disk(out)
@@ -713,6 +736,8 @@ def build_7z_extract(archive: str, dest: str, o: ExtractOptions, stdin_tar=False
     else:
         argv += _pw_args(o.password)
     argv += [OVERWRITE_FLAGS.get(o.overwrite, "-aou"), "-o" + dest, "-sccUTF-8"] + SEVENZ_PROGRESS
+    if o.files:
+        argv.append("-spd")       # noms exacts : « *.txt » est un fichier, pas un motif
     argv += ["--"] + ([] if stdin_tar else [archive]) + list(o.files)
     return argv
 
@@ -866,10 +891,12 @@ def _extract_smart(job: Job, archive: str, det, o: ExtractOptions) -> str:
         if len(entries) == 1:
             src, final = os.path.join(tmp, entries[0]), os.path.join(parent, entries[0])
             if os.path.lexists(final):
-                if o.overwrite == "skip":
+                if _protected(final):
+                    final = _unique_path(final)      # l'archive elle-même : jamais remplacée
+                elif o.overwrite == "skip":
                     job.extract_skipped = True
                     return parent
-                if o.overwrite == "overwrite" and not os.path.isdir(final):
+                elif o.overwrite == "overwrite" and not os.path.isdir(final):
                     os.remove(final)
                 elif o.overwrite == "rename_existing":
                     _place(final, _unique_path(final))
@@ -903,10 +930,12 @@ def _extract_selected(job: Job, archive: str, det, o: ExtractOptions) -> str:
                 continue
             final = os.path.join(dest, os.path.basename(inner.rstrip("/")))
             if os.path.lexists(final):
-                if o.overwrite == "skip":
+                if _protected(final):
+                    final = _unique_path(final)      # l'archive elle-même : jamais remplacée
+                elif o.overwrite == "skip":
                     job.extract_skipped = True
                     continue
-                if o.overwrite == "overwrite" and not os.path.isdir(final):
+                elif o.overwrite == "overwrite" and not os.path.isdir(final):
                     os.remove(final)
                 elif o.overwrite == "rename_existing":
                     _place(final, _unique_path(final))
@@ -918,7 +947,39 @@ def _extract_selected(job: Job, archive: str, det, o: ExtractOptions) -> str:
     return dest
 
 
+_protect = threading.local()
+
+
+def _protected(path: str) -> bool:
+    """path est-il un volume de l'archive en cours d'extraction (même inode) ? Une archive qui
+    contient un élément de son propre nom (« data.zip » dans « data.zip ») la remplaçait, puis
+    « supprimer après » effaçait la copie extraite : plus rien."""
+    ids = getattr(_protect, "ids", None)
+    if not ids:
+        return False
+    try:
+        s = os.stat(path)
+    except OSError:
+        return False
+    return (s.st_dev, s.st_ino) in ids
+
+
 def extract(job: Job, archive: str, o: ExtractOptions) -> str:
+    ids = set()
+    for v in volume_set(archive):
+        try:
+            s = os.stat(v)
+            ids.add((s.st_dev, s.st_ino))
+        except OSError:
+            pass
+    _protect.ids = ids
+    try:
+        return _extract(job, archive, o)
+    finally:
+        _protect.ids = None
+
+
+def _extract(job: Job, archive: str, o: ExtractOptions) -> str:
     det = formats.detect(archive)
     if o.subfolder == "smart" and not o.files:
         dest = _extract_smart(job, archive, det, o)
@@ -945,7 +1006,8 @@ def extract(job: Job, archive: str, o: ExtractOptions) -> str:
             from .fileops import flush_to_disk
             flush_to_disk(dest)          # le contenu extrait sur le disque AVANT de retirer l'archive
             for v in volume_set(archive):
-                os.remove(v)
+                if _protected(v):        # toujours NOTRE archive (pas un élément extrait à sa place)
+                    os.remove(v)
     return dest
 
 
@@ -965,6 +1027,9 @@ def _merge_into(src_dir: str, dest_dir: str, overwrite: str) -> bool:
                 pass                     # arrivé à l'instant (autre extraction) : traité comme existant
         if src_dir_real and os.path.isdir(dst) and not os.path.islink(dst):
             skipped |= _merge_into(src, dst, overwrite)
+            continue
+        if _protected(dst):
+            _place(src, _unique_path(dst))        # l'archive elle-même : jamais remplacée
             continue
         if overwrite == "skip":
             skipped = True
@@ -1048,14 +1113,17 @@ def add_to_archive(job: Job, archive: str, files: list[str], inner_dir: str = ""
 def delete_from_archive(job: Job, archive: str, paths: list[str], password: str = "") -> None:
     if not formats.is_modifiable(archive):
         raise ToolError(tr("Ce format ne peut pas être modifié"))
-    argv = [_7z(), "d"] + _pw_update(password) + ["-sccUTF-8"] + SEVENZ_PROGRESS + ["--", archive] + list(paths)
+    # -spd : noms exacts (supprimer le fichier « *.txt » supprimait aussi tous les .txt)
+    argv = [_7z(), "d"] + _pw_update(password) + ["-sccUTF-8", "-spd"] + SEVENZ_PROGRESS + \
+        ["--", archive] + list(paths)
     job.run_tool(argv, label=tr("Suppression"))
 
 
 def rename_in_archive(job: Job, archive: str, old: str, new: str, password: str = "") -> None:
     if not formats.is_modifiable(archive):
         raise ToolError(tr("Ce format ne peut pas être modifié"))
-    argv = [_7z(), "rn"] + _pw_update(password) + ["-sccUTF-8"] + SEVENZ_PROGRESS + ["--", archive, old, new]
+    argv = [_7z(), "rn"] + _pw_update(password) + ["-sccUTF-8", "-spd"] + SEVENZ_PROGRESS + \
+        ["--", archive, old, new]
     job.run_tool(argv, label=tr("Renommage"))
 
 

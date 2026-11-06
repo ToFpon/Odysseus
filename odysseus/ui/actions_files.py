@@ -558,8 +558,10 @@ class FileActions:
                  ntr("Copie de {0} élément", "Copie de {0} éléments", n)).format(n) + " → " + \
             (os.path.basename(dest.rstrip("/")) or dest)
         # seulement ce qui a été créé / déplacé : dans un dossier fusionné, pas ce qu'il contenait déjà
-        undo = (lambda r: ("move", list(r.new_moves)) if move and r.new_moves else ("copy", list(r.new_items))
-                if r.new_items else None)
+        # un déplacement ne s'annule jamais comme une copie (corbeille) : ses fichiers n'existent plus
+        # qu'à la destination
+        undo = (lambda r: (("move", list(r.new_moves)) if r.new_moves else None) if move else
+                (("copy", list(r.new_items)) if r.new_items else None))
         self._run(title, lambda j: fileops.transfer(j, paths, dest, self._ask_conflict, move=move), dest,
                   undo=undo)
 

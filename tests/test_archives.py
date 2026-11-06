@@ -363,3 +363,83 @@ class GioOpsTest(unittest.TestCase):
         gioops.make_folder(os.path.join(d, "dst"), "vide")
         gioops.delete(Job("d", lambda j: None), [new, os.path.join(d, "dst", "vide")])
         self.assertEqual(len(os.listdir(os.path.join(d, "dst"))), 1)
+
+
+class AuditArchiveTest(unittest.TestCase):
+    """Trouvailles de l'audit (novembre 2026) : « supprimer après » ne supprime que ce qui est sûr
+    d'être dans l'archive, l'archive elle-même n'est jamais remplacée, les noms sont exacts."""
+
+    def setUp(self):
+        self.tmp = tempfile.TemporaryDirectory()
+        self.root = self.tmp.name
+        self.src = os.path.join(self.root, "proj")
+        os.makedirs(self.src)
+        for n, t in (("garde.txt", "a"), ("important.log", "b")):
+            with open(os.path.join(self.src, n), "w") as f:
+                f.write(t)
+
+    def tearDown(self):
+        self.tmp.cleanup()
+
+    def test_excludes_keep_sources(self):
+        for fmt in ("7z", "tar.gz"):
+            with self.subTest(fmt=fmt):
+                out = os.path.join(self.root, "x." + fmt)
+                j = Job("c", lambda j: archive.create(j, [self.src], out, archive.CreateOptions(
+                    fmt=fmt, excludes=["*.log"], delete_after=True))).run_sync()
+                self.assertEqual(j.state, "done", j.error)
+                self.assertTrue(os.path.exists(os.path.join(self.src, "important.log")),
+                                "fichier exclu supprimé alors qu'il n'est pas dans l'archive")
+                self.assertTrue(getattr(j, "sources_kept_reason", ""))
+
+    def test_fresh_keeps_sources(self):
+        out = os.path.join(self.root, "bk.7z")
+        run(lambda j: archive.create(j, [os.path.join(self.src, "garde.txt")], out,
+                                     archive.CreateOptions(fmt="7z")))
+        both = [os.path.join(self.src, "garde.txt"), os.path.join(self.src, "important.log")]
+        run(lambda j: archive.create(j, both, out, archive.CreateOptions(
+            fmt="7z", update_mode="fresh", delete_after=True)))
+        self.assertTrue(all(os.path.exists(p) for p in both))
+
+    def test_output_inside_source(self):
+        out = os.path.join(self.src, "proj.7z")
+        j = Job("c", lambda j: archive.create(j, [self.src], out, archive.CreateOptions(
+            fmt="7z", delete_after=True))).run_sync()
+        self.assertEqual(j.state, "done", j.error)
+        self.assertTrue(os.path.exists(j.result) and os.path.exists(os.path.join(self.src, "garde.txt")))
+
+    def test_archive_containing_itself(self):
+        """« data.zip » qui contient « data.zip » : l'archive n'est jamais écrasée, et « supprimer
+        après » ne retire qu'elle, jamais la copie extraite."""
+        inner_dir = os.path.join(self.root, "inner")
+        os.makedirs(inner_dir)
+        with open(os.path.join(inner_dir, "data.zip"), "w") as f:
+            f.write("contenu intérieur")
+        arc = os.path.join(self.root, "data.zip")
+        run(lambda j: archive.create(j, [os.path.join(inner_dir, "data.zip")], arc + ".tmp.zip",
+                                     archive.CreateOptions(fmt="zip")))
+        for mode in ("overwrite", "rename_existing"):
+            with self.subTest(mode=mode):
+                shutil.copy(arc + ".tmp.zip", arc)
+                j = Job("x", lambda j: archive.extract(j, arc, archive.ExtractOptions(
+                    subfolder="smart", overwrite=mode, delete_after=True))).run_sync()
+                self.assertEqual(j.state, "done", j.error)
+                left = [n for n in os.listdir(self.root) if n.startswith("data")]
+                contents = [open(os.path.join(self.root, n)).read() for n in left if n != "data.zip.tmp.zip"]
+                self.assertIn("contenu intérieur", contents, f"copie extraite perdue ({left})")
+                for n in left:
+                    if n != "data.zip.tmp.zip":
+                        os.remove(os.path.join(self.root, n))
+
+    def test_names_are_not_wildcards(self):
+        os.makedirs(os.path.join(self.root, "w"))
+        for n in ("*.txt", "abc.txt"):
+            with open(os.path.join(self.root, "w", n), "w") as f:
+                f.write(n)
+        arc = os.path.join(self.root, "w.7z")
+        run(lambda j: archive.create(j, [os.path.join(self.root, "w", "*.txt"),
+                                         os.path.join(self.root, "w", "abc.txt")], arc,
+                                     archive.CreateOptions(fmt="7z")))
+        run(lambda j: archive.delete_from_archive(j, arc, ["*.txt"]))
+        names = {e.path for e in archive.list_archive(arc).entries}
+        self.assertEqual(names, {"abc.txt"})

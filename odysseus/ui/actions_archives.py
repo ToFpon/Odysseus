@@ -127,6 +127,8 @@ class ArchiveActions:
                           + ("\n" + (tr("Rien n'a été supprimé.") if getattr(job, "sources_kept", False)
                                       else tr("Ils n'ont pas été supprimés.")) if o.delete_after else "")
                           + "\n\n" + text)
+                elif getattr(job, "sources_kept_reason", ""):
+                    alert(self, tr("Originaux conservés"), job.sources_kept_reason)
             else:
                 finished_toast(self, job, "")
         self._watch_progress(manager.submit(title, func, done))
