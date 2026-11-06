@@ -502,6 +502,14 @@ def steps(win):
             yield
             yield
             check(p.view_mode == mode, f"[{layout}] Ctrl+{key} : vue {mode} ({p.view_mode})")
+        xdo("key", "F9")
+        yield
+        yield
+        check(p.view_mode == "columns", f"[{layout}] F9 : vue en colonnes ({p.view_mode})")
+        xdo("key", "F9")
+        yield
+        yield
+        check(p.view_mode == "list", f"[{layout}] F9 encore : retour à la liste ({p.view_mode})")
     subprocess.run(["setxkbmap", "us"], capture_output=True)
     # Ctrl + molette : zoom de la liste puis de la grille, comme Nautilus ; sans Ctrl, ça défile
     from odysseus.settings import settings
