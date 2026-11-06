@@ -12,7 +12,7 @@ from gi.repository import Adw, GLib, Gtk
 
 from ..backend import usershare
 from ..i18n import tr
-from .common import alert, dialog_shell, toast
+from .common import alert, dialog_shell, markup_safe, toast
 
 _refreshing = False
 _last = None          # pour les tests
@@ -67,7 +67,8 @@ class ShareDialog:
         self.guests = usershare.guests_allowed()
         label = tr("Modifier le partage") if self.old else tr("Créer un partage")
         self.dialog, page, self.action = dialog_shell(tr("Partage de dossier"), label, 560, 470)
-        g = Adw.PreferencesGroup(title=os.path.basename(self.path) or self.path, description=self.path)
+        g = Adw.PreferencesGroup(title=markup_safe(os.path.basename(self.path) or self.path),
+                                 description=markup_safe(self.path))
         self.share_row = Adw.SwitchRow(title=tr("Partager ce dossier"), active=self.old is not None)
         g.add(self.share_row)
         self.name_row = Adw.EntryRow(title=tr("Nom du partage"))

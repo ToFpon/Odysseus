@@ -32,13 +32,23 @@ def shown(text) -> str:
         return text.encode("utf-8", "surrogateescape").decode("utf-8", "replace")
 
 
+def markup_safe(text) -> str:
+    """Nom de fichier pour un titre / sous-titre de libadwaita (ActionRow, PreferencesGroup…), qui lit
+    du balisage Pango : « Tom & Jerry » s'affichait vide, « <b>x » en gras."""
+    return GLib.markup_escape_text(shown(text))
+
+
 def toast(widget: Gtk.Widget, text: str, button: str = "", callback: Optional[Callable] = None,
           timeout: int = 4):
     win = widget.get_root() if widget else None
     overlay = getattr(win, "toast_overlay", None)
     if overlay is None:
         return
-    t = Adw.Toast.new(text)
+    # texte brut : un nom « Tom & Jerry » donnait un toast vide (libadwaita lit le titre comme du
+    # balisage), un nom non UTF-8 une exception qui interrompait la fin de l'opération
+    t = Adw.Toast.new("")
+    t.set_use_markup(False)
+    t.set_title(shown(text))
     t.set_timeout(timeout)
     if button and callback:
         t.set_button_label(button)
@@ -176,7 +186,7 @@ class AlertDialog(Adw.MessageDialog):
 def alert(parent: Gtk.Widget, heading: str, body: str = "", responses=(("ok", "OK"),),
           default: str = "", destructive: str = "", suggested: str = "",
           callback: Optional[Callable[[str], None]] = None, extra: Optional[Gtk.Widget] = None):
-    d = AlertDialog.new(heading, body or None)
+    d = AlertDialog.new(shown(heading), shown(body) or None)
     for rid, label in responses:
         d.add_response(rid, label)
     if destructive:

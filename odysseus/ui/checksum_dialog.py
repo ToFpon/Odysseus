@@ -7,7 +7,7 @@ import os
 from gi.repository import Adw, Gtk
 
 from ..i18n import ntr, tr
-from .common import DialogWindow, shown
+from .common import DialogWindow, markup_safe, shown
 
 STATUS = {
     "ok": ("emblem-ok-symbolic", "success"),
@@ -42,7 +42,7 @@ class ChecksumResults(DialogWindow):
             icon, cls = "dialog-error-symbolic", "error"
         self.summary = title
         head = Adw.PreferencesGroup()
-        status = Adw.ActionRow(title=title, subtitle=shown(os.path.basename(checksum_file)), css_classes=[cls])
+        status = Adw.ActionRow(title=title, subtitle=markup_safe(os.path.basename(checksum_file)), css_classes=[cls])
         status.add_prefix(Gtk.Image(icon_name=icon, pixel_size=32))
         head.add(status)
         page.add(head)
@@ -52,7 +52,7 @@ class ChecksumResults(DialogWindow):
             # les problèmes d'abord : c'est ce qu'on cherche dans une longue liste
             for r in sorted(results, key=lambda r: r["status"] == "ok"):
                 name = os.path.relpath(r["path"], base) if r["path"].startswith(base) else r["path"]
-                row = Adw.ActionRow(title=shown(name), subtitle=f"{r['algo']} · {status_label(r['status'])}")
+                row = Adw.ActionRow(title=markup_safe(name), subtitle=f"{r['algo']} · {status_label(r['status'])}")
                 row.set_title_lines(1)
                 ic, c = STATUS.get(r["status"], STATUS["unreadable"])
                 img = Gtk.Image(icon_name=ic)

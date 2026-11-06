@@ -58,12 +58,16 @@ def long_date(t: float) -> str:
 
 def info_row(title: str, value: str) -> Adw.ActionRow:
     """Petit titre au-dessus de la valeur (classe « property » de libadwaita), comme Nautilus."""
-    return Adw.ActionRow(title=title, subtitle=value, subtitle_selectable=True, css_classes=["property"])
+    # use_markup=False : un chemin « Sub & <i>y » s'affichait vide (libadwaita lit du balisage)
+    # (sous-titre posé APRÈS use_markup=False : passé au constructeur, il était encore lu comme balisage)
+    row = Adw.ActionRow(title=title, subtitle_selectable=True, use_markup=False, css_classes=["property"])
+    row.set_subtitle(shown(value))
+    return row
 
 
 def value_row(title: str, value: str) -> Adw.ActionRow:
     row = Adw.ActionRow(title=title)
-    row.add_suffix(Gtk.Label(label=value, selectable=True))
+    row.add_suffix(Gtk.Label(label=shown(value), selectable=True))
     return row
 
 

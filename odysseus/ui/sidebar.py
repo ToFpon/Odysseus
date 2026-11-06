@@ -17,7 +17,7 @@ from ..backend import bookmarks, devices, scanner, starred, trashwatch
 from ..backend.engine import human_size
 from ..i18n import ntr, tr
 from ..settings import settings
-from .common import SpringLoad, alert, ask_text, popup_menu, toast
+from .common import SpringLoad, alert, ask_text, popup_menu, shown, toast
 
 TRASH = "trash:///"
 
@@ -71,11 +71,12 @@ class SidebarRow(Gtk.ListBoxRow):
         elif icon is not None:
             self.icon.set_from_gicon(icon)
         box.append(self.icon)
-        self.label = Gtk.Label(label=label, xalign=0, ellipsize=3, hexpand=True)
+        self.label = Gtk.Label(label=shown(label), xalign=0, ellipsize=3, hexpand=True)
         box.append(self.label)
         self.box = box
         self.set_child(box)
-        self.set_tooltip_text(tooltip or (target if target and "://" not in target else None))
+        tip = tooltip or (target if target and "://" not in target else None)
+        self.set_tooltip_text(shown(tip) if tip else None)
 
 
 class Sidebar(Gtk.Box):

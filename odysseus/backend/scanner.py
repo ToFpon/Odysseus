@@ -24,6 +24,20 @@ from gi.repository import Gio, GLib
 
 from ..i18n import tr
 
+
+def trash_orig_path(info) -> Optional[str]:
+    """trash::orig-path d'un élément de la corbeille. Nom non UTF-8 : PyGObject refuse la chaîne
+    d'octets (UnicodeDecodeError) — un seul fichier « caf\\xe9 » cassait toute la page Corbeille et
+    l'annulation des mises à la corbeille ; on passe par la forme échappée de GIO."""
+    if not info.has_attribute("trash::orig-path"):
+        return None
+    try:
+        return info.get_attribute_byte_string("trash::orig-path")
+    except UnicodeDecodeError:
+        import codecs
+        text = info.get_attribute_as_string("trash::orig-path") or ""
+        return os.fsdecode(codecs.escape_decode(text.encode("latin-1", "replace"))[0]) or None
+
 # lien symbolique dont la cible n'existe pas : le type que GIO (donc Nautilus) lui donne
 BROKEN_LINK = "inode/symlink"
 
@@ -274,7 +288,7 @@ def rec_from_info(info: Gio.FileInfo, parent: Gio.File) -> Rec:
     r.stat_ok = True
     r.ctype = info.get_attribute_string("standard::fast-content-type") or None
     r.key = sort_name(r.name)
-    orig = info.get_attribute_byte_string("trash::orig-path") if info.has_attribute("trash::orig-path") else None
+    orig = trash_orig_path(info)
     if orig:
         r.set("orig_path", orig)
         r.set("location", trash_origin_label(os.fsdecode(orig)))      # colonne « Emplacement d'origine »

@@ -9,7 +9,7 @@ from gi.repository import Adw, Gio, GLib, GObject, Gtk
 from .. import features
 from ..i18n import LANGUAGE_NAMES, ntr, tr
 from ..settings import settings
-from .common import DialogWindow, combo_row, toast
+from .common import DialogWindow, combo_row, shown, toast
 
 
 def apply_theme():
@@ -360,7 +360,7 @@ class AppChooser(DialogWindow):
         tv.add_top_bar(hb)
         box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=12, margin_top=12, margin_bottom=12,
                       margin_start=12, margin_end=12)
-        name = GLib.markup_escape_text(self.files[0].get_basename() or "") if n == 1 else ""
+        name = GLib.markup_escape_text(shown(self.files[0].get_basename() or "")) if n == 1 else ""
         label = Gtk.Label(wrap=True, justify=Gtk.Justification.CENTER, use_markup=True)
         label.set_markup(tr("Choisir une application pour ouvrir <b>{0}</b>").format(name) if n == 1 else
                          ntr("Choisir une application pour ouvrir le fichier",

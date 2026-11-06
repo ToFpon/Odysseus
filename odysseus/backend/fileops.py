@@ -24,6 +24,7 @@ from gi.repository import Gio, GLib
 from ..i18n import ntr, tr
 from . import fsinfo
 from .engine import Cancelled, Job, ToolError, human_size
+from .scanner import trash_orig_path
 
 CHUNK = 8 * 1024 * 1024
 
@@ -940,7 +941,7 @@ def restore_from_trash(job: Job, uris: list[str]) -> Result:
         f = Gio.File.new_for_uri(uri)
         try:
             info = f.query_info("trash::orig-path", Gio.FileQueryInfoFlags.NONE, None)
-            orig = info.get_attribute_byte_string("trash::orig-path")
+            orig = trash_orig_path(info)
             if not orig:
                 raise GLib.Error(tr("Emplacement d'origine inconnu"))
             target = orig
@@ -961,7 +962,7 @@ def restore_trashed_paths(job: Job, originals: list[str]) -> Result:
     wanted = set(originals)
     best: dict = {}
     for info, f in trash_items(job):
-        orig = info.get_attribute_byte_string("trash::orig-path")
+        orig = trash_orig_path(info)
         if orig in wanted:
             date = info.get_attribute_string("trash::deletion-date") or ""
             if orig not in best or date > best[orig][0]:

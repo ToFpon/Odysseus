@@ -610,7 +610,7 @@ class ListView(Gtk.ScrolledWindow, _CellMixin):
         lbl._rec = entry.rec
 
         def fill():
-            lbl.set_text(cell_text(key, entry.rec, self.pane))
+            lbl.set_text(shown(cell_text(key, entry.rec, self.pane)))
             lbl.set_opacity(0.5 if (features.enabled("cut_dim") and clipboard.state.is_cut(entry.rec.path)) else 1.0)
         self._track(lbl, entry, fill)
         fill()

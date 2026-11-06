@@ -203,6 +203,25 @@ def bouton_colonnes(win):
     win.columns_btn.set_active(False)
     yield pump(0.5)
     check(win.pane.view_mode == "list" and not win.columns_btn.get_active(), "retour à la liste par le bouton")
+    # audit : dossier ouvert DANS les colonnes, puis retour à la liste : c'est bien lui qui s'affiche
+    p = win.pane
+    sub = tempfile.mkdtemp(dir=D, prefix="colonne ")
+    open(os.path.join(sub, "seul-ici.txt"), "w").close()
+    p.open(D)
+    yield Wait(5, until=lambda: not p.model.loading)
+    p.set_view_mode("columns")
+    yield pump(0.4)
+    p.columns_location(sub)               # clic sur un dossier dans les colonnes
+    yield pump(0.2)
+    p.set_view_mode("list")
+    yield Wait(5, until=lambda: not p.model.loading and p.model.location == sub)
+    names = [r.name for r in p.model.items]
+    check(p.location == sub and names == ["seul-ici.txt"],
+          f"colonnes → liste : contenu du dossier affiché ({names[:3]})")
+    p.open(D)
+    yield Wait(5, until=lambda: not p.model.loading)
+    shutil.rmtree(sub)                     # les étapes suivantes (tri) comptent sur le contenu de D
+    yield Wait(5, until=lambda: all(r.name != os.path.basename(sub) for r in p.model.items))
 
 
 @step

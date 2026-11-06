@@ -9,7 +9,7 @@ from gi.repository import Adw, GLib, GObject, Gtk
 
 from ..backend.engine import Job
 from ..i18n import tr
-from .common import DialogWindow, copy_to_clipboard, open_folder, toast
+from .common import DialogWindow, copy_to_clipboard, open_folder, shown, toast
 
 
 class JobManager(GObject.Object):
@@ -89,7 +89,7 @@ class JobRow(Gtk.ListBoxRow):
         self.icon = Gtk.Image(pixel_size=20)
         top.append(self.icon)
         texts = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, hexpand=True)
-        self.title = Gtk.Label(label=job.title, xalign=0, css_classes=["heading"],
+        self.title = Gtk.Label(label=shown(job.title), xalign=0, css_classes=["heading"],
                                ellipsize=3)
         self.status = Gtk.Label(xalign=0, css_classes=["dim-label", "caption"], ellipsize=2)
         texts.append(self.title)
@@ -139,7 +139,7 @@ class JobRow(Gtk.ListBoxRow):
             text += tr('\n\nErreur : {0}').format(j.error)
         if j.log:
             text += tr("\n\nSortie :\n") + "\n".join(j.log)[-20000:]
-        dlg = DialogWindow(title=tr("Journal — ") + j.title, content_width=640, content_height=420)
+        dlg = DialogWindow(title=shown(tr("Journal — ") + j.title), content_width=640, content_height=420)
         tv = Adw.ToolbarView()
         hb = Adw.HeaderBar()
         copy = Gtk.Button(icon_name="edit-copy-symbolic", tooltip_text=tr("Copier"))

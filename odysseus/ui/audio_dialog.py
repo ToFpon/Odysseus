@@ -9,7 +9,7 @@ from gi.repository import Adw, GLib, Gtk
 from ..backend import media
 from ..i18n import ntr, tr
 from ..settings import settings
-from .common import choose_folder, combo_row, dialog_shell
+from .common import choose_folder, combo_row, dialog_shell, markup_safe
 from .jobs import finished_toast, manager
 
 QUALITY_LABELS = [tr("Haute (320 kb/s)"), tr("Moyenne (192 kb/s)"), tr("Basse (128 kb/s)"),
@@ -42,7 +42,7 @@ class VideoToAudioDialog:
         self.files = Adw.PreferencesGroup(title=ntr("{0} fichier", "{0} fichiers", len(videos)).format(len(videos)))
         self.status = []
         for v in videos:
-            r = Adw.ActionRow(title=os.path.basename(v))
+            r = Adw.ActionRow(title=markup_safe(os.path.basename(v)))
             r.set_title_lines(1)
             r.add_prefix(Gtk.Image(icon_name="video-x-generic-symbolic"))
             st = Gtk.Image(icon_name="content-loading-symbolic", css_classes=["dim-label"])

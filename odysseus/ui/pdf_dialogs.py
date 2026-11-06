@@ -13,7 +13,7 @@ from ..backend.fileops import unique_name
 from ..backend.engine import human_size
 from ..i18n import ntr, tr
 from ..settings import settings
-from .common import alert, choose_files, choose_folder, choose_save, combo_row, dialog_shell, path_row
+from .common import alert, choose_files, choose_folder, choose_save, combo_row, dialog_shell, markup_safe, path_row
 from .jobs import finished_toast, manager
 
 PDF_FILTER = [(tr("Documents PDF"), ["*.pdf", "*.PDF"])]
@@ -49,7 +49,7 @@ class CompressDialog:
         self.dialog, page, self.action = dialog_shell(tr("Compresser le PDF"), tr("Compresser"), 560, 600)
         g = Adw.PreferencesGroup(title=ntr("{0} fichier", "{0} fichiers", len(paths)).format(len(paths)))
         for p in paths[:12]:
-            r = Adw.ActionRow(title=os.path.basename(p), subtitle=human_size(os.path.getsize(p)))
+            r = Adw.ActionRow(title=markup_safe(os.path.basename(p)), subtitle=human_size(os.path.getsize(p)))
             r.add_prefix(Gtk.Image(icon_name="x-office-document-symbolic"))
             g.add(r)
         if len(paths) > 12:
@@ -474,7 +474,7 @@ class PagesDialog:
         self.path = paths[0]
         self.n = pdf.page_count(self.path)
         self.dialog, page, self.action = dialog_shell(tr("Pages PDF"), tr("Appliquer"), 720, 720)
-        g = Adw.PreferencesGroup(title=os.path.basename(self.path),
+        g = Adw.PreferencesGroup(title=markup_safe(os.path.basename(self.path)),
                                  description=ntr("{0} page", "{0} pages", self.n).format(self.n) +
                                  " · " + tr("cliquez sur les vignettes pour choisir les pages"))
         self.flow = Gtk.FlowBox(selection_mode=Gtk.SelectionMode.MULTIPLE, max_children_per_line=8,

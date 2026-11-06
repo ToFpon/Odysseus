@@ -20,7 +20,7 @@ from ..i18n import ntr, tr
 from ..settings import session_passwords, settings
 from . import clipboard
 from .archive_drag import DragCache
-from .common import focus_later, shown
+from .common import focus_later, markup_safe, shown
 from .columns import MillerView
 from .model import DirModel, Selection, fold, matches, query_words
 from .other_locations import OTHER_URI, OtherLocations
@@ -865,13 +865,16 @@ class Pane(Gtk.Box):
             mode = "list" if mode == "columns" and self.mode != "fs" else mode
             if not features.enabled("column_view"):
                 mode = "list"
+        leaving_columns = self.view_mode == "columns" and mode != "columns"
         self.view_mode = mode
         if save:
             settings["view_mode"] = mode
         if mode == "columns":
             self._ensure_miller().open(self.location)
-        elif self.mode == "fs" and (self.model.location != self.location or self.model.static
+        elif self.mode == "fs" and (leaving_columns or self.model.location != self.location or self.model.static
                                     or (not self.model.all and not self.model.loading)):
+            # en quittant les colonnes : le modèle n'a pas suivi leurs dossiers (seul son nom changeait),
+            # la liste montrait l'ancien dossier sous le nom du nouveau
             self.model.load(self.location)
         self._show_content()
         GLib.idle_add(self.focus_view)
@@ -955,7 +958,7 @@ class Pane(Gtk.Box):
         if self.model.filter_text:
             self.empty.set_icon_name("edit-find-symbolic")
             self.empty.set_title(tr("Aucun résultat"))
-            self.empty.set_description(tr("Rien ne correspond à « {0} »").format(self.model.filter_text))
+            self.empty.set_description(tr("Rien ne correspond à « {0} »").format(markup_safe(self.model.filter_text)))
         elif self.mode == "starred":
             self.empty.set_icon_name("starred-symbolic")         # comme Nautilus
             self.empty.set_title(tr("Aucun fichier favori"))
@@ -1078,7 +1081,7 @@ class Pane(Gtk.Box):
             if n == 0:
                 self.empty.set_icon_name("edit-find-symbolic")
                 self.empty.set_title(tr("Aucun résultat"))
-                self.empty.set_description(tr("Rien ne correspond à « {0} »").format(self.search_query))
+                self.empty.set_description(tr("Rien ne correspond à « {0} »").format(markup_safe(self.search_query)))
                 self.stack.set_visible_child_name("empty")
             if final:
                 self._search_cancel = None

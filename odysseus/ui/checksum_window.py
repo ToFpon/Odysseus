@@ -15,7 +15,7 @@ from gi.repository import Adw, Gio, GLib, Gtk
 from ..backend import tools
 from ..backend.engine import Job, human_size
 from ..i18n import tr
-from .common import copy_to_clipboard, shown, toast
+from .common import copy_to_clipboard, markup_safe, shown, toast
 
 # calculés à l'ouverture, en une seule lecture du fichier
 ALGOS = ("MD5", "SHA-1", "SHA-256", "SHA-512")
@@ -46,7 +46,7 @@ class ChecksumWindow(Adw.Window):
             size = human_size(os.path.getsize(path))
         except OSError:
             size = ""
-        info = Adw.ActionRow(title=shown(os.path.basename(path)), subtitle=size)
+        info = Adw.ActionRow(title=markup_safe(os.path.basename(path)), subtitle=size)
         info.set_title_lines(2)
         ctype = Gio.content_type_guess(path, None)[0]
         info.add_prefix(Gtk.Image(gicon=Gio.content_type_get_icon(ctype), pixel_size=32))

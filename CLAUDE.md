@@ -175,6 +175,12 @@ exclusions / options 7-Zip, en « Rafraîchir », ou si l'archive est dans un do
 (`*.txt` est un nom). Signets : URI comme `g_file_get_uri` (`to_uri`, comparées par chemin `_same`),
 lecture tolérante. Réglages d'un mauvais type ignorés (`settings._fits`), sort.json / share-permissions.json
 non-dict ignorés. `net usershare <cmd> -- …`.
+Noms hostiles : titres / sous-titres de libadwaita (ActionRow, PreferencesGroup, StatusPage, Toast) lisent
+du BALISAGE par défaut — un nom « Tom & Jerry » s'affichait vide. Nom de fichier dedans : `markup_safe()`
+(échappé + `shown`), ou `use_markup=False` posé AVANT le sous-titre (au constructeur, il est lu avant) ;
+`toast()` est en texte brut, `alert()` passe par `shown`. Corbeille : `scanner.trash_orig_path` (un seul nom
+non UTF-8 faisait lever PyGObject, page Corbeille et annulation cassées). Vue en colonnes → liste : le
+modèle est relu (`leaving_columns`), il n'avait suivi que le NOM du dossier ouvert dans les colonnes.
 
 `workers.Pool` : un fil bloqué dans un appel système ne se tue pas ; si tous sont pris depuis plus
 de 3 s, un fil est ajouté (6 au plus).
