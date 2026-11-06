@@ -181,6 +181,15 @@ du BALISAGE par défaut — un nom « Tom & Jerry » s'affichait vide. Nom de fi
 `toast()` est en texte brut, `alert()` passe par `shown`. Corbeille : `scanner.trash_orig_path` (un seul nom
 non UTF-8 faisait lever PyGObject, page Corbeille et annulation cassées). Vue en colonnes → liste : le
 modèle est relu (`leaving_columns`), il n'avait suivi que le NOM du dossier ouvert dans les colonnes.
+Archives : valeurs de `7z -slt` gardées telles quelles (espaces de tête / fin), sortie décodée en
+surrogateescape (noms non UTF-8 extractibles), « ./ » des tar sans faux dossier « . » (chemins réels gardés
+pour 7-Zip), `-snl` en 7z / zip (liens stockés comme liens), `volume_set` connaît .partN.rar, .rNN, .zNN ;
+extraction ratée : pas de dossier vide laissé ; cache du glisser limité à la sélection + éléments glissés
+(`DragCache._evict`), `odysseus-view-*` balayés au démarrage. Fermeture : `MainWindow._teardown` (panneaux
+retirés, réglages / opérations débranchés, `Sidebar.stop`), `Pane._cleanup` arrête la recherche et les pages
+spéciales, Autres emplacements branche ses moniteurs à l'affichage ; `SpringLoad` reçoit le contrôleur (la
+cellule restait retenue) ; grille non affichée : attend « map » au lieu d'un minuteur ; `scroll_to` ignore
+une position hors du modèle. Testé : `fermeture_sans_fuite` d'ui_smoke, `Audit*Test` de test_archives.
 
 `workers.Pool` : un fil bloqué dans un appel système ne se tue pas ; si tous sont pris depuis plus
 de 3 s, un fil est ajouté (6 au plus).

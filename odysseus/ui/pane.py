@@ -153,6 +153,11 @@ class Pane(Gtk.Box):
             starred.listeners.remove(self._on_starred)
         self.drag.forget()
         self.model.cancel()
+        # recherche dans les sous-dossiers et pages spéciales : continuaient en fond après la fermeture
+        # de l'onglet (os.walk de /usr, moniteurs de volumes, réseau)
+        self._stop_search()
+        for page in self.pages.values():
+            page.stop()
 
     def retire(self):
         """Panneau retiré de l'écran (sortie du double panneau, onglet fermé). En GTK 4, « destroy »

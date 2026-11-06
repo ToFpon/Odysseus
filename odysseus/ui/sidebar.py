@@ -276,12 +276,25 @@ class Sidebar(Gtk.Box):
     # -- périphériques -----------------------------------------------------------
     def _watch_devices(self):
         self.monitor = Gio.VolumeMonitor.get()
-        for sig in ("mount-added", "mount-removed", "mount-changed", "volume-added", "volume-removed",
-                    "volume-changed", "drive-connected", "drive-disconnected"):
-            self.monitor.connect(sig, lambda *_: self._queue_devices())
+        self._dev_ids = [self.monitor.connect(sig, lambda *_: self._queue_devices())
+                         for sig in ("mount-added", "mount-removed", "mount-changed", "volume-added",
+                                     "volume-removed", "volume-changed", "drive-connected", "drive-disconnected")]
         self._mounts_sig = devices.mounts_signature()
-        GLib.timeout_add_seconds(3, self._poll_mounts)
+        self._poll_id = GLib.timeout_add_seconds(3, self._poll_mounts)
         self._fill_devices()
+
+    def stop(self):
+        """Fenêtre fermée : plus de relecture des disques toutes les 3 s ni de recomptage de la
+        corbeille pour une barre latérale que personne ne voit (ça continuait sans fin)."""
+        if getattr(self, "_poll_id", 0):
+            GLib.source_remove(self._poll_id)
+            self._poll_id = 0
+        for i in getattr(self, "_dev_ids", []):
+            self.monitor.disconnect(i)
+        self._dev_ids = []
+        for m in getattr(self, "_trash_monitors", {}).values():
+            m.cancel()
+        self._trash_monitors = {}
 
     def _poll_mounts(self):
         sig = devices.mounts_signature()

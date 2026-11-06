@@ -322,7 +322,7 @@ class _CellMixin:
             t.get_widget().remove_css_class("drop-row")
             t._spring_path = None
             self.pane.open(rec.path)
-        t._spring = SpringLoad(widget, spring)
+        t._spring = SpringLoad(t, spring)        # le contrôleur, jamais la cellule (voir plus haut)
         t._spring_path = None
 
         def enter(_t, x, y):
@@ -621,6 +621,9 @@ class ListView(Gtk.ScrolledWindow, _CellMixin):
         self.pane.emit("context-menu", pt.x if ok else x, pt.y if ok else y, False)
 
     def scroll_to(self, pos: int):
+        m = self.view.get_model()
+        if m is None or not 0 <= pos < m.get_n_items():   # vue débranchée entre-temps (panneau fermé)
+            return
         self.view.scroll_to(pos, None, Gtk.ListScrollFlags.FOCUS, None)
 
     def focus(self):
@@ -683,13 +686,26 @@ class GridView(Gtk.ScrolledWindow, _CellMixin):
         if self._pending is None or self.get_root() is None:
             self._pending_id = 0
             return False
-        if not (self.get_mapped() and self.get_width() > 0 and self.get_height() > 0):
-            return True                     # pas encore dimensionnée : on réessaie
+        if not self.get_mapped():
+            # pas affichée (onglet en arrière-plan, page d'erreur) : on attend qu'elle le soit, au lieu
+            # de réessayer 33 fois par seconde tant que l'onglet reste caché
+            self._pending_id = 0
+            if not getattr(self, "_map_id", 0):
+                self._map_id = self.connect("map", self._on_map_retry)
+            return False
+        if not (self.get_width() > 0 and self.get_height() > 0):
+            return True                     # affichée, pas encore dimensionnée : on réessaie
         self._pending_id = 0
         model, self._pending = self._pending, None
         if self.view.get_model() is not model:
             self.view.set_model(model)
         return False
+
+    def _on_map_retry(self, *_):
+        self.disconnect(self._map_id)
+        self._map_id = 0
+        if self._pending is not None and not self._pending_id:
+            self._pending_id = GLib.timeout_add(30, self._attach_pending)
 
     def _setup(self, _f, li):
         # case de Nautilus 46 (nautilus-grid-cell.ui) : icône centrée dans une boîte de sa taille, une
@@ -750,6 +766,9 @@ class GridView(Gtk.ScrolledWindow, _CellMixin):
         pass
 
     def scroll_to(self, pos: int):
+        m = self.view.get_model()
+        if m is None or not 0 <= pos < m.get_n_items():
+            return
         self.view.scroll_to(pos, Gtk.ListScrollFlags.FOCUS, None)
 
     def focus(self):

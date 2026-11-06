@@ -2661,6 +2661,38 @@ def compteur_corbeille(win):
 
 
 @step
+def fermeture_sans_fuite(win):
+    """Audit : un onglet ou une fenêtre fermés n'ont plus rien qui tourne derrière eux (recherche dans
+    les sous-dossiers, moniteurs de volumes d'« Autres emplacements », relecture des disques toutes les
+    3 s, écouteurs des réglages)."""
+    from odysseus.ui.window import MainWindow
+    from odysseus.ui.pane import OTHER_URI
+    app = win.get_application()
+    before = len(settings._listeners)
+    w2 = MainWindow(app, D)
+    w2.present()
+    yield pump(0.5)
+    p = w2.pane
+    p.open(OTHER_URI)
+    yield pump(0.4)
+    page = p.pages[OTHER_URI]
+    check(len(page._ids) == 6, "Autres emplacements : suivi des volumes branché à l'affichage")
+    p.open(D)
+    yield pump(0.3)
+    check(page._ids == [], "Autres emplacements quitté : suivi des volumes retiré")
+    p.start_search("txt", True)
+    yield pump(0.2)
+    cancel = p._search_cancel
+    w2.close()
+    yield pump(0.5)
+    check(cancel is None or cancel.is_set(), "fenêtre fermée : recherche dans les sous-dossiers arrêtée")
+    check(getattr(p, "_retired", False) and w2.sidebar._poll_id == 0 and not w2.sidebar._dev_ids,
+          "fenêtre fermée : panneaux retirés, barre latérale arrêtée")
+    check(len(settings._listeners) == before, f"fenêtre fermée : écouteurs des réglages retirés "
+          f"({before} → {len(settings._listeners)})")
+
+
+@step
 def dock_fenetres_ouvertes(win):
     """org.freedesktop.FileManager1 publie OpenWindowsWithLocations comme Nautilus (dash-to-dock s'en sert :
     sans elle, la Corbeille du dock restait « en cours de lancement » et ne réagissait plus)."""

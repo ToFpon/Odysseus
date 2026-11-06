@@ -79,7 +79,9 @@ class SpringLoad:
     cible, et repart de zéro tant qu'il bouge encore : traverser un dossier ne l'ouvre pas.
     open_cb() décide au dernier moment (cible toujours valable ?) et ouvre."""
 
-    def __init__(self, widget: Gtk.Widget, open_cb: Callable[[], None]):
+    def __init__(self, widget, open_cb: Callable[[], None]):
+        """widget : le widget cible, ou le contrôleur de dépôt qui y est attaché (cellules de liste :
+        garder la cellule ici la retenait à jamais, cellule → contrôleur → cellule)."""
         self.widget = widget
         self.open_cb = open_cb
         self._start = None
@@ -93,7 +95,8 @@ class SpringLoad:
         if self._start is None:
             self._start = (x, y)
             return
-        if self.widget.drag_check_threshold(int(self._start[0]), int(self._start[1]), int(x), int(y)):
+        w = self.widget.get_widget() if isinstance(self.widget, Gtk.EventController) else self.widget
+        if w is not None and w.drag_check_threshold(int(self._start[0]), int(self._start[1]), int(x), int(y)):
             self.cancel()
             self._start = (x, y)
             from ..settings import settings

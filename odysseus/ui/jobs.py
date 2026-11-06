@@ -243,7 +243,12 @@ class OperationsButton(Gtk.MenuButton):
         self.set_popover(pop)
         self.rows: dict[int, JobRow] = {}
         self._hide_id = 0
-        manager.connect("changed", lambda *_: self.refresh())
+        self._mgr_id = manager.connect("changed", lambda *_: self.refresh())
+
+    def stop(self):
+        if self._mgr_id:
+            manager.disconnect(self._mgr_id)
+            self._mgr_id = 0
 
     def refresh(self):
         ids = {id(j) for j in manager.jobs}

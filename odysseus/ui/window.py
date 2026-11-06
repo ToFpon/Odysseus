@@ -47,8 +47,9 @@ class MainWindow(FileActions, ArchiveActions, ToolActions, Adw.ApplicationWindow
         self.new_tab(location or os.path.expanduser("~"),
                      dual=settings["dual_panel"] and features.enabled("dual_panel") if dual is None else dual)
         settings.connect(self._on_setting)
-        manager.connect("changed", lambda *_: self._update_dual_bar())
+        self._mgr_id = manager.connect("changed", lambda *_: self._update_dual_bar())
         self.connect("close-request", self._on_close)
+        self.connect("destroy", lambda *_: self._teardown())
         # boutons latéraux de la souris (8 = précédent, 9 = suivant), dans toute la fenêtre
         nav = Gtk.EventControllerLegacy(propagation_phase=Gtk.PropagationPhase.CAPTURE)
         nav.connect("event", self._on_mouse_nav)
@@ -642,7 +643,24 @@ class MainWindow(FileActions, ArchiveActions, ToolActions, Adw.ApplicationWindow
                   responses=(("cancel", tr("Continuer")), ("quit", tr("Quitter"))), destructive="quit",
                   default="cancel", callback=resp)
             return True
+        self._teardown()
         return False
+
+    def _teardown(self):
+        """Fenêtre fermée : ses panneaux, sa barre latérale et ses écouteurs s'arrêtent. Sans ça (Python
+        garde des références, « destroy » n'arrive pas), chaque fenêtre fermée continuait de surveiller
+        ses dossiers, de relire les disques toutes les 3 s et de recevoir les réglages."""
+        if getattr(self, "_torn_down", False):
+            return
+        self._torn_down = True
+        for p in list(self.all_panes()):
+            p.retire()
+        settings.disconnect(self._on_setting)
+        if self._mgr_id:
+            manager.disconnect(self._mgr_id)
+            self._mgr_id = 0
+        self.sidebar.stop()
+        self.ops_btn.stop()
 
     # ------------------------------------------------------------------
     # Actions

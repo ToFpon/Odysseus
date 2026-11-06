@@ -114,9 +114,7 @@ class OtherLocations(Gtk.Box):
         self.append(connect_bar(self, pane))
 
         self.monitor = Gio.VolumeMonitor.get()
-        self._ids = [self.monitor.connect(sig, lambda *_: self._queue_devices())
-                     for sig in ("mount-added", "mount-removed", "mount-changed", "volume-added",
-                                 "volume-removed", "volume-changed")]
+        self._ids: list = []             # branchés à l'affichage (refresh), retirés par stop(), comme Ce PC
         self._dev_pending = False
         self._net_monitor: Optional[Gio.FileMonitor] = None
         self._net_pending = 0
@@ -131,11 +129,18 @@ class OtherLocations(Gtk.Box):
 
     # ------------------------------------------------------------------
     def refresh(self):
+        if not self._ids:
+            self._ids = [self.monitor.connect(sig, lambda *_: self._queue_devices())
+                         for sig in ("mount-added", "mount-removed", "mount-changed", "volume-added",
+                                     "volume-removed", "volume-changed")]
         self._fill_devices()
         self._watch_network()
         self._load_network()
 
     def stop(self):
+        for i in self._ids:
+            self.monitor.disconnect(i)
+        self._ids = []
         if self._net_monitor is not None:
             self._net_monitor.cancel()
             self._net_monitor = None
