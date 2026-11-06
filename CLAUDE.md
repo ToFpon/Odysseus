@@ -308,6 +308,8 @@ fenêtre de recherche dans le contenu.
   raccourcis) — jamais dans l'action : un clic sur « Précédent » doit naviguer ; testé dans `ui_mouse.py`.
   « / » et « ~ » se tapent avec Maj / AltGr en AZERTY (clavier de Tof) et QWERTZ : pour eux, Maj ne
   compte pas ; `ui_mouse.py` les tape aussi avec `setxkbmap fr` et `de`.
+  Ctrl+1 / 2 / 3 (vues) et Ctrl+0 : en AZERTY, la rangée des chiffres donne `& é " à` sans Maj — raccourcis
+  doublés (`<Ctrl>ampersand`…, plus le pavé numérique), sinon rien ne se passait chez Tof ; testé en fr / de.
 - Renommage multiple (F2 / « Renommer… » sur plusieurs éléments locaux) = dialogue de Nautilus 46
   (`ui/batch_rename.py`, moteur `backend/batchrename.py`, testé par `test_batchrename` et ui_smoke) :
   modèle (texte + balises « [Nom du fichier original] », « [01, 02, 03] »… effacées d'un bloc,

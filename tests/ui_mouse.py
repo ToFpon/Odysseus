@@ -494,6 +494,14 @@ def steps(win):
               f"[{layout}] « / » et « ~ » tapés dans la recherche ({win.search_entry.get_text()!r})")
         xdo("key", "Escape")
         yield
+        # Ctrl+1 / 2 / 3 (vues) : sur AZERTY, la touche « 1 » sans Maj donne « & »
+        digits = ("ampersand", "eacute", "quotedbl") if layout == "fr" else ("1", "2", "3")
+        p.view.grab_focus() if hasattr(p, "view") else p.active_view.grab_focus()
+        for key, mode in zip(digits[::-1], ("columns", "grid", "list")):
+            xdo("key", "ctrl+" + key)
+            yield
+            yield
+            check(p.view_mode == mode, f"[{layout}] Ctrl+{key} : vue {mode} ({p.view_mode})")
     subprocess.run(["setxkbmap", "us"], capture_output=True)
     # Ctrl + molette : zoom de la liste puis de la grille, comme Nautilus ; sans Ctrl, ça défile
     from odysseus.settings import settings

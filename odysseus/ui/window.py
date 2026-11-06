@@ -711,9 +711,13 @@ class MainWindow(FileActions, ArchiveActions, ToolActions, Adw.ApplicationWindow
             "win.select-all": ["<Ctrl>a"], "win.unselect-all": ["<Ctrl><Shift>a"],
             "win.invert-selection": ["<Ctrl><Shift>i"], "win.toggle-sidebar": ["<Ctrl>F9"],
             "win.zoom-in": ["<Ctrl>plus", "<Ctrl>equal", "<Ctrl>KP_Add"],
-            "win.zoom-out": ["<Ctrl>minus", "<Ctrl>KP_Subtract"], "win.zoom-normal": ["<Ctrl>0", "<Ctrl>KP_0"],
-            "win.view-mode::list": ["<Ctrl>1"], "win.view-mode::grid": ["<Ctrl>2"],
-            "win.view-mode::columns": ["<Ctrl>3"], "win.toggle-columns": ["F9"],
+            # AZERTY (France, Belgique) : la rangée des chiffres donne « à & é " » sans Maj — Ctrl+1 y
+            # arrivait comme Ctrl+& et ne faisait rien (vu chez Tof)
+            "win.zoom-out": ["<Ctrl>minus", "<Ctrl>KP_Subtract"],
+            "win.zoom-normal": ["<Ctrl>0", "<Ctrl>KP_0", "<Ctrl>agrave"],
+            "win.view-mode::list": ["<Ctrl>1", "<Ctrl>KP_1", "<Ctrl>ampersand"],
+            "win.view-mode::grid": ["<Ctrl>2", "<Ctrl>KP_2", "<Ctrl>eacute"],
+            "win.view-mode::columns": ["<Ctrl>3", "<Ctrl>KP_3", "<Ctrl>quotedbl"], "win.toggle-columns": ["F9"],
             "win.dual": ["F3"], "win.preview": ["F4"], "win.switch-pane": ["<Ctrl>Tab"],
             "win.menu": ["F10"], "win.shortcuts": ["<Ctrl>question", "<Ctrl>F1"],
         }
