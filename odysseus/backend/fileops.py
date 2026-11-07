@@ -259,7 +259,8 @@ class _Copier:
                 tmp_created = True
                 try:
                     use_cfr = hasattr(os, "copy_file_range")
-                    written = prev = 0
+                    written = 0
+                    flow = {"waited": 0}         # écriture au rythme du support (_flush_range)
                     while True:
                         self.job.check_cancel()
                         n = 0
@@ -285,11 +286,10 @@ class _Copier:
                         if not n:
                             break
                         if self.stream:
-                            # au rythme du support : ce bloc part vers le disque, le précédent doit y être
-                            # arrivé. Sans ça, le noyau gardait des centaines de Mo en cache : barre à 96 %
-                            # d'un coup puis bloquée, annulation sans effet pendant que la clé écrivait.
-                            _flush_range(fd, written, n, written - prev, prev)
-                            prev = n
+                            # au rythme du support : ce bloc part vers le disque, au plus 64 Mo en route.
+                            # Sans ça, le noyau gardait des centaines de Mo en cache : barre à 96 % d'un
+                            # coup puis bloquée, annulation sans effet pendant que la clé écrivait.
+                            _flush_range(fd, written, n, flow)
                         written += n
                         self.done += n
                         self.tick()
@@ -539,10 +539,15 @@ def _tmp_name(folder: str, tag: str) -> str:
 _sfr = None
 
 
-def _flush_range(fd: int, off: int, n: int, prev_off: int, prev_n: int):
-    """Envoie [off, off+n) vers le disque et attend que le bloc précédent y soit (sync_file_range, le
-    motif recommandé pour une écriture en continu) : au plus deux blocs en cache. Sans sync_file_range,
-    ou s'il est refusé (FUSE…) : fdatasync."""
+STREAM_WINDOW = 64 * 1024 * 1024     # au plus 64 Mo en route vers le support
+
+
+def _flush_range(fd: int, off: int, n: int, flow: dict):
+    """Écriture au rythme du support : [off, off+n) part tout de suite vers le disque, et on attend que
+    ce qui a été écrit plus de STREAM_WINDOW avant y soit arrivé (sync_file_range, le motif recommandé
+    pour une écriture en continu). Attendre chaque bloc de 8 Mo laissait la clé sans travail entre deux
+    blocs : 1,7 Go en plus de 6 minutes chez Tof. Sans sync_file_range, ou s'il est refusé (FUSE…) :
+    fdatasync tous les STREAM_WINDOW. flow : {"waited": octets déjà attendus} propre au fichier."""
     global _sfr
     if _sfr is None:
         try:
@@ -550,14 +555,21 @@ def _flush_range(fd: int, off: int, n: int, prev_off: int, prev_n: int):
             _sfr.argtypes = [ctypes.c_int, ctypes.c_longlong, ctypes.c_longlong, ctypes.c_uint]
         except (OSError, AttributeError):
             _sfr = False
-    if _sfr:
+    target = off + n - STREAM_WINDOW
+    if _sfr and not flow.get("no_sfr"):
         # 2 = SYNC_FILE_RANGE_WRITE ; 7 = WAIT_BEFORE | WRITE | WAIT_AFTER
-        if _sfr(fd, off, n, 2) == 0 and (not prev_n or _sfr(fd, prev_off, prev_n, 7) == 0):
+        if _sfr(fd, off, n, 2) == 0:
+            if target > flow["waited"]:
+                _sfr(fd, flow["waited"], target - flow["waited"], 7)
+                flow["waited"] = target
             return
-    try:
-        os.fdatasync(fd)
-    except OSError:
-        pass
+        flow["no_sfr"] = True
+    if target > flow["waited"]:
+        try:
+            os.fdatasync(fd)
+        except OSError:
+            pass
+        flow["waited"] = off + n
 
 
 def _fsync_dir(folder: str):

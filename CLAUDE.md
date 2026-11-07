@@ -130,9 +130,10 @@ après » de la compression, de l'extraction et du découpage en volumes. `Power
 l'ordre : mise sur disque, puis suppression.
 
 Copie vers une clé / un disque externe / le réseau (`fsinfo.is_removable_or_slow` : /media, /run/media,
-FAT / exFAT / NTFS, réseau) : `_Copier.stream` — chaque bloc de 8 Mo est envoyé au support et le précédent
-attendu (`_flush_range`, sync_file_range WRITE puis WAIT_BEFORE|WRITE|WAIT_AFTER ; repli fdatasync), puis
-fdatasync final. Avant (retour de Tof, 1.8.6) : le noyau avalait des centaines de Mo en cache, barre à 96 %
+FAT / exFAT / NTFS, réseau) : `_Copier.stream` — chaque bloc de 8 Mo part vers le support (sync_file_range WRITE)
+et on attend ce qui a été écrit plus de 64 Mo avant (`_flush_range`, WAIT_BEFORE|WRITE|WAIT_AFTER, fenêtre
+`STREAM_WINDOW` ; repli fdatasync), puis fdatasync final. Première version (attendre chaque bloc de 8 Mo) :
+la clé restait sans travail entre deux blocs, 1,7 Go en plus de 6 minutes chez Tof. Avant (retour de Tof, 1.8.6) : le noyau avalait des centaines de Mo en cache, barre à 96 %
 d'un coup puis bloquée, « Annuler » sans effet et le renommage final passait quand même. `check_cancel`
 juste avant le renommage : annulé pendant la mise sur disque = rien de posé. Coût mesuré sur disque rapide :
 400 Mo en 0,43 s au lieu de 0,19 s (invisible sur une clé). Téléphone / appareil photo / iPhone par le
