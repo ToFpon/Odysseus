@@ -1149,10 +1149,47 @@ def add_to_archive(job: Job, archive: str, files: list[str], inner_dir: str = ""
 def delete_from_archive(job: Job, archive: str, paths: list[str], password: str = "") -> None:
     if not formats.is_modifiable(archive):
         raise ToolError(tr("Ce format ne peut pas être modifié"))
-    # -spd : noms exacts (supprimer le fichier « *.txt » supprimait aussi tous les .txt)
-    argv = [_7z(), "d"] + _pw_update(password) + ["-sccUTF-8", "-spd"] + SEVENZ_PROGRESS + \
-        ["--", archive] + list(paths)
-    job.run_tool(argv, label=tr("Suppression"))
+    if _dot_tar(archive, paths):
+        _tar_delete(job, archive, paths)
+    else:
+        # -spd : noms exacts (supprimer le fichier « *.txt » supprimait aussi tous les .txt)
+        argv = [_7z(), "d"] + _pw_update(password) + ["-sccUTF-8", "-spd"] + SEVENZ_PROGRESS + \
+            ["--", archive] + list(paths)
+        job.run_tool(argv, label=tr("Suppression"))
+    # 7-Zip peut répondre « OK » sans rien avoir supprimé : on relit l'archive plutôt qu'annoncer un succès
+    try:
+        left = list_archive(archive, password or None)
+    except (ToolError, OSError):
+        return
+    kept = [p for p in paths if left.get(p.strip("/")) is not None]
+    if kept:
+        raise ToolError(tr("Non supprimé de l'archive : {0}").format(", ".join(os.path.basename(p.rstrip("/"))
+                                                                              for p in kept)))
+
+
+def _dot_tar(archive: str, paths: list[str]) -> bool:
+    """tar ordinaire fait avec « . » (tar -cf x.tar .) : 7-Zip retire le « ./ » des noms qu'on lui donne,
+    ne trouve rien et répond « OK » ; GNU tar, lui, prend les noms exacts (sans jokers)."""
+    return (archive.lower().endswith(".tar") and any(p.startswith("./") for p in paths)
+            and shutil.which("tar") is not None)
+
+
+def _tar_delete(job: Job, archive: str, paths: list[str]):
+    """Suppression par GNU tar, sur une copie posée à côté puis échangée d'un coup : tar --delete réécrit
+    le fichier sur place, une coupure (disque plein, annulation) laisserait une archive à moitié écrite."""
+    from .fileops import _fsync_dir, _tmp_name
+    folder = os.path.dirname(os.path.abspath(archive))
+    tmp = _tmp_name(folder, "archive") + ".tar"
+    try:
+        shutil.copy2(archive, tmp)
+        job.run_tool(["tar", "--delete", "--no-wildcards", "-f", tmp, "--"] + list(paths), label=tr("Suppression"))
+        with open(tmp, "rb") as fh:
+            os.fsync(fh.fileno())
+        os.replace(tmp, archive)
+        _fsync_dir(folder)
+    finally:
+        if os.path.lexists(tmp):
+            os.unlink(tmp)
 
 
 def rename_in_archive(job: Job, archive: str, old: str, new: str, password: str = "") -> None:

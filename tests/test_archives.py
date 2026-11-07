@@ -445,6 +445,50 @@ class AuditArchiveTest(unittest.TestCase):
         self.assertEqual(names, {"abc.txt"})
 
 
+class DotTarDeleteTest(unittest.TestCase):
+    """tar fait avec « . » (tar -cf x.tar .) : 7-Zip « supprimait » sans rien supprimer et répondait OK.
+    Suppression par GNU tar (noms exacts, sans jokers), et filet : un élément resté = une erreur."""
+
+    def setUp(self):
+        if not shutil.which("tar"):
+            self.skipTest("GNU tar indisponible")
+        self.root = tempfile.mkdtemp(prefix="odysseus-dottar-")
+        self.addCleanup(shutil.rmtree, self.root, True)
+        src = os.path.join(self.root, "src")
+        os.makedirs(os.path.join(src, "sous"))
+        for name, text in (("a.txt", "a"), ("b.txt", "b"), ("*.txt", "joker"), ("sous/c.txt", "c")):
+            with open(os.path.join(src, name), "w") as f:
+                f.write(text)
+        self.tar = os.path.join(self.root, "x.tar")
+        import subprocess
+        subprocess.run(["tar", "-cf", self.tar, "."], cwd=src, check=True)
+
+    def names(self):
+        return {e.path for e in archive.list_archive(self.tar).entries}
+
+    def test_delete_files_and_folder(self):
+        self.assertIn("./a.txt", self.names())
+        run(lambda j: archive.delete_from_archive(j, self.tar, ["./a.txt", "./sous", "./*.txt"]))
+        left = self.names()
+        self.assertNotIn("./a.txt", left)
+        self.assertFalse(any(n.startswith("./sous") for n in left), left)
+        self.assertNotIn("./*.txt", left)
+        self.assertIn("./b.txt", left)              # « *.txt » est un nom, pas un joker
+        self.assertEqual(sorted(os.listdir(self.root)), ["src", "x.tar"])     # aucune copie laissée
+
+    def test_silent_noop_is_reported(self):
+        """Filet : 7-Zip sans la correction (sa réponse « OK » sans rien supprimer) → erreur, pas un succès."""
+        real = archive._dot_tar
+        archive._dot_tar = lambda *_a: False
+        try:
+            j = Job("test", lambda j: archive.delete_from_archive(j, self.tar, ["./a.txt"])).run_sync()
+        finally:
+            archive._dot_tar = real
+        self.assertNotEqual(j.state, "done")
+        self.assertIn("a.txt", str(j.error))
+        self.assertIn("./a.txt", self.names())      # rien n'a bougé
+
+
 class AuditListingTest(unittest.TestCase):
     """Audit : les noms de la liste sont ceux de l'archive (espaces, octets non UTF-8, « ./ »)."""
 

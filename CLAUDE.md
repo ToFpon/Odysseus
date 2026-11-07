@@ -156,6 +156,11 @@ absolus d'un tar vers l'intérieur du dossier de sortie (notre dossier temporair
 Toute extraction passe par un dossier temporaire caché dans la destination, puis est rangée par
 nous (`_merge_into` : un lien déjà présent à destination n'est jamais suivi ; 7-Zip, lui, écrivait à
 travers). « Supprimer l'archive après » : gardée si des éléments ont été ignorés (`archive_kept`).
+Supprimer dans une archive : 7-Zip peut répondre « OK » sans rien supprimer — tar fait avec « . »
+(`tar -cf x.tar .`, entrées `./x` : 7-Zip retire le `./` des noms donnés, ne trouve rien). tar ordinaire avec
+des noms en `./` : GNU `tar --delete --no-wildcards` (noms exacts, dossier avec son contenu) sur une copie
+cachée posée à côté, fsync, puis `os.replace` (`_tar_delete`). Tous formats : l'archive est relue après, un
+élément resté → erreur « Non supprimé de l'archive : … » au lieu d'un succès (`DotTarDeleteTest`).
 Sorties qui n'écrasent jamais : `archive.free_output` (« nom (2) », premier volume `.001` compris ;
 en 7z / zip, `update_mode="new"` par défaut, la mise à jour d'une archive existante reste un choix
 explicite du dialogue), fichier temporaire `_tmp_name` (jamais un « X.part » existant), Éclater PDF,
@@ -246,11 +251,6 @@ fenêtre de recherche dans le contenu.
 
 ## En attente (petits cas, pour une prochaine version — choix de Tof)
 
-- Onglet glissé vers une autre fenêtre : titre, barre de chemin et titre de l'onglet de la nouvelle fenêtre
-  ne suivent plus le panneau déplacé, CRITICAL `adw_tab_view_get_page` (`Workspace.window` et les
-  gestionnaires de `connect_pane` pointent encore l'ancienne fenêtre). Ancien (déjà en 1.7.9).
-- Supprimer un élément dans un tar fait avec « . » (`./x`) : `7z d` sort en 0 sans rien changer — limite
-  de 7-Zip ; au minimum le signaler au lieu d'un succès muet.
 - Mineurs de l'audit laissés : nom de 255 octets + « (copie) » (dépasse NAME_MAX, sélectionné alors que non
   créé) ; glisser hors d'une archive deux fichiers de même nom depuis la liste filtrée (un seul arrive) ;
   après `apt remove`, le service FileManager1 de l'utilisateur reste (Nautilus ne répond plus tant qu'il est là).
@@ -279,6 +279,11 @@ fenêtre de recherche dans le contenu.
   droite créé directement sur son dossier (`Workspace(second=…)`) ; panneau actif désigné en idle, après
   l'affichage — avant, GTK posait le focus initial à travers le GtkPaned : `gtk_widget_set_focus_child:
   assertion … failed` ; `new_tab` lit `ws.active` au moment de donner le focus. Testé : `ouverture_au_demarrage`.
+- Onglet glissé vers une autre fenêtre (ou une fenêtre créée par le glisser) : `page-attached` →
+  `MainWindow._adopt` — `Workspace.window` mis à jour, gestionnaires des panneaux (`connect_pane`, ids dans
+  `pane._win_handlers`) et « active-changed » débranchés puis rebranchés sur la nouvelle fenêtre. Avant, ils
+  restaient sur l'ancienne : titre / barre de chemin figés, nouveaux onglets ouverts dans l'ancienne fenêtre,
+  CRITICAL `adw_tab_view_get_page`. Testé : `onglet_vers_autre_fenetre` d'ui_smoke (`transfer_page`).
 - Fenêtre de progression : `ProgressWindow._fit` recalcule la hauteur quand le nombre d'opérations
   change ou à la réouverture (GTK garde la taille d'une fenêtre masquée).
 - `.desktop` en `DBusActivatable=true` : GIO (dock, `gio open`, autres applications) passe par D-Bus et

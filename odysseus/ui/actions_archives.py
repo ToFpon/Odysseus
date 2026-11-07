@@ -367,8 +367,8 @@ class ArchiveActions:
 
             def done(job):
                 finished_toast(self, job, tr("{0} élément(s) supprimé(s) de l'archive").format(len(paths)))
-                if job.state == "done":
-                    pane.refresh()
+                if job.state != "cancelled":
+                    pane.refresh()          # en erreur aussi : l'archive affichée telle qu'elle est
             manager.submit(tr("Suppression dans {0}").format(os.path.basename(arch)),
                            lambda j: archive.delete_from_archive(j, arch, paths, pw), done)
         alert(self, tr("Supprimer de l'archive ?"),
