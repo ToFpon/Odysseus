@@ -165,6 +165,8 @@ class _Copier:
         self.windows = False         # destination FAT / exFAT / NTFS : noms et casse « à la Windows »
         self.fat = False             # FAT32 : 4 Go maximum par fichier
         self.sync = False            # fsync de chaque fichier (remplacement : rien de « vide » après)
+        self.stream = False          # clé, disque externe, réseau : écrire au rythme du support (_flush_range)
+        self.gio_device = False      # téléphone / appareil photo (GVfs) : copie par GIO, d'un coup
         self._names: dict = {}       # FAT… : dossier -> {nom.casefold(): nom réel}, voir _existing()
         self.made: set = set()       # destinations créées (chemins exacts)
         self.roots: list = []        # (source, destination) des créations dont le parent existait
@@ -246,6 +248,9 @@ class _Copier:
         # entre-temps par une autre opération repose le conflit au lieu de mélanger deux fichiers.
         if os.path.lexists(dst):
             raise _Taken(dst)
+        if self.gio_device:
+            self._gio_copy(src, dst)
+            return
         tmp = _tmp_name(os.path.dirname(dst) or ".", "copie")
         tmp_created = False
         try:
@@ -254,7 +259,7 @@ class _Copier:
                 tmp_created = True
                 try:
                     use_cfr = hasattr(os, "copy_file_range")
-                    written = 0
+                    written = prev = 0
                     while True:
                         self.job.check_cancel()
                         n = 0
@@ -279,6 +284,12 @@ class _Copier:
                                 n = len(data)
                         if not n:
                             break
+                        if self.stream:
+                            # au rythme du support : ce bloc part vers le disque, le précédent doit y être
+                            # arrivé. Sans ça, le noyau gardait des centaines de Mo en cache : barre à 96 %
+                            # d'un coup puis bloquée, annulation sans effet pendant que la clé écrivait.
+                            _flush_range(fd, written, n, written - prev, prev)
+                            prev = n
                         written += n
                         self.done += n
                         self.tick()
@@ -289,12 +300,15 @@ class _Copier:
                         raise OSError(errno.EIO, tr("copie incomplète (taille différente de l'original)"))
                     if self.sync:
                         os.fsync(fd)       # contenu réellement écrit avant l'échange
+                    elif self.stream:
+                        os.fdatasync(fd)   # le dernier bloc : « terminé » = sur la clé, pas en cache
                 finally:
                     os.close(fd)
             try:
                 shutil.copystat(src, tmp)
             except OSError:
                 pass
+            self.job.check_cancel()        # annulé pendant la mise sur disque : rien n'est posé
             try:
                 _rename_new(tmp, dst)
             except FileExistsError:
@@ -308,6 +322,48 @@ class _Copier:
                 except OSError:
                     pass
             raise
+        self.done_files += 1
+        self.copied.add(src)
+        self._created(dst)
+        self._made(src, dst)
+
+    def _gio_copy(self, src: str, dst: str, overwrite: bool = False):
+        """Téléphone (MTP), appareil photo, iPhone : envoi du fichier par GIO directement sous son nom,
+        comme Nautilus (GVfs reconnaît le chemin FUSE et parle à l'appareil). Écrire un nom caché puis le
+        renommer échouait à la fin (« Erreur d'entrée/sortie » : le MTP des recovery ne renomme pas)."""
+        fsrc, fdst = Gio.File.new_for_path(src), Gio.File.new_for_path(dst)
+        cancel = Gio.Cancellable()
+        base = self.done
+
+        def progress(current, _total, *_):
+            self.done = base + current
+            self.tick()
+            if self.job.cancelled:
+                cancel.cancel()
+        try:
+            flags = Gio.FileCopyFlags.NOFOLLOW_SYMLINKS
+            if overwrite:
+                flags |= Gio.FileCopyFlags.OVERWRITE
+            fsrc.copy(fdst, flags, cancel, progress, None)
+        except GLib.Error as e:
+            if e.matches(Gio.io_error_quark(), Gio.IOErrorEnum.EXISTS):
+                raise _Taken(dst) from None
+            if not overwrite:
+                try:
+                    fdst.delete(None)      # envoi interrompu : pas de fichier tronqué sur l'appareil
+                except GLib.Error:
+                    pass
+            if e.matches(Gio.io_error_quark(), Gio.IOErrorEnum.CANCELLED) or self.job.cancelled:
+                raise Cancelled() from None
+            raise OSError(errno.EIO, e.message) from None
+        if self.job.cancelled and not overwrite:
+            # annulé alors que l'envoi s'achevait : comme pour un disque, annuler = rien de posé
+            try:
+                fdst.delete(None)
+            except GLib.Error:
+                pass
+            raise Cancelled()
+        self.done = base + os.lstat(src).st_size
         self.done_files += 1
         self.copied.add(src)
         self._created(dst)
@@ -421,6 +477,14 @@ class _Copier:
     def _replace(self, src: str, dst: str) -> Optional[str]:
         """Remplacer sans risque : copie complète sous un nom temporaire, puis échange. Si la copie
         échoue ou est annulée, l'élément existant reste intact."""
+        if self.gio_device and os.path.isfile(src) and not os.path.islink(src) and not os.path.isdir(dst):
+            # téléphone / appareil photo : ni nom caché ni échange possibles, GIO remplace (comme Nautilus)
+            try:
+                self._gio_copy(src, dst, overwrite=True)
+            except OSError as e:
+                self.errors.append((src, e.strerror or str(e)))
+                return None
+            return dst
         tmp = _tmp_name(os.path.dirname(dst), "copie")
         before = len(self.errors)
         roots_before = len(self.roots)
@@ -470,6 +534,30 @@ def _tmp_name(folder: str, tag: str) -> str:
         p = os.path.join(folder, f".odysseus-{tag}-{os.getpid()}-{secrets.token_hex(4)}")
         if not os.path.lexists(p):
             return p
+
+
+_sfr = None
+
+
+def _flush_range(fd: int, off: int, n: int, prev_off: int, prev_n: int):
+    """Envoie [off, off+n) vers le disque et attend que le bloc précédent y soit (sync_file_range, le
+    motif recommandé pour une écriture en continu) : au plus deux blocs en cache. Sans sync_file_range,
+    ou s'il est refusé (FUSE…) : fdatasync."""
+    global _sfr
+    if _sfr is None:
+        try:
+            _sfr = ctypes.CDLL(None, use_errno=True).sync_file_range
+            _sfr.argtypes = [ctypes.c_int, ctypes.c_longlong, ctypes.c_longlong, ctypes.c_uint]
+        except (OSError, AttributeError):
+            _sfr = False
+    if _sfr:
+        # 2 = SYNC_FILE_RANGE_WRITE ; 7 = WAIT_BEFORE | WRITE | WAIT_AFTER
+        if _sfr(fd, off, n, 2) == 0 and (not prev_n or _sfr(fd, prev_off, prev_n, 7) == 0):
+            return
+    try:
+        os.fdatasync(fd)
+    except OSError:
+        pass
 
 
 def _fsync_dir(folder: str):
@@ -773,6 +861,8 @@ def transfer(job: Job, sources: list[str], dest_dir: str, ask: Asker, move: bool
     copier = _Copier(job, ask, 0, 0, move)
     kind = fsinfo.fs_type(os.path.realpath(dest_dir))     # clé atteinte par un lien symbolique
     copier.windows, copier.fat = kind in fsinfo.WINDOWS_LIKE, kind in fsinfo.FAT
+    copier.gio_device = fsinfo.is_gvfs_device(dest_dir)
+    copier.stream = not copier.gio_device and fsinfo.is_removable_or_slow(os.path.realpath(dest_dir))
     for src in sources:
         job.check_cancel()
         name = os.path.basename(src.rstrip("/"))

@@ -1143,3 +1143,87 @@ class Audit2FileopsTest(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class SlowDeviceCopyTest(unittest.TestCase):
+    """Clé USB / téléphone (retour de Tof, 1.8.6) : vers une clé, la barre allait à 96 % d'un coup puis
+    restait bloquée, et « Annuler » finissait par copier quand même ; vers un téléphone en recovery (MTP),
+    « Erreur d'entrée/sortie » à la fin (renommage du nom caché refusé)."""
+
+    def setUp(self):
+        self.tmp = tempfile.TemporaryDirectory()
+        self.d = self.tmp.name
+        self.addCleanup(self.tmp.cleanup)
+        self.big = os.path.join(self.d, "src", "rom.zip")
+        os.makedirs(os.path.dirname(self.big))
+        with open(self.big, "wb") as fh:
+            fh.write(os.urandom(1 << 20) * 40)          # 40 Mo : plusieurs blocs de 8 Mo
+        self.dest = os.path.join(self.d, "cle")
+        os.makedirs(self.dest)
+
+    def _patch(self, name, value):
+        real = getattr(fsinfo, name)
+        setattr(fsinfo, name, value)
+        self.addCleanup(setattr, fsinfo, name, real)
+
+    def test_stream_copies_at_device_pace(self):
+        self._patch("is_removable_or_slow", lambda _p: True)
+        calls = []
+        real = fileops._flush_range
+        fileops._flush_range = lambda *a: (calls.append(a), real(*a))[1]
+        self.addCleanup(setattr, fileops, "_flush_range", real)
+        run(lambda j: fileops.transfer(j, [self.big], self.dest, ask("cancel")))
+        self.assertEqual(digest(os.path.join(self.dest, "rom.zip")), digest(self.big))
+        self.assertGreaterEqual(len(calls), 5, "chaque bloc doit partir vers le support")
+        self.assertEqual(os.listdir(self.dest), ["rom.zip"])
+
+    def test_cancel_during_final_flush_places_nothing(self):
+        """Annulé pendant la mise sur disque du dernier bloc : rien n'est posé (avant, le renommage passait)."""
+        self._patch("is_removable_or_slow", lambda _p: True)
+        holder = {}
+        real = fileops.os.fdatasync
+
+        def slow_sync(fd):
+            holder["job"].cancel()                       # l'utilisateur annule pendant que la clé écrit
+            return real(fd)
+        fileops.os.fdatasync = slow_sync
+        self.addCleanup(setattr, fileops.os, "fdatasync", real)
+        j = Job("test", lambda j: fileops.transfer(j, [self.big], self.dest, ask("cancel")))
+        holder["job"] = j
+        j.run_sync()
+        self.assertEqual(j.state, "cancelled")
+        self.assertEqual(os.listdir(self.dest), [], "ni fichier posé ni nom caché laissé")
+
+    def test_gvfs_device_sends_directly(self):
+        """Téléphone / appareil photo : copie par GIO sous le vrai nom, sans nom caché ni renommage."""
+        self._patch("is_gvfs_device", lambda _p: True)
+        real = fileops._rename_new
+
+        def no_rename(*_a):
+            raise OSError(5, "Erreur d'entrée/sortie")    # ce que répond le MTP d'un recovery
+        fileops._rename_new = no_rename
+        self.addCleanup(setattr, fileops, "_rename_new", real)
+        res = run(lambda j: fileops.transfer(j, [os.path.dirname(self.big)], self.dest, ask("cancel")))
+        self.assertEqual(digest(os.path.join(self.dest, "src", "rom.zip")), digest(self.big))
+        self.assertEqual(sorted(os.listdir(os.path.join(self.dest, "src"))), ["rom.zip"])
+        self.assertFalse(res.errors)
+        # remplacer : GIO écrase, comme Nautilus
+        with open(self.big, "ab") as fh:
+            fh.write(b"v2")
+        run(lambda j: fileops.transfer(j, [self.big], os.path.join(self.dest, "src"), ask("replace")))
+        self.assertEqual(digest(os.path.join(self.dest, "src", "rom.zip")), digest(self.big))
+
+    def test_gvfs_device_cancel_leaves_nothing(self):
+        self._patch("is_gvfs_device", lambda _p: True)
+        real = fileops._Copier.tick
+
+        def tick(self_, force=False):
+            if self_.done >= (8 << 20):
+                self_.job.cancel()
+            return real(self_, force)
+        fileops._Copier.tick = tick
+        self.addCleanup(setattr, fileops._Copier, "tick", real)
+        j = Job("test", lambda j: fileops.transfer(j, [self.big], self.dest, ask("cancel")))
+        j.run_sync()
+        self.assertEqual(j.state, "cancelled")
+        self.assertEqual(os.listdir(self.dest), [], "envoi interrompu : rien sur l'appareil")

@@ -118,6 +118,32 @@ def bounded(fn: Callable, path: str, *args, timeout: float = 0.3, default=None):
     return default
 
 
+GVFS_DEVICES = ("mtp:", "gphoto2:", "afc:")     # téléphones (MTP), appareils photo (PTP), iPhone
+
+
+def is_gvfs_device(path: str) -> bool:
+    """Téléphone / appareil photo vu par le chemin FUSE de GVfs (/run/user/UID/gvfs/mtp:host=…/…).
+    Leur protocole n'a ni écriture partielle fiable ni renommage (le MTP des recovery TWRP / OrangeFox
+    répond « Erreur d'entrée/sortie » au renommage d'un nom caché) : on y copie par GIO, d'un coup."""
+    if not path or "://" in path:
+        return False
+    marker = "/gvfs/"
+    i = path.find(marker)
+    return i >= 0 and path[i + len(marker):].startswith(GVFS_DEVICES) and \
+        fs_type(path[:i + len(marker) - 1]) == "fuse.gvfsd-fuse"
+
+
+def is_removable_or_slow(path: str) -> bool:
+    """Clé USB, disque externe, carte SD, partage réseau : écrire au rythme du support (voir
+    fileops._Copier.stream), sinon le noyau avale des centaines de Mo en cache — barre à 96 % d'un coup,
+    puis bloquée, annulation sans effet."""
+    path = os.path.abspath(path)
+    if path.startswith(("/media/", "/run/media/")):
+        return True
+    kind = fs_type(path)
+    return kind in WINDOWS_LIKE or kind in NETWORK
+
+
 def is_windows_like(path: str) -> bool:
     return fs_type(path) in WINDOWS_LIKE
 

@@ -129,6 +129,17 @@ autre disque (par lots de 64 éléments : un syncfs par élément coûtait cher 
 après » de la compression, de l'extraction et du découpage en volumes. `PowerLossOrderTest` vérifie
 l'ordre : mise sur disque, puis suppression.
 
+Copie vers une clé / un disque externe / le réseau (`fsinfo.is_removable_or_slow` : /media, /run/media,
+FAT / exFAT / NTFS, réseau) : `_Copier.stream` — chaque bloc de 8 Mo est envoyé au support et le précédent
+attendu (`_flush_range`, sync_file_range WRITE puis WAIT_BEFORE|WRITE|WAIT_AFTER ; repli fdatasync), puis
+fdatasync final. Avant (retour de Tof, 1.8.6) : le noyau avalait des centaines de Mo en cache, barre à 96 %
+d'un coup puis bloquée, « Annuler » sans effet et le renommage final passait quand même. `check_cancel`
+juste avant le renommage : annulé pendant la mise sur disque = rien de posé. Coût mesuré sur disque rapide :
+400 Mo en 0,43 s au lieu de 0,19 s (invisible sur une clé). Téléphone / appareil photo / iPhone par le
+chemin FUSE de GVfs (`fsinfo.is_gvfs_device` : …/gvfs/mtp:…, gphoto2:, afc:) : `_Copier._gio_copy`, envoi par
+GIO directement sous le vrai nom, comme Nautilus (le MTP d'un recovery refusait le renommage du nom caché :
+« Erreur d'entrée/sortie » à la fin) ; annulé ou interrompu → fichier retiré de l'appareil ; « Remplacer » un
+fichier = GIO avec OVERWRITE. Testé : `SlowDeviceCopyTest` (pas de vraie clé lente ni de vrai téléphone ici).
 Supports amovibles (`backend/fsinfo.py`, type lu dans `/proc/self/mountinfo`, sans `stat`) : vers
 FAT / exFAT / NTFS, noms nettoyés (`: ? * " < > | \\`, points et espaces finaux → `safe_name`),
 deux noms qui ne diffèrent que par la casse dans une même copie → le second est renommé, liens
