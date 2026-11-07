@@ -70,6 +70,14 @@
   </requires>
   <content_rating type="oars-1.1"/>
   <releases>
+    <release version="1.8.8" date="2026-11-07">
+      <description>
+        <ul>
+          <li>Copies to a USB key, an external disk or a network share follow the real speed of the device: no more progress bar stuck at 96 %, Cancel works at once, and “done” means the data is really on the device</li>
+          <li>Copies to a phone (including in recovery mode), a camera or an iPhone are sent directly like Nautilus does: no more “Input/output error” at the end, and faster</li>
+        </ul>
+      </description>
+    </release>
     <release version="1.8.7" date="2026-11-07">
       <description>
         <ul>

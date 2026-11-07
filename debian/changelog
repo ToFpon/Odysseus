@@ -1,3 +1,14 @@
+odysseus (1.8.8~noble1) noble; urgency=medium
+
+  * Copie vers une clé USB, un disque externe ou un partage réseau : au
+    rythme réel du support, plus de barre bloquée à 96 %, « Annuler »
+    immédiat, et « terminé » veut dire écrit sur le support.
+  * Copie vers un téléphone (même en recovery), un appareil photo ou un
+    iPhone : envoi direct comme Nautilus, plus d'« Erreur
+    d'entrée/sortie » à la fin, et plus rapide.
+
+ -- Tof <nourpon@gmail.com>  Sat, 07 Nov 2026 23:25:21 +0000
+
 odysseus (1.8.7~noble1) noble; urgency=medium
 
   * Onglet glissé vers une autre fenêtre : titre, barre de chemin et
