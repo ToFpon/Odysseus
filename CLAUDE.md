@@ -251,9 +251,12 @@ fenêtre de recherche dans le contenu.
 
 ## En attente (petits cas, pour une prochaine version — choix de Tof)
 
-- Mineurs de l'audit laissés : nom de 255 octets + « (copie) » (dépasse NAME_MAX, sélectionné alors que non
-  créé) ; glisser hors d'une archive deux fichiers de même nom depuis la liste filtrée (un seul arrive) ;
-  après `apt remove`, le service FileManager1 de l'utilisateur reste (Nautilus ne répond plus tant qu'il est là).
+- Rien. Laissés de côté pour de bon (choix de Tof : « improbable de chez improbable ») : nom de 255 octets +
+  « (copie) » (dépasse NAME_MAX, sélectionné alors que non créé) ; glisser hors d'une archive deux fichiers
+  de même nom depuis la liste filtrée (un seul arrive). Après `apt remove`, le service FileManager1 de
+  l'utilisateur reste (un paquet ne touche pas aux dossiers personnels) : avertissement dans le README
+  (couper « Gestionnaire de fichiers par défaut » avant, sinon `rm` + `xdg-mime` donnés) ; `install.sh
+  --uninstall` le retire déjà.
 
 ## Pièges connus
 

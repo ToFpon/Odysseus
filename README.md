@@ -115,6 +115,15 @@ To make Odysseus the default file manager, turn on **Preferences → General →
 xdg-mime default io.github.odysseus.Odysseus.desktop inode/directory
 ```
 
+> ⚠️ **Before removing the package** (`sudo apt remove odysseus`), turn **Default file manager** off first. A package cannot clean your home folder: the small file that makes Odysseus answer “Show in folder” would stay behind, and “Show in folder” (Firefox, the dock…) would do nothing until it is removed. Already removed? Run:
+>
+> ```sh
+> rm ~/.local/share/dbus-1/services/org.freedesktop.FileManager1.service
+> xdg-mime default org.gnome.Nautilus.desktop inode/directory
+> ```
+>
+> (`./install.sh --uninstall` cleans this up by itself.)
+
 Or by hand, from the sources (Debian 13 reported working this way too, with GNOME). Requirements: Python 3.10+, PyGObject, GTK ≥ 4.14, libadwaita ≥ 1.5. Every other program is optional: a feature whose tool is missing tells you which package to install.
 
 ```sh
@@ -257,6 +266,15 @@ Pour faire d'Odysseus le gestionnaire de fichiers par défaut, activez **Préfé
 ```sh
 xdg-mime default io.github.odysseus.Odysseus.desktop inode/directory
 ```
+
+> ⚠️ **Avant de désinstaller le paquet** (`sudo apt remove odysseus`), coupez d'abord **Gestionnaire de fichiers par défaut**. Un paquet ne peut pas faire le ménage dans votre dossier personnel : le petit fichier qui fait répondre Odysseus à « Afficher dans le dossier » resterait, et « Afficher dans le dossier » (Firefox, le dock…) ne ferait plus rien tant qu'il est là. Déjà désinstallé ? Lancez :
+>
+> ```sh
+> rm ~/.local/share/dbus-1/services/org.freedesktop.FileManager1.service
+> xdg-mime default org.gnome.Nautilus.desktop inode/directory
+> ```
+>
+> (`./install.sh --uninstall`, lui, fait ce ménage tout seul.)
 
 Ou à la main, depuis les sources (Debian 13 signalé fonctionnel ainsi aussi, avec GNOME). Prérequis : Python 3.10+, PyGObject, GTK ≥ 4.14, libadwaita ≥ 1.5. Tous les autres programmes sont facultatifs : une fonctionnalité dont l'outil manque indique le paquet à installer.
 
