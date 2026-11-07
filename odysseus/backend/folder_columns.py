@@ -18,6 +18,7 @@ from typing import Callable, Optional
 
 from gi.repository import Gio, GLib
 
+from . import fsinfo
 from ..settings import CONFIG_DIR
 
 VISIBLE = "metadata::nautilus-list-view-visible-columns"
@@ -97,7 +98,11 @@ def get(place: Optional[str]) -> Optional[tuple[list, list]]:
     """(colonnes visibles, ordre) propres à ce dossier, sans « name » ; None : réglage par défaut."""
     if not _local(place):
         return None
-    vis, order = _read_gvfs(place)
+    if fsinfo.is_network(place):
+        # lu à l'ouverture du dossier, sur le fil principal : 0,3 s au plus (serveur mort : bloquerait)
+        vis, order = fsinfo.bounded(_read_gvfs, place, default=([], []))
+    else:
+        vis, order = _read_gvfs(place)
     own = _fb().get(place)
     if isinstance(own, dict) and own.get("base") == vis and isinstance(own.get("visible"), list) \
             and isinstance(own.get("order"), list):

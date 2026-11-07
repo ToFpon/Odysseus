@@ -20,6 +20,7 @@ from typing import Callable, Optional
 
 from gi.repository import Gio, GLib
 
+from . import fsinfo
 from ..settings import CONFIG_DIR
 
 SORT_BY = "metadata::nautilus-icon-view-sort-by"
@@ -88,7 +89,11 @@ def get(place: str) -> Optional[tuple[str, bool]]:
         return _session[place]
     if not _local(place):
         return None
-    by, rev = _read_gvfs(place)
+    if fsinfo.is_network(place):
+        # lu à l'ouverture du dossier, sur le fil principal : 0,3 s au plus (serveur mort : bloquerait)
+        by, rev = fsinfo.bounded(_read_gvfs, place, default=(None, None))
+    else:
+        by, rev = _read_gvfs(place)
     own = _fb().get(place)
     if isinstance(own, dict) and own.get("base") == by and "key" in own:
         return own["key"], bool(own["reverse"])

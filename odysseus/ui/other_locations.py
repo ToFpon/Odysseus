@@ -7,7 +7,6 @@ dns-sd…), mis à jour en direct. En bas : se connecter à un serveur par son a
 
 from __future__ import annotations
 
-import os
 import threading
 from typing import TYPE_CHECKING, Optional
 
@@ -16,6 +15,7 @@ from gi.repository import Gio, GLib, Gtk, Pango
 from ..backend import devices, scanner
 from ..backend.engine import human_size
 from ..i18n import tr
+from .common import space_later
 
 if TYPE_CHECKING:
     from .pane import Pane
@@ -24,16 +24,10 @@ OTHER_URI = "other-locations:///"
 NETWORK_URI = "network:///"
 
 
-def _usage(path: str) -> str:
-    try:
-        st = os.statvfs(path)
-    except OSError:
+def _usage(space) -> str:
+    if space is None or not space[1]:
         return ""
-    total = st.f_blocks * st.f_frsize
-    free = st.f_bavail * st.f_frsize
-    if not total:
-        return ""
-    return tr("{0} / {1} de disponibles").format(human_size(free), human_size(total))
+    return tr("{0} / {1} de disponibles").format(human_size(space[0]), human_size(space[1]))
 
 
 class LocationRow(Gtk.ListBoxRow):
@@ -48,13 +42,21 @@ class LocationRow(Gtk.ListBoxRow):
             img.set_from_gicon(gicon)
         box.append(img)
         box.append(Gtk.Label(label=name, xalign=0, hexpand=True, ellipsize=Pango.EllipsizeMode.END))
-        if usage:
-            box.append(Gtk.Label(label=usage, xalign=1, css_classes=["dim-label"]))
+        self.usage = Gtk.Label(label=usage, xalign=1, css_classes=["dim-label"], visible=bool(usage))
+        box.append(self.usage)
         box.append(Gtk.Label(label=where, xalign=1, width_chars=16, ellipsize=Pango.EllipsizeMode.MIDDLE,
                              css_classes=["dim-label"]))
         self.set_child(box)
         if tooltip:
             self.set_tooltip_text(tooltip)
+
+    def show_space(self, path: str):
+        """Espace du disque lu en fond (common.space_later : un partage réseau mort bloque statvfs)."""
+        def done(space):
+            text = _usage(space)
+            self.usage.set_label(text)
+            self.usage.set_visible(bool(text))
+        space_later(path, done)
 
 
 def connect_bar(owner, pane: "Pane") -> Gtk.Box:
@@ -156,8 +158,10 @@ class OtherLocations(Gtk.Box):
         self._dev_pending = False
         while (c := self.dev_list.get_first_child()) is not None:
             self.dev_list.remove(c)
-        self.dev_list.append(LocationRow(Gio.ThemedIcon.new("drive-harddisk"), GLib.get_os_info("NAME") or "/",
-                                         _usage("/"), "/", lambda: self.pane.open("/")))
+        root = LocationRow(Gio.ThemedIcon.new("drive-harddisk"), GLib.get_os_info("NAME") or "/",
+                           "", "/", lambda: self.pane.open("/"))
+        root.show_space("/")
+        self.dev_list.append(root)
         seen = {"/"}
         for mount in self.monitor.get_mounts():
             root = mount.get_root()
@@ -167,14 +171,17 @@ class OtherLocations(Gtk.Box):
             seen.add(path)
             vol = mount.get_volume()
             dev = vol.get_identifier("unix-device") if vol is not None else None
-            self.dev_list.append(LocationRow(mount.get_icon(), mount.get_name(), _usage(path), dev or path,
-                                             lambda p=path: self.pane.open(p), tooltip=path))
+            row = LocationRow(mount.get_icon(), mount.get_name(), "", dev or path,
+                              lambda p=path: self.pane.open(p), tooltip=path)
+            row.show_space(path)
+            self.dev_list.append(row)
         for disk in devices.mounted_disks():
             if disk.path not in seen:
                 seen.add(disk.path)
-                self.dev_list.append(LocationRow(Gio.ThemedIcon.new("drive-harddisk"), disk.name,
-                                                 _usage(disk.path), disk.path,
-                                                 lambda p=disk.path: self.pane.open(p)))
+                row = LocationRow(Gio.ThemedIcon.new("drive-harddisk"), disk.name, "", disk.path,
+                                  lambda p=disk.path: self.pane.open(p))
+                row.show_space(disk.path)
+                self.dev_list.append(row)
         for vol in self.monitor.get_volumes():
             if vol.get_mount() is None and vol.can_mount():
                 self.dev_list.append(LocationRow(vol.get_icon(), vol.get_name(), "",

@@ -18,7 +18,7 @@ from ..backend import devices
 from ..backend.engine import human_size
 from ..i18n import tr
 from ..settings import settings
-from .common import popup_menu
+from .common import popup_menu, space_later
 
 if TYPE_CHECKING:
     from .pane import Pane
@@ -276,6 +276,12 @@ class ThisPC(Gtk.Box):
     def _add_drive(self, box: Gtk.FlowBox, place: _Place, gicon, name: str, f: Gio.File, tooltip: str):
         tile = Tile(place, gicon, name, True, tooltip)
         box.append(tile)
+        path = f.get_path()
+        if path:
+            # statvfs dans un fil, une seule lecture en attente par disque : un partage réseau mort
+            # ne retient pas un fil de GIO de plus à chaque rafraîchissement de la page
+            space_later(path, lambda space: space is not None and tile.set_usage(*space))
+            return
 
         def done(src, res):
             try:

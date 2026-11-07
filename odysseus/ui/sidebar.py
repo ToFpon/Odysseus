@@ -13,11 +13,11 @@ from typing import Optional
 from gi.repository import Gdk, Gio, GLib, GObject, Graphene, Gtk
 
 from .. import features
-from ..backend import bookmarks, devices, scanner, starred, trashwatch
+from ..backend import bookmarks, devices, fsinfo, scanner, starred, trashwatch
 from ..backend.engine import human_size
 from ..i18n import ntr, tr
 from ..settings import settings
-from .common import SpringLoad, alert, ask_text, popup_menu, shown, toast
+from .common import SpringLoad, alert, ask_text, popup_menu, shown, space_later, toast
 
 UNMOUNT_NOTIFICATION = "unmount"        # même identifiant : « Écriture… » est remplacée par « … retiré »
 
@@ -290,7 +290,9 @@ class Sidebar(Gtk.Box):
         shown = {os.path.realpath(t) for _i, _l, t in places(desktop=settings["sidebar_desktop"], trash=False)}
         for b in items:
             p = b.path
-            if p is not None and (not os.path.exists(p) or os.path.realpath(p) in shown):
+            # signet vers un disque réseau : montré sans vérification (serveur mort : stat et realpath
+            # bloquaient le démarrage et chaque relecture des signets)
+            if p is not None and not fsinfo.is_network(p) and (not os.path.exists(p) or os.path.realpath(p) in shown):
                 continue
             icon = "folder-symbolic" if p else "folder-remote-symbolic"
             self.bm_list.append(SidebarRow(icon, b.title, p or b.uri, kind="bookmark",
@@ -359,13 +361,15 @@ class Sidebar(Gtk.Box):
         return True
 
     @staticmethod
-    def _space(path: str) -> str:
-        try:
-            s = os.statvfs(path)
-            return tr("{0} libres sur {1}").format(human_size(s.f_bavail * s.f_frsize),
-                                                    human_size(s.f_blocks * s.f_frsize))
-        except OSError:
-            return path
+    def _show_space(row, path: str, prefix: str = ""):
+        """Espace libre dans l'infobulle, lu en fond (common.space_later) : un partage réseau mort
+        bloque statvfs, la barre latérale se remplissait à chaque montage / démontage et figeait
+        toute la fenêtre. En attendant (ou si illisible), le chemin."""
+        def done(space):
+            if space is not None:
+                row.set_tooltip_text(shown(prefix + tr("{0} libres sur {1}").format(human_size(space[0]),
+                                                                                  human_size(space[1]))))
+        space_later(path, done)
 
     def _device_row(self, label, icon, target, mount=None, volume=None, tooltip="", ejectable=False):
         row = SidebarRow(icon, label, target, kind="device", tooltip=tooltip)
@@ -400,10 +404,13 @@ class Sidebar(Gtk.Box):
             if not target or target in seen:
                 continue
             seen.add(target)
-            rows.append(self._device_row(mount.get_name(), mount.get_symbolic_icon(), target, mount,
-                                         mount.get_volume(), self._space(path) if path else target,
-                                         self._is_ejectable(path, self._unix_device(mount.get_volume()),
-                                                            mount.get_drive(), fstab)))
+            row = self._device_row(mount.get_name(), mount.get_symbolic_icon(), target, mount,
+                                   mount.get_volume(), target,
+                                   self._is_ejectable(path, self._unix_device(mount.get_volume()),
+                                                      mount.get_drive(), fstab))
+            if path:
+                self._show_space(row, path)
+            rows.append(row)
         for volume in self.monitor.get_volumes():
             if volume.get_mount() is None and volume.can_mount():
                 rows.append(self._device_row(volume.get_name(), volume.get_symbolic_icon(), None, None, volume,
@@ -413,8 +420,9 @@ class Sidebar(Gtk.Box):
         for disk in devices.mounted_disks():
             if disk.path not in seen:
                 seen.add(disk.path)
-                rows.append(self._device_row(disk.name, "drive-harddisk-symbolic", disk.path,
-                                             tooltip=disk.path + "\n" + self._space(disk.path)))
+                row = self._device_row(disk.name, "drive-harddisk-symbolic", disk.path, tooltip=disk.path)
+                self._show_space(row, disk.path, disk.path + "\n")
+                rows.append(row)
         for r in rows:
             self.dev_list.append(r)
         self.dev_label.set_visible(bool(rows))

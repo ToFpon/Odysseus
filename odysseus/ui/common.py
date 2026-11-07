@@ -5,6 +5,7 @@ from __future__ import annotations
 import os
 import subprocess
 import tempfile
+import threading
 import time
 from datetime import datetime
 from typing import Callable, Optional
@@ -68,6 +69,35 @@ def focus_later(widget: Gtk.Widget):
     grab_focus renvoie True, ce qui fait rappeler la fonction sans fin — le champ reprenait le
     focus en boucle et resélectionnait son texte, chaque lettre tapée remplaçait la précédente."""
     GLib.idle_add(lambda: (widget.grab_focus(), False)[1])
+
+
+_space_waiting: dict[str, list] = {}
+
+
+def space_later(path: str, done: Callable[[Optional[tuple]], None]):
+    """Espace (libre, total) en octets du disque de path, lu dans un fil puis rendu à done() sur le
+    fil principal (None si illisible). Un partage réseau mort bloque statvfs sans fin : jamais sur
+    le fil principal, et une seule lecture en attente par chemin (pas un fil de plus à chaque
+    rafraîchissement de la barre latérale)."""
+    waiting = _space_waiting.get(path)
+    if waiting is not None:
+        waiting.append(done)
+        return
+    _space_waiting[path] = [done]
+
+    def work():
+        try:
+            s = os.statvfs(path)
+            result = (s.f_bavail * s.f_frsize, s.f_blocks * s.f_frsize)
+        except OSError:
+            result = None
+
+        def deliver():
+            for cb in _space_waiting.pop(path, []):
+                cb(result)
+            return False
+        GLib.idle_add(deliver)
+    threading.Thread(target=work, daemon=True).start()
 
 
 HOVER_TIMEOUT = 500     # ms, comme Nautilus 46 (nautilus-dnd.h)

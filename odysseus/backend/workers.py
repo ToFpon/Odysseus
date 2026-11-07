@@ -14,6 +14,8 @@ from typing import Callable
 
 from gi.repository import GLib
 
+from . import fsinfo
+
 
 class Pool:
     STUCK = 3.0          # une tâche plus longue est considérée comme bloquée (stat sur un montage mort)
@@ -88,3 +90,11 @@ def _deliver(callback, result):
 
 pool = Pool(2)          # métadonnées rapides (nombre d'éléments, emblèmes, durées)
 thumb_pool = Pool(2)    # miniatures (plus lentes)
+net_pool = Pool(1, max_threads=4)   # tout ce qui touche un disque réseau
+
+
+def pool_for(path: str, default: Pool = pool) -> Pool:
+    """Réserve d'un travail sur path : un serveur mort bloque ses fils sans fin, ils ne doivent pas
+    être ceux des disques locaux (sinon plus de miniatures, couleurs ni nombres d'éléments nulle
+    part tant que le partage ne répond pas)."""
+    return net_pool if path and fsinfo.is_network(path) else default

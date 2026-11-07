@@ -13,7 +13,7 @@ from typing import Callable, Optional
 
 from gi.repository import Gdk, Gio, GLib, GObject, Gtk
 
-from ..backend import scanner
+from ..backend import fsinfo, scanner
 from ..i18n import tr
 from .common import SpringLoad
 from .common import shown as _shown
@@ -365,13 +365,16 @@ class PathBar(Gtk.Box):
     def _complete(self):
         text = os.path.expanduser(self.entry.get_text())
         folder, prefix = os.path.split(text)
-        if not os.path.isdir(folder or "/"):
-            return
-        try:
-            names = sorted(e.name for e in os.scandir(folder or "/") if e.is_dir() and e.name.startswith(prefix)
-                           and (prefix.startswith(".") or not e.name.startswith(".")))
-        except OSError:
-            return
+
+        def subdirs(where):
+            try:
+                return sorted(e.name for e in os.scandir(where) if e.is_dir() and e.name.startswith(prefix)
+                              and (prefix.startswith(".") or not e.name.startswith(".")))
+            except OSError:
+                return []
+        # disque réseau : 0,3 s au plus (serveur mort : la lecture bloquerait la saisie)
+        where = folder or "/"
+        names = fsinfo.bounded(subdirs, where, default=[]) if fsinfo.is_network(where) else subdirs(where)
         if not names:
             return
         common = os.path.commonprefix(names)

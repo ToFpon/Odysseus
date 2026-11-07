@@ -7,16 +7,17 @@ données paresseuses arrivent (miniature, couleur de dossier, nombre d'élément
 
 from __future__ import annotations
 
+import contextlib
 import os
 from typing import TYPE_CHECKING
 
 from gi.repository import Adw, Gdk, Gio, GLib, Graphene, Gtk, Pango
 
 from .. import features
-from ..backend import media, scanner, starred
+from ..backend import fsinfo, media, scanner, starred
 from ..backend.engine import human_size
 from ..backend.scanner import Rec
-from ..backend.workers import pool
+from ..backend.workers import pool_for
 from ..i18n import ntr, tr
 from ..settings import settings
 from . import clipboard, icons
@@ -138,10 +139,14 @@ def request_count(rec: Rec, pane: "Pane"):
     def done(n):
         rec.set("count", n if n is not None else -1)
         model.notify_rec(rec)
+    network = fsinfo.is_network(path)
+
     def work():
-        with scanner.scan_slot():     # pas de lecture disque concurrente (voir scanner.scan_slot)
+        # pas de lecture disque concurrente (voir scanner.scan_slot) ; sauf sur le réseau : un
+        # serveur mort garderait le tour et chaque lecture locale attendrait 0,3 s
+        with (contextlib.nullcontext() if network else scanner.scan_slot()):
             return scanner.count_children(path, hidden)
-    pool.submit(("count", path, hidden), work, done)
+    pool_for(path).submit(("count", path, hidden), work, done)
 
 
 def request_duration(rec: Rec, pane: "Pane"):
@@ -153,7 +158,7 @@ def request_duration(rec: Rec, pane: "Pane"):
     def done(d):
         rec.set("duration", d if d is not None else -1.0)
         model.notify_rec(rec)
-    pool.submit(("dur", path), lambda: media.durations.duration(path, mtime), done)
+    pool_for(path).submit(("dur", path), lambda: media.durations.duration(path, mtime), done)
 
 
 class _CellMixin:

@@ -437,6 +437,96 @@ def dossier_bloque(win):
 
 
 @step
+def partage_gele(win):
+    """Partage réseau qui ne répond plus (NAS éteint, Wi-Fi coupé) : Nautilus se fige. Imité par une
+    vraie image FAT montée avec fusefat, processus FUSE gelé (SIGSTOP) : tout appel système sur ses
+    chemins bloque, comme sur un cifs / GVfs mort. Déclarée « réseau » pour le test. Chaque geste doit
+    rendre la main tout de suite ; un garde-fou dégèle au bout de 8 s pour ne pas bloquer le test."""
+    import signal
+    from odysseus.backend import folder_columns, folder_sort, fsinfo
+    from odysseus.ui import icons
+    if not (shutil.which("mkfs.vfat") and shutil.which("fusefat") and shutil.which("fusermount")):
+        log.append("partage gelé : fusefat indisponible, sauté")
+        return
+    img, nas = os.path.join(TMP, "nas.img"), os.path.join(os.environ["HOME"], "NAS")
+    os.makedirs(nas, exist_ok=True)
+    subprocess.run(["truncate", "-s", "8M", img], check=True)
+    subprocess.run(["mkfs.vfat", img], check=True, capture_output=True)
+    proc = subprocess.Popen(["fusefat", "-f", "-o", "rw+", img, nas],
+                            stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+    yield Wait(5, until=lambda: os.path.ismount(nas))
+    if not os.path.ismount(nas):
+        proc.kill()
+        log.append("partage gelé : montage fusefat impossible, sauté")
+        return
+    for d in ("photos", "docs", "froid"):
+        os.mkdir(os.path.join(nas, d))
+    open(os.path.join(nas, "photos", "vacances.jpg"), "w").close()
+    fsinfo.NETWORK.add("fuse.fusefat")
+    fsinfo._cached = (0.0, [])
+    bm = os.path.join(os.environ["HOME"], ".config", "gtk-3.0", "bookmarks")
+    os.makedirs(os.path.dirname(bm), exist_ok=True)
+    old_bm = open(bm).read() if os.path.exists(bm) else None
+    with open(bm, "a") as fh:
+        fh.write(GLib.filename_to_uri(os.path.join(nas, "docs"), None) + "\n")
+    p = win.pane
+    p.open(os.path.join(nas, "photos"))
+    yield Wait(5, until=lambda: not p.model.loading)
+    check(any(r.name == "vacances.jpg" for r in p.model.all), "partage lu avant la panne")
+    subprocess.run(["sh", "-c", "sync; echo 2 > /proc/sys/vm/drop_caches"], capture_output=True)  # « froid » jamais vu
+    os.kill(proc.pid, signal.SIGSTOP)
+    guard = threading.Timer(8, lambda: os.kill(proc.pid, signal.SIGCONT))
+    guard.start()
+    gestures = []
+
+    def timed(name, fn):
+        t0 = time.monotonic()
+        try:
+            fn()
+        except Exception as e:  # noqa: BLE001
+            gestures.append((name, f"erreur {e}"))
+            return
+        gestures.append((name, time.monotonic() - t0))
+    try:
+        timed("clic dans le panneau", p._check_location)
+        timed("emblèmes (dossier parent)", lambda: icons._parent_writable(os.path.join(nas, "photos", "vacances.jpg")))
+        timed("barre latérale (montage / démontage)", win.sidebar._fill_devices)
+        timed("signets relus", win.sidebar._fill_bookmarks)
+        timed("tri / colonnes du dossier", lambda: (folder_sort.get(os.path.join(nas, "froid")),
+                                                    folder_columns.get(os.path.join(nas, "froid"))))
+        timed("glisser au-dessus (déplacer ou copier)",
+              lambda: p._decide_action(None, os.path.join(nas, "docs"), [os.path.join(D, "fichier 1.txt")]))
+        timed("ouvrir un dossier du partage", lambda: p.open(os.path.join(nas, "froid")))
+        yield pump(0.5)
+        timed("Autres emplacements", lambda: p.open("other-locations:///"))
+        yield pump(0.5)
+        timed("retour au dossier gelé", lambda: p.open(os.path.join(nas, "froid")))
+        yield pump(0.3)
+        timed("dossier local à côté", lambda: p.open(D))
+        yield Wait(3, until=lambda: not p.model.loading)
+        check(not p.model.loading, "dossier local lu pendant que le partage est gelé (pas de verrou retenu)")
+    finally:
+        guard.cancel()
+        os.kill(proc.pid, signal.SIGCONT)
+    slow = [f"{n} ({t if isinstance(t, str) else f'{t:.1f} s'})" for n, t in gestures
+            if isinstance(t, str) or t > 0.6]
+    check(not slow, "partage gelé : la fenêtre répond à chaque geste" + (" — figée : " + ", ".join(slow) if slow else ""))
+    yield pump(0.5)
+    p.open(D)
+    yield pump(0.3)
+    subprocess.run(["fusermount", "-u", nas], capture_output=True)
+    proc.wait(5)
+    fsinfo.NETWORK.discard("fuse.fusefat")
+    fsinfo._cached = (0.0, [])
+    if old_bm is None:
+        os.remove(bm)
+    else:
+        with open(bm, "w") as fh:
+            fh.write(old_bm)
+    yield pump(0.5)
+
+
+@step
 def conflits(win):
     answers = iter([("skip", False), ("rename", False), ("replace", True)])
     win._conflict_dialog = lambda c, reply: reply(*next(answers))

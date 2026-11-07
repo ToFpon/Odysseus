@@ -10,9 +10,9 @@ from typing import Optional
 from gi.repository import Gdk, Gio, GLib, Gtk
 
 from .. import features
-from ..backend import folder_colors, thumbnails
+from ..backend import folder_colors, fsinfo, thumbnails
 from ..backend.scanner import Rec
-from ..backend.workers import pool, thumb_pool
+from ..backend.workers import pool_for, thumb_pool
 from ..settings import settings
 
 _ctype_icons: dict = {}
@@ -118,11 +118,14 @@ def _parent_writable(path: str) -> bool:
     hit = _parent_cache.get(folder)
     if hit is not None and now - hit[0] < 5:
         return hit[1]
-    try:
-        s = os.stat(folder)
-        writable = _rights(s.st_mode, s.st_uid, s.st_gid)[1]
-    except OSError:
-        writable = False
+    if fsinfo.is_network(folder):
+        writable = False          # pas de stat sur le fil principal (serveur mort) : pas de cadenas
+    else:
+        try:
+            s = os.stat(folder)
+            writable = _rights(s.st_mode, s.st_uid, s.st_gid)[1]
+        except OSError:
+            writable = False
     _parent_cache[folder] = (now, writable)
     _parent_cache.move_to_end(folder)
     while len(_parent_cache) > 64:
@@ -174,7 +177,7 @@ def request_meta(rec: Rec, model):
         if meta:
             model.notify_rec(rec)
     rec.set("meta", {})       # évite les demandes en double avant la réponse
-    pool.submit(("meta", path), lambda: folder_colors.read(path), done)
+    pool_for(path).submit(("meta", path), lambda: folder_colors.read(path), done)
 
 
 def thumbnails_wanted(rec: Rec) -> bool:
@@ -246,5 +249,5 @@ def request_thumbnail(rec: Rec, pixels: int, model) -> Optional[Gdk.Texture]:
         _remember(png_path, tex)
         rec.set("thumb", png_path)
         model.notify_rec(rec)
-    thumb_pool.submit(key, work, done)
+    pool_for(rec.path, thumb_pool).submit(key, work, done)
     return None

@@ -13,7 +13,7 @@ from typing import Optional
 from gi.repository import Adw, Gdk, Gio, GLib, GObject, Graphene, Gtk
 
 from .. import features
-from ..backend import archive, folder_columns, folder_sort, formats, scanner, starred, trashwatch
+from ..backend import archive, folder_columns, folder_sort, formats, fsinfo, scanner, starred, trashwatch
 from ..backend.engine import PasswordRequired, human_size
 from ..backend.scanner import Rec
 from ..i18n import ntr, tr
@@ -46,6 +46,30 @@ def display_location(loc: str) -> str:
         return Gio.File.new_for_uri(loc).get_path() or loc
     return loc
 
+
+
+def _isdir(path: str) -> bool:
+    """os.path.isdir, attendu au plus 0,3 s sur un disque réseau (serveur mort : stat bloque sans
+    fin). Sans réponse : supposé présent, la lecture du dossier (dans un fil) dira ce qu'il en est."""
+    if fsinfo.is_network(path):
+        return fsinfo.bounded(os.path.isdir, path, default=True)
+    return os.path.isdir(path)
+
+
+def _path_kind(path: str) -> Optional[str]:
+    if os.path.isdir(path):
+        return "dir"
+    if os.path.isfile(path):
+        return "file"
+    return None
+
+
+def _same_fs(src: str, dest: str) -> bool:
+    """Même disque (déplacer plutôt que copier, comme Nautilus) ? Sur un disque réseau : d'après les
+    points de montage, sans stat (appelé à chaque mouvement du pointeur pendant un glisser)."""
+    if fsinfo.is_network(src) or fsinfo.is_network(dest):
+        return fsinfo.mount_point(src) == fsinfo.mount_point(dest)
+    return os.lstat(src).st_dev == os.stat(dest).st_dev
 
 class Pane(Gtk.Box):
     __gtype_name__ = "OdysseusPane"
@@ -337,8 +361,7 @@ class Pane(Gtk.Box):
             return "link"
         if paths:
             try:
-                dev = os.stat(dest).st_dev
-                if all(os.lstat(p).st_dev == dev for p in paths[:20]):
+                if all(_same_fs(p, dest) for p in paths[:20]):
                     return "move"
             except OSError:
                 pass
@@ -361,7 +384,7 @@ class Pane(Gtk.Box):
         if src and all(os.path.dirname(p) == dest for p in src):
             return 0
         try:
-            same = os.lstat(src[0]).st_dev == os.stat(dest).st_dev if src else True
+            same = _same_fs(src[0], dest) if src else True
         except OSError:
             same = True
         return Gdk.DragAction.MOVE if same else Gdk.DragAction.COPY
@@ -481,10 +504,16 @@ class Pane(Gtk.Box):
             self._open_uri(loc, push, select)
             return True
         loc = os.path.abspath(loc)
-        if os.path.isdir(loc):
+        if fsinfo.is_network(loc):
+            # serveur peut-être injoignable : réponse attendue 0,3 s au plus, sinon on ouvre comme un
+            # dossier — le panneau affiche le chargement, puis « Accès impossible » (lecture en fond)
+            kind = fsinfo.bounded(_path_kind, loc, default="dir")
+        else:
+            kind = _path_kind(loc)
+        if kind == "dir":
             self._open_dir(loc, push, select)
             return True
-        if os.path.isfile(loc):
+        if kind == "file":
             if features.enabled("archives") and formats.looks_like_archive(os.path.basename(loc)):
                 self.open_archive(loc, push=push)
             else:
@@ -1040,19 +1069,25 @@ class Pane(Gtk.Box):
         """Dossier affiché supprimé, jeté ou déplacé : remonter au plus proche parent existant."""
         if getattr(self, "_retired", False) or self.mode != "fs" or not self.location:
             return False
-        if os.path.isdir(self.location):
+        if _isdir(self.location):
             self.refresh()
             return False
         child, up = self.location, os.path.dirname(self.location.rstrip("/"))
-        while up and up != "/" and not os.path.isdir(up):
+        while up and up != "/" and not _isdir(up):
             child, up = up, os.path.dirname(up)
-        self.open(up or "/", push=False, select=[os.path.basename(child)] if os.path.lexists(child) else None)
+        if fsinfo.is_network(child):
+            there = fsinfo.bounded(os.path.lexists, child, default=False)
+        else:
+            there = os.path.lexists(child)
+        self.open(up or "/", push=False, select=[os.path.basename(child)] if there else None)
         return False
 
     def _check_location(self):
         """Au clic dans le panneau : un parent renommé ou supprimé par un autre programme n'est pas vu
-        par la surveillance du dossier affiché ; un seul stat, local seulement."""
-        if self.mode == "fs" and self.location and not is_uri(self.location) and not os.path.isdir(self.location):
+        par la surveillance du dossier affiché ; un seul stat, disques locaux seulement."""
+        if (self.mode == "fs" and self.location and not is_uri(self.location)
+                and not fsinfo.is_network(self.location)        # serveur mort : stat bloquerait
+                and not os.path.isdir(self.location)):
             GLib.idle_add(self._on_gone)
 
     def follow_move(self, old: str, new: str):

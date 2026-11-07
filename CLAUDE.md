@@ -201,6 +201,24 @@ opération finie après la fermeture ; Propriétés d'une fenêtre fermée → `
 `workers.Pool` : un fil bloqué dans un appel système ne se tue pas ; si tous sont pris depuis plus
 de 3 s, un fil est ajouté (6 au plus).
 
+Partage réseau qui ne répond plus (NAS éteint, Wi-Fi coupé ; Nautilus se fige) : tout appel système sur
+ses chemins bloque — stat, statvfs, et même `monitor_directory` (inotify parcourt le chemin) sur un dossier
+jamais visité. Règle : AUCUN appel système sur un chemin réseau depuis le fil principal. Réseau =
+`fsinfo.is_network` (type lu dans mountinfo, sans stat : cifs, nfs, sshfs, gvfsd-fuse — les smb:// de GVfs
+sont parcourus par leur chemin FUSE —, davfs, rclone…). Espace libre (barre latérale, Autres emplacements,
+Ce PC) : `common.space_later` (fil, une lecture en attente par chemin), pour tous les disques. Sondes
+indispensables sur le fil principal (ouvrir un chemin, dossier disparu, tri / colonnes du dossier,
+complétion Tab) : `fsinfo.bounded(fn, chemin, default=…)`, 0,3 s au plus, puis le montage est tenu pour
+muet tant que le fil n'est pas revenu (réponse immédiate). Sans réponse, le dossier s'ouvre quand même :
+la lecture (fil) affiche le chargement puis « Accès impossible ». Ignorés sur le réseau : vérification
+au clic (`_check_location`), cadenas (`_parent_writable`), existence des signets. Surveillance posée
+après la lecture réussie (`DirModel._monitor_after_load`). Travaux paresseux sur le réseau : `net_pool`
+(`workers.pool_for`), lectures réseau sans `scan_slot` (un serveur mort garderait le tour : chaque lecture
+locale attendait 0,3 s). Glisser : même disque d'après le point de montage (`pane._same_fs`), sans stat.
+Testé : `partage_gele` d'ui_smoke (image FAT montée par fusefat, processus gelé par SIGSTOP, caches vidés,
+déclarée réseau ; garde-fou qui dégèle à 8 s). Restent hors de notre main : Propriétés / opérations
+lancées sur le partage mort (gestes explicites), et le moniteur de volumes de GIO lui-même.
+
 `tests/ui_smoke.py` pilote l'interface par des générateurs exécutés dans la vraie boucle GLib
 (une boucle imbriquée dans un timeout ne traite pas les sources idle).
 

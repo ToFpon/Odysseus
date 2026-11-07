@@ -18,7 +18,7 @@ from typing import Optional
 
 from gi.repository import Gio, GLib, GObject, Gtk
 
-from ..backend import scanner
+from ..backend import fsinfo, scanner
 from ..backend.scanner import Rec
 from ..settings import settings
 
@@ -92,6 +92,7 @@ class DirModel(GObject.Object, Gio.ListModel):
         self._gen = 0
         self._cancel = threading.Event()
         self._monitor = None
+        self._monitor_after_load = False
         self._pending: dict = {}
         self._pending_id = 0
         self._index: Optional[dict] = None
@@ -153,11 +154,13 @@ class DirModel(GObject.Object, Gio.ListModel):
         self.loading = True
         gen, cancel = self._gen, self._cancel
         local = not _is_uri(location)
+        network = local and fsinfo.is_network(location)
 
         def work():
             # GIO (réseau, corbeille, admin://) se lit en C sans le verrou de l'interpréteur : pas de
             # convoi possible, et un serveur lent ne doit pas faire attendre les dossiers locaux
-            with (scanner.scan_slot() if local else contextlib.nullcontext()):
+            # disque réseau (chemin local) : pas de tour non plus, un serveur mort le garderait
+            with (scanner.scan_slot() if local and not network else contextlib.nullcontext()):
                 if cancel.is_set():
                     return
                 try:
@@ -183,9 +186,13 @@ class DirModel(GObject.Object, Gio.ListModel):
                     GLib.idle_add(self._loaded, gen, [], (str(e), None), True)
         threading.Thread(target=work, daemon=True).start()
         GLib.timeout_add(150, self._maybe_spinner, gen)
-        if local:
+        # disque réseau : la surveillance (inotify_add_watch) parcourt le chemin et bloque si le serveur
+        # ne répond plus — vu sur un montage FUSE gelé. Posée une fois la lecture réussie (_loaded),
+        # quand le serveur vient de répondre, jamais avant.
+        self._monitor_after_load = network
+        if local and not network:
             self._start_monitor(location)
-        else:
+        elif not local:
             self._start_uri_monitor(location)
 
     def _maybe_spinner(self, gen):
@@ -206,6 +213,8 @@ class DirModel(GObject.Object, Gio.ListModel):
         self.all = scanner.sort_recs(recs, self.sort_key, self.sort_reverse, self.folders_first)
         self._publish(keep_selection=False)
         self.emit("state", "ready")
+        if self._monitor_after_load and self._monitor is None:
+            self._start_monitor(self.location)
         return False
 
     def _stats_done(self, gen):
