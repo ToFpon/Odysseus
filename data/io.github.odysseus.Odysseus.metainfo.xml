@@ -70,6 +70,15 @@
   </requires>
   <content_rating type="oars-1.1"/>
   <releases>
+    <release version="1.8.2" date="2026-11-07">
+      <description>
+        <ul>
+          <li>Visible columns: Nautilus's column chooser (switches, drag to reorder, Move Up / Down) with “Apply to Current Folder Only”, stored in the same folder metadata as Nautilus; column order is kept, also when a header is dragged</li>
+          <li>Removing a USB drive: a desktop notification like Nautilus (“Writing data… Don't unplug until finished”, then “can be safely unplugged”) instead of an easily missed message in the window</li>
+          <li>English and German: mounting a drive no longer shows “Move up” / “Nach oben”</li>
+        </ul>
+      </description>
+    </release>
     <release version="1.8.1" date="2026-11-06">
       <description>
         <ul>

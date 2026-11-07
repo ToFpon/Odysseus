@@ -1,3 +1,17 @@
+odysseus (1.8.2~noble1) noble; urgency=medium
+
+  * Colonnes visibles : le sélecteur de Nautilus (interrupteurs, glisser
+    pour réordonner, Déplacer vers le haut ou le bas) avec « N'appliquer
+    qu'au dossier actuel », dans les mêmes métadonnées que Nautilus ;
+    l'ordre des colonnes est gardé, en-têtes glissés compris.
+  * Retrait d'une clé : notification du bureau comme Nautilus (écriture
+    des données, puis retrait possible en toute sécurité) au lieu d'un
+    message discret dans la fenêtre.
+  * Anglais et allemand : monter un disque n'affiche plus « Move up » ni
+    « Nach oben ».
+
+ -- Tof <nourpon@gmail.com>  Sat, 07 Nov 2026 06:05:01 +0000
+
 odysseus (1.8.1~noble1) noble; urgency=medium
 
   * Clavier AZERTY : Ctrl+1, 2 et 3 changent de vue (liste, grille,
