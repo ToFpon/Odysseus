@@ -67,16 +67,8 @@ def view_menu() -> Gio.Menu:
         views.append(tr("Colonnes"), "win.view-mode::columns")
     m.append_section(None, views)
     m.append_section(tr("Trier"), sort_menu())
-    cols = Gio.Menu()
-    cols.append(tr("Taille"), "win.column-size")
-    cols.append(tr("Type"), "win.column-type")
-    cols.append(tr("Modifié"), "win.column-date")
-    cols.append(tr("Droits"), "win.column-perms")
-    cols.append(tr("Propriétaire"), "win.column-owner")
-    if features.available("duration_column"):
-        cols.append(tr("Durée"), "win.column-duration")
     s = Gio.Menu()
-    s.append_submenu(tr("Colonnes visibles"), cols)
+    s.append(tr("Colonnes visibles…"), "win.visible-columns")      # sélecteur de Nautilus 46
     s.append(tr("Agrandir les icônes"), "win.zoom-in")
     s.append(tr("Réduire les icônes"), "win.zoom-out")
     s.append(tr("Taille par défaut"), "win.zoom-normal")

@@ -22,6 +22,7 @@ DEFAULTS: dict[str, Any] = {
     "sort_key": "name",             # name, size, type, date, duration
     "sort_reverse": False,
     "list_columns": ["size", "type", "date"],   # colonnes facultatives visibles (+ perms, owner, duration)
+    "column_order": ["size", "type", "date", "perms", "owner", "duration"],   # ordre (sélecteur de colonnes)
     "single_click": False,
     "dnd_hover_open": True,         # glisser au-dessus d'un dossier l'ouvre après un temps (Nautilus)
     "type_ahead": False,            # taper au clavier : aller au fichier (Nemo, Thunar) au lieu de rechercher

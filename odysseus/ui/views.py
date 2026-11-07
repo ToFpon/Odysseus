@@ -48,8 +48,27 @@ COLUMNS = [
     ("location", tr("Emplacement"), 240, 0.0, "location"),
     ("star", "", 44, 0.5, None),          # étoile des favoris, en fin de ligne, sans titre (Nautilus 46)
 ]
-OPTIONAL_COLUMNS = [("size", tr("Taille")), ("type", tr("Type")), ("date", tr("Modifié")),
+OPTIONAL_COLUMNS = [("size", tr("Taille")), ("type", tr("Type")), ("date", tr("Dernière modification")),
                     ("perms", tr("Droits")), ("owner", tr("Propriétaire")), ("duration", tr("Durée"))]
+OPTIONAL_KEYS = [k for k, _t in OPTIONAL_COLUMNS]
+COLUMN_INFO = {c[0]: c for c in COLUMNS}
+
+
+def full_order(order: list) -> list:
+    """Ordre de toutes les colonnes facultatives : celui enregistré, puis celles qu'il ne cite pas."""
+    seen = [k for k in order if k in OPTIONAL_KEYS]
+    return list(dict.fromkeys(seen + OPTIONAL_KEYS))
+
+
+def column_sequence(order: list) -> list:
+    """Toutes les colonnes dans l'ordre d'affichage : Nom, les facultatives dans l'ordre choisi (Compressé
+    et Ratio des archives à la suite de Taille), puis Emplacement et l'étoile."""
+    seq = ["name"]
+    for k in full_order(order):
+        seq.append(k)
+        if k == "size":
+            seq += ["packed", "ratio"]
+    return seq + ["location", "star"]
 SORT_TO_COLUMN = {c[4]: c[0] for c in COLUMNS if c[4]}
 
 # Chemins en cours de glisser depuis Odysseus (pour choisir copier ou déplacer à l'arrivée)
@@ -372,6 +391,8 @@ class ListView(Gtk.ScrolledWindow, _CellMixin):
         self.columns: dict[str, Gtk.ColumnViewColumn] = {}
         self._widths: dict[str, int] = {}
         self._syncing = False
+        self._rebuilding = False
+        self._order_pending = 0
         self._narrow = 0
         self.apply_zoom()
         self.update_columns()
@@ -404,7 +425,7 @@ class ListView(Gtk.ScrolledWindow, _CellMixin):
         modèle débranché (pas de lignes, pas de cellules). C'est rare : passage étroit ↔ large,
         corbeille, archive, recherche, réglage des colonnes."""
         vis = self._wanted_columns()
-        wanted = [key for key, *_ in COLUMNS if vis[key]]
+        wanted = [key for key in column_sequence(self.pane.column_prefs()[1]) if vis[key]]
         if self.view is None or wanted != list(self.columns):
             self._rebuild(wanted)
         loc = self.columns.get("location")
@@ -431,9 +452,9 @@ class ListView(Gtk.ScrolledWindow, _CellMixin):
         view.connect("activate", lambda _v, pos: pane.activate_position(pos))
         view.set_single_click_activate(settings["single_click"])
         self.columns = {}
-        for key, title, width, xalign, sort_key in COLUMNS:
-            if key not in keys:
-                continue
+        self._rebuilding = True
+        for key in keys:
+            key, title, width, xalign, sort_key = COLUMN_INFO[key]
             f = Gtk.SignalListItemFactory()
             if key == "name":
                 f.connect("setup", self._setup_name)
@@ -454,7 +475,10 @@ class ListView(Gtk.ScrolledWindow, _CellMixin):
                 col._sort_key = sort_key
             view.append_column(col)
             self.columns[key] = col
+        self._rebuilding = False
         view.get_sorter().connect("changed", self._on_header_sort)
+        # en-tête glissé ailleurs (comme Nautilus) : l'ordre est gardé
+        view.get_columns().connect("items-changed", self._on_columns_moved)
         bg = Gtk.GestureClick(button=3)
         bg.connect("pressed", self._on_bg_click)
         view.add_controller(bg)
@@ -471,9 +495,36 @@ class ListView(Gtk.ScrolledWindow, _CellMixin):
             if top:
                 GLib.idle_add(lambda: (self.get_root() is not None and adj.set_value(top), False)[1])
 
+    def _on_columns_moved(self, cols, _pos, _removed, _added):
+        if self._rebuilding or self._order_pending:
+            return
+        self._order_pending = GLib.idle_add(self._save_column_order)
+
+    def _save_column_order(self):
+        """Ordre des en-têtes après un glisser : les colonnes affichées prennent leur nouvel ordre, les
+        cachées gardent leur place relative."""
+        self._order_pending = 0
+        if self.view is None or self._rebuilding:
+            return False
+        cols = self.view.get_columns()
+        by_col = {id(c): k for k, c in self.columns.items()}
+        now = [by_col.get(id(cols.get_item(i))) for i in range(cols.get_n_items())]
+        if None in now:
+            return False
+        # la vue a déjà le nouvel ordre : pas besoin de la reconstruire ensuite
+        self.columns = {k: self.columns[k] for k in now}
+        shown = [k for k in now if k in OPTIONAL_KEYS]
+        visible, order, _own = self.pane.column_prefs()
+        order = full_order(order)
+        slots = iter(shown)
+        new = [next(slots) if k in shown else k for k in order]
+        if new != order:
+            self.pane.set_column_prefs(visible, new)
+        return False
+
     def _wanted_columns(self) -> dict:
         mode = self.pane.mode
-        wanted = set(settings["list_columns"])
+        wanted = set(self.pane.column_prefs()[0])
         drop = {0: set(), 1: {"perms", "owner", "type"}, 2: {"perms", "owner", "type", "packed", "ratio", "date"},
                 3: {"perms", "owner", "type", "date", "duration", "packed", "ratio", "location"}}[self._narrow]
         wanted -= drop

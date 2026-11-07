@@ -13,7 +13,7 @@ from typing import Optional
 from gi.repository import Adw, Gdk, Gio, GLib, GObject, Graphene, Gtk
 
 from .. import features
-from ..backend import archive, folder_sort, formats, scanner, starred, trashwatch
+from ..backend import archive, folder_columns, folder_sort, formats, scanner, starred, trashwatch
 from ..backend.engine import PasswordRequired, human_size
 from ..backend.scanner import Rec
 from ..i18n import ntr, tr
@@ -112,6 +112,7 @@ class Pane(Gtk.Box):
         self._settings_cb = self._on_setting
         settings.connect(self._settings_cb)
         folder_sort.listeners.append(self._on_folder_sort)
+        folder_columns.listeners.append(self._on_folder_columns)
         starred.listeners.append(self._on_starred)
         self._clip_id = clipboard.state.connect("changed", lambda *_: self.refresh_rows())
         self.connect("destroy", lambda *_: self._cleanup())
@@ -149,6 +150,8 @@ class Pane(Gtk.Box):
             pass
         if self._on_folder_sort in folder_sort.listeners:
             folder_sort.listeners.remove(self._on_folder_sort)
+        if self._on_folder_columns in folder_columns.listeners:
+            folder_columns.listeners.remove(self._on_folder_columns)
         if self._on_starred in starred.listeners:
             starred.listeners.remove(self._on_starred)
         self.drag.forget()
@@ -1144,6 +1147,34 @@ class Pane(Gtk.Box):
         if place == self.sort_place():
             self._resort(key, reverse)
 
+    # -- colonnes de la vue en liste (sélecteur « Colonnes visibles », comme Nautilus 46) ----------
+    def column_place(self) -> Optional[str]:
+        """Dossier dont les colonnes peuvent être propres (dossier local affiché), sinon None."""
+        return self.location if self.mode == "fs" and self.location and self.location.startswith("/") else None
+
+    def column_prefs(self) -> tuple[list, list, bool]:
+        """(colonnes visibles, ordre, propres au dossier ?) pour ce qui est affiché."""
+        own = folder_columns.get(self.column_place())
+        if own is not None:
+            return own[0], own[1], True
+        return list(settings["list_columns"]), list(settings["column_order"]), False
+
+    def set_column_prefs(self, visible: list, order: list, folder_only: Optional[bool] = None):
+        """Enregistre les colonnes : pour ce dossier s'il a les siennes (ou folder_only), sinon par défaut."""
+        if folder_only is None:
+            folder_only = self.column_prefs()[2]
+        place = self.column_place()
+        if folder_only and place:
+            folder_columns.save(place, list(visible), list(order))
+        else:
+            settings["column_order"] = list(order)
+            settings["list_columns"] = list(visible)
+
+    def _on_folder_columns(self, place: str):
+        if place == self.column_place():
+            self.list_view.update_columns()
+            self.refresh_rows()
+
     def _on_setting(self, key, value):
         if key == "show_hidden":
             self.model.set_show_hidden(value)
@@ -1157,7 +1188,7 @@ class Pane(Gtk.Box):
         elif key in ("list_zoom", "grid_zoom"):
             self.list_view.apply_zoom()
             self.refresh_rows()
-        elif key in ("list_columns", "features"):
+        elif key in ("list_columns", "column_order", "features"):
             self.list_view.update_columns()
             self.refresh_rows()
             if key == "features" and self.view_mode == "columns" and not features.enabled("column_view"):

@@ -122,7 +122,8 @@ class _MergeRow(Adw.ActionRow):
                                valign=Gtk.Align.CENTER, tooltip_text=tr("Pages à garder, ex. 1-3, 5, 8-"))
         self.pages.connect("changed", lambda *_: dialog.refresh())
         self.add_suffix(self.pages)
-        for icon, step, tip in (("go-up-symbolic", -1, tr("Monter")), ("go-down-symbolic", 1, tr("Descendre"))):
+        for icon, step, tip in (("go-up-symbolic", -1, tr("Déplacer vers le haut")),
+                                ("go-down-symbolic", 1, tr("Déplacer vers le bas"))):
             b = Gtk.Button(icon_name=icon, valign=Gtk.Align.CENTER, css_classes=["flat"], tooltip_text=tip)
             b.connect("clicked", lambda *_a, s=step: dialog.move(self, s))
             self.add_suffix(b)

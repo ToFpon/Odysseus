@@ -433,11 +433,6 @@ class MainWindow(FileActions, ArchiveActions, ToolActions, Adw.ApplicationWindow
             a = self.lookup_action("show-hidden")
             if a:
                 a.set_state(GLib.Variant.new_boolean(settings["show_hidden"]))
-        elif key == "list_columns":
-            for col in ("size", "type", "date", "perms", "owner", "duration"):
-                a = self.lookup_action("column-" + col)
-                if a:
-                    a.set_state(GLib.Variant.new_boolean(col in settings["list_columns"]))
         elif key == "features":
             self._apply_features()
             self.sidebar.fill_places()          # « Favoris » suit la fonctionnalité
@@ -682,6 +677,7 @@ class MainWindow(FileActions, ArchiveActions, ToolActions, Adw.ApplicationWindow
             "zoom-in": lambda: self._zoom(1), "zoom-out": lambda: self._zoom(-1), "zoom-normal": self._zoom_normal,
             "toggle-view": self._toggle_view, "switch-pane": self._switch_pane,
             "toggle-columns": self._toggle_columns,
+            "visible-columns": self._visible_columns,
             "menu": self._show_menu, "shortcuts": self._shortcuts,
         }
         for name, cb in simple.items():
@@ -694,9 +690,6 @@ class MainWindow(FileActions, ArchiveActions, ToolActions, Adw.ApplicationWindow
         self._add_toggle("show-hidden", settings["show_hidden"], lambda v: settings.__setitem__("show_hidden", v))
         self._add_toggle("dual", False, self._set_dual)
         self._add_toggle("preview", settings["preview_visible"] and features.enabled("preview"), self.set_preview)
-        for col in ("size", "type", "date", "perms", "owner", "duration"):
-            self._add_toggle("column-" + col, col in settings["list_columns"],
-                             lambda v, c=col: self._set_column(c, v))
         self.setup_file_actions()
         self.setup_archive_actions()
         self.setup_tool_actions()
@@ -907,12 +900,6 @@ class MainWindow(FileActions, ArchiveActions, ToolActions, Adw.ApplicationWindow
             p.set_view_mode("grid" if p.view_mode != "grid" else "list")
             self._sync_view_button()
 
-    def _set_column(self, col: str, visible: bool):
-        cols = [c for c in settings["list_columns"] if c != col]
-        if visible:
-            cols.append(col)
-        settings["list_columns"] = cols
-
     def _set_dual(self, value: bool):
         ws = self.workspace
         if ws is None:
@@ -1001,6 +988,12 @@ class MainWindow(FileActions, ArchiveActions, ToolActions, Adw.ApplicationWindow
             self._toggle_columns()
         else:
             self._sync_view_button()
+
+    def _visible_columns(self):
+        """Sélecteur « Colonnes visibles » de Nautilus 46 (vue en liste du panneau actif)."""
+        if self.pane is not None:
+            from .column_chooser import show
+            show(self, self.pane)
 
     def _toggle_columns(self):
         """F9 (raccourci de Column Browser) : vue en colonnes, puis retour à la vue précédente."""

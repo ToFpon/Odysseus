@@ -2661,6 +2661,66 @@ def compteur_corbeille(win):
 
 
 @step
+def selecteur_colonnes(win):
+    """« Colonnes visibles… » comme Nautilus 46 : interrupteurs, ordre (menu et glisser des en-têtes),
+    « N'appliquer qu'au dossier actuel » (métadonnées du dossier, le reste garde le réglage par défaut)."""
+    from odysseus.backend import folder_columns
+    from odysseus.ui.column_chooser import ColumnChooser
+    p = win.pane
+    saved = (list(settings["list_columns"]), list(settings["column_order"]))
+    settings["column_order"] = ["size", "type", "date", "perms", "owner", "duration"]
+    settings["list_columns"] = ["size", "type", "date"]
+    sub = tempfile.mkdtemp(dir=D, prefix="cols ")
+    other = tempfile.mkdtemp(dir=D, prefix="autre ")
+    open(os.path.join(sub, "f.txt"), "w").close()
+    p.set_view_mode("list")
+    p.open(sub)
+    yield Wait(5, until=lambda: not p.model.loading)
+    dlg = ColumnChooser(win, p)
+    dlg.present(win)
+    yield pump(0.3)
+    cols = lambda: [k for k in p.list_view.columns if k not in ("name", "star")]  # noqa: E731
+    dlg._set_visible("perms", True)
+    yield pump(0.2)
+    check(cols() == ["size", "type", "date", "perms"], f"interrupteur : colonne Droits affichée ({cols()})")
+    dlg._move("perms", -1)
+    yield pump(0.2)
+    check(cols() == ["size", "type", "perms", "date"], f"Déplacer vers le haut : ordre suivi ({cols()})")
+    dlg.folder_switch.set_active(True)
+    dlg._set_visible("type", False)
+    yield pump(0.2)
+    check(folder_columns.get(sub) is not None and "type" not in cols() and "type" in settings["list_columns"],
+          f"N'appliquer qu'au dossier actuel : propre à ce dossier ({cols()})")
+    dlg.close()
+    p.open(other)
+    yield Wait(5, until=lambda: not p.model.loading)
+    check("type" in cols(), f"autre dossier : colonnes par défaut ({cols()})")
+    p.open(sub)
+    yield Wait(5, until=lambda: not p.model.loading)
+    check("type" not in cols(), "retour au dossier : ses colonnes à lui")
+    # en-tête glissé (comme Nautilus) : ordre gardé
+    view = p.list_view.view
+    col = p.list_view.columns["size"]
+    view.remove_column(col)
+    view.append_column(col)
+    yield pump(0.3)
+    own = folder_columns.get(sub)
+    check(own and own[1].index("size") > own[1].index("date"), f"en-tête glissé : ordre enregistré ({own})")
+    dlg = ColumnChooser(win, p)
+    dlg.present(win)
+    yield pump(0.2)
+    dlg.folder_switch.set_active(False)
+    yield pump(0.2)
+    check(folder_columns.get(sub) is None and "type" in cols(), "option coupée : le dossier reprend le réglage par défaut")
+    dlg.close()
+    settings["list_columns"], settings["column_order"] = saved
+    p.open(D)
+    yield Wait(5, until=lambda: not p.model.loading)
+    shutil.rmtree(sub)
+    shutil.rmtree(other)
+
+
+@step
 def fermeture_sans_fuite(win):
     """Audit : un onglet ou une fenêtre fermés n'ont plus rien qui tourne derrière eux (recherche dans
     les sous-dossiers, moniteurs de volumes d'« Autres emplacements », relecture des disques toutes les

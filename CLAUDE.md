@@ -374,6 +374,17 @@ fenêtre de recherche dans le contenu.
   annuler, renommage multiple) : `starred.moved` dans `_follow_moves` / `_follow_rename`. Testé :
   `StarredTest` (autre processus = Nautilus), étape `favoris` d'ui_smoke, vrai clic sur l'étoile
   (`star_steps` d'ui_mouse).
+- « Colonnes visibles… » (menu des vues, `win.visible-columns`) = sélecteur de Nautilus 46
+  (`ui/column_chooser.py`) : Nom en tête, poignée (glisser la ligne), interrupteur, menu « Déplacer vers le
+  haut / bas » (pas « Monter » : déjà le libellé de « monter un disque », une seule traduction possible),
+  changements appliqués tout de suite ; en bas « N'appliquer qu'au dossier actuel » → `backend/folder_columns.py`,
+  MÊMES métadonnées que Nautilus (`metadata::nautilus-list-view-visible-columns` / `-column-order`, stringv ;
+  ids name, size, type, date_modified, permissions, owner), nos colonnes inconnues de lui (durée) dans
+  columns.json avec sa valeur du moment (il gagne s'il change) ; coupé = métadonnées retirées. Par défaut :
+  settings `list_columns` (visibles) + `column_order`. `Pane.column_prefs` / `set_column_prefs` ;
+  `views.column_sequence` (Compressé / Ratio des archives après Taille). En-tête glissé (ColumnView
+  reorderable) : ordre enregistré (`ListView._save_column_order`, les colonnes cachées gardent leur place).
+  Testé : `selecteur_colonnes` d'ui_smoke (aussi sous GVfs).
 - Tri propre à chaque dossier comme Nautilus 46 (`backend/folder_sort.py`) : mêmes métadonnées GVfs
   (`metadata::nautilus-icon-view-sort-by` = name / size / type / date_modified, `-sort-reversed` =
   "true" / "false") ; nos autres tris (durée, droits…) dans `sort.json` avec la valeur de Nautilus du
