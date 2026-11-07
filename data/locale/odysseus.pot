@@ -1025,7 +1025,7 @@ msgstr ""
 msgid "La barre d'espace ouvre l'aperçu de GNOME (Sushi) comme dans Nautilus ; les flèches passent au fichier suivant"
 msgstr ""
 
-#: odysseus/features.py:122 odysseus/ui/pane.py:31 odysseus/ui/pathbar.py:102 odysseus/ui/sidebar.py:138
+#: odysseus/features.py:122 odysseus/ui/pane.py:31 odysseus/ui/pathbar.py:102 odysseus/ui/sidebar.py:162
 msgid "Favoris"
 msgstr ""
 
@@ -1545,11 +1545,11 @@ msgstr[1] ""
 msgid "Suppression définitive"
 msgstr ""
 
-#: odysseus/ui/actions_files.py:875 odysseus/ui/pane.py:976 odysseus/ui/sidebar.py:203
+#: odysseus/ui/actions_files.py:875 odysseus/ui/pane.py:976 odysseus/ui/sidebar.py:227
 msgid "La corbeille est vide"
 msgstr ""
 
-#: odysseus/ui/actions_files.py:891 odysseus/ui/sidebar.py:445
+#: odysseus/ui/actions_files.py:891 odysseus/ui/sidebar.py:469
 msgid "Vidage de la corbeille"
 msgstr ""
 
@@ -1609,7 +1609,7 @@ msgstr ""
 msgid "Corbeille vidée"
 msgstr ""
 
-#: odysseus/ui/actions_files.py:894 odysseus/ui/sidebar.py:453
+#: odysseus/ui/actions_files.py:894 odysseus/ui/sidebar.py:477
 msgid "Vider la corbeille"
 msgstr ""
 
@@ -3583,11 +3583,11 @@ msgstr ""
 msgid "Exécuter comme un programme"
 msgstr ""
 
-#: odysseus/ui/menus.py:152 odysseus/ui/sidebar.py:533 odysseus/ui/this_pc.py:343
+#: odysseus/ui/menus.py:152 odysseus/ui/sidebar.py:564 odysseus/ui/this_pc.py:343
 msgid "Ouvrir dans un nouvel onglet"
 msgstr ""
 
-#: odysseus/ui/menus.py:153 odysseus/ui/sidebar.py:534 odysseus/ui/this_pc.py:344
+#: odysseus/ui/menus.py:153 odysseus/ui/sidebar.py:565 odysseus/ui/this_pc.py:344
 msgid "Ouvrir dans une nouvelle fenêtre"
 msgstr ""
 
@@ -3611,7 +3611,7 @@ msgstr ""
 msgid "Déplacer vers l'autre panneau"
 msgstr ""
 
-#: odysseus/ui/menus.py:178 odysseus/ui/menus.py:377 odysseus/ui/sidebar.py:540
+#: odysseus/ui/menus.py:178 odysseus/ui/menus.py:377 odysseus/ui/sidebar.py:571
 msgid "Renommer…"
 msgstr ""
 
@@ -3675,11 +3675,11 @@ msgstr ""
 msgid "Restaurer"
 msgstr ""
 
-#: odysseus/ui/menus.py:130 odysseus/ui/pane.py:216 odysseus/ui/sidebar.py:550
+#: odysseus/ui/menus.py:130 odysseus/ui/pane.py:216 odysseus/ui/sidebar.py:581
 msgid "Vider la corbeille…"
 msgstr ""
 
-#: odysseus/ui/menus.py:155 odysseus/ui/sidebar.py:536 odysseus/ui/this_pc.py:346
+#: odysseus/ui/menus.py:155 odysseus/ui/sidebar.py:567 odysseus/ui/this_pc.py:346
 msgid "Ouvrir dans l'autre panneau"
 msgstr ""
 
@@ -3795,7 +3795,7 @@ msgstr ""
 msgid "Réseaux"
 msgstr ""
 
-#: odysseus/ui/other_locations.py:183 odysseus/ui/sidebar.py:374 odysseus/ui/this_pc.py:77
+#: odysseus/ui/other_locations.py:183 odysseus/ui/sidebar.py:398 odysseus/ui/this_pc.py:77
 msgid "Cliquez pour monter"
 msgstr ""
 
@@ -3803,7 +3803,7 @@ msgstr ""
 msgid "Corbeille"
 msgstr ""
 
-#: odysseus/ui/pane.py:31 odysseus/ui/pathbar.py:101 odysseus/ui/sidebar.py:100
+#: odysseus/ui/pane.py:31 odysseus/ui/pathbar.py:101 odysseus/ui/sidebar.py:124
 msgid "Récents"
 msgstr ""
 
@@ -3811,11 +3811,11 @@ msgstr ""
 msgid "Réseau"
 msgstr ""
 
-#: odysseus/ui/pane.py:33 odysseus/ui/pathbar.py:104 odysseus/ui/sidebar.py:116
+#: odysseus/ui/pane.py:33 odysseus/ui/pathbar.py:104 odysseus/ui/sidebar.py:140
 msgid "Autres emplacements"
 msgstr ""
 
-#: odysseus/ui/pane.py:33 odysseus/ui/pathbar.py:105 odysseus/ui/sidebar.py:132
+#: odysseus/ui/pane.py:33 odysseus/ui/pathbar.py:105 odysseus/ui/sidebar.py:156
 msgid "Ce PC"
 msgstr ""
 
@@ -4741,61 +4741,69 @@ msgstr ""
 msgid "Le dossier « {0} » a besoin des permissions supplémentaires suivantes pour que le partage fonctionne :"
 msgstr ""
 
-#: odysseus/ui/sidebar.py:113
+#: odysseus/ui/sidebar.py:137
 msgid "Périphériques"
 msgstr ""
 
-#: odysseus/ui/sidebar.py:449
+#: odysseus/ui/sidebar.py:473
 msgid "Souhaitez-vous vider la corbeille avant de démonter ?"
 msgstr ""
 
-#: odysseus/ui/sidebar.py:450
+#: odysseus/ui/sidebar.py:474
 msgid "Afin de récupérer l'espace libre sur ce volume, la corbeille doit être vidée. Tous les éléments de ce volume dans la corbeille seront définitivement perdus."
 msgstr ""
 
-#: odysseus/ui/sidebar.py:564
+#: odysseus/ui/sidebar.py:595
 msgid "Renommer le signet"
 msgstr ""
 
-#: odysseus/ui/sidebar.py:541
+#: odysseus/ui/sidebar.py:572
 msgid "Retirer des signets"
 msgstr ""
 
-#: odysseus/ui/sidebar.py:329 odysseus/ui/this_pc.py:90
+#: odysseus/ui/sidebar.py:353 odysseus/ui/this_pc.py:90
 msgid "{0} libres sur {1}"
 msgstr ""
 
-#: odysseus/ui/sidebar.py:546 odysseus/ui/this_pc.py:338
+#: odysseus/ui/sidebar.py:577 odysseus/ui/this_pc.py:338
 msgid "Monter"
 msgstr ""
 
-#: odysseus/ui/sidebar.py:202
+#: odysseus/ui/sidebar.py:226
 msgid "{0} élément dans la corbeille"
 msgid_plural "{0} éléments dans la corbeille"
 msgstr[0] ""
 msgstr[1] ""
 
-#: odysseus/ui/sidebar.py:342 odysseus/ui/sidebar.py:548 odysseus/ui/this_pc.py:353 odysseus/ui/this_pc.py:355
+#: odysseus/ui/sidebar.py:366 odysseus/ui/sidebar.py:579 odysseus/ui/this_pc.py:353 odysseus/ui/this_pc.py:355
 msgid "Éjecter"
 msgstr ""
 
-#: odysseus/ui/sidebar.py:343 odysseus/ui/sidebar.py:548 odysseus/ui/this_pc.py:353
+#: odysseus/ui/sidebar.py:367 odysseus/ui/sidebar.py:579 odysseus/ui/this_pc.py:353
 msgid "Démonter"
 msgstr ""
 
-#: odysseus/ui/sidebar.py:452
+#: odysseus/ui/sidebar.py:476
 msgid "Ne pas vider la corbeille"
 msgstr ""
 
-#: odysseus/ui/sidebar.py:471
+#: odysseus/ui/sidebar.py:492
+msgid "Ne débranchez pas avant la fin"
+msgstr ""
+
+#: odysseus/ui/sidebar.py:502
 msgid "{0} peut être retiré en toute sécurité"
 msgstr ""
 
-#: odysseus/ui/sidebar.py:397
+#: odysseus/ui/sidebar.py:491
+msgid "Écriture des données sur {0}"
+msgstr ""
+
+#: odysseus/ui/sidebar.py:421
 msgid "Impossible de monter {0}"
 msgstr ""
 
-#: odysseus/ui/sidebar.py:469
+#: odysseus/ui/sidebar.py:500
 msgid "Impossible d'éjecter {0}"
 msgstr ""
 

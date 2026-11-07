@@ -19,6 +19,30 @@ from ..i18n import ntr, tr
 from ..settings import settings
 from .common import SpringLoad, alert, ask_text, popup_menu, shown, toast
 
+UNMOUNT_NOTIFICATION = "unmount"        # même identifiant : « Écriture… » est remplacée par « … retiré »
+
+
+def notify_unmount(widget, title: str, body: str = "", icon=None):
+    """Retrait d'un support : une vraie notification du bureau, comme Nautilus (un toast dans la fenêtre
+    passait inaperçu). Sans bus de session ni application enregistrée : le toast, faute de mieux."""
+    app = Gio.Application.get_default()
+    if app is None or not app.get_is_registered() or app.get_dbus_connection() is None:
+        toast(widget, title)
+        return False
+    n = Gio.Notification.new(shown(title))
+    if body:
+        n.set_body(shown(body))
+    if icon is not None:
+        n.set_icon(icon)
+    app.send_notification(UNMOUNT_NOTIFICATION, n)
+    return False
+
+
+def withdraw_unmount(_widget=None):
+    app = Gio.Application.get_default()
+    if app is not None and app.get_is_registered():
+        app.withdraw_notification(UNMOUNT_NOTIFICATION)
+
 TRASH = "trash:///"
 
 PRIVACY_SCHEMA = "org.gnome.desktop.privacy"
@@ -460,15 +484,22 @@ class Sidebar(Gtk.Box):
         if row.target and hasattr(win, "leave_location"):
             win.leave_location(row.target)
         op = Gtk.MountOperation.new(win)
+        icon = (mount or volume).get_icon()
+        # données encore en cache (clé lente) : GIO prévient pendant l'écriture, comme pour Nautilus
+        op.connect("show-unmount-progress",
+                   lambda _op, _msg, _left, bytes_left: bytes_left > 0 and notify_unmount(
+                       self, tr("Écriture des données sur {0}").format(name),
+                       tr("Ne débranchez pas avant la fin"), icon))
 
         def done(obj, res, finish):
             try:
                 finish(res)
             except GLib.Error as e:
+                withdraw_unmount(self)
                 if not e.matches(Gio.io_error_quark(), Gio.IOErrorEnum.FAILED_HANDLED):
                     alert(self, tr("Impossible d'éjecter {0}").format(name), e.message)
                 return
-            toast(self, tr("{0} peut être retiré en toute sécurité").format(name))
+            notify_unmount(self, tr("{0} peut être retiré en toute sécurité").format(name), "", icon)
             self._fill_devices()
         if mount is not None and mount.can_eject():
             mount.eject_with_operation(Gio.MountUnmountFlags.NONE, op, None,

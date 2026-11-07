@@ -2825,6 +2825,59 @@ def proprietes_depuis_le_bureau(win):
 
 
 @step
+def notification_retrait(win):
+    """Retrait d'une clé : vraie notification du bureau comme Nautilus (le toast passait inaperçu),
+    « Écriture des données… » puis remplacée par « … peut être retiré en toute sécurité »."""
+    if not os.environ.get("DBUS_SESSION_BUS_ADDRESS"):
+        log.append("notification de retrait : pas de bus de session, sauté")
+        return
+    from odysseus.ui.sidebar import notify_unmount
+    xml = """<node><interface name="org.freedesktop.Notifications">
+      <method name="Notify"><arg type="s" direction="in"/><arg type="u" direction="in"/>
+        <arg type="s" direction="in"/><arg type="s" direction="in"/><arg type="s" direction="in"/>
+        <arg type="as" direction="in"/><arg type="a{sv}" direction="in"/><arg type="i" direction="in"/>
+        <arg type="u" direction="out"/></method>
+      <method name="CloseNotification"><arg type="u" direction="in"/></method>
+      <method name="GetCapabilities"><arg type="as" direction="out"/></method>
+      <method name="GetServerInformation"><arg type="s" direction="out"/><arg type="s" direction="out"/>
+        <arg type="s" direction="out"/><arg type="s" direction="out"/></method>
+      <signal name="NotificationClosed"><arg type="u"/><arg type="u"/></signal>
+      <signal name="ActionInvoked"><arg type="u"/><arg type="s"/></signal>
+    </interface></node>"""
+    got = []
+
+    def call(_conn, _sender, _path, _iface, method, params, inv):
+        if method == "Notify":
+            p = params.unpack()
+            got.append((p[1], p[3], p[4]))
+            inv.return_value(GLib.Variant("(u)", (len(got),)))
+        elif method == "GetCapabilities":
+            inv.return_value(GLib.Variant("(as)", (["body"],)))
+        elif method == "GetServerInformation":
+            inv.return_value(GLib.Variant("(ssss)", ("faux", "test", "1", "1.2")))
+        else:
+            inv.return_value(None)
+    conn = Gio.bus_get_sync(Gio.BusType.SESSION, None)
+    info = Gio.DBusNodeInfo.new_for_xml(xml).interfaces[0]
+    reg = conn.register_object("/org/freedesktop/Notifications", info, call, None, None)
+    owner = Gio.bus_own_name_on_connection(conn, "org.freedesktop.Notifications",
+                                           Gio.BusNameOwnerFlags.NONE, None, None)
+    yield pump(0.5)
+    try:
+        notify_unmount(win.sidebar, "Écriture des données sur CLE", "Ne débranchez pas avant la fin")
+        yield Wait(3, until=lambda: len(got) >= 1)
+        notify_unmount(win.sidebar, "CLE peut être retiré en toute sécurité")
+        yield Wait(3, until=lambda: len(got) >= 2)
+        check(len(got) == 2 and got[0][1].startswith("Écriture") and "retiré" in got[1][1],
+              f"retrait d'une clé : notifications du bureau ({[g[1] for g in got]})")
+        check(len(got) == 2 and got[1][0] == 1,
+              f"« Écriture… » remplacée par « … retiré » (même notification, replaces_id={got[1][0] if len(got) > 1 else None})")
+    finally:
+        Gio.bus_unown_name(owner)
+        conn.unregister_object(reg)
+
+
+@step
 def ejecter_vider_corbeille(win):
     """Éjecter un support dont la corbeille n'est pas vide : la question de Nautilus, « Vider la
     corbeille » la vide puis éjecte ; « Ne pas vider » éjecte sans y toucher ; « Annuler » ne fait rien."""
