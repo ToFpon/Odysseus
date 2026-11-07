@@ -1081,5 +1081,65 @@ class AuditFileopsTest(unittest.TestCase):
         self.assertTrue(os.path.exists(src))
 
 
+class Audit2FileopsTest(unittest.TestCase):
+    """Second audit (novembre 2026) : régressions des corrections précédentes."""
+
+    def setUp(self):
+        self.tmp = tempfile.TemporaryDirectory()
+        self.d = self.tmp.name
+        self.addCleanup(self.tmp.cleanup)        # après le démontage (les nettoyages vont à rebours)
+
+    def test_growing_and_proc_files_copy(self):
+        """Un fichier qui grossit pendant la copie (journal) ou un fichier de /proc (taille 0 annoncée) :
+        copiés tels qu'ils étaient lus, pas refusés comme « copie incomplète »."""
+        log = os.path.join(self.d, "src", "app.log")
+        write(log, b"ligne\n" * 1000)
+        real_read = fileops.os.copy_file_range if hasattr(os, "copy_file_range") else None
+        dest = os.path.join(self.d, "dest")
+        os.makedirs(dest)
+        grown = {"done": False}
+
+        def cfr(fin, fout, count, *a):
+            n = real_read(fin, fout, count, *a)
+            if not grown["done"]:
+                grown["done"] = True
+                with open(log, "ab") as fh:          # l'application écrit encore pendant la copie
+                    fh.write(b"encore\n" * 100)
+            return n
+        if real_read is not None:
+            with mock.patch("os.copy_file_range", cfr):
+                run(lambda j: fileops.transfer(j, [log], dest, ask("skip")))
+            self.assertTrue(os.path.exists(os.path.join(dest, "app.log")))
+        run(lambda j: fileops.transfer(j, ["/proc/self/status"], dest, ask("skip")))
+        self.assertGreater(os.path.getsize(os.path.join(dest, "status")), 0)
+
+    def _bind(self, src, mnt):
+        os.makedirs(mnt, exist_ok=True)
+        if subprocess.run(["mount", "--bind", src, mnt], capture_output=True).returncode != 0:
+            self.skipTest("mount --bind impossible ici")
+        self.addCleanup(lambda: subprocess.run(["umount", mnt], capture_output=True))
+
+    def test_bind_mount_move_into_itself_refused(self):
+        real = os.path.join(self.d, "real")
+        write(os.path.join(real, "proj", "inner", "f.txt"), b"x")
+        mnt = os.path.join(self.d, "vue")
+        self._bind(real, mnt)
+        j = Job("t", lambda j: fileops.transfer(j, [os.path.join(real, "proj")],
+                                                os.path.join(mnt, "proj", "inner"), ask("skip"), move=True)).run_sync()
+        self.assertNotEqual(j.state, "done")
+        self.assertEqual(os.listdir(os.path.join(real, "proj", "inner")), ["f.txt"])
+
+    def test_bind_mount_merge_onto_itself_keeps_data(self):
+        """Fusionner puis remplacer un dossier avec lui-même vu par un montage « bind » : rien n'est perdu."""
+        real = os.path.join(self.d, "real")
+        write(os.path.join(real, "garde", "g.txt"), b"precieux")
+        mnt = os.path.join(self.d, "vue")
+        self._bind(real, mnt)
+        answers = iter([("merge", False), ("replace", True)])
+        Job("t", lambda j: fileops.transfer(j, [os.path.join(real, "garde")], mnt,
+                                            lambda c: next(answers, ("replace", True)), move=True)).run_sync()
+        self.assertEqual(open(os.path.join(real, "garde", "g.txt"), "rb").read(), b"precieux")
+
+
 if __name__ == "__main__":
     unittest.main()

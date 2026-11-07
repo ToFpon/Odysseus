@@ -124,7 +124,12 @@ class DragCache:
             self.job = None
         if token != self.token or job.state != "done" or not job.result:
             return False
-        self._store(job.result, keep=[it[0] for it in items])
+        # garder la sélection de CE moment (elle a pu changer pendant l'extraction), pas celle du départ
+        try:
+            current = [it[0] for it in self._pending()]
+        except Exception:  # noqa: BLE001 — sélection illisible (fenêtre fermée) : rien à garder de plus
+            current = []
+        self._store(job.result, keep=[it[0] for it in items] + current)
         if self.waiting and all(self.cached(it[0]) for it in items):
             self.waiting = False
             self.message(tr("Sélection prête : vous pouvez la glisser"))

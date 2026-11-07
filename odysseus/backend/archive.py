@@ -96,7 +96,10 @@ class ArchiveListing:
                 self._children.setdefault("" if parent == "." else parent, []).append(e)
 
     def children(self, folder: str) -> list[Entry]:
-        return list(self._children.get(folder.strip("/"), []))
+        folder = folder.strip("/")
+        # « . » (tar fait avec « tar -cf x.tar . ») est la racine : « Remonter » depuis « ./dossier »
+        # y arrive, qui doit montrer le contenu de l'archive et pas une page vide
+        return list(self._children.get("" if folder == "." else folder, []))
 
     def get(self, path: str) -> Optional[Entry]:
         return self._by_path.get(path.strip("/"))

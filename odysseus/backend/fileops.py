@@ -254,6 +254,7 @@ class _Copier:
                 tmp_created = True
                 try:
                     use_cfr = hasattr(os, "copy_file_range")
+                    written = 0
                     while True:
                         self.job.check_cancel()
                         n = 0
@@ -278,15 +279,18 @@ class _Copier:
                                 n = len(data)
                         if not n:
                             break
+                        written += n
                         self.done += n
                         self.tick()
+                    # filet : la copie contient bien tout ce qui a été écrit. Comparé à ce qu'on a écrit,
+                    # pas à la taille de l'original : un journal qui grossit pendant la copie ou un
+                    # fichier de /proc (taille 0) étaient refusés comme « copie incomplète »
+                    if os.fstat(fd).st_size != written:
+                        raise OSError(errno.EIO, tr("copie incomplète (taille différente de l'original)"))
                     if self.sync:
                         os.fsync(fd)       # contenu réellement écrit avant l'échange
                 finally:
                     os.close(fd)
-            # filet : jamais un fichier plus court que l'original sous le vrai nom
-            if os.stat(tmp).st_size != os.stat(src).st_size:
-                raise OSError(errno.EIO, tr("copie incomplète (taille différente de l'original)"))
             try:
                 shutil.copystat(src, tmp)
             except OSError:
@@ -390,7 +394,7 @@ class _Copier:
             elif actual is not None:
                 dst = os.path.join(folder, actual)      # conflit avec l'élément tel qu'il est nommé
                 exists = True
-        if exists and _real_location(src) == _real_location(dst):
+        if exists and _same_item(src, dst):
             return None          # c'est le même élément (vu à travers un lien) : rien à faire
         if exists:
             dst_is_dir = os.path.isdir(dst) and not os.path.islink(dst)
@@ -663,7 +667,44 @@ def _real_location(path: str) -> str:
 
 def _is_inside(child: str, parent: str) -> bool:
     child, parent = os.path.realpath(child), os.path.realpath(parent)
-    return child == parent or child.startswith(parent.rstrip("/") + "/")
+    if child == parent or child.startswith(parent.rstrip("/") + "/"):
+        return True
+    # même dossier vu par un autre chemin (montage « bind ») : realpath ne le voit pas, l'inode si.
+    # Sans ça, déplacer ~/data/proj dans /mnt/vue/proj/dedans (/mnt/vue = ~/data) se recopiait sans fin.
+    return any(_same_dir(parent, p) for p in _ancestors(child))
+
+
+def _ancestors(path: str):
+    while True:
+        yield path
+        up = os.path.dirname(path)
+        if up == path:
+            return
+        path = up
+
+
+def _same_dir(a: str, b: str) -> bool:
+    """Même dossier (périphérique + inode). Pas sur FAT / NTFS par FUSE : inodes pas toujours stables."""
+    try:
+        sa, sb = os.stat(a), os.stat(b)
+    except OSError:
+        return False
+    if (sa.st_dev, sa.st_ino) != (sb.st_dev, sb.st_ino) or not st.S_ISDIR(sa.st_mode):
+        return False
+    return fsinfo.fs_type(a) not in fsinfo.WINDOWS_LIKE
+
+
+def _same_item(a: str, b: str) -> bool:
+    """Même élément, vu par deux chemins : lien symbolique (`_real_location`) ou montage « bind » (inode)."""
+    if _real_location(a) == _real_location(b):
+        return True
+    try:
+        sa, sb = os.lstat(a), os.lstat(b)
+    except OSError:
+        return False
+    if (sa.st_dev, sa.st_ino) != (sb.st_dev, sb.st_ino) or sa.st_nlink > 1 and not st.S_ISDIR(sa.st_mode):
+        return False                 # lien dur : deux noms, deux éléments pour l'utilisateur
+    return fsinfo.fs_type(a) not in fsinfo.WINDOWS_LIKE
 
 
 def _move_same_disk(src: str, dst: str, dest_dir: str, name: str, copier: "_Copier", res: Result,
@@ -672,7 +713,7 @@ def _move_same_disk(src: str, dst: str, dest_dir: str, name: str, copier: "_Copi
     pris entre la vérification et le renommage (autre déplacement lancé en même temps), le conflit
     est posé à nouveau au lieu de remplacer en silence l'élément arrivé entre-temps."""
     for _attempt in range(4):
-        if os.path.lexists(dst) and _real_location(dst) == _real_location(src):
+        if os.path.lexists(dst) and _same_item(dst, src):
             return
         if os.path.lexists(dst):
             src_is_dir = os.path.isdir(src) and not os.path.islink(src)

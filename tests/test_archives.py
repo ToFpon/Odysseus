@@ -496,6 +496,8 @@ class AuditListingTest(unittest.TestCase):
         self.assertEqual(sorted(e.name for e in listing.top_level()), ["abc.txt", "sub"])
         self.assertEqual([e.name for e in listing.children("./sub")], ["in.txt"])
         self._roundtrip(tar, src, ["abc.txt", "sub"])
+        # « Remonter » depuis « ./sub » arrive sur « . » : c'est la racine, pas une page vide
+        self.assertEqual(sorted(e.name for e in listing.children(".")), ["abc.txt", "sub"])
 
 
 class AuditLinksTest(unittest.TestCase):
