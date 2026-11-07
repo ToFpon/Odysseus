@@ -1,3 +1,15 @@
+odysseus (1.8.7~noble1) noble; urgency=medium
+
+  * Onglet glissé vers une autre fenêtre : titre, barre de chemin et
+    nouveaux onglets suivent la fenêtre qui l'a reçu.
+  * Archive tar faite avec « . » : supprimer un élément le supprime
+    vraiment ; un élément que 7-Zip laisse en place est signalé au lieu
+    d'un succès muet.
+  * README : avertissement avant de désinstaller le paquet (« Afficher
+    dans le dossier »).
+
+ -- Tof <nourpon@gmail.com>  Sat, 07 Nov 2026 21:54:38 +0000
+
 odysseus (1.8.6~noble1) noble; urgency=medium
 
   * Nouveau réglage « Ouvrir Odysseus sur » (Préférences, Général) :
