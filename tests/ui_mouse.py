@@ -510,6 +510,15 @@ def steps(win):
         yield
         yield
         check(p.view_mode == "list", f"[{layout}] F9 encore : retour à la liste ({p.view_mode})")
+    # tchèque : « é » est la touche 0 → Ctrl+é remet le zoom, il ne passe PAS en grille
+    if subprocess.run(["setxkbmap", "cz"], capture_output=True).returncode == 0:
+        p.open(D)
+        yield
+        p.active_view.grab_focus()
+        xdo("key", "ctrl+eacute")
+        yield
+        yield
+        check(p.view_mode == "list", f"[cz] Ctrl+é (touche 0) : vue inchangée ({p.view_mode})")
     subprocess.run(["setxkbmap", "us"], capture_output=True)
     # Ctrl + molette : zoom de la liste puis de la grille, comme Nautilus ; sans Ctrl, ça défile
     from odysseus.settings import settings

@@ -85,6 +85,9 @@ def _fits(key, value) -> bool:
         return isinstance(value, int) and not isinstance(value, bool)
     if isinstance(default, float):
         return isinstance(value, (int, float)) and not isinstance(value, bool)
+    if isinstance(default, list) and default and all(isinstance(x, str) for x in default):
+        # listes de noms (colonnes…) : des éléments d'un autre type empêchaient l'ouverture
+        return isinstance(value, list) and all(isinstance(x, str) for x in value)
     return isinstance(value, type(default))
 
 

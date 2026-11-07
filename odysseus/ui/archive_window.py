@@ -22,7 +22,7 @@ from ..backend.engine import PasswordRequired, human_size
 from ..i18n import ntr, tr
 from ..settings import session_passwords, settings
 from .archive_drag import DragCache
-from .common import ask_password, markup_safe, open_with_default, popup_menu, shown, toast
+from .common import ask_password, open_with_default, popup_menu, shown, toast
 from .icons import ctype_icon, gicon_for
 from .model import fold, matches, query_words
 
@@ -276,7 +276,7 @@ class ArchiveWindow(Adw.ApplicationWindow):
         self.listing = None
         self.drag = DragCache(lambda: (self.archive_file, self.password, self.listing),
                               lambda msg: toast(self, msg))
-        self.title = Adw.WindowTitle(title=markup_safe(os.path.basename(path)))
+        self.title = Adw.WindowTitle(title=shown(os.path.basename(path)))     # pas de balisage ici
         self.set_title(shown(os.path.basename(path)))
         hb = Adw.HeaderBar(title_widget=self.title)
         tv = Adw.ToolbarView()

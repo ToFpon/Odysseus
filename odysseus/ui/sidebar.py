@@ -187,7 +187,7 @@ class Sidebar(Gtk.Box):
 
     def refresh_trash_count(self):
         """Recompte (dans un fil : un disque peut être lent), au plus deux fois par seconde."""
-        if getattr(self, "_trash_pending", 0):
+        if getattr(self, "_trash_pending", 0) or getattr(self, "_stopped", False):
             return
         def run():
             self._trash_pending = 0
@@ -200,6 +200,8 @@ class Sidebar(Gtk.Box):
         self._trash_pending = GLib.timeout_add(500, run)
 
     def _trash_counted(self, n: int, dirs: list):
+        if getattr(self, "_stopped", False):     # fenêtre fermée pendant le comptage : rien à réarmer
+            return
         self._trash_n = n
         self._show_trash_count(n)
         mons = self._trash_monitors
@@ -277,6 +279,8 @@ class Sidebar(Gtk.Box):
             self._bm_monitor = None
 
     def _fill_bookmarks(self):
+        if getattr(self, "_stopped", False):
+            return False
         while (c := self.bm_list.get_first_child()) is not None:
             self.bm_list.remove(c)
         items = bookmarks.load()
@@ -309,7 +313,15 @@ class Sidebar(Gtk.Box):
 
     def stop(self):
         """Fenêtre fermée : plus de relecture des disques toutes les 3 s ni de recomptage de la
-        corbeille pour une barre latérale que personne ne voit (ça continuait sans fin)."""
+        corbeille pour une barre latérale que personne ne voit (ça continuait sans fin). Un comptage
+        lancé juste avant (opération finie après la fermeture) ne réarme plus rien (_stopped)."""
+        self._stopped = True
+        if getattr(self, "_trash_pending", 0):
+            GLib.source_remove(self._trash_pending)
+            self._trash_pending = 0
+        if getattr(self, "_bm_monitor", None) is not None:
+            self._bm_monitor.cancel()
+            self._bm_monitor = None
         if getattr(self, "_poll_id", 0):
             GLib.source_remove(self._poll_id)
             self._poll_id = 0
@@ -328,7 +340,7 @@ class Sidebar(Gtk.Box):
         return True
 
     def _queue_devices(self):
-        if not getattr(self, "_dev_pending", False):
+        if not getattr(self, "_dev_pending", False) and not getattr(self, "_stopped", False):
             self._dev_pending = True
             GLib.timeout_add(250, self._fill_devices)
 

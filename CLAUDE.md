@@ -190,6 +190,13 @@ retirés, réglages / opérations débranchés, `Sidebar.stop`), `Pane._cleanup`
 spéciales, Autres emplacements branche ses moniteurs à l'affichage ; `SpringLoad` reçoit le contrôleur (la
 cellule restait retenue) ; grille non affichée : attend « map » au lieu d'un minuteur ; `scroll_to` ignore
 une position hors du modèle. Testé : `fermeture_sans_fuite` d'ui_smoke, `Audit*Test` de test_archives.
+Second audit (régressions, `Audit2FileopsTest`) : le filet de taille compare la copie aux octets ÉCRITS (un
+journal qui grossit, /proc : refusés sinon) ; même dossier vu par un montage « bind » reconnu par l'inode
+(`_is_inside` / `_same_item`, pas sur FAT / NTFS FUSE) — se recopiait en lui-même sans fin, ou fusion +
+remplacement sur lui-même supprimait tout ; `children(".")` = racine (tar « ./ ») ; cache du glisser garde la
+sélection du moment. Barre latérale arrêtée (`_stopped`) : plus de recomptage / moniteurs réarmés par une
+opération finie après la fermeture ; Propriétés d'une fenêtre fermée → `_host()` (une fenêtre vivante) ;
+`Adw.WindowTitle` ne lit PAS de balisage (`shown`, pas `markup_safe`) ; listes de réglages : éléments `str`.
 
 `workers.Pool` : un fil bloqué dans un appel système ne se tue pas ; si tous sont pris depuis plus
 de 3 s, un fil est ajouté (6 au plus).
@@ -308,8 +315,9 @@ fenêtre de recherche dans le contenu.
   raccourcis) — jamais dans l'action : un clic sur « Précédent » doit naviguer ; testé dans `ui_mouse.py`.
   « / » et « ~ » se tapent avec Maj / AltGr en AZERTY (clavier de Tof) et QWERTZ : pour eux, Maj ne
   compte pas ; `ui_mouse.py` les tape aussi avec `setxkbmap fr` et `de`.
-  Ctrl+1 / 2 / 3 (vues) et Ctrl+0 : en AZERTY, la rangée des chiffres donne `& é " à` sans Maj — raccourcis
-  doublés (`<Ctrl>ampersand`…, plus le pavé numérique), sinon rien ne se passait chez Tof ; testé en fr / de.
+  Ctrl+1 / 2 / 3 (vues) et Ctrl+0 : en AZERTY, la rangée des chiffres donne `& é " à` sans Maj — reconnus par
+  la TOUCHE physique (`MainWindow._on_digit_row`, codes XKB 10-12 et 19, en capture), jamais par le caractère :
+  `<Ctrl>eacute` passait en grille sur un clavier tchèque (é = touche 0). Testé en fr / de / cz.
 - Renommage multiple (F2 / « Renommer… » sur plusieurs éléments locaux) = dialogue de Nautilus 46
   (`ui/batch_rename.py`, moteur `backend/batchrename.py`, testé par `test_batchrename` et ui_smoke) :
   modèle (texte + balises « [Nom du fichier original] », « [01, 02, 03] »… effacées d'un bloc,

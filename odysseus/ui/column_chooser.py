@@ -11,7 +11,7 @@ from gi.repository import Adw, Gdk, Gio, GLib, GObject, Gtk
 
 from .. import features
 from ..i18n import tr
-from .common import DialogWindow, markup_safe
+from .common import DialogWindow, shown
 from .views import COLUMN_INFO, OPTIONAL_KEYS, full_order
 
 
@@ -32,7 +32,7 @@ class ColumnChooser(DialogWindow):
         tv = Adw.ToolbarView()
         place = pane.column_place()
         title = Adw.WindowTitle(title=tr("Colonnes visibles"),
-                                subtitle=markup_safe(os.path.basename(place.rstrip("/")) or place) if place else "")
+                                subtitle=shown(os.path.basename(place.rstrip("/")) or place) if place else "")
         tv.add_top_bar(Adw.HeaderBar(title_widget=title))
         self.list = Gtk.ListBox(css_classes=["boxed-list"], selection_mode=Gtk.SelectionMode.NONE,
                                 margin_top=12, margin_bottom=18, margin_start=12, margin_end=12,

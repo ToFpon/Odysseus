@@ -97,6 +97,20 @@ class FittedPage(Gtk.ScrolledWindow):
 
 
 class PropertiesDialog(DialogWindow):
+    def _host(self):
+        """Fenêtre principale où agir : celle d'origine, ou une autre si elle a été fermée entre-temps
+        (Propriétés n'est pas modale) — sinon « Ouvrir le dossier parent » ranimait une fenêtre vide."""
+        if not getattr(self.window, "_torn_down", False):
+            return self.window
+        app = Gio.Application.get_default()
+        return app._window() or app._new_window()
+
+    def _open_in_host(self, folder: str):
+        self.close()
+        host = self._host()
+        host.open_location(folder)
+        host.present()
+
     def __init__(self, window, paths: list[str]):
         # hauteur : celle du contenu (comme Nautilus), sans défilement tant que l'écran le permet
         super().__init__(title=tr("Propriétés"), content_width=480, content_height=-1)
@@ -172,7 +186,7 @@ class PropertiesDialog(DialogWindow):
         loc = info_row(tr("Dossier parent"), shown(parent.rstrip("/") + "/"))
         btn = Gtk.Button(icon_name="folder-open-symbolic", valign=Gtk.Align.CENTER, css_classes=["flat"],
                          tooltip_text=tr("Ouvrir le dossier parent"))
-        btn.connect("clicked", lambda *_: (self.close(), window.open_location(parent), window.present()))
+        btn.connect("clicked", lambda *_: self._open_in_host(parent))
         loc.add_suffix(btn)
         g.add(loc)
         if one and one.is_link:
@@ -182,8 +196,7 @@ class PropertiesDialog(DialogWindow):
                 full = os.path.normpath(os.path.join(parent, target))
                 b = Gtk.Button(icon_name="folder-open-symbolic", valign=Gtk.Align.CENTER, css_classes=["flat"],
                                tooltip_text=tr("Ouvrir la cible du lien"))
-                b.connect("clicked", lambda *_: (self.close(), window.open_location(os.path.dirname(full)),
-                                                 window.present()))
+                b.connect("clicked", lambda *_: self._open_in_host(os.path.dirname(full)))
                 row.add_suffix(b)
                 g.add(row)
             except OSError:
@@ -486,7 +499,7 @@ class PropertiesDialog(DialogWindow):
                     dperm |= bits << shift
                     dmask |= 7 << shift
             dialog.close()
-            self.window._run(tr("Changement des permissions"),
+            self._host()._run(tr("Changement des permissions"),
                              lambda j: chmod_tree(j, folder, fperm, fmask, dperm, dmask),
                              on_done=lambda _j: self._sync_summary())
         action.connect("clicked", go)

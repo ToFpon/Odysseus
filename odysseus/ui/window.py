@@ -56,6 +56,7 @@ class MainWindow(FileActions, ArchiveActions, ToolActions, Adw.ApplicationWindow
         self.add_controller(nav)
         # touches qui ont un sens dans un champ de saisie : rendues au texte (voir _TEXT_KEYS)
         keys = Gtk.EventControllerKey(propagation_phase=Gtk.PropagationPhase.CAPTURE)
+        keys.connect("key-pressed", self._on_digit_row)
         keys.connect("key-pressed", self._on_text_key)
         # taper pour aller au fichier : aussi en capture, avant les raccourcis (Retour arrière = Précédent)
         keys.connect("key-pressed", self._on_type_ahead)
@@ -74,8 +75,9 @@ class MainWindow(FileActions, ArchiveActions, ToolActions, Adw.ApplicationWindow
         self.set_content(self.toast_overlay)
         self.connect("map", lambda *_: self.fit_sidebar())
         # police ou mise à l'échelle du texte changée dans les Paramètres : les libellés aussi
-        Gtk.Settings.get_default().connect("notify::gtk-font-name", lambda *_: self.fit_sidebar())
-        Gtk.Settings.get_default().connect("notify::gtk-xft-dpi", lambda *_: self.fit_sidebar())
+        gs = Gtk.Settings.get_default()
+        self._gtk_settings_ids = [gs.connect("notify::gtk-font-name", lambda *_: self.fit_sidebar()),
+                                  gs.connect("notify::gtk-xft-dpi", lambda *_: self.fit_sidebar())]
         bp = Adw.Breakpoint.new(Adw.BreakpointCondition.parse("max-width: 640sp"))
         bp.add_setter(self.split, "collapsed", True)
         self.add_breakpoint(bp)
@@ -656,6 +658,10 @@ class MainWindow(FileActions, ArchiveActions, ToolActions, Adw.ApplicationWindow
             self._mgr_id = 0
         self.sidebar.stop()
         self.ops_btn.stop()
+        gs = Gtk.Settings.get_default()
+        for i in getattr(self, "_gtk_settings_ids", []):
+            gs.disconnect(i)
+        self._gtk_settings_ids = []
 
     # ------------------------------------------------------------------
     # Actions
@@ -704,13 +710,12 @@ class MainWindow(FileActions, ArchiveActions, ToolActions, Adw.ApplicationWindow
             "win.select-all": ["<Ctrl>a"], "win.unselect-all": ["<Ctrl><Shift>a"],
             "win.invert-selection": ["<Ctrl><Shift>i"], "win.toggle-sidebar": ["<Ctrl>F9"],
             "win.zoom-in": ["<Ctrl>plus", "<Ctrl>equal", "<Ctrl>KP_Add"],
-            # AZERTY (France, Belgique) : la rangée des chiffres donne « à & é " » sans Maj — Ctrl+1 y
-            # arrivait comme Ctrl+& et ne faisait rien (vu chez Tof)
+            # rangée des chiffres en AZERTY, tchèque… : voir _on_digit_row (par touche, pas par caractère)
             "win.zoom-out": ["<Ctrl>minus", "<Ctrl>KP_Subtract"],
-            "win.zoom-normal": ["<Ctrl>0", "<Ctrl>KP_0", "<Ctrl>agrave"],
-            "win.view-mode::list": ["<Ctrl>1", "<Ctrl>KP_1", "<Ctrl>ampersand"],
-            "win.view-mode::grid": ["<Ctrl>2", "<Ctrl>KP_2", "<Ctrl>eacute"],
-            "win.view-mode::columns": ["<Ctrl>3", "<Ctrl>KP_3", "<Ctrl>quotedbl"], "win.toggle-columns": ["F9"],
+            "win.zoom-normal": ["<Ctrl>0", "<Ctrl>KP_0"],
+            "win.view-mode::list": ["<Ctrl>1", "<Ctrl>KP_1"],
+            "win.view-mode::grid": ["<Ctrl>2", "<Ctrl>KP_2"],
+            "win.view-mode::columns": ["<Ctrl>3", "<Ctrl>KP_3"], "win.toggle-columns": ["F9"],
             "win.dual": ["F3"], "win.preview": ["F4"], "win.switch-pane": ["<Ctrl>Tab"],
             "win.menu": ["F10"], "win.shortcuts": ["<Ctrl>question", "<Ctrl>F1"],
         }
@@ -846,6 +851,27 @@ class MainWindow(FileActions, ArchiveActions, ToolActions, Adw.ApplicationWindow
                               Gtk.DirectionType.LEFT: "left", Gtk.DirectionType.RIGHT: "right",
                               Gtk.DirectionType.TAB_FORWARD: "down", Gtk.DirectionType.TAB_BACKWARD: "up"}
                              .get(Gtk.DirectionType(direction), "down"))
+
+    # touches physiques 1, 2, 3 et 0 de la rangée des chiffres (codes XKB, mêmes sous X11 et Wayland)
+    _DIGIT_ROW = {10: ("view-mode", "list"), 11: ("view-mode", "grid"), 12: ("view-mode", "columns"),
+                  19: ("zoom-normal", None)}
+
+    def _on_digit_row(self, _ctrl, _keyval, code, state):
+        """Ctrl + touche 1 / 2 / 3 / 0 quel que soit le clavier : en AZERTY elles donnent « & é " à » sans
+        Maj (rien ne se passait, vu chez Tof). Par la TOUCHE et pas par le caractère : en tchèque, « é »
+        est la touche 0, Ctrl+é ne doit pas passer en grille."""
+        mods = state & (Gdk.ModifierType.CONTROL_MASK | Gdk.ModifierType.SHIFT_MASK |
+                        Gdk.ModifierType.ALT_MASK | Gdk.ModifierType.SUPER_MASK)
+        if mods != Gdk.ModifierType.CONTROL_MASK or code not in self._DIGIT_ROW:
+            return False
+        if isinstance(self.get_focus(), (Gtk.Text, Gtk.TextView)):
+            return False
+        name, target = self._DIGIT_ROW[code]
+        action = self.lookup_action(name)
+        if action is None or not action.get_enabled():
+            return False
+        action.activate(GLib.Variant.new_string(target) if target else None)
+        return True
 
     def _on_text_key(self, _ctrl, keyval, _code, state):
         if state & (Gdk.ModifierType.ALT_MASK | Gdk.ModifierType.SUPER_MASK):

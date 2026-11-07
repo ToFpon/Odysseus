@@ -608,12 +608,13 @@ class MiscTest(unittest.TestCase):
             f = os.path.join(d, "settings.json")
             with open(f, "w") as fh:
                 json.dump({"features": None, "window_width": "1180", "sidebar_trash_count": False,
-                           "inconnu": 3}, fh)
+                           "inconnu": 3, "list_columns": [["size"]]}, fh)
             s = Settings(f)
             self.assertEqual(s["features"], DEFAULTS["features"])
             self.assertEqual(s["window_width"], DEFAULTS["window_width"])
             self.assertIs(s["sidebar_trash_count"], False)
             self.assertEqual(s["inconnu"], 3)
+            self.assertEqual(s["list_columns"], DEFAULTS["list_columns"])
 
     def test_formats(self):
         self.assertTrue(formats.looks_like_archive("a.tar.gz"))

@@ -101,7 +101,8 @@ def get(place: Optional[str]) -> Optional[tuple[list, list]]:
     own = _fb().get(place)
     if isinstance(own, dict) and own.get("base") == vis and isinstance(own.get("visible"), list) \
             and isinstance(own.get("order"), list):
-        return list(own["visible"]), list(own["order"])
+        # fichier retouché : seuls les noms comptent (un élément d'un autre type bloquait le dossier)
+        return [k for k in own["visible"] if isinstance(k, str)], [k for k in own["order"] if isinstance(k, str)]
     if not vis:
         return None
     return _ours(vis), _ours(order)

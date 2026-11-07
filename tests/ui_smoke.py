@@ -2750,6 +2750,20 @@ def fermeture_sans_fuite(win):
           "fenêtre fermée : panneaux retirés, barre latérale arrêtée")
     check(len(settings._listeners) == before, f"fenêtre fermée : écouteurs des réglages retirés "
           f"({before} → {len(settings._listeners)})")
+    # second audit : une opération finie après la fermeture ne ranime pas la barre latérale fermée
+    sb2 = w2.sidebar
+    sb2.refresh_trash_count()
+    sb2._trash_counted(3, [D])
+    check(not getattr(sb2, "_trash_pending", 0) and not sb2._trash_monitors,
+          "fenêtre fermée : la corbeille n'est plus recomptée ni surveillée pour elle")
+    # Propriétés restées ouvertes après la fermeture de leur fenêtre : « Ouvrir le dossier parent »
+    # ouvre une fenêtre vivante, pas l'ancienne vidée
+    from odysseus.ui.properties import PropertiesDialog
+    dlg = PropertiesDialog(w2, [D])
+    host = dlg._host()
+    check(host is not w2 and not getattr(host, "_torn_down", False),
+          "Propriétés d'une fenêtre fermée : elles agissent dans une fenêtre ouverte")
+    dlg.close()
 
 
 @step
