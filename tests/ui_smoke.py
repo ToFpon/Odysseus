@@ -2957,6 +2957,49 @@ def proprietes_depuis_le_bureau(win):
 
 
 @step
+def onglet_vers_autre_fenetre(win):
+    """Onglet glissé vers une autre fenêtre (Adw.TabView.transfer_page, ce que fait le glisser) : la
+    fenêtre qui le reçoit suit ses panneaux (titre de l'onglet, barre de chemin du double panneau,
+    nouveaux onglets), l'ancienne n'en entend plus parler (avant : CRITICAL adw_tab_view_get_page)."""
+    from odysseus.ui.window import MainWindow
+    app = win.get_application()
+    a, b = os.path.join(D, "dossier A"), os.path.join(D, "dossier B")
+    crit = len(CRITICALS)
+    saved_dual = settings["dual_panel"]           # la fenêtre fermée enregistre son double panneau
+    w2 = MainWindow(app, D)
+    w2.present()
+    yield pump(0.4)
+    ws = win.new_tab(a, dual=True)
+    yield pump(0.4)
+    tp = win.tab_view.get_page(ws)
+    win.tab_view.transfer_page(tp, w2.tab_view, 0)
+    w2.tab_view.set_selected_page(w2.tab_view.get_page(ws))
+    yield pump(0.4)
+    check(ws.window is w2 and w2.workspace is ws, "onglet glissé : il appartient à la nouvelle fenêtre")
+    ws.active.open(b)
+    yield pump(0.5)
+    title = w2.tab_view.get_page(ws).get_title()
+    check(title == "dossier B", f"nouvelle fenêtre : titre de l'onglet suivi ({title!r})")
+    right = ws.other(ws.active)
+    right.open(a)
+    yield pump(0.5)
+    bar = getattr(right, "pathbar", None)
+    check(bar is not None and getattr(bar, "location", a) == a, "double panneau : barre de chemin suivie")
+    n1, n2 = win.tab_view.get_n_pages(), w2.tab_view.get_n_pages()
+    right.emit("open-in-tab", next(r for r in right.model.items if r.is_dir))      # « sous »
+    yield pump(0.4)
+    check(w2.tab_view.get_n_pages() == n2 + 1 and win.tab_view.get_n_pages() == n1,
+          "« Ouvrir dans un nouvel onglet » : dans la fenêtre où se trouve l'onglet")
+    check(len(CRITICALS) == crit, f"onglet glissé : aucun avertissement critique ({CRITICALS[crit:]})")
+    w2.close()
+    settings.data["dual_panel"] = saved_dual
+    settings.save()
+    yield pump(0.4)
+    win.pane.open(D)
+    yield pump(0.3)
+
+
+@step
 def ouverture_au_demarrage(win):
     """« Ouvrir Odysseus sur » : dossier personnel (défaut), dernier emplacement (double panneau et
     panneau actif compris), dossier choisi ; emplacement disparu → dossier personnel ; une fenêtre

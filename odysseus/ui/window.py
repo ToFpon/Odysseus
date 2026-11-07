@@ -198,6 +198,7 @@ class MainWindow(FileActions, ArchiveActions, ToolActions, Adw.ApplicationWindow
         self.tab_view.connect("close-page", self._on_close_page)
         self.tab_view.connect("page-detached", lambda *_: GLib.idle_add(self._check_empty))
         self.tab_view.connect("create-window", self._on_create_window)
+        self.tab_view.connect("page-attached", lambda _v, tp, _pos: self._adopt(tp.get_child()))
         self.tab_bar = Adw.TabBar(view=self.tab_view, autohide=True, expand_tabs=True)
         tv.add_top_bar(self.tab_bar)
 
@@ -260,7 +261,7 @@ class MainWindow(FileActions, ArchiveActions, ToolActions, Adw.ApplicationWindow
         loc = location or (self.pane.current_dir() if self.pane else "") or os.path.expanduser("~")
         ws = Workspace(self, loc, dual=dual and features.enabled("dual_panel"),
                        view_mode=self.pane.view_mode if self.pane else None, second=second, active=active)
-        ws.connect("active-changed", lambda w: w is self.workspace and self._on_location(w.active))
+        self._adopt(ws)
         tp = self.tab_view.append(ws)
         self._update_tab(ws)
         if select:
@@ -279,14 +280,37 @@ class MainWindow(FileActions, ArchiveActions, ToolActions, Adw.ApplicationWindow
             self._on_activated(pane, rec)
 
     def connect_pane(self, pane: Pane, ws: Workspace):
-        pane.connect("location-changed", lambda p: self._on_location(p))
-        pane.connect("sort-changed", lambda p: p is self.pane and self._sync_sort_actions())
-        pane.connect("selection-changed", lambda p: self._on_selection(p))
-        pane.connect("activated", self._on_pane_activated)
-        pane.connect("context-menu", self._on_context_menu)
-        pane.connect("open-in-tab", lambda p, rec: self.new_tab(rec.path or rec.uri, select=False))
-        pane.connect("files-dropped", self._on_pane_drop)
-        pane.connect("message", lambda p, msg: toast(self, msg))
+        """Signaux du panneau vers CETTE fenêtre. Rappelé quand l'onglet change de fenêtre (_adopt) : les
+        anciens gestionnaires sont d'abord débranchés, sinon le panneau continuait de prévenir la fenêtre
+        d'où l'onglet avait été glissé (titre et barre de chemin figés, CRITICAL adw_tab_view_get_page)."""
+        for hid in getattr(pane, "_win_handlers", ()):
+            pane.disconnect(hid)
+        pane._win_handlers = [
+            pane.connect("location-changed", lambda p: self._on_location(p)),
+            pane.connect("sort-changed", lambda p: p is self.pane and self._sync_sort_actions()),
+            pane.connect("selection-changed", lambda p: self._on_selection(p)),
+            pane.connect("activated", self._on_pane_activated),
+            pane.connect("context-menu", self._on_context_menu),
+            pane.connect("open-in-tab", lambda p, rec: self.new_tab(rec.path or rec.uri, select=False)),
+            pane.connect("files-dropped", self._on_pane_drop),
+            pane.connect("message", lambda p, msg: toast(self, msg)),
+        ]
+
+    def _adopt(self, ws: Workspace):
+        """Onglet créé ici, ou glissé depuis une autre fenêtre (page-attached) : ses panneaux et son
+        changement de panneau actif parlent désormais à cette fenêtre."""
+        if getattr(ws, "_win_owner", None) is self:
+            return
+        hid = getattr(ws, "_win_handler", 0)
+        if hid:
+            ws.disconnect(hid)
+        ws._win_owner = ws.window = self
+        ws._win_handler = ws.connect("active-changed", lambda w: w is self.workspace and self._on_location(w.active))
+        for p in ws.panes:
+            self.connect_pane(p, ws)
+        for p in ws.panes:
+            if getattr(p, "pathbar", None) is not None:
+                self.update_pane_pathbar(p)
 
     def _update_tab(self, ws: Workspace):
         tp = self.tab_view.get_page(ws)
