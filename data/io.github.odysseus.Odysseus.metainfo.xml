@@ -70,6 +70,17 @@
   </requires>
   <content_rating type="oars-1.1"/>
   <releases>
+    <release version="1.8.3" date="2026-11-07">
+      <description>
+        <ul>
+          <li>Copies: a file still being written (an active log, a browser profile) or a system file from /proc is copied again instead of being refused as an incomplete copy</li>
+          <li>A folder seen through two paths (bind mount): moving it into its own subfolder or merging it onto itself is refused cleanly instead of copying endlessly or deleting it</li>
+          <li>Closed windows no longer come back to life when an operation started from them finishes; Properties left open after their window was closed use another open window</li>
+          <li>Ctrl+1 / 2 / 3 / 0 are recognised by the physical key: they work on AZERTY keyboards without side effects on other layouts</li>
+          <li>Archive window and column chooser titles show “&amp;” correctly; small fixes for tar archives made with “.” and for dragging out of archives</li>
+        </ul>
+      </description>
+    </release>
     <release version="1.8.2" date="2026-11-07">
       <description>
         <ul>

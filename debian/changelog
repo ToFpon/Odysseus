@@ -1,3 +1,22 @@
+odysseus (1.8.3~noble1) noble; urgency=medium
+
+  * Copies : un fichier encore en cours d'écriture (journal actif,
+    profil de navigateur) ou un fichier système de /proc est de nouveau
+    copié au lieu d'être refusé.
+  * Dossier visible à deux endroits (montage bind) : le déplacer dans
+    son propre sous-dossier ou le fusionner sur lui-même est refusé
+    proprement.
+  * Fenêtres fermées : plus de travail en arrière-plan quand une
+    opération lancée depuis elles se termine ; Propriétés restées
+    ouvertes : elles utilisent une autre fenêtre ouverte.
+  * Ctrl+1, 2, 3 et 0 reconnus par la touche physique : AZERTY sans
+    effet de bord sur les autres claviers.
+  * Titres de la fenêtre d'archive et du choix des colonnes avec « & » ;
+    petites corrections pour les tar faits avec « . » et le glisser hors
+    des archives.
+
+ -- Tof <nourpon@gmail.com>  Sat, 07 Nov 2026 08:31:51 +0000
+
 odysseus (1.8.2~noble1) noble; urgency=medium
 
   * Colonnes visibles : le sélecteur de Nautilus (interrupteurs, glisser
