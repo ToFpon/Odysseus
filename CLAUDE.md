@@ -505,7 +505,8 @@ fenêtre de recherche dans le contenu.
   « unmount ») — « Écriture des données sur X / Ne débranchez pas avant la fin » pendant le vidage du cache
   (signal `show-unmount-progress` du Gtk.MountOperation, bytes_left > 0), remplacée par « X peut être retiré
   en toute sécurité » ; échec : retirée. Sans bus / application non enregistrée : toast. Demandé par Tof (le
-  toast passait inaperçu). Testé : `notification_retrait` d'ui_smoke (faux org.freedesktop.Notifications).
+  toast passait inaperçu). Testé : `notification_retrait` d'ui_smoke (faux org.freedesktop.Notifications) ;
+  validé chez Tof avec une vraie clé (1.8.2, Zorin 18), comme le sélecteur de colonnes.
 - Corbeille / GVfs : au bout d'un moment, gvfsd-trash ne voit plus les `.Trash-1000` des autres disques
   (les fichiers y sont, trash:/// ne les montre plus ; `pkill gvfsd-trash` répare). `backend/trashwatch.py` :
   à chaque lecture de la corbeille, on compte nous-mêmes (éléments de `files/` ayant leur `.trashinfo`,
