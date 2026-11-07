@@ -215,6 +215,10 @@ au clic (`_check_location`), cadenas (`_parent_writable`), existence des signets
 après la lecture réussie (`DirModel._monitor_after_load`). Travaux paresseux sur le réseau : `net_pool`
 (`workers.pool_for`), lectures réseau sans `scan_slot` (un serveur mort garderait le tour : chaque lecture
 locale attendait 0,3 s). Glisser : même disque d'après le point de montage (`pane._same_fs`), sans stat.
+Éjecter un partage réseau : pas de recherche de corbeille (elle bloquait le fil jusqu'au délai du réseau,
+l'éjection ne partait pas — vu chez Tof en FTP Freebox, Wi-Fi coupé) ; serveur muet (`bounded(os.stat)`
+sans réponse) → `MountUnmountFlags.FORCE`, sinon GVfs voit nos accès en attente et redemande « Démonter
+quand même ? » en boucle.
 Testé : `partage_gele` d'ui_smoke (image FAT montée par fusefat, processus gelé par SIGSTOP, caches vidés,
 déclarée réseau ; garde-fou qui dégèle à 8 s). Restent hors de notre main : Propriétés / opérations
 lancées sur le partage mort (gestes explicites), et le moniteur de volumes de GIO lui-même.

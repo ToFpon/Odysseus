@@ -505,6 +505,34 @@ def partage_gele(win):
         timed("dossier local à côté", lambda: p.open(D))
         yield Wait(3, until=lambda: not p.model.loading)
         check(not p.model.loading, "dossier local lu pendant que le partage est gelé (pas de verrou retenu)")
+
+        class FakeMount:                  # le partage vu par GIO : on note la demande de démontage
+            asked = []
+
+            def get_name(self):
+                return "NAS"
+
+            def get_icon(self):
+                return Gio.ThemedIcon.new("folder-remote")
+
+            def get_root(self):
+                return Gio.File.new_for_path(nas)
+
+            def can_eject(self):
+                return False
+
+            def unmount_with_operation(self, flags, *_a):
+                self.asked.append(flags)
+
+        class FakeRow:
+            mount, volume, target = FakeMount(), None, nas
+        p.open(os.path.join(nas, "photos"))
+        yield pump(0.3)
+        timed("éjecter le partage", lambda: win.sidebar.eject(FakeRow()))
+        yield Wait(3, until=lambda: FakeMount.asked)
+        check(FakeMount.asked and FakeMount.asked[0] & Gio.MountUnmountFlags.FORCE,
+              "éjecter un partage muet : démontage demandé tout de suite, forcé (pas de « Démonter quand même ? » en boucle)")
+        check(not p.location.startswith(nas), "éjecter : le panneau a quitté le partage")
     finally:
         guard.cancel()
         os.kill(proc.pid, signal.SIGCONT)

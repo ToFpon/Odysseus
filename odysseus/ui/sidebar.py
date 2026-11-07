@@ -451,7 +451,9 @@ class Sidebar(Gtk.Box):
         """Comme Nautilus : si le support a des éléments dans sa corbeille, proposer de la vider
         d'abord (sinon ils occupent la place sans être visibles ailleurs)."""
         root = self._mount_root(row)
-        if not root:
+        if not root or fsinfo.is_network(root):
+            # partage réseau : pas de corbeille, et la chercher sur un serveur muet bloquait le fil
+            # jusqu'au délai du réseau — l'éjection ne partait pas
             self._do_eject(row)
             return
 
@@ -504,6 +506,12 @@ class Sidebar(Gtk.Box):
         if row.target and hasattr(win, "leave_location"):
             win.leave_location(row.target)
         op = Gtk.MountOperation.new(win)
+        flags = Gio.MountUnmountFlags.NONE
+        root = self._mount_root(row)
+        if root and fsinfo.is_network(root) and fsinfo.bounded(os.stat, root) is None:
+            # serveur qui ne répond plus : rien ne peut plus y être écrit, l'attendre ne sert à rien. Sans
+            # forcer, GVfs voit nos accès restés en attente et redemande « Démonter quand même ? » en boucle
+            flags = Gio.MountUnmountFlags.FORCE
         icon = (mount or volume).get_icon()
         # données encore en cache (clé lente) : GIO prévient pendant l'écriture, comme pour Nautilus
         op.connect("show-unmount-progress",
@@ -522,10 +530,10 @@ class Sidebar(Gtk.Box):
             notify_unmount(self, tr("{0} peut être retiré en toute sécurité").format(name), "", icon)
             self._fill_devices()
         if mount is not None and mount.can_eject():
-            mount.eject_with_operation(Gio.MountUnmountFlags.NONE, op, None,
+            mount.eject_with_operation(flags, op, None,
                                        lambda o, r: done(o, r, o.eject_with_operation_finish))
         elif mount is not None:
-            mount.unmount_with_operation(Gio.MountUnmountFlags.NONE, op, None,
+            mount.unmount_with_operation(flags, op, None,
                                          lambda o, r: done(o, r, o.unmount_with_operation_finish))
         elif volume is not None:
             volume.eject_with_operation(Gio.MountUnmountFlags.NONE, op, None,

@@ -102,12 +102,19 @@ def bounded(fn: Callable, path: str, *args, timeout: float = 0.3, default=None):
             return default
         del _stalled[point]
     box = []
-    t = threading.Thread(target=lambda: box.append(fn(path, *args)), daemon=True)
+
+    def run():
+        try:
+            box.append(fn(path, *args))
+        except OSError:
+            pass                  # erreur du serveur (déconnecté…) : `default`, sans trace dans la console
+    t = threading.Thread(target=run, daemon=True)
     t.start()
     t.join(timeout)
     if box:
         return box[0]
-    _stalled[point] = t
+    if t.is_alive():
+        _stalled[point] = t
     return default
 
 
