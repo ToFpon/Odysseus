@@ -1,3 +1,13 @@
+odysseus (1.8.5~noble1) noble; urgency=medium
+
+  * Éjecter un partage réseau qui ne répond plus : l'éjection part tout
+    de suite, sans attendre le délai du réseau, et un partage muet est
+    démonté sans redemander sans cesse.
+  * « Le volume est occupé » pendant un démontage : posé dans le
+    dialogue d'Odysseus, boutons entiers et thème suivi.
+
+ -- Tof <nourpon@gmail.com>  Sat, 07 Nov 2026 17:48:14 +0000
+
 odysseus (1.8.4~noble1) noble; urgency=medium
 
   * Partage réseau qui ne répond plus (NAS éteint, Wi-Fi coupé) : la

@@ -70,6 +70,14 @@
   </requires>
   <content_rating type="oars-1.1"/>
   <releases>
+    <release version="1.8.5" date="2026-11-07">
+      <description>
+        <ul>
+          <li>Ejecting a network share that stopped answering works right away: no more waiting for the network timeout before anything happens, and a share that no longer answers is unmounted without asking again and again</li>
+          <li>The “Volume is busy” question shown while unmounting uses Odysseus’ own dialog, with full button labels that follow the theme</li>
+        </ul>
+      </description>
+    </release>
     <release version="1.8.4" date="2026-11-07">
       <description>
         <ul>
