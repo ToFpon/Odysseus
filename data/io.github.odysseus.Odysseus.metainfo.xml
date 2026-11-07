@@ -70,6 +70,14 @@
   </requires>
   <content_rating type="oars-1.1"/>
   <releases>
+    <release version="1.8.4" date="2026-11-07">
+      <description>
+        <ul>
+          <li>A network share that stops answering (NAS switched off, Wi-Fi lost) no longer freezes the window: free space, sidebar, bookmarks, clicks and folder checks never wait for it, and its folders show an error instead</li>
+          <li>Local folders stay fast while a share is stuck: network reads and background work (thumbnails, folder colours, item counts) no longer hold up the local disks</li>
+        </ul>
+      </description>
+    </release>
     <release version="1.8.3" date="2026-11-07">
       <description>
         <ul>

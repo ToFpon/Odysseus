@@ -1,3 +1,15 @@
+odysseus (1.8.4~noble1) noble; urgency=medium
+
+  * Partage réseau qui ne répond plus (NAS éteint, Wi-Fi coupé) : la
+    fenêtre ne se fige plus. Espace libre, barre latérale, signets,
+    clics et vérifications ne l'attendent jamais ; ses dossiers
+    affichent une erreur.
+  * Dossiers locaux toujours rapides pendant ce temps : les lectures
+    réseau et leurs travaux en arrière-plan (miniatures, couleurs,
+    nombres d'éléments) ne retiennent plus les disques locaux.
+
+ -- Tof <nourpon@gmail.com>  Sat, 07 Nov 2026 16:15:40 +0000
+
 odysseus (1.8.3~noble1) noble; urgency=medium
 
   * Copies : un fichier encore en cours d'écriture (journal actif,
