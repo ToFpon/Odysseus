@@ -43,6 +43,27 @@ def _lock_switch(row: Adw.SwitchRow):
     walk(row)
 
 
+def _full_choice(row: Adw.ComboRow, labels: list[str]):
+    """Le choix affiché d'une ComboRow garde la largeur de son libellé le plus long : avec un sous-titre
+    long, GTK donnait toute la place au titre et tronquait le choix (« D… » au lieu de « Dossier
+    choisi ») ; le sous-titre passe alors sur deux lignes."""
+    width = max(Gtk.Label(label=t).measure(Gtk.Orientation.HORIZONTAL, -1)[1] for t in labels)
+
+    def walk(w):
+        if isinstance(w, Gtk.Popover):
+            return False                      # la liste déroulante, pas le choix affiché
+        if isinstance(w, Gtk.ListView):
+            w.set_size_request(width + 4, -1)
+            return True
+        c = w.get_first_child()
+        while c is not None:
+            if walk(c):
+                return True
+            c = c.get_next_sibling()
+        return False
+    walk(row)
+
+
 def _choice(title: str, key: str, labels: list[str], values: list, subtitle: str = "") -> Adw.ComboRow:
     cur = settings[key]
     row = combo_row(title, labels, values.index(cur) if cur in values else 0, subtitle)
@@ -94,6 +115,7 @@ class PreferencesDialog(Adw.PreferencesWindow):
                          [tr("Dossier personnel"), tr("Dernier emplacement"), tr("Dossier choisi")],
                          values.index(cur) if cur in values else 0,
                          tr("Quand Odysseus s'ouvre sans dossier précis : dock, menu des applications"))
+        _full_choice(mode, [tr("Dossier personnel"), tr("Dernier emplacement"), tr("Dossier choisi")])
         folder = Adw.ActionRow(title=tr("Dossier d'ouverture"), use_markup=False)
         pick = Gtk.Button(icon_name="folder-open-symbolic", valign=Gtk.Align.CENTER,
                           tooltip_text=tr("Choisir un dossier…"), css_classes=["flat"])
