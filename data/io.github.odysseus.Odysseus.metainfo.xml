@@ -70,6 +70,14 @@
   </requires>
   <content_rating type="oars-1.1"/>
   <releases>
+    <release version="1.8.6" date="2026-11-07">
+      <description>
+        <ul>
+          <li>New “Open Odysseus on” setting (Preferences, General): home folder as in Nautilus, the last location (both panels and the active one in dual-panel mode), or a chosen folder — used when Odysseus is opened without a given folder, from the dock or the applications menu</li>
+          <li>A last location that is gone (unplugged key, deleted folder, unmounted or silent share) falls back to the home folder, without waiting or mounting anything at startup</li>
+        </ul>
+      </description>
+    </release>
     <release version="1.8.5" date="2026-11-07">
       <description>
         <ul>

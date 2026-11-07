@@ -1,3 +1,16 @@
+odysseus (1.8.6~noble1) noble; urgency=medium
+
+  * Nouveau réglage « Ouvrir Odysseus sur » (Préférences, Général) :
+    dossier personnel comme Nautilus, dernier emplacement (les deux
+    panneaux et le panneau actif en double panneau) ou un dossier
+    choisi, quand Odysseus s'ouvre sans dossier précis (dock, menu des
+    applications).
+  * Dernier emplacement disparu (clé débranchée, dossier supprimé,
+    partage démonté ou muet) : retour au dossier personnel, sans
+    attendre ni rien monter au démarrage.
+
+ -- Tof <nourpon@gmail.com>  Sat, 07 Nov 2026 20:43:40 +0000
+
 odysseus (1.8.5~noble1) noble; urgency=medium
 
   * Éjecter un partage réseau qui ne répond plus : l'éjection part tout
