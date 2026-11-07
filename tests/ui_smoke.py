@@ -2957,6 +2957,43 @@ def proprietes_depuis_le_bureau(win):
 
 
 @step
+def volume_occupe(win):
+    """« Le volume est occupé » de GVfs pendant un démontage : notre dialogue (boutons entiers, thème),
+    pas celui de Gtk.MountOperation qui tronquait « Démonter tout d… » ; choix renvoyé à GIO."""
+    from odysseus.ui.sidebar import own_questions
+    _close_alerts()
+    before = set(Gtk.Window.list_toplevels())
+    op = Gtk.MountOperation.new(win)
+    own_questions(op, win)
+    replies = []
+    op.connect("reply", lambda o, r: replies.append((r, o.get_choice())))
+    for _ in range(2):            # GIO réémet pour mettre la liste à jour : un seul dialogue
+        op.emit("show-processes", "Le volume est occupé\nUne ou plusieurs applications utilisent actuellement le volume.",
+                [], ["Démonter tout de même", "Annuler"])
+    yield pump(0.5)
+    new = [w for w in Gtk.Window.list_toplevels() if w not in before and w.get_visible()]
+    ours = [w for w in new if isinstance(w, Adw.MessageDialog)]
+    check(len(new) == 1 and len(ours) == 1, f"volume occupé : un seul dialogue, le nôtre ({[type(w).__name__ for w in new]})")
+    if ours:
+        d = ours[0]
+        check(d.get_heading() == "Le volume est occupé" and d.has_response("0") and d.has_response("1")
+              and d.get_response_label("0") == "Démonter tout de même", "volume occupé : titre, texte et choix de GVfs")
+        d.response("0")
+        d.close()                 # response() n'émet que la réponse ; le clic sur le bouton ferme aussi
+        yield pump(0.3)
+        check(replies == [(Gio.MountOperationResult.HANDLED, 0)], f"volume occupé : « Démonter tout de même » rendu à GIO ({replies})")
+    op2 = Gtk.MountOperation.new(win)
+    own_questions(op2, win)
+    op2.emit("show-processes", "Occupé\n…", [], ["Démonter tout de même", "Annuler"])
+    yield pump(0.3)
+    op2.emit("aborted")
+    yield pump(0.3)
+    left = [w for w in Gtk.Window.list_toplevels() if w not in before and w.get_visible()]
+    check(not left, "volume occupé : dialogue fermé quand GIO n'attend plus de réponse")
+    _close_alerts()
+
+
+@step
 def notification_retrait(win):
     """Retrait d'une clé : vraie notification du bureau comme Nautilus (le toast passait inaperçu),
     « Écriture des données… » puis remplacée par « … peut être retiré en toute sécurité »."""

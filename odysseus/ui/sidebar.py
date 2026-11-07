@@ -43,6 +43,44 @@ def withdraw_unmount(_widget=None):
     if app is not None and app.get_is_registered():
         app.withdraw_notification(UNMOUNT_NOTIFICATION)
 
+
+def own_questions(op: Gtk.MountOperation, parent: Gtk.Widget):
+    """Questions de GIO pendant un démontage (« Le volume est occupé » : Annuler / Démonter tout de même)
+    posées dans NOTRE dialogue : celui de Gtk.MountOperation tronquait « Démonter tout d… » et ne suivait
+    pas le thème. Mêmes textes et mêmes choix (ceux de GVfs, déjà traduits) ; GIO réémet show-processes pour
+    tenir la liste à jour : un seul dialogue à la fois, fermé si GIO n'attend plus de réponse (aborted)."""
+    state = {"dialog": None}
+
+    def ask(op, message, *rest):
+        choices = list(rest[-1])
+        op.stop_emission_by_name("show-processes" if len(rest) == 2 else "ask-question")
+        if state["dialog"] is not None:
+            return
+        heading, _, body = (message or "").partition("\n")
+        last = str(len(choices) - 1)
+
+        def answer(r):
+            if state["dialog"] is None:       # déjà répondu (ou GIO a abandonné) : une seule réponse
+                return
+            state["dialog"] = None
+            if r.isdigit():
+                op.set_choice(int(r))
+                op.reply(Gio.MountOperationResult.HANDLED)
+            else:
+                op.reply(Gio.MountOperationResult.ABORTED)
+        # GVfs : choix 0 = « Démonter tout de même », le dernier = « Annuler » (en premier, comme GTK)
+        state["dialog"] = alert(parent, heading, body,
+                                responses=[(str(i), c) for i, c in reversed(list(enumerate(choices)))],
+                                destructive="0" if len(choices) > 1 else "", default=last, callback=answer)
+
+    def aborted(_op):
+        d, state["dialog"] = state["dialog"], None
+        if d is not None:
+            d.close()
+    op.connect("show-processes", ask)
+    op.connect("ask-question", ask)
+    op.connect("aborted", aborted)
+
 TRASH = "trash:///"
 
 PRIVACY_SCHEMA = "org.gnome.desktop.privacy"
@@ -506,6 +544,7 @@ class Sidebar(Gtk.Box):
         if row.target and hasattr(win, "leave_location"):
             win.leave_location(row.target)
         op = Gtk.MountOperation.new(win)
+        own_questions(op, win)
         flags = Gio.MountUnmountFlags.NONE
         root = self._mount_root(row)
         if root and fsinfo.is_network(root) and fsinfo.bounded(os.stat, root) is None:

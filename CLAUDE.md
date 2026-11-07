@@ -218,7 +218,11 @@ locale attendait 0,3 s). Glisser : même disque d'après le point de montage (`p
 Éjecter un partage réseau : pas de recherche de corbeille (elle bloquait le fil jusqu'au délai du réseau,
 l'éjection ne partait pas — vu chez Tof en FTP Freebox, Wi-Fi coupé) ; serveur muet (`bounded(os.stat)`
 sans réponse) → `MountUnmountFlags.FORCE`, sinon GVfs voit nos accès en attente et redemande « Démonter
-quand même ? » en boucle.
+quand même ? » en boucle. Questions de GIO pendant le démontage (« Le volume est occupé », show-processes /
+ask-question) : notre dialogue (`sidebar.own_questions`), celui de Gtk.MountOperation tronquait « Démonter
+tout d… » ; choix de GVfs tels quels (0 = démonter tout de même), un seul dialogue (GIO réémet), une seule
+réponse, fermé sur « aborted ». PyGObject écrit « Stack overflow protection. Can't copy array element » en
+recevant la liste de GPid du signal : bénin, la liste n'est pas utilisée. Testé : `volume_occupe` d'ui_smoke.
 Testé : `partage_gele` d'ui_smoke (image FAT montée par fusefat, processus gelé par SIGSTOP, caches vidés,
 déclarée réseau ; garde-fou qui dégèle à 8 s). Restent hors de notre main : Propriétés / opérations
 lancées sur le partage mort (gestes explicites), et le moniteur de volumes de GIO lui-même.
