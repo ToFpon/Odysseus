@@ -103,7 +103,7 @@ class PropertiesDialog(DialogWindow):
         if not getattr(self.window, "_torn_down", False):
             return self.window
         app = Gio.Application.get_default()
-        return app._window() or app._new_window()
+        return app._window() or app._new_window(startup=False)
 
     def _open_in_host(self, folder: str):
         self.close()

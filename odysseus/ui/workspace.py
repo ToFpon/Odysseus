@@ -16,7 +16,8 @@ class Workspace(Gtk.Box):
         "active-changed": (GObject.SignalFlags.RUN_FIRST, None, ()),
     }
 
-    def __init__(self, window, location: str, dual: bool = False, view_mode: Optional[str] = None):
+    def __init__(self, window, location: str, dual: bool = False, view_mode: Optional[str] = None,
+                 second: Optional[str] = None, active: int = 0):
         super().__init__(orientation=Gtk.Orientation.VERTICAL, vexpand=True, hexpand=True)
         self.window = window
         self.paned = Gtk.Paned(orientation=Gtk.Orientation.HORIZONTAL, wide_handle=True, vexpand=True,
@@ -39,7 +40,18 @@ class Workspace(Gtk.Box):
         self.active: Pane = first
         self.dual = False
         if dual:
-            self.set_dual(True)
+            self.set_dual(True, second)
+            if active == 1 and len(self.panes) > 1:
+                # dernier emplacement : le panneau qui était actif. Une fois la fenêtre affichée, comme un
+                # clic : désigné avant, GTK posait le focus initial à travers un GtkPaned qui ne le
+                # suivait pas (« gtk_widget_set_focus_child: assertion … failed »)
+                right = self.panes[1]
+
+                def activate():
+                    if right in self.panes:
+                        self.set_active(right)          # le focus suit (MainWindow.new_tab)
+                    return False
+                GLib.idle_add(activate)
 
     def _make_pane(self, location: str, view_mode: Optional[str] = None) -> Pane:
         pane = Pane(location, view_mode)
@@ -68,14 +80,15 @@ class Workspace(Gtk.Box):
                 p.remove_css_class("active-pane")
         self.emit("active-changed")
 
-    def set_dual(self, dual: bool):
+    def set_dual(self, dual: bool, location: Optional[str] = None):
+        """location : dossier du nouveau panneau (sinon celui du panneau actif)."""
         if dual == self.dual:
             return
         self.dual = dual
         if dual:
             src = self.active
-            second = self._make_pane(src.location if src.mode in ("fs", "trash", "remote") else src.current_dir()
-                                     or src.location, src.view_mode)
+            second = self._make_pane(location or (src.location if src.mode in ("fs", "trash", "remote")
+                                                  else src.current_dir() or src.location), src.view_mode)
             self.paned.set_end_child(second)
             for p in self.panes:
                 self._add_pathbar(p)

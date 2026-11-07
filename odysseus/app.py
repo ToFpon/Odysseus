@@ -104,12 +104,25 @@ class OdysseusApp(Adw.Application):
             self._fm1 = None
 
     def _quit(self):
+        win = self._window()
+        if win is not None:                 # Ctrl+Q : le dernier emplacement est celui de la fenêtre active
+            from .ui import startup
+            startup.remember(win)
+        self._quitting = True
         for w in list(self.get_windows()):
             w.close()
+        if self.get_windows():              # fermeture refusée (opérations en cours, « Continuer »)
+            self._quitting = False
 
-    def _new_window(self, location=None, dual=None):
+    def _new_window(self, location=None, dual=None, startup=True):
+        """Nouvelle fenêtre ; sans dossier demandé (dock, menu, « odysseus » seul) : celui du réglage
+        « Ouvrir Odysseus sur » (ui/startup.py)."""
         from .ui.window import MainWindow
-        win = MainWindow(self, location, dual=dual)
+        second, active = None, 0
+        if location is None and startup:
+            from .ui import startup as st
+            location, second, active = st.locations()
+        win = MainWindow(self, location, dual=dual, second=second, active=active)
         win.present()
         return win
 

@@ -11,7 +11,7 @@ from .. import APP_ID, APP_NAME, features
 from ..backend import bookmarks
 from ..i18n import tr
 from ..settings import settings
-from . import menus, sushi
+from . import menus, startup, sushi
 from .actions_archives import ArchiveActions
 from .actions_files import FileActions
 from .actions_tools import ToolActions
@@ -33,7 +33,8 @@ SIDEBAR_MAX = 360
 class MainWindow(FileActions, ArchiveActions, ToolActions, Adw.ApplicationWindow):
     __gtype_name__ = "OdysseusWindow"
 
-    def __init__(self, app, location: Optional[str] = None, dual: Optional[bool] = None):
+    def __init__(self, app, location: Optional[str] = None, dual: Optional[bool] = None,
+                 second: Optional[str] = None, active: int = 0):
         super().__init__(application=app, title=APP_NAME,
                          default_width=settings["window_width"], default_height=settings["window_height"],
                          width_request=360, height_request=360)
@@ -44,8 +45,10 @@ class MainWindow(FileActions, ArchiveActions, ToolActions, Adw.ApplicationWindow
         self._build()
         self._setup_actions()
         self._update_undo_actions()
+        # second / active : dernier emplacement retenu en double panneau (ui/startup.py)
         self.new_tab(location or os.path.expanduser("~"),
-                     dual=settings["dual_panel"] and features.enabled("dual_panel") if dual is None else dual)
+                     dual=settings["dual_panel"] and features.enabled("dual_panel") if dual is None else dual,
+                     second=second, active=active)
         settings.connect(self._on_setting)
         self._mgr_id = manager.connect("changed", lambda *_: self._update_dual_bar())
         self.connect("close-request", self._on_close)
@@ -252,16 +255,18 @@ class MainWindow(FileActions, ArchiveActions, ToolActions, Adw.ApplicationWindow
         for i in range(self.tab_view.get_n_pages()):
             yield from self.tab_view.get_nth_page(i).get_child().panes
 
-    def new_tab(self, location: Optional[str] = None, dual: bool = False, select: bool = True) -> Workspace:
+    def new_tab(self, location: Optional[str] = None, dual: bool = False, select: bool = True,
+                second: Optional[str] = None, active: int = 0) -> Workspace:
         loc = location or (self.pane.current_dir() if self.pane else "") or os.path.expanduser("~")
         ws = Workspace(self, loc, dual=dual and features.enabled("dual_panel"),
-                       view_mode=self.pane.view_mode if self.pane else None)
+                       view_mode=self.pane.view_mode if self.pane else None, second=second, active=active)
         ws.connect("active-changed", lambda w: w is self.workspace and self._on_location(w.active))
         tp = self.tab_view.append(ws)
         self._update_tab(ws)
         if select:
             self.tab_view.set_selected_page(tp)
-            GLib.idle_add(ws.active.focus_view)
+            # panneau actif lu au moment du focus (dernier emplacement : celui de droite, désigné en idle)
+            GLib.idle_add(lambda: (ws.active.focus_view(), False)[1])
         return ws
 
     def _on_pane_activated(self, pane, rec):
@@ -332,6 +337,7 @@ class MainWindow(FileActions, ArchiveActions, ToolActions, Adw.ApplicationWindow
     # États
     # ------------------------------------------------------------------
     def _on_location(self, pane: Pane):
+        startup.remember_soon(self)     # « Ouvrir Odysseus sur : dernier emplacement »
         fm1 = getattr(self.get_application(), "_fm1", None)
         if fm1 is not None:
             fm1.queue_update()          # dash-to-dock : quelle fenêtre montre quel dossier
@@ -625,6 +631,12 @@ class MainWindow(FileActions, ArchiveActions, ToolActions, Adw.ApplicationWindow
         ws = self.workspace
         settings.data["dual_panel"] = bool(ws and ws.dual)
         settings.save()
+        app = self.get_application()
+        others = [w for w in (app.get_windows() if app else []) if isinstance(w, MainWindow) and w is not self
+                  and w.get_visible()]
+        # (une fenêtre cachée, hôte des Propriétés ouvertes depuis le bureau, ne compte pas)
+        if not others and self.get_visible() and not getattr(app, "_quitting", False):
+            startup.remember(self)          # dernière fenêtre fermée : son emplacement est le « dernier »
         from ..backend.media import durations
         durations.flush()
         running = [j for j in manager.running]

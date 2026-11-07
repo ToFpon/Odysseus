@@ -3,6 +3,7 @@ raccourcis clavier et choix d'une application."""
 
 from __future__ import annotations
 
+import os
 
 from gi.repository import Adw, Gio, GLib, GObject, Gtk
 
@@ -83,6 +84,64 @@ class PreferencesDialog(Adw.PreferencesWindow):
         self.add(self._components())
 
     # ------------------------------------------------------------------
+    def _startup_rows(self, g: Adw.PreferencesGroup):
+        """« Ouvrir Odysseus sur » (ui/startup.py) : dossier personnel, dernier emplacement ou un dossier
+        choisi — quand Odysseus s'ouvre sans dossier précis."""
+        from . import startup
+        values = ["home", "last", "folder"]
+        cur = settings["startup_location"]
+        mode = combo_row(tr("Ouvrir Odysseus sur"),
+                         [tr("Dossier personnel"), tr("Dernier emplacement"), tr("Dossier choisi")],
+                         values.index(cur) if cur in values else 0,
+                         tr("Quand Odysseus s'ouvre sans dossier précis : dock, menu des applications"))
+        folder = Adw.ActionRow(title=tr("Dossier d'ouverture"), use_markup=False)
+        pick = Gtk.Button(icon_name="folder-open-symbolic", valign=Gtk.Align.CENTER,
+                          tooltip_text=tr("Choisir un dossier…"), css_classes=["flat"])
+        folder.add_suffix(pick)
+        folder.set_activatable_widget(pick)
+
+        def show():
+            path = settings["startup_folder"]
+            home = os.path.expanduser("~")
+            if path == home or path.startswith(home + "/"):
+                path = "~" + path[len(home):]             # « ~/Documents », plus lisible
+            folder.set_subtitle(shown(path) if path else tr("Aucun dossier choisi"))
+            folder.set_sensitive(settings["startup_location"] == "folder")
+
+        def choose(*_):
+            dialog = Gtk.FileDialog(title=tr("Dossier d'ouverture"), modal=True)
+            path = settings["startup_folder"]
+            dialog.set_initial_folder(Gio.File.new_for_path(path if path and os.path.isdir(path)
+                                                            else os.path.expanduser("~")))
+
+            def done(d, res):
+                try:
+                    f = d.select_folder_finish(res)
+                except GLib.Error:
+                    f = None
+                if f is not None and f.get_path():
+                    settings["startup_folder"] = f.get_path()
+                elif not settings["startup_folder"]:       # rien de choisi : le dossier personnel
+                    settings["startup_folder"] = os.path.expanduser("~")
+                show()
+            dialog.select_folder(self, None, done)
+        pick.connect("clicked", choose)
+
+        def changed(r, *_):
+            settings["startup_location"] = values[r.get_selected()]
+            show()
+            if settings["startup_location"] == "folder" and not settings["startup_folder"]:
+                choose()
+            elif settings["startup_location"] == "last":
+                app = Gio.Application.get_default()
+                win = app._window() if hasattr(app, "_window") else None
+                if win is not None:
+                    startup.remember(win)                  # dès maintenant : l'emplacement affiché
+        mode.connect("notify::selected", changed)
+        show()
+        g.add(mode)
+        g.add(folder)
+
     def _general(self):
         page = Adw.PreferencesPage(title=tr("Général"), icon_name="preferences-system-symbolic", name="general")
         g = Adw.PreferencesGroup(title=tr("Apparence"))
@@ -139,6 +198,7 @@ class PreferencesDialog(Adw.PreferencesWindow):
         page.add(g)
 
         g = Adw.PreferencesGroup(title=tr("Comportement"))
+        self._startup_rows(g)
         g.add(_switch(tr("Confirmer la mise à la corbeille"), "confirm_trash"))
         g.add(_switch(tr("Confirmer la suppression définitive"), "confirm_delete"))
         g.add(_switch(tr("Rechercher dans les sous-dossiers par défaut"), "search_recursive"))

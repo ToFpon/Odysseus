@@ -2957,6 +2957,106 @@ def proprietes_depuis_le_bureau(win):
 
 
 @step
+def ouverture_au_demarrage(win):
+    """« Ouvrir Odysseus sur » : dossier personnel (défaut), dernier emplacement (double panneau et
+    panneau actif compris), dossier choisi ; emplacement disparu → dossier personnel ; une fenêtre
+    ouverte SUR un dossier y va quoi qu'il arrive ; la ligne des Préférences."""
+    from odysseus.ui import startup
+    from odysseus.ui.dialogs import PreferencesDialog
+    app = win.get_application()
+    home = os.path.expanduser("~")
+    a, b = os.path.join(D, "dossier A"), os.path.join(D, "dossier B")
+    saved = {k: settings[k] for k in ("startup_location", "startup_folder", "last_locations", "last_active",
+                                      "dual_panel")}
+
+    def opened(**kw):
+        w = app._new_window(**kw)
+        return w, [p.location for p in w.workspace.panes], w.workspace.panes.index(w.workspace.active)
+    try:
+        w, locs, _ = opened()
+        check(locs == [home], f"par défaut : dossier personnel, comme Nautilus ({locs})")
+        w.close()
+        settings["startup_location"] = "last"
+        win.pane.open(a)
+        yield pump(0.3)
+        startup.remember(win)
+        check(settings["last_locations"] == [a], f"dernier emplacement retenu ({settings['last_locations']})")
+        w, locs, _ = opened()
+        check(locs == [a], f"dernier emplacement : rouvert ({locs})")
+        w.close()
+        # double panneau : les deux dossiers et le panneau actif
+        win.activate_action("win.dual", None)
+        yield pump(0.4)
+        right = win.workspace.other(win.pane)
+        right.open(b)
+        win.workspace.set_active(right)
+        yield pump(0.3)
+        startup.remember(win)
+        check(settings["last_locations"] == [a, b] and settings["last_active"] == 1,
+              f"double panneau retenu ({settings['last_locations']}, actif {settings['last_active']})")
+        settings.data["dual_panel"] = True
+        w, locs, _ = opened()
+        yield pump(0.5)               # le focus posé à l'ouverture ne doit pas reprendre le panneau de gauche
+        act = w.workspace.panes.index(w.workspace.active)
+        check(locs == [a, b] and act == 1, f"double panneau rouvert, panneau de droite actif ({locs}, {act})")
+        w.close()
+        win.activate_action("win.dual", None)
+        yield pump(0.3)
+        # une fenêtre demandée SUR un dossier y va (Afficher dans le dossier, clé USB, ligne de commande)
+        w, locs, _ = opened(location=b)
+        check(locs[0] == b, "dossier demandé : le réglage ne s'en mêle pas")
+        w.close()
+        # disparu / démonté : dossier personnel ; pages d'Odysseus gardées
+        settings.data["dual_panel"] = False
+        settings.data["last_locations"] = [os.path.join(D, "parti"), b]
+        check(startup.locations() == (b, None, 0), "panneau de gauche disparu : celui de droite le remplace")
+        settings.data["last_locations"] = [os.path.join(D, "parti")]
+        check(startup.locations() == (None, None, 0), "emplacement disparu : dossier personnel")
+        settings.data["last_locations"] = ["ftp://freebox.local/Disque"]
+        check(startup.locations() == (None, None, 0), "partage distant plus monté : dossier personnel, sans le monter")
+        settings.data["last_locations"] = ["trash:///"]
+        check(startup.locations() == ("trash:///", None, 0), "Corbeille retenue telle quelle")
+        # dossier choisi
+        settings["startup_location"] = "folder"
+        settings["startup_folder"] = b
+        w, locs, _ = opened()
+        check(locs == [b], f"dossier choisi ({locs})")
+        w.close()
+        settings["startup_folder"] = os.path.join(D, "parti")
+        check(startup.locations() == (None, None, 0), "dossier choisi disparu : dossier personnel")
+        # Préférences : la ligne du dossier n'est active qu'avec « Dossier choisi »
+        settings["startup_folder"] = b
+        prefs = PreferencesDialog()
+        rows = []
+
+        def walk(wd):
+            if isinstance(wd, (Adw.ComboRow, Adw.ActionRow)):
+                rows.append(wd)
+            c = wd.get_first_child()
+            while c is not None:
+                walk(c)
+                c = c.get_next_sibling()
+        walk(prefs)
+        combo = next((r for r in rows if isinstance(r, Adw.ComboRow) and r.get_title() == tr("Ouvrir Odysseus sur")), None)
+        folder_row = next((r for r in rows if r.get_title() == tr("Dossier d'ouverture")), None)
+        check(combo is not None and folder_row is not None and combo.get_selected() == 2
+              and folder_row.get_sensitive() and folder_row.get_subtitle().endswith("dossier B"), "Préférences : choix et dossier affichés")
+        if combo is not None and folder_row is not None:
+            combo.set_selected(0)
+            check(settings["startup_location"] == "home" and not folder_row.get_sensitive(),
+                  "Préférences : dossier personnel, ligne du dossier grisée")
+        prefs.close()
+    finally:
+        for k, v in saved.items():
+            settings.data[k] = v
+        settings.save()
+        if win.is_dual():
+            win.activate_action("win.dual", None)
+        win.pane.open(D)
+    yield pump(0.4)
+
+
+@step
 def volume_occupe(win):
     """« Le volume est occupé » de GVfs pendant un démontage : notre dialogue (boutons entiers, thème),
     pas celui de Gtk.MountOperation qui tronquait « Démonter tout d… » ; choix renvoyé à GIO."""

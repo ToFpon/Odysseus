@@ -266,6 +266,19 @@ fenêtre de recherche dans le contenu.
 - Nom du processus : `app._process_name` (prctl PR_SET_NAME) → « odysseus » dans le Moniteur
   système, `ps`, `killall` (sinon « python3 », le lanceur étant `python3 -c …`). WM_CLASS :
   `GLib.set_prgname(APP_ID)`.
+- « Ouvrir Odysseus sur » (Préférences → Général → Comportement, idée de Tof ; `ui/startup.py`) : dossier
+  personnel (défaut, comme Nautilus), dernier emplacement, dossier choisi (`startup_location` / `startup_folder`).
+  Seulement pour une fenêtre ouverte SANS dossier précis (`app._new_window(location=None)` : dock, menu,
+  `odysseus` seul ; pas l'hôte caché des Propriétés, `startup=False`) ; Ctrl+N garde le dossier courant.
+  Dernier emplacement = `last_locations` [gauche, droite si double panneau] + `last_active`, via `place_of`
+  (archive → son dossier, recherche → dossier de départ, pages gardées) ; retenu 3 s après un changement
+  (`remember_soon`, écrit par settings.data sans prévenir les écouteurs), à la fermeture de la dernière
+  fenêtre visible, et par Ctrl+Q depuis la fenêtre active (`app._quitting` : les fermetures suivantes ne
+  l'écrasent pas). Rouvert : disparu → personnel ; distant (smb://, ftp://) seulement s'il est encore monté
+  (liste de GIO, rien n'est monté au démarrage) ; partage réseau en chemin : `fsinfo.bounded`. Panneau de
+  droite créé directement sur son dossier (`Workspace(second=…)`) ; panneau actif désigné en idle, après
+  l'affichage — avant, GTK posait le focus initial à travers le GtkPaned : `gtk_widget_set_focus_child:
+  assertion … failed` ; `new_tab` lit `ws.active` au moment de donner le focus. Testé : `ouverture_au_demarrage`.
 - Fenêtre de progression : `ProgressWindow._fit` recalcule la hauteur quand le nombre d'opérations
   change ou à la réouverture (GTK garde la taille d'une fenêtre masquée).
 - `.desktop` en `DBusActivatable=true` : GIO (dock, `gio open`, autres applications) passe par D-Bus et

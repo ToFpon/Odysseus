@@ -41,6 +41,10 @@ DEFAULTS: dict[str, Any] = {
     "this_pc_folders": True,        # « Ce PC » : dossiers de l'utilisateur au-dessus des disques
     "sidebar_trash_count": True,    # nombre d'éléments à côté de « Corbeille »
     # Comportement
+    "startup_location": "home",     # ouverture sans dossier précis : home, last (dernier emplacement), folder
+    "startup_folder": "",           # dossier choisi (startup_location = folder)
+    "last_locations": [],           # dernier emplacement : [gauche, droite] (droite en double panneau)
+    "last_active": 0,               # panneau actif de ce dernier emplacement
     "confirm_trash": False,
     "confirm_delete": True,
     "terminal": "",                 # vide = détection automatique
