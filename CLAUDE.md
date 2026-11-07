@@ -218,6 +218,17 @@ liens GitHub et Launchpad ; « Copy » ne copie que les deux commandes d'install
 /home/tof --en` (chemin court : il s'affiche dans la recherche) ; `--search=… --replace=…` capture la
 fenêtre de recherche dans le contenu.
 
+## En attente (petits cas, pour une prochaine version — choix de Tof)
+
+- Onglet glissé vers une autre fenêtre : titre, barre de chemin et titre de l'onglet de la nouvelle fenêtre
+  ne suivent plus le panneau déplacé, CRITICAL `adw_tab_view_get_page` (`Workspace.window` et les
+  gestionnaires de `connect_pane` pointent encore l'ancienne fenêtre). Ancien (déjà en 1.7.9).
+- Supprimer un élément dans un tar fait avec « . » (`./x`) : `7z d` sort en 0 sans rien changer — limite
+  de 7-Zip ; au minimum le signaler au lieu d'un succès muet.
+- Mineurs de l'audit laissés : nom de 255 octets + « (copie) » (dépasse NAME_MAX, sélectionné alors que non
+  créé) ; glisser hors d'une archive deux fichiers de même nom depuis la liste filtrée (un seul arrive) ;
+  après `apt remove`, le service FileManager1 de l'utilisateur reste (Nautilus ne répond plus tant qu'il est là).
+
 ## Pièges connus
 
 - Actions de fenêtre : préfixe `win.` ; l'application gère la ligne de commande (`HANDLES_COMMAND_LINE`).
