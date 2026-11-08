@@ -92,6 +92,7 @@ Every destructive operation is tested on throwaway trees, next to a “precious�
 
 #### Media and system
 - **Video to audio**: MP3, M4A, OGG, OPUS, FLAC, WAV.
+- **Playlists**: right-click tracks or music folders → Playlist → create an .m3u (natural order, relative paths, titles and durations), then add tracks from other folders — or from search results — to build a medley.
 - **Image tools** (from nautilus-image-converter, plus conversion): resize, rotate, convert to JPEG, PNG, WebP, TIFF, BMP or GIF — combined in one pass (phone HEIC photos → 1920 px JPEG). New images get a suffix, or replace the originals safely.
 - **Image annotation**: arrows, frames, text, highlighter, freehand.
 - **.deb installer** with dependency check and live log (pkexec).
@@ -244,6 +245,7 @@ Chaque opération destructrice est testée sur des arborescences jetables, à c�
 
 #### Multimédia et système
 - **Vidéo vers audio** : MP3, M4A, OGG, OPUS, FLAC, WAV.
+- **Listes de lecture** : clic droit sur des morceaux ou des dossiers de musique → Liste de lecture → créer un .m3u (ordre naturel, chemins relatifs, titres et durées), puis y ajouter des morceaux d'autres dossiers — ou des résultats d'une recherche — pour faire un medley.
 - **Outils image** (repris de nautilus-image-converter, plus la conversion) : redimensionner, pivoter, convertir en JPEG, PNG, WebP, TIFF, BMP ou GIF — combinables en une passe (photos HEIC du téléphone → JPEG de 1920 px). Les nouvelles images reçoivent un suffixe, ou remplacent les originaux sans risque.
 - **Annotation d'images** : flèches, cadres, texte, surligneur, main levée.
 - **Installateur .deb** avec contrôle des dépendances et journal en direct (pkexec).

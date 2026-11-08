@@ -71,6 +71,7 @@ DEFAULTS: dict[str, Any] = {
     "image_resize": "scale", "image_scale": 50, "image_width": 1920, "image_height": 1080,
     "image_no_enlarge": True, "image_rotate": 90, "image_format": "jpg", "image_quality": 90,
     "image_replace": False,
+    "last_playlist": "",            # dernière liste de lecture créée ou complétée (« Ajouter à « X » »)
 }
 
 

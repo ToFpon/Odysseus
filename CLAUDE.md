@@ -301,6 +301,18 @@ fenêtre de recherche dans le contenu.
   `pane._win_handlers`) et « active-changed » débranchés puis rebranchés sur la nouvelle fenêtre. Avant, ils
   restaient sur l'ancienne : titre / barre de chemin figés, nouveaux onglets ouverts dans l'ancienne fenêtre,
   CRITICAL `adw_tab_view_get_page`. Testé : `onglet_vers_autre_fenetre` d'ui_smoke (`transfer_page`).
+- Listes de lecture (fonctionnalité `playlists`, idée de Tof ; `backend/playlist.py`, actions dans
+  `actions_tools`, sous-menu « Liste de lecture » du clic droit sur de la musique ou des dossiers — aucun accès
+  disque dans le menu) : « Créer une liste de lecture… » (nom proposé = dossier sélectionné ou affiché, .m3u
+  ajouté, posée dans le dossier affiché / de départ d'une recherche par `place_new`, jamais d'écrasement),
+  « Ajouter à « X » » (dernière liste, `last_playlist`) et « Ajouter à une autre liste de lecture… »
+  (Gtk.FileDialog .m3u / .m3u8). Medley = ajout dossier par dossier, ou création depuis des résultats de
+  recherche. `collect` : ordre de la sélection, dossiers en ordre naturel (`collate_key`), sous-dossiers après
+  les fichiers, cachés ignorés, liens de dossiers non suivis, sans doublon. Écriture : UTF-8 (surrogateescape
+  pour les noms non UTF-8), `#EXTM3U` + `#EXTINF:durée,Artiste - Titre` (ffprobe ; sinon -1 et le nom), chemins
+  RELATIFS au dossier de la liste (« ../ » compris). Ajout : lignes existantes gardées telles quelles (absolus,
+  file://, flux), doublons reconnus par chemin réel, liste sans #EXTM3U complétée en chemins simples ; copie
+  cachée + fsync + `os.replace`. Testé : `test_playlist`, `liste_de_lecture` d'ui_smoke.
 - Fenêtre de progression : `ProgressWindow._fit` recalcule la hauteur quand le nombre d'opérations
   change ou à la réouverture (GTK garde la taille d'une fenêtre masquée).
 - `.desktop` en `DBusActivatable=true` : GIO (dock, `gio open`, autres applications) passe par D-Bus et

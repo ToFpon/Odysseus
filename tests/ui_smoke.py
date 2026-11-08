@@ -2956,6 +2956,83 @@ def proprietes_depuis_le_bureau(win):
         MainWindow.present = real_present
 
 
+def _menu_labels(model, out=None):
+    """Tous les libellés d'un Gio.MenuModel, sous-menus et sections compris."""
+    out = [] if out is None else out
+    for i in range(model.get_n_items()):
+        v = model.get_item_attribute_value(i, "label", GLib.VariantType.new("s"))
+        if v is not None:
+            out.append(v.get_string())
+        for link in ("submenu", "section"):
+            sub = model.get_item_link(i, link)
+            if sub is not None:
+                _menu_labels(sub, out)
+    return out
+
+
+@step
+def liste_de_lecture(win):
+    """Listes de lecture (idée de Tof) : créer une liste depuis des morceaux, puis la compléter depuis un
+    autre dossier (medley) ; menu seulement pour de la musique ou des dossiers."""
+    from odysseus.ui import menus
+    base = os.path.join(D, "musique")
+    for rel in ("A/01 - Un.mp3", "A/02 - Deux.mp3", "B/01 - Trois.flac", "B/notes.txt"):
+        os.makedirs(os.path.dirname(os.path.join(base, rel)), exist_ok=True)
+        open(os.path.join(base, rel), "w").close()
+    saved = settings["last_playlist"]
+    p = win.pane
+    p.open(os.path.join(base, "A"))
+    yield Wait(3, until=lambda: not p.model.loading)
+    p.model.select_names(["01 - Un.mp3", "02 - Deux.mp3"])
+    yield pump(0.2)
+    labels = _menu_labels(menus.context_menu(win, p, True))
+    check(tr("Créer une liste de lecture…") in labels, "musique sélectionnée : « Créer une liste de lecture… »")
+    win.activate_action("win.playlist-create", None)
+    yield pump(0.4)
+    dlg = next((w for w in Gtk.Window.list_toplevels() if isinstance(w, Adw.MessageDialog) and w.get_visible()), None)
+    rows = []
+
+    def walk(w):
+        if isinstance(w, Adw.EntryRow):
+            rows.append(w)
+        c = w.get_first_child()
+        while c is not None:
+            walk(c)
+            c = c.get_next_sibling()
+    if dlg is not None:
+        walk(dlg)
+    check(dlg is not None and rows and rows[0].get_text() == "A", "nom proposé : celui du dossier")
+    if dlg is None or not rows:
+        return
+    rows[0].set_text("Medley")
+    dlg.response("ok")
+    dlg.close()
+    yield wait_jobs()
+    yield pump(0.3)
+    m3u = os.path.join(base, "A", "Medley.m3u")
+    body = open(m3u, encoding="utf-8").read() if os.path.exists(m3u) else ""
+    check("01 - Un.mp3" in body and "02 - Deux.mp3" in body and settings["last_playlist"] == m3u,
+          "liste créée dans le dossier, retenue comme dernière liste")
+    p.open(os.path.join(base, "B"))
+    yield Wait(3, until=lambda: not p.model.loading)
+    p.model.select_names(["01 - Trois.flac"])
+    yield pump(0.2)
+    labels = _menu_labels(menus.context_menu(win, p, True))
+    check(tr("Ajouter à « {0} »").format("Medley.m3u") in labels, "autre dossier : « Ajouter à « Medley.m3u » »")
+    win.activate_action("win.playlist-add", None)
+    yield wait_jobs()
+    yield pump(0.3)
+    lines = [l for l in open(m3u, encoding="utf-8").read().splitlines() if l and not l.startswith("#")]
+    check(lines == ["01 - Un.mp3", "02 - Deux.mp3", "../B/01 - Trois.flac"], f"medley complété depuis B ({lines})")
+    p.model.select_names(["notes.txt"])
+    yield pump(0.2)
+    check(tr("Liste de lecture") not in _menu_labels(menus.context_menu(win, p, True)),
+          "pas de menu « Liste de lecture » pour un fichier texte")
+    settings["last_playlist"] = saved
+    p.open(D)
+    yield pump(0.3)
+
+
 @step
 def onglet_vers_autre_fenetre(win):
     """Onglet glissé vers une autre fenêtre (Adw.TabView.transfer_page, ce que fait le glisser) : la

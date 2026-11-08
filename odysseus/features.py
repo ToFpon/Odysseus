@@ -114,6 +114,10 @@ FEATURES = [
             tr("Extraire la piste audio des vidéos : MP3, M4A, OGG, OPUS, FLAC, WAV"),
             "audio-x-generic-symbolic", "media",
             tools=(("ffmpeg",),), packages="ffmpeg"),
+    Feature("playlists", tr("Listes de lecture"),
+            tr("Créer une liste de lecture (.m3u) à partir de morceaux ou de dossiers, puis y ajouter d'autres "
+               "morceaux pris dans d'autres dossiers (un medley)"),
+            "audio-x-generic-symbolic", "media"),
     Feature("quick_look", tr("Aperçu rapide (Espace)"),
             tr("La barre d'espace ouvre l'aperçu de GNOME (Sushi) comme dans Nautilus ; les flèches passent "
                "au fichier suivant"),

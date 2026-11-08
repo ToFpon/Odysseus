@@ -4,10 +4,15 @@ from __future__ import annotations
 
 import os
 
+from gi.repository import Gio, GLib, Gtk
+
 from .. import features
 from ..backend import media
-from ..i18n import tr
-from .common import alert
+from ..backend.engine import ToolError
+from ..i18n import ntr, tr
+from ..settings import settings
+from .common import alert, toast
+from .jobs import finished_toast, manager
 
 
 class ToolActions:
@@ -20,6 +25,8 @@ class ToolActions:
             "image-resize": lambda: self.image_tools("resize"), "image-rotate": lambda: self.image_tools("rotate"),
             "image-convert": lambda: self.image_tools("convert"),
             "verify-checksums": self.verify_checksums, "checksums": self.checksums,
+            "playlist-create": self.playlist_create, "playlist-add": self.playlist_add,
+            "playlist-add-other": self.playlist_add_other,
         }
         for name, cb in acts.items():
             self._add(name, cb)
@@ -138,3 +145,99 @@ class ToolActions:
         if sel:
             from .deb_dialog import DebInstallerDialog
             DebInstallerDialog(self, sel[0].path).present(self)
+
+    # -- listes de lecture (fonctionnalité playlists, backend/playlist.py) ----------------------------
+    def _playlist_sources(self) -> list[str]:
+        return [r.path for r in self.pane.selected_recs() if r.path]
+
+    def playlist_create(self):
+        """Nouvelle liste .m3u dans le dossier affiché (dossier de départ d'une recherche), avec les
+        morceaux sélectionnés ou ceux des dossiers sélectionnés."""
+        if not features.enabled("playlists"):
+            return
+        from ..backend import fsinfo, playlist
+        from .common import ask_text
+        sources = self._playlist_sources()
+        if not sources:
+            return
+        dest = self.pane.current_dir() or os.path.dirname(sources[0])
+        dirs = [p for p in sources if os.path.isdir(p)]
+        initial = os.path.basename(dirs[0].rstrip("/")) if len(dirs) == 1 and len(sources) == 1 else \
+            (os.path.basename(dest.rstrip("/")) or tr("Liste de lecture"))
+
+        def go(name: str):
+            name = name.replace("/", "_").strip()
+            if not playlist.is_playlist(name):
+                name += ".m3u"
+            if fsinfo.is_windows_like(dest):
+                name = fsinfo.safe_name(name)
+            target = os.path.join(dest, name)
+
+            def work(job):
+                tracks = playlist.collect(sources, job)
+                return playlist.create(job, tracks, target)
+
+            def done(job):
+                if job.state == "done":
+                    settings["last_playlist"] = job.result
+                    toast(self, tr("Liste de lecture créée : {0}").format(os.path.basename(job.result)))
+                else:
+                    finished_toast(self, job, "")
+            manager.submit(tr("Liste de lecture {0}").format(name), work, done)
+        ask_text(self, tr("Créer une liste de lecture"), tr("Nom de la liste"), initial, go, tr("Créer"))
+
+    def playlist_add(self, target: str = ""):
+        """Ajoute la sélection à la fin d'une liste existante (par défaut la dernière utilisée)."""
+        if not features.enabled("playlists"):
+            return
+        from ..backend import playlist
+        sources = self._playlist_sources()
+        target = target or settings["last_playlist"]
+        if not sources or not target:
+            return
+
+        def work(job):
+            if not os.path.isfile(target):
+                raise ToolError(tr("La liste de lecture n'existe plus : {0}").format(target))
+            tracks = playlist.collect(sources, job)
+            if not tracks:
+                raise ToolError(tr("Aucun morceau de musique dans la sélection"))
+            return playlist.append(job, target, tracks)
+
+        def done(job):
+            if job.state == "done":
+                settings["last_playlist"] = target
+                added, already = job.result
+                msg = ntr("{0} morceau ajouté à {1}", "{0} morceaux ajoutés à {1}", added).format(
+                    added, os.path.basename(target))
+                if already:
+                    msg += " — " + ntr("{0} déjà dans la liste", "{0} déjà dans la liste", already).format(already)
+                toast(self, msg)
+            else:
+                finished_toast(self, job, "")
+        manager.submit(tr("Liste de lecture {0}").format(os.path.basename(target)), work, done)
+
+    def playlist_add_other(self):
+        """Choisir la liste (.m3u / .m3u8) à compléter."""
+        if not features.enabled("playlists") or not self._playlist_sources():
+            return
+        dlg = Gtk.FileDialog(title=tr("Ajouter à une liste de lecture"), modal=True)
+        flt = Gtk.FileFilter(name=tr("Listes de lecture"))
+        for pat in ("*.m3u", "*.m3u8", "*.M3U", "*.M3U8"):
+            flt.add_pattern(pat)
+        filters = Gio.ListStore.new(Gtk.FileFilter)
+        filters.append(flt)
+        dlg.set_filters(filters)
+        last = settings["last_playlist"]
+        start = os.path.dirname(last) if last else (self.pane.current_dir() or "")
+        if start and os.path.isdir(start):
+            dlg.set_initial_folder(Gio.File.new_for_path(start))
+
+        def chosen(d, res):
+            try:
+                f = d.open_finish(res)
+            except GLib.Error:
+                return
+            if f is not None and f.get_path():
+                self.playlist_add(f.get_path())
+        dlg.open(self, None, chosen)

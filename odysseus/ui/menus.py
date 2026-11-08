@@ -8,9 +8,10 @@ from typing import Optional
 from gi.repository import Gio, GLib
 
 from .. import features
-from ..backend import folder_colors, formats, media, starred
+from ..backend import folder_colors, formats, media, playlist, starred
 from ..i18n import tr
 from ..settings import settings
+from .common import shown
 
 TEXT_PREFIX = "text/"
 
@@ -217,6 +218,17 @@ def context_menu(win, pane, on_item: bool) -> Gio.Menu:
     if files and len(files) == len(sel) and all(media.is_video(r.name) for r in files) \
             and features.available("video_to_audio"):
         t.append(tr("Extraire l'audio…"), "win.video-to-audio")
+    if features.enabled("playlists") and sel and all(r.path for r in sel) and \
+            all(r.is_dir or playlist.is_audio(r.name) for r in sel):
+        # morceaux ou dossiers de musique : nouvelle liste, ou ajout à la dernière (un medley se fait
+        # dossier par dossier) ; aucun accès disque ici (le menu ne doit jamais attendre un partage)
+        pl = Gio.Menu()
+        pl.append(tr("Créer une liste de lecture…"), "win.playlist-create")
+        last = settings["last_playlist"]
+        if last:
+            pl.append(tr("Ajouter à « {0} »").format(shown(os.path.basename(last))), "win.playlist-add")
+        pl.append(tr("Ajouter à une autre liste de lecture…"), "win.playlist-add-other")
+        t.append_submenu(tr("Liste de lecture"), pl)
     if files and len(files) == len(sel) and features.available("image_tools"):
         from ..backend import images
         if all(images.is_image(r.name) for r in files):
