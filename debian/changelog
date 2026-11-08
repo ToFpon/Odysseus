@@ -1,3 +1,10 @@
+odysseus (1.8.9~noble1) noble; urgency=medium
+
+  * Préférences : le choix « Ouvrir Odysseus sur » ne laisse plus de
+    blanc avant sa flèche.
+
+ -- Tof <nourpon@gmail.com>  Sun, 08 Nov 2026 05:03:42 +0000
+
 odysseus (1.8.8~noble1) noble; urgency=medium
 
   * Copie vers une clé USB, un disque externe ou un partage réseau : au
