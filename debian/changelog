@@ -1,3 +1,15 @@
+odysseus (1.9.0~noble1) noble; urgency=medium
+
+  * Nouveau : listes de lecture. Clic droit sur des morceaux ou des
+    dossiers de musique, Liste de lecture : créer un .m3u (ordre
+    naturel, chemins relatifs, titres et durées), puis y ajouter des
+    morceaux d'autres dossiers ou des résultats d'une recherche pour
+    faire un medley.
+  * Ajout à une liste : ses lignes existantes sont gardées, les morceaux
+    déjà présents sont sautés ; une liste n'est jamais écrasée.
+
+ -- Tof <nourpon@gmail.com>  Sun, 08 Nov 2026 10:33:12 +0000
+
 odysseus (1.8.9~noble1) noble; urgency=medium
 
   * Préférences : le choix « Ouvrir Odysseus sur » ne laisse plus de

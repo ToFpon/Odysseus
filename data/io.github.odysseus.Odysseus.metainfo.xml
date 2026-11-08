@@ -30,21 +30,21 @@
       <li>Dual panel, column view, preview panel and tabs</li>
       <li>Archives with the 7-Zip engine: browse, extract, compress, split</li>
       <li>PDF tools: compress, merge, watermark, pages</li>
-      <li>Video to audio, image annotation, checksums, search in file contents</li>
+      <li>Video to audio, playlists, image annotation, checksums, search in file contents</li>
       <li>Safe file operations: originals are removed only once copies are on disk</li>
     </ul>
     <ul xml:lang="fr">
       <li>Double panneau, vue en colonnes, panneau d'aperçu et onglets</li>
       <li>Archives avec le moteur de 7-Zip : parcourir, extraire, compresser, découper</li>
       <li>Outils PDF : compresser, fusionner, filigrane, pages</li>
-      <li>Vidéo vers audio, annotation d'images, sommes de contrôle, recherche dans le contenu</li>
+      <li>Vidéo vers audio, listes de lecture, annotation d'images, sommes de contrôle, recherche dans le contenu</li>
       <li>Opérations sûres : un original n'est supprimé qu'une fois sa copie sur le disque</li>
     </ul>
     <ul xml:lang="de">
       <li>Zwei Fenster, Spaltenansicht, Vorschaubereich und Reiter</li>
       <li>Archive mit der 7-Zip-Engine: durchsuchen, entpacken, erstellen, aufteilen</li>
       <li>PDF-Werkzeuge: komprimieren, zusammenführen, Wasserzeichen, Seiten</li>
-      <li>Video zu Audio, Bild bearbeiten, Prüfsummen, Suche in Dateiinhalten</li>
+      <li>Video zu Audio, Wiedergabelisten, Bild bearbeiten, Prüfsummen, Suche in Dateiinhalten</li>
       <li>Sichere Dateivorgänge: Originale werden erst gelöscht, wenn die Kopien auf dem Datenträger sind</li>
     </ul>
   </description>
@@ -70,6 +70,14 @@
   </requires>
   <content_rating type="oars-1.1"/>
   <releases>
+    <release version="1.9.0" date="2026-11-08">
+      <description>
+        <ul>
+          <li>New playlists: right-click tracks or music folders → Playlist → create an .m3u (natural order, relative paths, titles and durations), then add tracks from other folders or from search results to build a medley</li>
+          <li>Adding to a playlist keeps its existing lines and skips tracks already in it; playlists are never overwritten</li>
+        </ul>
+      </description>
+    </release>
     <release version="1.8.9" date="2026-11-08">
       <description>
         <ul>
