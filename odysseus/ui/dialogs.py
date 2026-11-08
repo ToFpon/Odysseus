@@ -44,24 +44,34 @@ def _lock_switch(row: Adw.SwitchRow):
 
 
 def _full_choice(row: Adw.ComboRow, labels: list[str]):
-    """Le choix affiché d'une ComboRow garde la largeur de son libellé le plus long : avec un sous-titre
-    long, GTK donnait toute la place au titre et tronquait le choix (« D… » au lieu de « Dossier
-    choisi ») ; le sous-titre passe alors sur deux lignes."""
-    width = max(Gtk.Label(label=t).measure(Gtk.Orientation.HORIZONTAL, -1)[1] for t in labels)
+    """Le choix affiché d'une ComboRow garde la largeur de SON libellé : avec un sous-titre long, GTK
+    donnait toute la place au titre et tronquait le choix (« D… » au lieu de « Dossier choisi ») ; le
+    sous-titre passe alors sur deux lignes. Largeur du choix affiché, recalculée à chaque changement :
+    réserver celle du plus long laissait un blanc avant la flèche pour un choix plus court."""
+    widths = [Gtk.Label(label=t).measure(Gtk.Orientation.HORIZONTAL, -1)[1] for t in labels]
 
-    def walk(w):
+    def find(w):
         if isinstance(w, Gtk.Popover):
-            return False                      # la liste déroulante, pas le choix affiché
+            return None                       # la liste déroulante, pas le choix affiché
         if isinstance(w, Gtk.ListView):
-            w.set_size_request(width + 4, -1)
-            return True
+            return w
         c = w.get_first_child()
         while c is not None:
-            if walk(c):
-                return True
+            found = find(c)
+            if found is not None:
+                return found
             c = c.get_next_sibling()
-        return False
-    walk(row)
+        return None
+    view = find(row)
+    if view is None:
+        return
+
+    def fit(*_):
+        i = row.get_selected()
+        if 0 <= i < len(widths):
+            view.set_size_request(widths[i], -1)
+    row.connect("notify::selected", fit)
+    fit()
 
 
 def _choice(title: str, key: str, labels: list[str], values: list, subtitle: str = "") -> Adw.ComboRow:
