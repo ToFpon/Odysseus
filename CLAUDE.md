@@ -35,7 +35,8 @@ Gestionnaire de fichiers GTK4 / libadwaita en Python, look Nautilus, intégrant 
   La fenêtre de progression s'efface pendant une question « Remplacer ? ».
   Boîte fermée / fenêtre cachée (AlertDialog, DialogWindow, ProgressWindow) : `common.repaint_parent_on_close`
   — la fenêtre de dessous est redessinée (tout de suite et 250 ms après) ; avec un thème transparent / flouté
-  (X11, Zorin de Tof), l'image de la question fermée restait par-dessus la liste après « Fusionner ».
+  (X11, Zorin de Tof), l'image de la question fermée restait par-dessus la liste après « Fusionner », en fin
+  d'opération. Validé chez Tof : une dizaine d'essais, plus de fantôme.
   Question de conflit : nom du dossier, pas le chemin complet (comme Nautilus).
 - Barre latérale : l'emplacement courant y est sélectionné ; jamais de bouton d'éjection pour les
   disques fstab ou internes (mêmes règles que Nautilus).
