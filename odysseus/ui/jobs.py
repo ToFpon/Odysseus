@@ -9,7 +9,7 @@ from gi.repository import Adw, GLib, GObject, Gtk
 
 from ..backend.engine import Job
 from ..i18n import tr
-from .common import DialogWindow, copy_to_clipboard, open_folder, shown, toast
+from .common import DialogWindow, copy_to_clipboard, open_folder, repaint_parent_on_close, shown, toast
 
 
 class JobManager(GObject.Object):
@@ -302,6 +302,7 @@ class ProgressWindow(Adw.Window):
     def __init__(self, parent: Gtk.Window):
         super().__init__(title=tr("Opérations en cours"), default_width=460, transient_for=parent,
                          hide_on_close=True, resizable=True)
+        repaint_parent_on_close(self)          # cachée pendant une question : pas de fantôme
         tv = Adw.ToolbarView()
         tv.add_top_bar(Adw.HeaderBar())
         self.list = Gtk.ListBox(css_classes=["boxed-list"], selection_mode=Gtk.SelectionMode.NONE,

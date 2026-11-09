@@ -156,6 +156,21 @@ def dialog_parent(widget) -> Optional[Gtk.Window]:
     return root if isinstance(root, Gtk.Window) else None
 
 
+def repaint_parent_on_close(win: Gtk.Window):
+    """Fenêtre posée sur une autre (question, dialogue, progression) qui se ferme ou se cache : la fenêtre
+    de dessous se redessine en entier, tout de suite puis une fois l'animation de fermeture passée. Avec un
+    thème transparent / flouté, le gestionnaire de fenêtres gardait sinon l'image de la boîte fermée par-
+    dessus la liste (« fantôme » à moitié effacé après « Fusionner », vu chez Tof)."""
+    def repaint(*_):
+        parent = win.get_transient_for()
+        if parent is None:
+            return False
+        for delay in (0, 250):
+            GLib.timeout_add(delay, lambda p=parent: (p.get_mapped() and p.queue_draw(), False)[1])
+        return False
+    win.connect("unmap", repaint)
+
+
 class DialogWindow(Adw.Window):
     """Remplace Adw.Dialog (même usage : title, content_width/height, set_child, present(parent),
     close, signal « closed », Échap pour fermer), en fenêtre modale."""
@@ -166,6 +181,7 @@ class DialogWindow(Adw.Window):
         super().__init__(title=title, modal=True, **kw)
         self.set_default_size(content_width, content_height)
         self.connect("close-request", self._on_close_request)
+        repaint_parent_on_close(self)
         keys = Gtk.ShortcutController()
         keys.add_shortcut(Gtk.Shortcut(trigger=Gtk.ShortcutTrigger.parse_string("Escape"),
                                        action=Gtk.CallbackAction.new(lambda *_: (self.close(), True)[1])))
@@ -204,6 +220,7 @@ class AlertDialog(Adw.MessageDialog):
         super().__init__(heading=heading, body=body or "", modal=True, **kw)
         if len(heading) + len(body or "") > 50:
             self.set_default_size(600, -1)       # texte sur peu de lignes, comme chez Nautilus
+        repaint_parent_on_close(self)
 
     @classmethod
     def new(cls, heading: str, body: Optional[str] = None) -> "AlertDialog":

@@ -459,7 +459,10 @@ class FileActions:
                 return ""
             size = tr("dossier") if os.path.isdir(path) else human_size(s.st_size)
             return f"{size} · {full_date(s.st_mtime)}"
-        body = (tr("Un élément du même nom existe déjà dans « {0} ».").format(os.path.dirname(c.dst)) + "\n\n" +
+        # le nom du dossier, comme Nautilus : un chemin complet d'un seul tenant ne passe pas à la ligne et
+        # faisait déborder la fenêtre (titre et boutons coupés, vu chez Tof)
+        folder = os.path.basename(os.path.dirname(c.dst).rstrip("/")) or os.path.dirname(c.dst)
+        body = (tr("Un élément du même nom existe déjà dans « {0} ».").format(folder) + "\n\n" +
                 tr("Existant : {0}").format(describe(c.dst)) + "\n" + tr("Nouveau : {0}").format(describe(c.src)))
         d = AlertDialog.new(heading, body)
         check = Gtk.CheckButton(label=tr("Appliquer à tous les conflits"))
