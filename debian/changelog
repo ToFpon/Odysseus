@@ -1,3 +1,12 @@
+odysseus (1.9.1~noble1) noble; urgency=medium
+
+  * Plus de fantôme de la question « Fusionner » / « Remplacer » par-
+    dessus la liste en fin de copie (thèmes transparents sous X11).
+  * La question de conflit nomme le dossier, comme Nautilus, plutôt que
+    tout son chemin.
+
+ -- Tof <nourpon@gmail.com>  Mon, 09 Nov 2026 07:05:48 +0000
+
 odysseus (1.9.0~noble1) noble; urgency=medium
 
   * Nouveau : listes de lecture. Clic droit sur des morceaux ou des

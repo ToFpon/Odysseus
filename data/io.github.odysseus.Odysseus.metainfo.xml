@@ -70,6 +70,14 @@
   </requires>
   <content_rating type="oars-1.1"/>
   <releases>
+    <release version="1.9.1" date="2026-11-09">
+      <description>
+        <ul>
+          <li>No more “ghost” of the “Merge” / “Replace” question left over the file list at the end of a copy (seen with transparent themes on X11)</li>
+          <li>The conflict question names the folder instead of its full path, like Nautilus</li>
+        </ul>
+      </description>
+    </release>
     <release version="1.9.0" date="2026-11-08">
       <description>
         <ul>
