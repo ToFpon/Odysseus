@@ -569,6 +569,17 @@ fenêtre de recherche dans le contenu.
   interrupteur grisé et éteint dans Préférences → Fonctionnalités (`dialogs._lock_switch` : seul le
   Gtk.Switch interne est insensible, la ligne « ⚠ Manquant … » reste lisible) ; testé dans ui_smoke
   (`fonction_bloquee`).
+- Google Drive / OneDrive (GVfs, comptes en ligne de GNOME) : leur chemin FUSE n'a que des identifiants
+  (« 0ALd6LEox2-EBUk9PVA », « GVfsSharedWithMe ») et chaque stat y interroge le service (chargement sans
+  fin, retour d'utilisateur reproduit par Tof). Comme Nautilus, tout passe par GIO : `fsinfo.is_gio_only`
+  (chemin) / `is_gio_only_uri` ; `Pane.open` convertit le chemin en google-drive://… (mode « remote »,
+  `scan_gio`, vrais noms = standard::display-name) ; ligne de la barre latérale = URI de la racine ;
+  éléments SANS `path` (`rec_from_info`), donc opérations par `gioops` (`current_dir()` vide → `_gio_dir`) ;
+  copie : nom de la source = display-name (`gioops.source_name`), destination non locale créée par
+  `get_child_for_display_name` (`child_named`). Titre / barre de chemin : `scanner.display_name` (cache
+  rempli par les lectures, parents interrogés dans le fil) ; `location-changed` réémis à la fin de la
+  lecture. Glisser : URI (`drag_paths`), dépôts par `common.drop_locations` → `drop_files` passe par
+  `gioops.transfer` dès qu'une URI est en jeu. Testé : `GioOnlyTest` (montage simulé : pas de compte ici).
 - Lien cassé (cible absente) comme Nautilus : seul le `lstat` répond → `scanner.apply_stat` lui donne le
   type `inode/symlink` (`BROKEN_LINK`, celui de GIO), `Rec.is_broken_link`, libellé « Lien (brisé) »
   (`type_description`), icône des liens ; Propriétés : dates du lien, pas d'« Ouvrir avec » ; ouvert :

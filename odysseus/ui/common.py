@@ -17,7 +17,7 @@ gi.require_version("Adw", "1")
 from gi.repository import Adw, Gdk, Gio, GLib, GObject, Gtk  # noqa: E402
 
 from ..i18n import ntr, tr  # noqa: E402
-from ..backend import scanner  # noqa: E402
+from ..backend import fsinfo, scanner  # noqa: E402
 
 
 def shown(text) -> str:
@@ -666,3 +666,17 @@ def _drop_popover(parent: Gtk.Widget):
 
 def bidir():
     return GObject.BindingFlags.BIDIRECTIONAL | GObject.BindingFlags.SYNC_CREATE
+
+
+def drop_locations(value) -> list[str]:
+    """Fichiers d'un Gdk.FileList déposé : chemins, sauf Google Drive / OneDrive (URI : leur chemin
+    FUSE n'a que des identifiants)."""
+    out = []
+    for f in value.get_files():
+        uri = f.get_uri()
+        if fsinfo.is_gio_only_uri(uri):
+            out.append(uri)
+        elif f.get_path():
+            path = f.get_path()
+            out.append(Gio.File.new_for_path(path).get_uri() if fsinfo.is_gio_only(path) else path)
+    return out

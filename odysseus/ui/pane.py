@@ -20,7 +20,7 @@ from ..i18n import ntr, tr
 from ..settings import session_passwords, settings
 from . import clipboard
 from .archive_drag import DragCache
-from .common import focus_later, markup_safe, shown
+from .common import drop_locations, focus_later, markup_safe, shown
 from .columns import MillerView
 from .model import DirModel, Selection, fold, matches, query_words
 from .other_locations import OTHER_URI, OtherLocations
@@ -67,6 +67,8 @@ def _path_kind(path: str) -> Optional[str]:
 def _same_fs(src: str, dest: str) -> bool:
     """Même disque (déplacer plutôt que copier, comme Nautilus) ? Sur un disque réseau : d'après les
     points de montage, sans stat (appelé à chaque mouvement du pointeur pendant un glisser)."""
+    if "://" in src or "://" in dest:
+        return src.split("/", 3)[:3] == dest.split("/", 3)[:3]     # même compte Google Drive
     if fsinfo.is_network(src) or fsinfo.is_network(dest):
         return fsinfo.mount_point(src) == fsinfo.mount_point(dest)
     return os.lstat(src).st_dev == os.stat(dest).st_dev
@@ -320,13 +322,15 @@ class Pane(Gtk.Box):
 
         def on_drop(t, value, x, y):
             self.remove_css_class("drop-hover")
-            paths = [f.get_path() for f in value.get_files() if f.get_path()]
+            paths = drop_locations(value)
             if not paths:
                 return False
             if self.mode == "archive":
-                self.emit("files-dropped", paths, "", "archive")
-                return True
-            if self.mode != "fs":
+                paths = [p for p in paths if "://" not in p]
+                if paths:
+                    self.emit("files-dropped", paths, "", "archive")
+                return bool(paths)
+            if self.mode != "fs" and not self._gio_drop_dest():
                 return False
             self.handle_drop(paths, self.location, t.get_current_drop())
             return True
@@ -339,7 +343,9 @@ class Pane(Gtk.Box):
     def drag_paths(self) -> list[str]:
         if self.mode == "archive":
             return self._extract_for_drag()
-        return [r.path for r in self.selected_recs() if r.path]
+        # Google Drive : par l'URI (le chemin FUSE n'a que des identifiants)
+        return [r.path or r.uri for r in self.selected_recs()
+                if r.path or (r.uri and fsinfo.is_gio_only_uri(r.uri))]
 
     def _drag_items(self) -> list:
         if self.mode != "archive":
@@ -371,9 +377,9 @@ class Pane(Gtk.Box):
     def preferred_action(self, drop: Optional[Gdk.Drop], rec: Optional[Rec]) -> Gdk.DragAction:
         if self.mode == "archive":
             return Gdk.DragAction.COPY
-        if self.mode != "fs" and rec is None:
+        if self.mode != "fs" and rec is None and not self._gio_drop_dest():
             return 0
-        dest = rec.path if rec is not None else self.location
+        dest = (rec.path or rec.uri) if rec is not None else self.location
         # Les drapeaux GTK ne supportent pas l'arithmétique en Python (acts - 1 vaut None) : en entier.
         acts = int(drop.get_actions()) if drop is not None else 0
         if acts and not (acts & (acts - 1)):     # une seule action possible (touche enfoncée)
@@ -395,6 +401,10 @@ class Pane(Gtk.Box):
         root = self.get_root()
         for p in (root.all_panes() if hasattr(root, "all_panes") else [self]):
             p.remove_css_class("drop-hover")
+
+    def _gio_drop_dest(self) -> bool:
+        """Dossier Google Drive affiché : on peut y déposer (copie par GIO)."""
+        return self.mode == "remote" and fsinfo.is_gio_only_uri(self.location)
 
     def handle_drop(self, paths: list[str], dest: str, drop: Optional[Gdk.Drop]):
         self.clear_drop_highlight()
@@ -504,6 +514,12 @@ class Pane(Gtk.Box):
             self._open_uri(loc, push, select)
             return True
         loc = os.path.abspath(loc)
+        if fsinfo.is_gio_only(loc):
+            # Google Drive / OneDrive : parcourus par GIO (vrais noms), jamais par le chemin FUSE
+            uri = Gio.File.new_for_path(loc).get_uri()
+            if fsinfo.is_gio_only_uri(uri):
+                self._open_uri(uri, push, select)
+                return True
         if fsinfo.is_network(loc):
             # serveur peut-être injoignable : réponse attendue 0,3 s au plus, sinon on ouvre comme un
             # dossier — le panneau affiche le chargement, puis « Accès impossible » (lecture en fond)
@@ -1039,6 +1055,8 @@ class Pane(Gtk.Box):
             self._scroll_top()
         if state == "ready":
             self._to_top = False
+            if self.mode == "remote" and fsinfo.is_gio_only_uri(self.location):
+                self.emit("location-changed")   # Google Drive : noms du chemin appris par la lecture
         self._update_state()
         if self.mode == "trash" and state == "ready":
             self._check_trash()
@@ -1263,6 +1281,8 @@ class Pane(Gtk.Box):
             return self.search_root
         if self.mode == "starred":
             return ""
+        if fsinfo.is_gio_only_uri(self.location):
+            return ""            # Google Drive : opérations par GIO (_gio_dir), pas par le chemin FUSE
         f = Gio.File.new_for_uri(self.location) if is_uri(self.location) else None
         return f.get_path() if f is not None and f.get_path() else ""
 
@@ -1469,6 +1489,9 @@ class Pane(Gtk.Box):
         if is_uri(self.location):
             if self.location in SPECIAL_URIS:
                 return SPECIAL_URIS[self.location]
+            known = scanner.display_name(self.location)
+            if known:
+                return known
             f = Gio.File.new_for_uri(self.location)
             name = f.get_basename()
             return name if name and name != "/" else GLib.uri_unescape_string(self.location, None) or self.location

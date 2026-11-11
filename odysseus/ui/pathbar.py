@@ -15,7 +15,7 @@ from gi.repository import Gdk, Gio, GLib, GObject, Gtk
 
 from ..backend import fsinfo, scanner
 from ..i18n import tr
-from .common import SpringLoad
+from .common import SpringLoad, drop_locations
 from .common import shown as _shown
 
 
@@ -105,7 +105,8 @@ class PathBar(Gtk.Box):
                        "computer:///": (tr("Ce PC"), "computer-symbolic"),
                        "admin:///": (tr("Administrateur"), "dialog-password-symbolic")}
             while f is not None:
-                name = f.get_basename() or f.get_uri()
+                # Google Drive : l'URI n'a que des identifiants, le nom vient de la lecture
+                name = scanner.display_name(f.get_uri()) or f.get_basename() or f.get_uri()
                 if f.get_uri() in special:
                     label, icon = special[f.get_uri()]
                     segs.insert(0, (label, f.get_uri(), icon))
@@ -189,7 +190,7 @@ class PathBar(Gtk.Box):
         def drop(_t, value, x, y):
             spring.leave()
             widget.remove_css_class("drop-row")
-            paths = [f.get_path() for f in value.get_files() if f.get_path()]
+            paths = drop_locations(value)
             if paths:
                 self.emit("drop", paths, target)
             return bool(paths)

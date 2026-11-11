@@ -942,3 +942,52 @@ class DebInstallTest(unittest.TestCase):
         self.assertTrue(debpkg.is_progress_line("(Reading database ... 100%\n"))
         self.assertFalse(debpkg.is_progress_line("(Lese Datenbank ... 335999 Dateien und Verzeichnisse sind derzeit installiert.)"))
         self.assertFalse(debpkg.is_progress_line("Entpacken von clamtk (6.18-1) über (6.07-1.1) ..."))
+
+
+class GioOnlyTest(unittest.TestCase):
+    """Google Drive / OneDrive : parcourus par GIO, sous leurs vrais noms (pas les identifiants du
+    chemin FUSE). Pas de vrai compte ici : montage et URI simulés."""
+
+    def setUp(self):
+        from odysseus.backend import fsinfo
+        self.fsinfo = fsinfo
+        self._mounts = fsinfo.mounts
+        fsinfo.mounts = lambda: [("/run/user/1000/gvfs", "fuse.gvfsd-fuse"), ("/", "ext4")]   # le plus long d'abord
+
+    def tearDown(self):
+        self.fsinfo.mounts = self._mounts
+
+    def test_paths(self):
+        fi = self.fsinfo
+        drive = "/run/user/1000/gvfs/google-drive:host=gmail.com,user=tof/0ALd6LEox2-EBUk9PVA"
+        self.assertTrue(fi.is_gio_only(drive))
+        self.assertTrue(fi.is_gio_only("/run/user/1000/gvfs/onedrive:host=x,user=y"))
+        self.assertFalse(fi.is_gio_only("/run/user/1000/gvfs/smb-share:server=nas,share=films"))
+        self.assertFalse(fi.is_gio_only("/home/tof/gvfs/google-drive:x"))       # pas un montage GVfs
+        self.assertFalse(fi.is_gio_only("google-drive://tof@gmail.com/"))
+        self.assertTrue(fi.is_gio_only_uri("google-drive://tof@gmail.com/0ALd6LEox2-EBUk9PVA"))
+        self.assertFalse(fi.is_gio_only_uri("smb://nas/films"))
+        self.assertFalse(fi.is_gio_only_uri("/run/user/1000/gvfs/google-drive:host=x"))
+
+    def test_rec_from_info(self):
+        parent = Gio.File.new_for_uri("google-drive://tof@gmail.com/0ALd6LEox2-EBUk9PVA")
+        info = Gio.FileInfo()
+        info.set_name("1AbCdEf")
+        info.set_display_name("Vacances 2026")
+        info.set_file_type(Gio.FileType.DIRECTORY)
+        r = scanner.rec_from_info(info, parent)
+        self.assertEqual(r.name, "Vacances 2026")
+        self.assertIsNone(r.path)                     # jamais le chemin FUSE (identifiants)
+        self.assertTrue(r.uri.endswith("/1AbCdEf"))
+        self.assertEqual(scanner.display_name(r.uri), "Vacances 2026")
+        self.assertEqual(scanner.display_name(r.uri + "/"), "Vacances 2026")
+
+    def test_gioops_names(self):
+        from odysseus.backend import gioops
+        with tempfile.TemporaryDirectory() as d:
+            folder = Gio.File.new_for_path(d)
+            self.assertEqual(gioops.child_named(folder, "a b.txt").get_path(), os.path.join(d, "a b.txt"))
+            self.assertEqual(gioops.source_name(folder.get_child("x.txt")), "x.txt")
+            open(os.path.join(d, "x.txt"), "w").close()
+            self.assertEqual(os.path.basename(gioops.unique_child(folder, "x.txt").get_path()),
+                             "x" + tr(" (copie)") + ".txt")

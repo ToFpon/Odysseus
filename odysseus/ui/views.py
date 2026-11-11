@@ -307,7 +307,8 @@ class _CellMixin:
             source._paths = paths
             DRAG_PATHS[:] = paths
             return Gdk.ContentProvider.new_for_value(
-                Gdk.FileList.new_from_list([Gio.File.new_for_path(p) for p in paths]))
+                Gdk.FileList.new_from_list([Gio.File.new_for_uri(p) if "://" in p else Gio.File.new_for_path(p)
+                                            for p in paths]))
 
         def begin(source, drag_obj):
             paths = getattr(source, "_paths", [])

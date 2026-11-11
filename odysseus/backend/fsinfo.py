@@ -133,6 +133,27 @@ def is_gvfs_device(path: str) -> bool:
         fs_type(path[:i + len(marker) - 1]) == "fuse.gvfsd-fuse"
 
 
+GIO_ONLY = ("google-drive:", "onedrive:")      # nommés par identifiants (« 0ALd6LEox2… »)
+GIO_ONLY_SCHEMES = ("google-drive", "onedrive")
+
+
+def is_gio_only(path: str) -> bool:
+    """Google Drive / OneDrive vus par le chemin FUSE de GVfs : les noms y sont les identifiants du
+    service (« 0ALd6LEox2-EBUk9PVA », « GVfsSharedWithMe »), et chaque stat interroge le service — la
+    lecture n'en finissait pas. Comme Nautilus, on les parcourt par GIO (google-drive://…), qui donne
+    les vrais noms (standard::display-name)."""
+    if not path or "://" in path:
+        return False
+    marker = "/gvfs/"
+    i = path.find(marker)
+    return i >= 0 and path[i + len(marker):].startswith(GIO_ONLY) and \
+        fs_type(path[:i + len(marker) - 1]) == "fuse.gvfsd-fuse"
+
+
+def is_gio_only_uri(uri: str) -> bool:
+    return uri.split(":", 1)[0] in GIO_ONLY_SCHEMES if "://" in uri else False
+
+
 def is_removable_or_slow(path: str) -> bool:
     """Clé USB, disque externe, carte SD, partage réseau : écrire au rythme du support (voir
     fileops._Copier.stream), sinon le noyau avale des centaines de Mo en cache — barre à 96 % d'un coup,

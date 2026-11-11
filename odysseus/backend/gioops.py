@@ -26,16 +26,39 @@ def _exists(f: Gio.File) -> bool:
     return f.query_exists(None)
 
 
+def source_name(f: Gio.File) -> str:
+    """Nom à donner à la copie. Google Drive / OneDrive : le nom de l'URI est un identifiant
+    (« 1AbC… »), le vrai nom est standard::display-name — comme Nautilus."""
+    if f.is_native():
+        return f.get_basename() or "?"
+    try:
+        info = f.query_info("standard::display-name", Gio.FileQueryInfoFlags.NOFOLLOW_SYMLINKS, None)
+        return info.get_attribute_string("standard::display-name") or f.get_basename() or "?"
+    except GLib.Error:
+        return f.get_basename() or "?"
+
+
+def child_named(folder: Gio.File, name: str) -> Gio.File:
+    """Élément « name » de folder. Hors disque local, par le nom affiché (get_child_for_display_name) :
+    Google Drive crée alors un élément de ce titre au lieu de chercher un identifiant « name »."""
+    if folder.is_native():
+        return folder.get_child(name)
+    try:
+        return folder.get_child_for_display_name(name)
+    except GLib.Error:
+        return folder.get_child(name)
+
+
 def unique_child(folder: Gio.File, name: str) -> Gio.File:
     """« nom (copie).ext », « nom (copie 2).ext »… comme pour les fichiers locaux."""
-    child = folder.get_child(name)
+    child = child_named(folder, name)
     if not _exists(child):
         return child
     stem, ext = split_ext(name)
     n = 1
     while True:
         suffix = tr(" (copie)") if n == 1 else tr(" (copie {0})").format(n)
-        child = folder.get_child(f"{stem}{suffix}{ext}")
+        child = child_named(folder, f"{stem}{suffix}{ext}")
         if not _exists(child):
             return child
         n += 1
@@ -48,11 +71,15 @@ def _is_dir(f: Gio.File) -> bool:
 def _copy_tree(job: Job, src: Gio.File, dst: Gio.File):
     if _is_dir(src):
         dst.make_directory(None)
-        en = src.enumerate_children("standard::name", Gio.FileQueryInfoFlags.NOFOLLOW_SYMLINKS, None)
+        en = src.enumerate_children("standard::name,standard::display-name",
+                                    Gio.FileQueryInfoFlags.NOFOLLOW_SYMLINKS, None)
         try:
             while (info := en.next_file(None)) is not None:
                 job.check_cancel()
-                _copy_tree(job, src.get_child(info.get_name()), dst.get_child(info.get_name()))
+                name = info.get_name()
+                if not src.is_native():       # Google Drive : identifiant → vrai nom
+                    name = info.get_attribute_string("standard::display-name") or name
+                _copy_tree(job, src.get_child(info.get_name()), child_named(dst, name))
         finally:
             en.close(None)
     else:
@@ -79,7 +106,7 @@ def transfer(job: Job, sources: list[str], dest: str, move: bool = False) -> Res
     for i, s in enumerate(sources):
         job.check_cancel()
         src = gfile(s)
-        name = src.get_basename() or "?"
+        name = source_name(src)
         job.progress(i / max(n, 1), name)
         try:
             dst = unique_child(folder, name)
@@ -122,13 +149,13 @@ def rename(location: str, new_name: str) -> str:
 
 
 def make_folder(folder: str, name: str) -> str:
-    f = gfile(folder).get_child(name)
+    f = child_named(gfile(folder), name)
     f.make_directory(None)
     return f.get_path() or f.get_uri()
 
 
 def make_file(folder: str, name: str, template: Optional[str] = None) -> str:
-    f = gfile(folder).get_child(name)
+    f = child_named(gfile(folder), name)
     if template:
         gfile(template).copy(f, Gio.FileCopyFlags.NONE, None, None)
     else:

@@ -23,6 +23,7 @@ from typing import Callable, Optional
 from gi.repository import Gio, GLib
 
 from ..i18n import tr
+from . import fsinfo
 
 
 def trash_orig_path(info) -> Optional[str]:
@@ -280,6 +281,11 @@ def rec_from_info(info: Gio.FileInfo, parent: Gio.File) -> Rec:
     r = Rec(info.get_attribute_string("standard::display-name") or name, child.get_path(), is_dir,
             info.get_attribute_boolean("standard::is-symlink"))
     r.uri = child.get_uri()
+    if fsinfo.is_gio_only_uri(r.uri):
+        # Google Drive / OneDrive : le chemin FUSE n'a que des identifiants (copier dehors donnait des
+        # fichiers « 1AbC… ») ; tout passe par l'URI, comme pour admin://
+        r.path = None
+        _remember_name(r.uri, r.name)
     r.hidden = (info.get_attribute_boolean("standard::is-hidden")
                 or info.get_attribute_boolean("standard::is-backup"))
     r.size = info.get_attribute_uint64("standard::size")
@@ -320,10 +326,40 @@ def rec_from_info(info: Gio.FileInfo, parent: Gio.File) -> Rec:
     return r
 
 
+# Google Drive / OneDrive : URI → nom affiché (l'URI ne porte que des identifiants). Rempli par les
+# lectures (fil) ; lu par le titre et la barre de chemin, sans requête sur le fil principal.
+_display_names: dict[str, str] = {}
+
+
+def display_name(uri: str) -> Optional[str]:
+    return _display_names.get(uri.rstrip("/") or uri)
+
+
+def _remember_name(uri: str, name: str):
+    if name:
+        _display_names[uri.rstrip("/") or uri] = name
+
+
+def _learn_ancestors(gfile: Gio.File, cancellable):
+    """Noms du dossier lu et de ses parents (barre de chemin), une requête par nom encore inconnu."""
+    f = gfile
+    while f is not None:
+        uri = f.get_uri()
+        if display_name(uri) is None:
+            try:
+                info = f.query_info("standard::display-name", Gio.FileQueryInfoFlags.NONE, cancellable)
+                _remember_name(uri, info.get_attribute_string("standard::display-name") or "")
+            except GLib.Error:
+                pass
+        f = f.get_parent()
+
+
 def scan_gio(gfile: Gio.File, cancel: threading.Event) -> list[Rec]:
     """Liste un emplacement GIO (corbeille, réseau). Lève GLib.Error."""
     cancellable = Gio.Cancellable()
     out = []
+    if fsinfo.is_gio_only_uri(gfile.get_uri()):
+        _learn_ancestors(gfile, cancellable)
     en = gfile.enumerate_children(ATTRS, Gio.FileQueryInfoFlags.NONE, cancellable)
     try:
         while not cancel.is_set():

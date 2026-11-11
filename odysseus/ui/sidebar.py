@@ -17,7 +17,7 @@ from ..backend import bookmarks, devices, fsinfo, scanner, starred, trashwatch
 from ..backend.engine import human_size
 from ..i18n import ntr, tr
 from ..settings import settings
-from .common import SpringLoad, alert, ask_text, popup_menu, shown, space_later, toast
+from .common import SpringLoad, alert, ask_text, drop_locations, popup_menu, shown, space_later, toast
 
 UNMOUNT_NOTIFICATION = "unmount"        # même identifiant : « Écriture… » est remplacée par « … retiré »
 
@@ -439,6 +439,8 @@ class Sidebar(Gtk.Box):
             root = mount.get_root()
             path = root.get_path() if root else None
             target = path or (root.get_uri() if root else None)
+            if path and fsinfo.is_gio_only(path):
+                target = root.get_uri()       # Google Drive : ouvert par GIO (ligne sélectionnée)
             if not target or target in seen:
                 continue
             seen.add(target)
@@ -707,7 +709,7 @@ class Sidebar(Gtk.Box):
     def _on_drop(self, target, value, x, y, lb):
         self._drop_clear(lb)
         self._spring_leave()
-        paths = [f.get_path() for f in value.get_files() if f.get_path()]
+        paths = drop_locations(value)
         if not paths:
             return False
         row = lb.get_row_at_y(int(y))

@@ -413,7 +413,20 @@ class FileActions:
     def drop_files(self, paths: list[str], dest: str, action: str):
         """Fichiers déposés sur un dossier, un segment du chemin ou la barre latérale."""
         if dest == "trash:///":
-            self._trash_paths(paths)
+            paths = [p for p in paths if "://" not in p]     # Google Drive : pas notre corbeille
+            if paths:
+                self._trash_paths(paths)
+            return
+        if dest and ("://" in dest or any("://" in p for p in paths)):
+            # Google Drive / OneDrive (source ou destination) : par GIO, sous leurs vrais noms
+            paths = [p for p in paths if p != dest and p.rstrip("/").rsplit("/", 1)[0] != dest.rstrip("/")]
+            if not paths or action == "link" or ("://" not in dest and not os.path.isdir(dest)):
+                return
+            move = action == "move"
+            n = len(paths)
+            title = (ntr("Déplacement de {0} élément", "Déplacement de {0} éléments", n) if move else
+                     ntr("Copie de {0} élément", "Copie de {0} éléments", n)).format(n)
+            self._run_gio(title, lambda j: gioops.transfer(j, paths, dest, move=move))
             return
         if not dest or not os.path.isdir(dest):
             return
