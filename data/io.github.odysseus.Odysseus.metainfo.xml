@@ -70,6 +70,13 @@
   </requires>
   <content_rating type="oars-1.1"/>
   <releases>
+    <release version="1.9.2" date="2026-11-11">
+      <description>
+        <ul>
+          <li>Google Drive and OneDrive (GNOME online accounts): real names (“My Drive”, “Shared with me”) instead of identifiers, and folders open (they kept loading forever); copy, drag, rename and delete go through GIO, like Nautilus</li>
+        </ul>
+      </description>
+    </release>
     <release version="1.9.1" date="2026-11-09">
       <description>
         <ul>

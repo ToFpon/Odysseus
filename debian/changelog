@@ -1,3 +1,12 @@
+odysseus (1.9.2~noble1) noble; urgency=medium
+
+  * Google Drive et OneDrive (comptes en ligne de GNOME) : vrais noms
+    (« Mon Drive », « Partagés avec moi ») au lieu des identifiants, et
+    les dossiers s'ouvrent (ils chargeaient sans fin). Copier, glisser,
+    renommer, supprimer y passent par GIO, comme dans Nautilus.
+
+ -- Tof <nourpon@gmail.com>  Wed, 11 Nov 2026 05:51:27 +0000
+
 odysseus (1.9.1~noble1) noble; urgency=medium
 
   * Plus de fantôme de la question « Fusionner » / « Remplacer » par-
