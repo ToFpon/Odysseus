@@ -1,3 +1,12 @@
+odysseus (1.9.4~noble1) noble; urgency=medium
+
+  * Partages réseau (NAS en smb, sftp, ftp…) : les dossiers s'ouvrent en
+    quelques secondes au lieu d'une minute ou plus sur une connexion lente,
+    et la fenêtre ne se fige plus. Ils sont lus d'un coup, comme dans
+    Nautilus, au lieu d'un échange réseau par fichier.
+
+ -- Tof <nourpon@gmail.com>  Thu, 12 Nov 2026 20:55:13 +0000
+
 odysseus (1.9.3~noble1) noble; urgency=medium
 
   * Courriel : les pièces jointes arrivent dans Thunderbird installé en
