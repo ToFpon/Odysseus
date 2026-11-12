@@ -1,3 +1,13 @@
+odysseus (1.9.3~noble1) noble; urgency=medium
+
+  * Courriel : les pièces jointes arrivent dans Thunderbird installé en
+    snap ou en Flatpak (le message s'ouvrait vide).
+  * Double-clic sur un fichier d'un partage réseau (smb://) : il s'ouvre
+    avec l'application par défaut (TextMaker…), comme dans un dossier
+    local, et non avec une autre qui sait lire les adresses réseau.
+
+ -- Tof <nourpon@gmail.com>  Thu, 12 Nov 2026 16:52:52 +0000
+
 odysseus (1.9.2~noble1) noble; urgency=medium
 
   * Google Drive et OneDrive (comptes en ligne de GNOME) : vrais noms
