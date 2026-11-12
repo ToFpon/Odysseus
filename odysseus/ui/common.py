@@ -376,7 +376,11 @@ def _default_app(f: Gio.File) -> Optional[Gio.AppInfo]:
         info = f.query_info("standard::content-type,standard::fast-content-type",
                             Gio.FileQueryInfoFlags.NONE, None)
         ctype = info.get_content_type() or info.get_attribute_string("standard::fast-content-type")
-        return Gio.AppInfo.get_default_for_type(ctype, not f.is_native()) if ctype else None
+        # « doit accepter les URI » seulement sans chemin local, comme Nautilus
+        # (nautilus_file_has_local_path) : un fichier smb:// a son chemin FUSE de GVfs, qu'une
+        # application en %F reçoit. Avant : not is_native() → TextMaker (%F) écarté au double-clic
+        # sur le NAS, LibreOffice (%U) ouvert à sa place (retour d'utilisateur).
+        return Gio.AppInfo.get_default_for_type(ctype, f.get_path() is None) if ctype else None
     except GLib.Error:
         return None
 

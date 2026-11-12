@@ -1197,12 +1197,11 @@ class FileActions:
         paths = self._regular_files()
         if not paths:
             return
-        if not shutil.which("xdg-email"):
+        from ..backend import mail
+        argv = mail.compose_argv(paths)        # Thunderbird (deb, snap, Flatpak) en direct, sinon xdg-email
+        if argv[0] == "xdg-email" and not shutil.which("xdg-email"):
             alert(self, tr("Courriel impossible"), tr("Installez xdg-utils (sudo apt install xdg-utils)."))
             return
-        argv = ["xdg-email"]
-        for p in paths:
-            argv += ["--attach", p]
         try:
             subprocess.Popen(argv, start_new_session=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
         except OSError as e:

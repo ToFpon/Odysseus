@@ -991,3 +991,25 @@ class GioOnlyTest(unittest.TestCase):
             open(os.path.join(d, "x.txt"), "w").close()
             self.assertEqual(os.path.basename(gioops.unique_child(folder, "x.txt").get_path()),
                              "x" + tr(" (copie)") + ".txt")
+
+
+class MailTest(unittest.TestCase):
+    """« Courriel… » : Thunderbird lancé directement avec -compose, quelle que soit sa forme (xdg-email
+    ne reconnaît ni le snap ni le Flatpak et ouvrait un message sans pièce jointe)."""
+
+    def test_forms(self):
+        from odysseus.backend import mail
+        files = ["/home/tof/Facture, mars.pdf", "/home/tof/l'été.txt"]
+        att = ("attachment='file:///home/tof/Facture%2C%20mars.pdf,"
+               "file:///home/tof/l%27%C3%A9t%C3%A9.txt'")
+        self.assertEqual(mail.thunderbird_argv("thunderbird %u", files), ["thunderbird", "-compose", att])
+        snap = ("env BAMF_DESKTOP_FILE_HINT=/var/lib/snapd/desktop/applications/thunderbird_thunderbird.desktop "
+                "/snap/bin/thunderbird %u")
+        self.assertEqual(mail.thunderbird_argv(snap, files)[-3:], ["/snap/bin/thunderbird", "-compose", att])
+        flat = ("/usr/bin/flatpak run --branch=stable --arch=x86_64 --command=thunderbird --file-forwarding "
+                "org.mozilla.Thunderbird @@u %u @@")
+        argv = mail.thunderbird_argv(flat, files)
+        self.assertEqual(argv[-3:], ["org.mozilla.Thunderbird", "-compose", att])
+        self.assertNotIn("@@u", argv)
+        self.assertIsNone(mail.thunderbird_argv("evolution %U", files))
+        self.assertIsNone(mail.thunderbird_argv("", files))

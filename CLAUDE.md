@@ -535,7 +535,14 @@ fenêtre de recherche dans le contenu.
 - GSConnect (`backend/gsconnect.py`) : pas de lien vers nautilus-gsconnect.py ; on suit directement
   l'ObjectManager D-Bus de GSConnect (appareils en direct) et on envoie par l'action « shareFile »
   de l'appareil (`Gio.DBusActionGroup`). Testé avec `tests/fake_gsconnect.py` sous dbus-run-session.
-  « Courriel… » : `xdg-email --attach …` (logiciel de courriel par défaut).
+  « Courriel… » : `backend/mail.compose_argv` — Thunderbird par défaut (deb, snap, Flatpak) : commande de
+  son lanceur (codes %u et marqueurs @@ retirés) + `-compose attachment='uri,…'` (virgule / apostrophe
+  encodées) ; sinon `xdg-email --attach …`. xdg-email ne reconnaît Thunderbird que si l'Exec commence par
+  « thunderbird » : snap (`env BAMF… /snap/bin/thunderbird`) / Flatpak → `mailto:?attach=`, ignoré par
+  Thunderbird, message sans pièce jointe (retour d'utilisateur). Testé : `MailTest`.
+- Application par défaut au double-clic : « doit accepter les URI » seulement si le fichier n'a pas de
+  chemin local (`f.get_path() is None`, comme Nautilus) — un smb:// a son chemin FUSE ; avec
+  `not is_native()`, TextMaker (%F) était écarté sur le NAS au profit de LibreOffice (%U).
 - Sommes de contrôle (fonctionnalité `checksums`) : `tools.expected_digest` lit l'empreinte collée
   (seule, avec le nom, format BSD, en groupes) ; `compare_digest` calcule en une lecture tous les
   algorithmes de cette longueur (64 : SHA-256, SHA3-256, BLAKE2s…). `verify_hash_file` renvoie des
