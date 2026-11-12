@@ -222,6 +222,17 @@ sélection du moment. Barre latérale arrêtée (`_stopped`) : plus de recomptag
 opération finie après la fermeture ; Propriétés d'une fenêtre fermée → `_host()` (une fenêtre vivante) ;
 `Adw.WindowTitle` ne lit PAS de balisage (`shown`, pas `markup_safe`) ; listes de réglages : éléments `str`.
 
+Partages GVfs (smb://, sftp://, ftp://… vus par leur chemin FUSE) : la LECTURE du dossier passe par GIO
+(`scanner.gvfs_uri` + `scan_gvfs`, dans `DirModel.load` ; comptage des sous-dossiers : `count_children`),
+les éléments gardent leur chemin FUSE (copier, coller, conflits, corbeille inchangés). Par FUSE, chaque
+élément coûtait des allers-retours réseau : banc d'essai (vrai Samba + gvfsd-fuse, relais TCP à 30 ms) —
+55 éléments au 6e niveau : 73 s de readdir + 72 s de stat ; par GIO 1,5 s, comme Nautilus (retour d'un
+utilisateur : NAS en Wi-Fi lent, « une minute ou plus » par dossier, fenêtre figée). Valeurs = celles du
+stat de gvfsd-fuse (0700, sans w si access::can-write faux ; propriétaire = l'utilisateur ; date à la
+seconde). Testé : `GvfsScanTest` (même résultat que `scan_local`). Banc : `apt install gvfs-fuse`, smbd
+invité, `gvfsd` + `gvfsd-fuse` sous dbus-run-session, `gio mount smb://127.0.0.1:4450/share` (pas de
+netem dans le noyau du bac à sable : relais asyncio qui retarde chaque paquet).
+
 `workers.Pool` : un fil bloqué dans un appel système ne se tue pas ; si tous sont pris depuis plus
 de 3 s, un fil est ajouté (6 au plus).
 

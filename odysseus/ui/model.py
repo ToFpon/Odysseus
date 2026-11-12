@@ -164,7 +164,12 @@ class DirModel(GObject.Object, Gio.ListModel):
                 if cancel.is_set():
                     return
                 try:
-                    if local:
+                    uri = scanner.gvfs_uri(location) if network else None
+                    if uri:
+                        # partage GVfs (smb…) : lu par GIO, chemins FUSE gardés (scanner.scan_gvfs)
+                        recs = scanner.scan_gvfs(location, uri, cancel)
+                        GLib.idle_add(self._loaded, gen, recs, None, True)
+                    elif local:
                         recs = scanner.scan_local(location, cancel, with_stat=False)
                         if len(recs) <= STAT_INLINE or self.sort_key not in ("name", "type"):
                             scanner.stat_all(recs, cancel)

@@ -372,6 +372,70 @@ def scan_gio(gfile: Gio.File, cancel: threading.Event) -> list[Rec]:
     return out
 
 
+GVFS_ATTRS = ("standard::name,standard::type,standard::size,standard::is-hidden,standard::is-backup,"
+              "standard::is-symlink,standard::fast-content-type,time::modified,unix::mode,unix::uid,"
+              "unix::gid,access::can-write")
+
+
+def gvfs_uri(path: str) -> Optional[str]:
+    """URI GIO d'un dossier vu par le chemin FUSE de GVfs (/run/user/UID/gvfs/smb-share:…), sinon None.
+    À appeler dans un fil : GIO demande au démon GVfs à quel montage le chemin appartient."""
+    if fsinfo.fs_type(path) != "fuse.gvfsd-fuse":
+        return None
+    uri = Gio.File.new_for_path(path).get_uri()
+    return None if uri.startswith("file:") else uri
+
+
+def scan_gvfs(path: str, uri: str, cancel: threading.Event) -> list[Rec]:
+    """Partage GVfs (smb, sftp, ftp…) lu par GIO, comme Nautilus, mais avec les chemins FUSE : copier,
+    coller, conflits, corbeille restent ceux des dossiers locaux. Par le chemin FUSE, chaque élément
+    coûte au moins un aller-retour réseau (lister puis un stat chacun) : 55 éléments au 6e niveau d'un
+    partage SMB derrière 30 ms de latence = 73 s + 72 s, contre 0,3 s par GIO, qui lit le dossier en
+    quelques requêtes (retour d'utilisateur : NAS en Wi-Fi lent, « une minute ou plus » par dossier).
+    Valeurs comme le stat de gvfsd-fuse : droits 0700 (sans écriture si access::can-write est faux),
+    propriétaire = l'utilisateur, date à la seconde. Lève GLib.Error."""
+    gfile = Gio.File.new_for_uri(uri)
+    hidden_extra = read_hidden_file(path)
+    out = []
+    cancellable = Gio.Cancellable()
+    en = gfile.enumerate_children(GVFS_ATTRS, Gio.FileQueryInfoFlags.NONE, cancellable)
+    uid, gid = os.getuid(), os.getgid()
+    try:
+        while not cancel.is_set():
+            info = en.next_file(cancellable)
+            if info is None:
+                break
+            name = info.get_name()
+            ftype = Gio.FileType(info.get_attribute_uint32("standard::type"))
+            is_link = info.get_attribute_boolean("standard::is-symlink")
+            r = Rec(name, os.path.join(path, name), ftype == Gio.FileType.DIRECTORY, is_link)
+            if hidden_extra and name in hidden_extra:
+                r.hidden = True
+            elif info.get_attribute_boolean("standard::is-hidden") or info.get_attribute_boolean("standard::is-backup"):
+                r.hidden = True
+            r.key = sort_name(name)
+            r.size = info.get_attribute_uint64("standard::size")
+            r.mtime = float(info.get_attribute_uint64("time::modified") or 0)
+            kind = st.S_IFDIR if r.is_dir else (st.S_IFLNK if ftype == Gio.FileType.SYMBOLIC_LINK else st.S_IFREG)
+            if info.has_attribute("unix::mode"):
+                r.mode = info.get_attribute_uint32("unix::mode")
+            else:
+                perms = 0o700
+                if info.has_attribute("access::can-write") and not info.get_attribute_boolean("access::can-write"):
+                    perms &= ~0o200
+                r.mode = kind | perms
+            r.uid = info.get_attribute_uint32("unix::uid") if info.has_attribute("unix::uid") else uid
+            r.gid = info.get_attribute_uint32("unix::gid") if info.has_attribute("unix::gid") else gid
+            r.stat_ok = True
+            if not r.is_dir:
+                r.ctype = (("application/x-zerosize" if r.size == 0 and ftype == Gio.FileType.REGULAR else None)
+                           or info.get_attribute_string("standard::fast-content-type") or None)
+            out.append(r)
+    finally:
+        en.close(None)
+    return out
+
+
 def rec_for_path(path: str) -> Optional[Rec]:
     """Un seul élément (événement de surveillance du dossier)."""
     name = os.path.basename(path)
@@ -461,6 +525,22 @@ def owner_name(uid: int) -> str:
 
 
 def count_children(path: str, show_hidden: bool) -> int:
+    uri = gvfs_uri(path) if fsinfo.is_network(path) else None
+    if uri:
+        # partage GVfs : une énumération GIO (noms seuls) au lieu d'un readdir FUSE qui interroge le
+        # serveur élément par élément (voir scan_gvfs)
+        try:
+            en = Gio.File.new_for_uri(uri).enumerate_children("standard::name", Gio.FileQueryInfoFlags.NONE, None)
+            try:
+                n = 0
+                while (info := en.next_file(None)) is not None:
+                    if show_hidden or not info.get_name().startswith("."):
+                        n += 1
+                return n
+            finally:
+                en.close(None)
+        except GLib.Error:
+            return -1
     try:
         with os.scandir(path) as it:
             if show_hidden:
