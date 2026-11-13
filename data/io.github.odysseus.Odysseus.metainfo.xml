@@ -70,6 +70,13 @@
   </requires>
   <content_rating type="oars-1.1"/>
   <releases>
+    <release version="1.9.5" date="2026-11-13">
+      <description>
+        <ul>
+          <li>Diagnostics: if the window freezes, running “pkill -USR1 -x odysseus” in another terminal prints where each Odysseus thread is stuck, without closing it (start Odysseus from a terminal to see it)</li>
+        </ul>
+      </description>
+    </release>
     <release version="1.9.4" date="2026-11-12">
       <description>
         <ul>

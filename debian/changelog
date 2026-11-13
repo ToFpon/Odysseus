@@ -1,3 +1,11 @@
+odysseus (1.9.5~noble1) noble; urgency=medium
+
+  * Diagnostic : si la fenêtre se fige, « pkill -USR1 -x odysseus » (dans
+    un autre terminal) affiche où chaque fil d'Odysseus est arrêté, sans
+    le fermer. À lancer quand Odysseus a été démarré depuis un terminal.
+
+ -- Tof <nourpon@gmail.com>  Fri, 13 Nov 2026 16:19:23 +0000
+
 odysseus (1.9.4~noble1) noble; urgency=medium
 
   * Partages réseau (NAS en smb, sftp, ftp…) : les dossiers s'ouvrent en
