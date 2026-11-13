@@ -248,6 +248,11 @@ def main(argv=None) -> int:
     # En cas de plantage natif (GTK, GLib, Poppler…), afficher la pile Python de chaque fil
     import faulthandler
     faulthandler.enable(all_threads=True)
+    # Fenêtre figée (« ne répond pas »), rien dans le terminal : « pkill -USR1 -x odysseus » écrit la
+    # pile de chaque fil sur la sortie d'erreur, sans arrêter Odysseus (diagnostic d'un utilisateur à
+    # distance : on voit l'appel qui bloque le fil principal)
+    import signal
+    faulthandler.register(signal.SIGUSR1, all_threads=True)
     # lanceur installé : « python3 -c … », le nom du programme valait « -c » (WM_CLASS sous X11,
     # préfixe des messages GTK) ; comme Nautilus (org.gnome.Nautilus), l'identifiant de l'application
     GLib.set_prgname(APP_ID)
