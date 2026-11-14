@@ -551,6 +551,11 @@ fenêtre de recherche dans le contenu.
   encodées) ; sinon `xdg-email --attach …`. xdg-email ne reconnaît Thunderbird que si l'Exec commence par
   « thunderbird » : snap (`env BAMF… /snap/bin/thunderbird`) / Flatpak → `mailto:?attach=`, ignoré par
   Thunderbird, message sans pièce jointe (retour d'utilisateur). Testé : `MailTest`.
+  Flatpak (Betterbird / Thunderbird de Flathub) : le bac à sable ne voit pas le fichier, message ouvert sans
+  pièce jointe ni erreur (retour d'utilisateur, Betterbird) → chaque fichier passe par le portail de documents
+  (`flatpak document-export --app=ID -r`, `mail.export_to_flatpak`), l'URI donnée est celle de
+  /run/user/UID/doc/…. Testé : `MailFlatpakTest` (faux flatpak). Proton Mail (application de bureau) :
+  n'accepte aucune pièce jointe venue d'une autre application (comme depuis Nautilus) — rien à faire.
 - Application par défaut au double-clic : « doit accepter les URI » seulement si le fichier n'a pas de
   chemin local (`f.get_path() is None`, comme Nautilus) — un smb:// a son chemin FUSE ; avec
   `not is_native()`, TextMaker (%F) était écarté sur le NAS au profit de LibreOffice (%U).

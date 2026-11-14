@@ -1041,3 +1041,32 @@ class GvfsScanTest(unittest.TestCase):
             self.assertEqual(gvfs["vide"].ctype, "application/x-zerosize")
             self.assertTrue(gvfs["a.txt"].hidden)          # .hidden respecté
             self.assertIsNone(scanner.gvfs_uri(d))          # dossier local : jamais par GIO
+
+
+class MailFlatpakTest(unittest.TestCase):
+    """Thunderbird / Betterbird en Flatpak : les pièces jointes passent par le portail de documents
+    (faux « flatpak » qui répond comme document-export : /run/user/UID/doc/ID/nom)."""
+
+    def test_document_export(self):
+        from odysseus.backend import mail
+        with tempfile.TemporaryDirectory() as d:
+            fake = os.path.join(d, "flatpak")
+            with open(fake, "w") as f:
+                f.write('#!/bin/sh\necho "$@" >> "%s/calls"\nfor last; do :; done\n'
+                        'echo "/run/user/1000/doc/ab12/$(basename "$last")"\n' % d)
+            os.chmod(fake, 0o755)
+            old = os.environ["PATH"]
+            os.environ["PATH"] = d + os.pathsep + old
+            try:
+                cmd = ("/usr/bin/flatpak run --branch=stable --arch=x86_64 --command=betterbird --file-forwarding "
+                       "eu.betterbird.Betterbird @@u %u @@")
+                self.assertEqual(mail.flatpak_app(cmd.split()), "eu.betterbird.Betterbird")
+                argv = mail.thunderbird_argv(cmd, ["/home/tof/Facture mars.pdf"])
+                self.assertEqual(argv[-1], "attachment='file:///run/user/1000/doc/ab12/Facture%20mars.pdf'")
+                with open(os.path.join(d, "calls")) as f:
+                    self.assertIn("document-export --app=eu.betterbird.Betterbird -r /home/tof/Facture mars.pdf",
+                                  f.read())
+                # snap / deb : pas de portail
+                self.assertIsNone(mail.flatpak_app(["/snap/bin/thunderbird"]))
+            finally:
+                os.environ["PATH"] = old
