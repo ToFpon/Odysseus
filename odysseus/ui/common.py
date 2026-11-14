@@ -684,3 +684,4 @@ def drop_locations(value) -> list[str]:
             path = f.get_path()
             out.append(Gio.File.new_for_path(path).get_uri() if fsinfo.is_gio_only(path) else path)
     return out
+

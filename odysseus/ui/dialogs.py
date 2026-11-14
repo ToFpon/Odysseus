@@ -10,6 +10,7 @@ from gi.repository import Adw, Gio, GLib, GObject, Gtk
 from .. import features
 from ..i18n import LANGUAGE_NAMES, ntr, tr
 from ..settings import settings
+from ..defaultapp import set_default_app
 from .common import DialogWindow, combo_row, shown, toast
 
 
@@ -491,7 +492,7 @@ class AppChooser(DialogWindow):
             return
         if self.default_row.get_active() and self.default_row.get_sensitive():
             try:
-                app.set_as_default_for_type(self.ctype)
+                set_default_app(app, self.ctype)        # alias du type compris (audio/x-m4a…)
             except GLib.Error:
                 pass
         try:

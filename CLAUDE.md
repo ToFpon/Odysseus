@@ -409,6 +409,11 @@ fenêtre de recherche dans le contenu.
   (`dialogs.AppChooser` : `Gtk.AppChooserWidget`, le composant de Nautilus 46, déprécié mais présent
   en GTK 4.14 ; ses titres de section viennent des traductions de GTK ; sa treeview a un fond `view`
   opaque : rendu transparent dans base.css, `.odysseus-app-chooser`).
+  « Toujours utiliser pour ce type de fichiers » : `defaultapp.set_default_app` — GIO écrit « audio/mp4=app »
+  mais laisse une ancienne ligne d'ALIAS (audio/x-m4a=rhythmbox…), qui continue de gagner (vu chez Tof : Ithaca
+  pour les .m4a, mimeapps.list corrigé à la main ; Nautilus a le même défaut). Les alias du type trouvés dans
+  mimeapps.list / <bureau>-mimeapps.list (`Gio.content_type_equals`) reçoivent le même choix. Testé :
+  `DefaultAppAliasTest`.
 - Raccourcis : GTK 4 traite ceux de l'application AVANT le widget qui a le focus. Ceux qui ont un
   sens dans un champ (Suppr, Retour arrière, `/`, `~`, Ctrl+A/X/C/V/Z…) sont renvoyés au texte qui a
   le focus par un contrôleur clavier en capture (`MainWindow._on_text_key`, qui passe avant les

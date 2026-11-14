@@ -1225,3 +1225,33 @@ class FileInfoTest(unittest.TestCase):
             ntr("{0} heure", "{0} heures", 1).format(1), ntr("{0} minute", "{0} minutes", 2).format(2),
             ntr("{0} seconde", "{0} secondes", 5).format(5)))
 
+
+
+class DefaultAppAliasTest(unittest.TestCase):
+    """« Toujours utiliser pour ce type de fichiers » sur un .m4a (audio/mp4) : une ancienne ligne pour
+    l'alias audio/x-m4a gardait l'application d'avant (GIO ne la touche pas). Autre processus : HOME jetable."""
+
+    def test_alias(self):
+        import subprocess
+        with tempfile.TemporaryDirectory() as d:
+            apps = os.path.join(d, "share", "applications")
+            os.makedirs(apps)
+            os.makedirs(os.path.join(d, "config"))
+            for a in ("ithaca", "rhythmbox"):
+                with open(os.path.join(apps, a + ".desktop"), "w") as f:
+                    f.write(f"[Desktop Entry]\nType=Application\nName={a}\nExec=true %U\n"
+                            "MimeType=audio/mp4;audio/x-m4a;\n")
+            with open(os.path.join(d, "config", "mimeapps.list"), "w") as f:
+                f.write("[Default Applications]\naudio/x-m4a=rhythmbox.desktop\ntext/plain=gedit.desktop\n")
+            code = ("from gi.repository import Gio\nfrom odysseus.defaultapp import set_default_app\n"
+                    "set_default_app(Gio.DesktopAppInfo.new('ithaca.desktop'), 'audio/mp4')\n"
+                    "print(Gio.AppInfo.get_default_for_type('audio/mp4', False).get_id())\n")
+            env = dict(os.environ, HOME=d, XDG_CONFIG_HOME=os.path.join(d, "config"),
+                       XDG_DATA_HOME=os.path.join(d, "share"), XDG_CURRENT_DESKTOP="GNOME")
+            out = subprocess.run([sys.executable, "-c", code], env=env, capture_output=True, text=True,
+                                 cwd=os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+            self.assertEqual(out.stdout.strip(), "ithaca.desktop", out.stderr[-500:])
+            with open(os.path.join(d, "config", "mimeapps.list")) as f:
+                text = f.read()
+            self.assertIn("audio/x-m4a=ithaca.desktop", text)
+            self.assertIn("text/plain=gedit.desktop", text)        # les autres types ne bougent pas

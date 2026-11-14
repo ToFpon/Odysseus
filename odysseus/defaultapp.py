@@ -12,6 +12,8 @@ Idée reprise de « Mira » (fork d'Odysseus d'un utilisateur)."""
 
 from __future__ import annotations
 
+import os
+
 from gi.repository import Gio, GLib
 
 from . import APP_ID
@@ -65,3 +67,32 @@ def reconcile():
     interrupteur, avant 1.7.6) n'est jamais coupé d'office."""
     if not settings["dbus_file_manager"] and installed() and is_default():
         settings["dbus_file_manager"] = True
+
+
+def set_default_app(app: Gio.AppInfo, ctype: str):
+    """« Toujours utiliser pour ce type de fichiers ». GIO écrit « type=app » dans ~/.config/mimeapps.list
+    mais garde les lignes déjà posées pour les ALIAS du même type (audio/x-m4a, audio/m4a pour audio/mp4…),
+    qui continuent de gagner : Ithaca choisi pour un .m4a, Rhythmbox restait l'application par défaut (vu
+    chez Tof ; Nautilus, qui appelle la même fonction, fait pareil). Les alias trouvés dans les fichiers
+    mimeapps de l'utilisateur reçoivent donc le même choix."""
+    app.set_as_default_for_type(ctype)
+    import configparser
+    config = GLib.get_user_config_dir()
+    names = ["mimeapps.list"] + [d.lower() + "-mimeapps.list"
+                                 for d in os.environ.get("XDG_CURRENT_DESKTOP", "").split(":") if d]
+    aliases = set()
+    for name in names:
+        parser = configparser.RawConfigParser(strict=False, delimiters=("=",), interpolation=None)
+        parser.optionxform = str
+        try:
+            parser.read(os.path.join(config, name), encoding="utf-8")
+        except (configparser.Error, UnicodeDecodeError):
+            continue
+        if parser.has_section("Default Applications"):
+            aliases.update(k for k in parser.options("Default Applications")
+                           if k != ctype and Gio.content_type_equals(k, ctype))
+    for alias in sorted(aliases):
+        try:
+            app.set_as_default_for_type(alias)
+        except GLib.Error:
+            pass
