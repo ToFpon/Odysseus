@@ -63,7 +63,8 @@ def export_to_flatpak(app: str, path: str) -> str:
     s'ouvrait sans pièce jointe, sans erreur (retour d'utilisateur, Betterbird). Échec → chemin d'origine."""
     try:
         out = subprocess.run(["flatpak", "document-export", "--app=" + app, "-r", path],
-                             capture_output=True, text=True, timeout=10)
+                             capture_output=True, text=True, timeout=10,
+                             errors="surrogateescape")      # nom non UTF-8 : rendu tel quel, sans exception
     except (OSError, subprocess.TimeoutExpired):
         return path
     exported = out.stdout.strip().splitlines()[-1] if out.returncode == 0 and out.stdout.strip() else ""

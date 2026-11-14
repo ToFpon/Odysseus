@@ -14,7 +14,7 @@ from typing import Optional
 
 from gi.repository import Gdk, GdkPixbuf, GLib, Gtk, Pango
 
-from ..backend import media, scanner, thumbnails
+from ..backend import fsinfo, media, scanner, thumbnails
 from ..backend.engine import human_size
 from ..backend.scanner import Rec
 from ..i18n import ntr, tr
@@ -228,7 +228,8 @@ class PreviewPanel(Gtk.Box):
 
     def _show_folder(self, pane):
         d = pane.current_dir()
-        rec = scanner.rec_for_path(d) if d and pane.mode == "fs" else None
+        # partage réseau : pas de stat sur le fil principal (serveur muet = fenêtre figée), résumé simple
+        rec = scanner.rec_for_path(d) if d and pane.mode == "fs" and not fsinfo.is_network(d) else None
         if rec is None:
             self._token += 1
             self._current = None

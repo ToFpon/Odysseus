@@ -993,6 +993,82 @@ class GioOnlyTest(unittest.TestCase):
                              "x" + tr(" (copie)") + ".txt")
 
 
+class NetAuditTest(unittest.TestCase):
+    """Audit réseau 2.0 : titres Google Drive hostiles, presse-papiers, copie GIO qui continue."""
+
+    def test_hostile_titles(self):
+        from odysseus.backend import gioops
+        with tempfile.TemporaryDirectory() as d:
+            dest = os.path.join(d, "dest")
+            os.makedirs(os.path.join(dest, "Budget 2025"))
+            folder = Gio.File.new_for_path(dest)
+            for title, want in (("Budget 2025/2026.ods", "Budget 2025_2026.ods"), ("../evil.txt", ".._evil.txt"),
+                                ("..", "_"), (".", "_"), ("", "_"), ("a\0b", "a_b")):
+                self.assertEqual(gioops.child_named(folder, title).get_path(), os.path.join(dest, want), title)
+            self.assertEqual(os.path.dirname(gioops.unique_child(folder, "..").get_path()), dest)
+
+    def test_copy_continues(self):
+        """Un élément impossible à copier (fichier spécial) n'arrête plus tout le dossier."""
+        from odysseus.backend import gioops
+        with tempfile.TemporaryDirectory() as d:
+            src = os.path.join(d, "src")
+            os.makedirs(src)
+            for n in ("a.txt", "z.txt"):
+                with open(os.path.join(src, n), "w") as f:
+                    f.write(n)
+            os.mkfifo(os.path.join(src, "m-fifo"))
+            dest = os.path.join(d, "dest")
+            os.makedirs(dest)
+            res = run(lambda j: gioops.transfer(j, [src], dest))
+            self.assertEqual(len(res.errors), 1, res.errors)
+            self.assertTrue(res.errors[0][0].endswith("m-fifo"))
+            self.assertEqual(sorted(os.listdir(os.path.join(dest, "src"))), ["a.txt", "z.txt"])
+
+    def test_clipboard_drive(self):
+        import gi
+        gi.require_version("Gdk", "4.0")
+        from odysseus.backend import fsinfo
+        from odysseus.ui import clipboard
+        saved = fsinfo.mounts
+        fsinfo.mounts = lambda: [("/run/user/1000/gvfs", "fuse.gvfsd-fuse"), ("/", "ext4")]
+        try:
+            uri = "google-drive://tof@gmail.com/0ALd6LEox2-EBUk9PVA/1AbC"
+            self.assertEqual(clipboard._parse_uris(uri + "\nfile:///tmp/x%20y\n"), [uri, "/tmp/x y"])
+            fuse = "/run/user/1000/gvfs/google-drive:host=gmail.com,user=tof/0ALd6LEox2-EBUk9PVA/1AbC"
+            loc = clipboard.location(Gio.File.new_for_path(fuse))
+            self.assertIn("://", loc)
+            self.assertNotEqual(Gio.File.new_for_uri(loc).get_path(), "/tmp")
+        finally:
+            fsinfo.mounts = saved
+
+    def test_star_network(self):
+        from odysseus.backend import fsinfo, starred
+        saved, real = fsinfo.mounts, os.path.realpath
+        fsinfo.mounts = lambda: [("/mnt/nas", "cifs"), ("/", "ext4")]
+        os.path.realpath = lambda p, **k: self.fail("realpath sur un partage réseau") if p.startswith("/mnt") \
+            else real(p, **k)
+        try:
+            self.assertFalse(starred.can_star("/mnt/nas/Films/S01"))
+        finally:
+            fsinfo.mounts, os.path.realpath = saved, real
+
+    def test_flatpak_non_utf8(self):
+        from odysseus.backend import mail
+        with tempfile.TemporaryDirectory() as d:
+            fake = os.path.join(d, "flatpak")
+            with open(fake, "w") as f:
+                f.write("#!/bin/sh\nprintf '/run/user/0/doc/ab/\\351t\\351.txt\\n'\n")
+            os.chmod(fake, 0o755)
+            old = os.environ["PATH"]
+            os.environ["PATH"] = d + os.pathsep + old
+            try:
+                out = mail.export_to_flatpak("org.mozilla.Thunderbird", "/home/tof/x.txt")
+            finally:
+                os.environ["PATH"] = old
+            self.assertTrue(out.startswith("/run/user/0/doc/ab/"))
+            self.assertEqual(os.fsencode(out)[-7:], b"\xe9t\xe9.txt")
+
+
 class MailTest(unittest.TestCase):
     """« Courriel… » : Thunderbird lancé directement avec -compose, quelle que soit sa forme (xdg-email
     ne reconnaît ni le snap ni le Flatpak et ouvrait un message sans pièce jointe)."""

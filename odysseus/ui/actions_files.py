@@ -12,7 +12,7 @@ from typing import Optional
 from gi.repository import Adw, Gio, GLib, Gtk
 
 from .. import features
-from ..backend import batchrename, fileops, folder_colors, formats, fsinfo, gioops, starred
+from ..backend import batchrename, fileops, folder_colors, formats, fsinfo, gioops, scanner, starred
 from ..backend.engine import Job, ToolError, human_size
 from ..i18n import ntr, tr
 from ..settings import settings
@@ -350,7 +350,9 @@ class FileActions:
                      else ntr("{0} élément copié", "{0} éléments copiés", n)).format(n), timeout=2)
 
     def paste(self, dest: Optional[str] = None):
-        dest = dest or (self.pane.current_dir() if self.pane and self.pane.mode == "fs" else "") \
+        # « remote » avec un chemin FUSE (smb://… ouvert par son URI) : on colle dans ce chemin ; sans
+        # chemin (Google Drive, admin://) : par GIO
+        dest = dest or (self.pane.current_dir() if self.pane and self.pane.mode in ("fs", "remote") else "") \
             or self._gio_dir()
         if not dest:
             return
@@ -543,7 +545,9 @@ class FileActions:
         return job
 
     def _show_errors(self, title, errors):
-        text = "\n".join(f"{os.path.basename(p)} : {m}" for p, m in errors[:15])
+        def name(p):        # URI Google Drive : vrai nom s'il a été lu (sinon l'identifiant)
+            return (scanner.display_name(p) if "://" in p else None) or os.path.basename(p.rstrip("/")) or p
+        text = "\n".join(f"{name(p)} : {m}" for p, m in errors[:15])
         if len(errors) > 15:
             text += "\n" + tr("… et {0} autre(s)").format(len(errors) - 15)
         alert(self, tr("{0} : certains éléments n'ont pas pu être traités").format(title), text)
@@ -552,7 +556,9 @@ class FileActions:
         if res.moved and starred.available():
             starred.moved(list(res.moved))          # comme Nautilus : l'étoile suit l'élément
         for src, dst in res.moved:
-            if os.path.isdir(dst):
+            # partage réseau : pas de stat par élément sur le fil principal (300 photos = 300 allers-retours) ;
+            # follow_move ne fait rien pour un fichier, on le laisse en juger
+            if fsinfo.is_network(dst) or "://" in dst or os.path.isdir(dst):
                 for p in self.all_panes():
                     p.follow_move(src, dst)
 
@@ -877,7 +883,10 @@ class FileActions:
             elif r == "delete":
                 self._run(tr("Suppression définitive"), lambda j: fileops.delete(j, paths))
         if settings["confirm_delete"] or gio:
-            alert(self, _delete_question([os.path.basename(p.rstrip("/")) or p for p in paths]),
+            # Google Drive : l'URI ne porte qu'un identifiant (« 1AbC… ») — la question montre les vrais noms
+            names = [r.name for r in sel if r.path or r.uri] if gio else \
+                [os.path.basename(p.rstrip("/")) or p for p in paths]
+            alert(self, _delete_question(names),
                   tr("Les éléments définitivement supprimés ne peuvent pas être restaurés"),
                   responses=(("cancel", tr("Annuler")), ("delete", tr("Supprimer"))), destructive="delete",
                   default="cancel", callback=go)
@@ -1275,14 +1284,24 @@ class FileActions:
         if not paths:
             return
         from ..backend import mail
-        argv = mail.compose_argv(paths)        # Thunderbird (deb, snap, Flatpak) en direct, sinon xdg-email
-        if argv[0] == "xdg-email" and not shutil.which("xdg-email"):
-            alert(self, tr("Courriel impossible"), tr("Installez xdg-utils (sudo apt install xdg-utils)."))
-            return
-        try:
-            subprocess.Popen(argv, start_new_session=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
-        except OSError as e:
-            alert(self, tr("Courriel impossible"), str(e))
+
+        def launch(argv):
+            if argv[0] == "xdg-email" and not shutil.which("xdg-email"):
+                alert(self, tr("Courriel impossible"), tr("Installez xdg-utils (sudo apt install xdg-utils)."))
+                return False
+            try:
+                subprocess.Popen(argv, start_new_session=True, stdout=subprocess.DEVNULL,
+                                 stderr=subprocess.DEVNULL)
+            except OSError as e:
+                alert(self, tr("Courriel impossible"), str(e))
+            return False
+
+        # dans un fil : Thunderbird en Flatpak = un « flatpak document-export » par fichier (jusqu'à 10 s
+        # chacun), la fenêtre restait figée pendant ce temps
+        def work():
+            argv = mail.compose_argv(paths)    # Thunderbird (deb, snap, Flatpak) en direct, sinon xdg-email
+            GLib.idle_add(launch, argv)
+        threading.Thread(target=work, daemon=True).start()
 
     def send_to_device(self, path: str):
         from ..backend import gsconnect

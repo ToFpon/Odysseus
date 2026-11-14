@@ -330,9 +330,12 @@ class Pane(Gtk.Box):
                 if paths:
                     self.emit("files-dropped", paths, "", "archive")
                 return bool(paths)
-            if self.mode != "fs" and not self._gio_drop_dest():
+            dest = self.location
+            if self.mode == "remote" and not self._gio_drop_dest() and self.current_dir():
+                dest = self.current_dir()      # smb://… ouvert par son URI : déposé dans son chemin FUSE
+            elif self.mode != "fs" and not self._gio_drop_dest():
                 return False
-            self.handle_drop(paths, self.location, t.get_current_drop())
+            self.handle_drop(paths, dest, t.get_current_drop())
             return True
         drop.connect("drop", on_drop)
         self.overlay.add_controller(drop)

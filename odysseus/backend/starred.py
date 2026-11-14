@@ -131,7 +131,16 @@ def can_star(path: Optional[str]) -> bool:
         return False
     home = os.path.realpath(os.path.expanduser("~"))
     p = os.path.abspath(path)
-    return p != home and (p.startswith(home + os.sep) or os.path.realpath(p).startswith(home + os.sep))
+    if p == home:
+        return False
+    if p.startswith(home + os.sep):
+        return True
+    # realpath fait un lstat par composant : jamais sur un partage réseau (appelé depuis le fil principal,
+    # à l'ouverture d'un dossier et au clic droit ; serveur muet = fenêtre figée)
+    from . import fsinfo
+    if fsinfo.is_network(p):
+        return False
+    return os.path.realpath(p).startswith(home + os.sep)
 
 
 def reload(force: bool = False) -> set[str]:

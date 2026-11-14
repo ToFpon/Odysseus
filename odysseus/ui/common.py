@@ -675,13 +675,6 @@ def bidir():
 def drop_locations(value) -> list[str]:
     """Fichiers d'un Gdk.FileList déposé : chemins, sauf Google Drive / OneDrive (URI : leur chemin
     FUSE n'a que des identifiants)."""
-    out = []
-    for f in value.get_files():
-        uri = f.get_uri()
-        if fsinfo.is_gio_only_uri(uri):
-            out.append(uri)
-        elif f.get_path():
-            path = f.get_path()
-            out.append(Gio.File.new_for_path(path).get_uri() if fsinfo.is_gio_only(path) else path)
-    return out
+    from .clipboard import location
+    return [loc for f in value.get_files() if (loc := location(f))]
 

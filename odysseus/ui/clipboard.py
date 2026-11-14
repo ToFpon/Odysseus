@@ -6,6 +6,8 @@ from typing import Optional
 
 from gi.repository import Gdk, Gio, GLib, GObject
 
+from ..backend import fsinfo
+
 GNOME_TYPE = "x-special/gnome-copied-files"
 
 
@@ -66,6 +68,19 @@ def _on_changed(cb: Gdk.Clipboard):
         state.clear()
 
 
+def location(f: Gio.File) -> Optional[str]:
+    """Chemin d'un fichier collé ou déposé, sauf Google Drive / OneDrive : leur chemin FUSE n'a que des
+    identifiants (« 1AbC… ») — copié par lui, chaque élément prenait son identifiant pour nom, et un
+    couper-coller supprimait les originaux. Ceux-là restent des URI (gioops, vrais noms)."""
+    uri = f.get_uri()
+    if fsinfo.is_gio_only_uri(uri):
+        return uri
+    path = f.get_path()
+    if path:
+        return Gio.File.new_for_path(path).get_uri() if fsinfo.is_gio_only(path) else path
+    return uri if "://" in uri else None
+
+
 def _parse_uris(text: str) -> list[str]:
     out = []
     for line in text.replace("\r", "").split("\n"):
@@ -73,7 +88,7 @@ def _parse_uris(text: str) -> list[str]:
         if not line or line.startswith("#"):
             continue
         f = Gio.File.new_for_uri(line) if "://" in line else Gio.File.new_for_path(line)
-        loc = f.get_path() or (f.get_uri() if "://" in line else None)
+        loc = location(f)
         if loc:
             out.append(loc)
     return out
@@ -105,7 +120,7 @@ def read(display: Gdk.Display, callback):
         def done3(c, res):
             try:
                 v = c.read_value_finish(res)
-                callback([f.get_path() or f.get_uri() for f in v.get_files()], False)
+                callback([loc for f in v.get_files() if (loc := location(f))], False)
             except GLib.Error:
                 callback([], False)
         cb.read_value_async(Gdk.FileList, GLib.PRIORITY_DEFAULT, None, done3)

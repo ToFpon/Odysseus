@@ -251,6 +251,16 @@ intact). Propriétés : APEX absurde, listes à la place de nombres, APP1 de lon
 exif / xmp » (exiv2, ImageMagick), TIFF lu par mmap (IFD après l'image), étiquettes de la pochette ignorées
 (fuzzer : 9000 fichiers mutés, aucun plantage). `<bureau>-mimeapps.list` : lignes du type / alias retirées.
 Dépôt sur les segments spéciaux de la barre de chemin : ignoré.
+Audit réseau 2.0 (`NetAuditTest`) : presse-papiers comme le glisser (`clipboard.location`, partagé avec
+`drop_locations`) — Google Drive / OneDrive restent des URI, sinon copie sous les IDENTIFIANTS par FUSE et
+couper-coller qui supprimait les originaux ; titres Drive rendus valides avant d'en faire un nom
+(`gioops.valid_name` : « / » → « _ », « .. » / « . » / vide → « _ », FAT) — « ../x » écrivait au-dessus de la
+destination ; `_copy_tree` continue après un élément raté (erreurs notées), déplacement incomplet = original
+gardé. Fil principal : changements d'un dossier réseau lus dans un fil (`DirModel._flush_changes`, lots en
+ordre par `_NET_CHANGES`), aperçu d'un dossier réseau sans stat, `starred.can_star` sans realpath sur le
+réseau, `_follow_moves` sans isdir, Courriel (`document-export` Flatpak) dans un fil, sortie en surrogateescape.
+smb://… ouvert par son URI (mode « remote » avec chemin FUSE) : Ctrl+V et dépôt dans ce chemin (avant : rien).
+Question « Supprimer définitivement » et erreurs : vrais noms Drive (`scanner.display_name`), pas les IDs.
 
 `workers.Pool` : un fil bloqué dans un appel système ne se tue pas ; si tous sont pris depuis plus
 de 3 s, un fil est ajouté (6 au plus).

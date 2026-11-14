@@ -38,9 +38,27 @@ def source_name(f: Gio.File) -> str:
         return f.get_basename() or "?"
 
 
+def valid_name(name: str, folder: Gio.File) -> str:
+    """Un titre Google Drive / OneDrive peut contenir « / » (« Budget 2025/2026.ods ») ou valoir « .. » :
+    pris tel quel comme nom, la copie partait dans un sous-dossier ou AU-DESSUS de la destination (un
+    dossier partagé hostile pouvait écrire n'importe où dans le dossier personnel). « / » → « _ »,
+    « . » / « .. » / vide → « _ » ; FAT / NTFS : caractères interdits remplacés (fsinfo.safe_name)."""
+    name = name.replace("/", "_").replace("\0", "_")
+    if name in ("", ".", ".."):
+        name = "_"
+    path = folder.get_path()
+    if path:
+        from . import fsinfo
+        if fsinfo.is_fat(path):
+            name = fsinfo.safe_name(name)
+    return name
+
+
 def child_named(folder: Gio.File, name: str) -> Gio.File:
-    """Élément « name » de folder. Hors disque local, par le nom affiché (get_child_for_display_name) :
-    Google Drive crée alors un élément de ce titre au lieu de chercher un identifiant « name »."""
+    """Élément « name » de folder (nom rendu valide : valid_name). Hors disque local, par le nom affiché
+    (get_child_for_display_name) : Google Drive crée alors un élément de ce titre au lieu de chercher un
+    identifiant « name »."""
+    name = valid_name(name, folder)
     if folder.is_native():
         return folder.get_child(name)
     try:
@@ -68,7 +86,9 @@ def _is_dir(f: Gio.File) -> bool:
     return f.query_file_type(Gio.FileQueryInfoFlags.NOFOLLOW_SYMLINKS, None) == Gio.FileType.DIRECTORY
 
 
-def _copy_tree(job: Job, src: Gio.File, dst: Gio.File):
+def _copy_tree(job: Job, src: Gio.File, dst: Gio.File, errors: Optional[list] = None):
+    """Copie src (fichier ou dossier) vers dst. Avec `errors`, un élément du dossier qui échoue y est noté
+    (chemin, message) et la copie continue avec les autres ; sans, la première erreur remonte."""
     if _is_dir(src):
         dst.make_directory(None)
         en = src.enumerate_children("standard::name,standard::display-name",
@@ -79,7 +99,13 @@ def _copy_tree(job: Job, src: Gio.File, dst: Gio.File):
                 name = info.get_name()
                 if not src.is_native():       # Google Drive : identifiant → vrai nom
                     name = info.get_attribute_string("standard::display-name") or name
-                _copy_tree(job, src.get_child(info.get_name()), child_named(dst, name))
+                child = src.get_child(info.get_name())
+                try:
+                    _copy_tree(job, child, child_named(dst, name), errors)
+                except GLib.Error as e:
+                    if errors is None:
+                        raise
+                    errors.append((child.get_path() or child.get_uri(), e.message))
         finally:
             en.close(None)
     else:
@@ -117,11 +143,20 @@ def transfer(job: Job, sources: list[str], dest: str, move: bool = False) -> Res
                     if not e.matches(Gio.io_error_quark(), Gio.IOErrorEnum.WOULD_RECURSE) and \
                             not e.matches(Gio.io_error_quark(), Gio.IOErrorEnum.NOT_SUPPORTED):
                         raise
-                    _copy_tree(job, src, dst)        # autre système de fichiers : copier puis supprimer
+                    # autre système de fichiers : copier puis supprimer — l'original seulement si TOUT
+                    # est arrivé ; sinon il reste, la copie partielle aussi (comme une copie)
+                    missed = []
+                    _copy_tree(job, src, dst, missed)
+                    if missed:
+                        res.errors.extend(missed)
+                        res.created.append(dst.get_path() or dst.get_uri())
+                        continue
                     delete_tree(src)
                 res.moved.append((s, dst.get_path() or dst.get_uri()))
             else:
-                _copy_tree(job, src, dst)
+                missed = []
+                _copy_tree(job, src, dst, missed)
+                res.errors.extend(missed)
                 res.created.append(dst.get_path() or dst.get_uri())
         except GLib.Error as e:
             res.errors.append((s, e.message))

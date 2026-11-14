@@ -22,6 +22,8 @@ from ..backend import fsinfo, scanner
 from ..backend.scanner import Rec
 from ..settings import settings
 
+_NET_CHANGES = threading.Lock()      # changements d'un dossier réseau lus dans un fil, un lot à la fois
+
 # En dessous de ce nombre d'éléments, tailles et dates sont lues avant le premier affichage.
 STAT_INLINE = 4000
 
@@ -442,13 +444,29 @@ class DirModel(GObject.Object, Gio.ListModel):
             if names:
                 self.connect_once_ready(lambda: self.select_names(names))
             return False
+        paths = [p for p in paths if os.path.dirname(p) == self.location]
+        if fsinfo.is_network(self.location):
+            # partage réseau : un stat (et la lecture de .hidden) par élément changé, sur le fil principal,
+            # figeait la fenêtre le temps des allers-retours — ou pour de bon si le serveur tombe
+            gen, location = self._gen, self.location
+
+            def work():
+                # un lot à la fois, appliqués dans l'ordre (idle_add garde l'ordre) : un « créé » lu
+                # après le « supprimé » qui le suit laisserait un fantôme
+                with _NET_CHANGES:
+                    news = {p: scanner.rec_for_path(p) for p in paths}
+                    GLib.idle_add(lambda: (gen == self._gen and self.location == location
+                                           and self._apply_changes(news), False)[1])
+            threading.Thread(target=work, daemon=True).start()
+            return False
+        self._apply_changes({p: scanner.rec_for_path(p) for p in paths})
+        return False
+
+    def _apply_changes(self, news: dict):
         by_name = {r.name: r for r in self.all}
-        for p in paths:
-            if os.path.dirname(p) != self.location:
-                continue
+        for p, new in news.items():
             name = os.path.basename(p)
             old = by_name.get(name)
-            new = scanner.rec_for_path(p)
             if old is not None and new is not None:
                 self._update_rec(old, new)
             elif old is not None:
