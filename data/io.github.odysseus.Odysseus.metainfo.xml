@@ -70,6 +70,13 @@
   </requires>
   <content_rating type="oars-1.1"/>
   <releases>
+    <release version="1.9.6" date="2026-11-14">
+      <description>
+        <ul>
+          <li>Email: attachments now also reach Betterbird and Thunderbird installed as a Flatpak (the new message opened empty); files go through the Flatpak document portal</li>
+        </ul>
+      </description>
+    </release>
     <release version="1.9.5" date="2026-11-13">
       <description>
         <ul>

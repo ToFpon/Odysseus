@@ -1,3 +1,11 @@
+odysseus (1.9.6~noble1) noble; urgency=medium
+
+  * Courriel : les pièces jointes arrivent aussi dans Betterbird et
+    Thunderbird installés en Flatpak (le message s'ouvrait vide) ; les
+    fichiers passent par le portail de documents de Flatpak.
+
+ -- Tof <nourpon@gmail.com>  Sat, 14 Nov 2026 05:48:18 +0000
+
 odysseus (1.9.5~noble1) noble; urgency=medium
 
   * Diagnostic : si la fenêtre se fige, « pkill -USR1 -x odysseus » (dans
