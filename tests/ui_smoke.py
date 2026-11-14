@@ -2502,6 +2502,10 @@ def courriel_et_telephone(win):
     af.shutil.which = lambda name: "/usr/bin/" + name      # xdg-email absent du bac à sable
     try:
         win.activate_action("win.email", None)
+        for _ in range(50):                    # commande préparée dans un fil (Flatpak : document-export)
+            if launched:
+                break
+            yield pump(0.05)
     finally:
         af.subprocess.Popen, af.shutil.which = real, real_which
     check(launched and launched[0][0] == "xdg-email" and launched[0].count("--attach") == 2,

@@ -1045,12 +1045,14 @@ class NetAuditTest(unittest.TestCase):
         from odysseus.backend import fsinfo, starred
         saved, real = fsinfo.mounts, os.path.realpath
         fsinfo.mounts = lambda: [("/mnt/nas", "cifs"), ("/", "ext4")]
+        fsinfo._cached = (0.0, [])                 # liste des montages gardée 1 s : relue
         os.path.realpath = lambda p, **k: self.fail("realpath sur un partage réseau") if p.startswith("/mnt") \
             else real(p, **k)
         try:
             self.assertFalse(starred.can_star("/mnt/nas/Films/S01"))
         finally:
             fsinfo.mounts, os.path.realpath = saved, real
+            fsinfo._cached = (0.0, [])
 
     def test_flatpak_non_utf8(self):
         from odysseus.backend import mail
