@@ -27,6 +27,7 @@ class ToolActions:
             "verify-checksums": self.verify_checksums, "checksums": self.checksums,
             "playlist-create": self.playlist_create, "playlist-add": self.playlist_add,
             "playlist-add-other": self.playlist_add_other, "edit-tags": self.edit_tags,
+            "photo-metadata": self.photo_metadata,
         }
         for name, cb in acts.items():
             self._add(name, cb)
@@ -107,7 +108,7 @@ class ToolActions:
             from .tag_dialog import TagDialog
             TagDialog(self, paths).present(self)
 
-    def write_tags(self, paths: list, common: dict, cover, numbered: bool):
+    def write_tags(self, paths: list, common: dict, cover, numbered: bool, from_names: bool = False):
         """Écrit les étiquettes (fil, progression) ; une entrée d'annulation avec les valeurs d'avant."""
         from ..backend import tags
         n = len(paths)
@@ -122,6 +123,8 @@ class ToolActions:
                 changes = dict(common)
                 if numbered:
                     changes["tracknumber"] = [str(i + 1)]
+                if from_names:
+                    changes.update(tags.from_filename(p))      # titre (et piste si le nom en a une)
                 try:
                     before = tags.snapshot(p)
                     tags.write(p, changes, cover)
@@ -134,6 +137,51 @@ class ToolActions:
             return res
         self._run(ntr("Étiquettes de {0} fichier", "Étiquettes de {0} fichiers", n).format(n), work,
                   undo=lambda r: ("tags", r.tag_changes) if getattr(r, "tag_changes", None) else None)
+
+    def photo_metadata(self):
+        if not self._need("photo_metadata"):
+            return
+        from ..backend import photometa
+        paths = [r.path for r in self.pane.selected_recs() if r.path and not r.is_dir and photometa.supported(r.name)]
+        if paths:
+            from .photo_meta_dialog import PhotoMetaDialog
+            PhotoMetaDialog(self, paths).present(self)
+
+    def write_photo_meta(self, paths: list, opts: dict, copy_suffix):
+        """Métadonnées des photos (fil, progression). Originaux remplacés : gardés pour Ctrl+Z (lien dur
+        dans le cache) ; copies : l'annulation les met à la corbeille, comme toute création."""
+        from ..backend import photometa
+        n = len(paths)
+
+        def work(job):
+            res = fileops.Result("photo")
+            res.count = 0
+            backups = photometa.Backups()
+            changed = []
+            for i, p in enumerate(paths):
+                job.check_cancel()
+                job.progress(i / max(n, 1), os.path.basename(p))
+                try:
+                    if copy_suffix:
+                        out = photometa.write(p, dest=photometa.copy_name(p, copy_suffix), **opts)
+                        res.created.append(out)
+                    else:
+                        before = backups.keep(p)
+                        photometa.write(p, **opts)
+                        if before:
+                            changed.append((p, before, backups.keep(p)))
+                    res.count += 1
+                except Exception as e:  # noqa: BLE001 — une photo en échec n'arrête pas les autres
+                    res.errors.append((p, str(e)))
+            res.photo_changes = changed
+            job.progress(1.0, "")
+            return res
+
+        def undo(r):
+            if r.created:
+                return ("create", list(r.created))
+            return ("photo-meta", r.photo_changes) if getattr(r, "photo_changes", None) else None
+        self._run(ntr("Métadonnées de {0} photo", "Métadonnées de {0} photos", n).format(n), work, undo=undo)
 
     def annotate(self):
         if not self._need("annotate"):

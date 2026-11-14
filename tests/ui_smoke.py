@@ -1931,6 +1931,62 @@ def _menu_has(model, action) -> bool:
 
 
 @step
+def metadonnees_photos(win):
+    """« Métadonnées des photos… » : la position est signalée puis retirée (auteur changé au passage),
+    l'image n'est pas retouchée ; Ctrl+Z remet l'original, Rétablir refait."""
+    import subprocess
+    from odysseus.backend import photometa
+    from odysseus.ui import menus, photo_meta_dialog
+    if not photometa.available():
+        print("(métadonnées des photos : GExiv2 absent, étape sautée)")
+        return
+    base = os.path.join(D, "photos")
+    os.makedirs(base)
+    p = os.path.join(base, "petra.jpg")
+    subprocess.run(["convert", "-size", "64x48", "xc:orange", p], check=True)
+    md = photometa._open(p)
+    md.try_set_gps_info(35.44, 30.32, 1000.0)
+    md.try_set_tag_string("Exif.Image.Make", "Canon")
+    md.save_file(p)
+    with open(p, "rb") as f:
+        original = f.read()
+    win.pane.open(base)
+    yield Wait(5, until=lambda: len(win.pane.model.items) == 1)
+    win.pane.select_names(["petra.jpg"])
+    yield pump(0.3)
+    check(_menu_has(menus.context_menu(win, win.pane, True), "win.photo-metadata"),
+          "clic droit sur une photo : « Métadonnées des photos… »")
+    photo_meta_dialog._last = None
+    win.activate_action("win.photo-metadata", None)
+    yield Wait(3, until=lambda: photo_meta_dialog._last is not None)
+    d = photo_meta_dialog._last
+    check(d is not None, "fenêtre ouverte")
+    if d is None:
+        return
+    yield Wait(5, until=lambda: bool(d.infos))
+    check(tr("position GPS") in d.reveal.get_label(), f"position signalée ({d.reveal.get_label()!r})")
+    check(d.strip_gps.get_active(), "« Retirer la position » coché d'office")
+    d.entries["author"].set_text("Tof")
+    d._apply()
+    yield wait_jobs()
+    yield pump(0.3)
+    info = photometa.summary(p)
+    check(info["gps"] is None and info["author"] == "Tof" and "Canon" in info["camera"],
+          f"position retirée, auteur écrit, appareil gardé ({info})")
+    win.undo()
+    yield wait_jobs()
+    yield pump(0.3)
+    with open(p, "rb") as f:
+        check(f.read() == original, "Ctrl+Z : photo d'origine remise à l'identique")
+    win.redo()
+    yield wait_jobs()
+    yield pump(0.3)
+    check(photometa.summary(p)["gps"] is None, "Rétablir : position de nouveau retirée")
+    win.pane.open(D)
+    yield pump(0.5)
+
+
+@step
 def proprietes_image(win):
     """Propriétés d'une image : ligne « Propriétés de l'image » en bas, page avec type et dimensions
     (comme l'extension image-properties de Nautilus 46), lue dans un fil."""

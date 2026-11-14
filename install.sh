@@ -85,6 +85,7 @@ done
 command -v 7zz >/dev/null 2>&1 || ls /usr/lib/*7zip/Codecs/Rar.so >/dev/null 2>&1 || optional="$optional 7zip-rar"
 python3 -c "import cairo" 2>/dev/null || optional="$optional python3-cairo python3-gi-cairo"
 python3 -c "import mutagen" 2>/dev/null || optional="$optional python3-mutagen"     # étiquettes audio
+python3 -c "import gi; gi.require_version('GExiv2','0.10')" 2>/dev/null || optional="$optional gir1.2-gexiv2-0.10"   # métadonnées des photos
 python3 -c "import gi; gi.require_version('Poppler','0.18')" 2>/dev/null || optional="$optional gir1.2-poppler-0.18"
 # Favoris partagés avec Nautilus (base TinySPARQL)
 python3 -c "import gi; gi.require_version('Tracker','3.0')" 2>/dev/null || \

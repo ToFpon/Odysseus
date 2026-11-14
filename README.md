@@ -93,7 +93,8 @@ Every destructive operation is tested on throwaway trees, next to a “precious�
 
 #### Media and system
 - **Video to audio**: MP3, M4A, OGG, OPUS, FLAC, WAV.
-- **Audio tags**: right-click audio files → Edit Tags… — title, artist, album, album artist, year, genre, comment, track and disc numbers, cover art (choose, drop or remove an image). Several files at once: shared values are shown, different ones are left alone, only what you change is written; “Number in name order” numbers a whole album. MP3, FLAC, Ogg, Opus, M4A, WAV, AIFF. Files are never rewritten in place (a crash cannot damage a track), and Ctrl+Z puts the old tags back.
+- **Audio tags**: right-click audio files → Edit Tags… — title, artist, album, album artist, year, genre, comment, track and disc numbers, cover art (choose, drop or remove an image). Several files at once: shared values are shown, different ones are left alone, only what you change is written; “Number in name order” numbers a whole album, and titles and track numbers can be filled in from the file names (“03 - Monospace.mp3”). MP3, FLAC, Ogg, Opus, M4A, WAV, AIFF. Files are never rewritten in place (a crash cannot damage a track), and Ctrl+Z puts the old tags back.
+- **Photo metadata**: right-click photos → Photo Metadata… shows what they reveal (GPS position, place, camera, serial number, date, author) and **removes the location** — or every piece of metadata, keeping the orientation — without re-encoding the picture (pixel-identical). Also edits author, copyright and description, and shifts the time taken (wrong camera clock, another time zone). Replace the originals (Ctrl+Z brings them back) or create copies. JPEG, PNG, WebP, TIFF.
 - **Playlists**: right-click tracks or music folders → Playlist → create an .m3u (natural order, relative paths, titles and durations), then add tracks from other folders — or from search results — to build a medley.
 - **Image tools** (from nautilus-image-converter, plus conversion): resize, rotate, convert to JPEG, PNG, WebP, TIFF, BMP or GIF — combined in one pass (phone HEIC photos → 1920 px JPEG). New images get a suffix, or replace the originals safely.
 - **Image annotation**: arrows, frames, text, highlighter, freehand.
@@ -133,7 +134,7 @@ Or by hand, from the sources (Debian 13 reported working this way too, with GNOM
 # Debian / Ubuntu 24.04+ / Zorin OS 18
 sudo apt install python3-gi python3-gi-cairo gir1.2-gtk-4.0 gir1.2-adw-1
 # optional
-sudo apt install 7zip lbzip2 pigz ghostscript qpdf python3-pypdf ffmpeg ffmpegthumbnailer ripgrep gir1.2-poppler-0.18 python3-mutagen
+sudo apt install 7zip lbzip2 pigz ghostscript qpdf python3-pypdf ffmpeg ffmpegthumbnailer ripgrep gir1.2-poppler-0.18 python3-mutagen gir1.2-gexiv2-0.10
 ```
 
 ```sh
@@ -248,7 +249,8 @@ Chaque opération destructrice est testée sur des arborescences jetables, à c�
 
 #### Multimédia et système
 - **Vidéo vers audio** : MP3, M4A, OGG, OPUS, FLAC, WAV.
-- **Étiquettes audio** : clic droit sur des fichiers audio → Modifier les étiquettes… — titre, artiste, album, artiste de l'album, année, genre, commentaire, numéros de piste et de disque, pochette (choisie, glissée ou retirée). Plusieurs fichiers d'un coup : les valeurs communes s'affichent, celles qui diffèrent restent telles quelles, seul ce que tu modifies est écrit ; « Numéroter dans l'ordre des noms » numérote un album entier. MP3, FLAC, Ogg, Opus, M4A, WAV, AIFF. Un fichier n'est jamais réécrit sur place (un plantage ne peut pas abîmer un morceau), et Ctrl+Z remet les anciennes étiquettes.
+- **Étiquettes audio** : clic droit sur des fichiers audio → Modifier les étiquettes… — titre, artiste, album, artiste de l'album, année, genre, commentaire, numéros de piste et de disque, pochette (choisie, glissée ou retirée). Plusieurs fichiers d'un coup : les valeurs communes s'affichent, celles qui diffèrent restent telles quelles, seul ce que tu modifies est écrit ; « Numéroter dans l'ordre des noms » numérote un album entier, et titres et numéros de piste se remplissent d'après les noms de fichiers (« 03 - Monospace.mp3 »). MP3, FLAC, Ogg, Opus, M4A, WAV, AIFF. Un fichier n'est jamais réécrit sur place (un plantage ne peut pas abîmer un morceau), et Ctrl+Z remet les anciennes étiquettes.
+- **Métadonnées des photos** : clic droit sur des photos → Métadonnées des photos… montre ce qu'elles révèlent (position GPS, lieu, appareil, numéro de série, date, auteur) et **retire la position** — ou toutes les métadonnées, orientation gardée — sans réencoder l'image (identique au pixel près). Modifie aussi auteur, copyright et description, et décale l'heure de prise de vue (horloge de l'appareil, autre fuseau). Remplacer les originaux (Ctrl+Z les remet) ou créer des copies. JPEG, PNG, WebP, TIFF.
 - **Listes de lecture** : clic droit sur des morceaux ou des dossiers de musique → Liste de lecture → créer un .m3u (ordre naturel, chemins relatifs, titres et durées), puis y ajouter des morceaux d'autres dossiers — ou des résultats d'une recherche — pour faire un medley.
 - **Outils image** (repris de nautilus-image-converter, plus la conversion) : redimensionner, pivoter, convertir en JPEG, PNG, WebP, TIFF, BMP ou GIF — combinables en une passe (photos HEIC du téléphone → JPEG de 1920 px). Les nouvelles images reçoivent un suffixe, ou remplacent les originaux sans risque.
 - **Annotation d'images** : flèches, cadres, texte, surligneur, main levée.
@@ -288,7 +290,7 @@ Ou à la main, depuis les sources (Debian 13 signalé fonctionnel ainsi aussi, a
 # Debian / Ubuntu 24.04+ / Zorin OS 18
 sudo apt install python3-gi python3-gi-cairo gir1.2-gtk-4.0 gir1.2-adw-1
 # facultatif
-sudo apt install 7zip lbzip2 pigz ghostscript qpdf python3-pypdf ffmpeg ffmpegthumbnailer ripgrep gir1.2-poppler-0.18 python3-mutagen
+sudo apt install 7zip lbzip2 pigz ghostscript qpdf python3-pypdf ffmpeg ffmpegthumbnailer ripgrep gir1.2-poppler-0.18 python3-mutagen gir1.2-gexiv2-0.10
 ```
 
 ```sh

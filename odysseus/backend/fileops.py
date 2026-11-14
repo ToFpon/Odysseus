@@ -1196,6 +1196,9 @@ def describe_result(res: Result) -> str:
     if res.kind == "chmod":
         n = getattr(res, "count", 0)
         return ntr("Permissions de {0} élément changées", "Permissions de {0} éléments changées", n).format(n)
+    if res.kind == "photo":
+        n = getattr(res, "count", 0)
+        return ntr("Métadonnées de {0} photo modifiées", "Métadonnées de {0} photos modifiées", n).format(n)
     if res.kind == "tags":
         n = getattr(res, "count", 0)
         return ntr("Étiquettes de {0} fichier modifiées", "Étiquettes de {0} fichiers modifiées", n).format(n)

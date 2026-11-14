@@ -1344,3 +1344,122 @@ class TagsTest(unittest.TestCase):
         self.assertEqual(tags.merged(vals, "album"), "A")
         self.assertIsNone(tags.merged(vals, "title"))
         self.assertEqual(tags.merged(vals, "genre"), "")
+
+
+class PhotoMetaTest(unittest.TestCase):
+    """Métadonnées des photos (GExiv2) : position retirée, tout retiré (orientation gardée), champs, date
+    décalée — image identique au pixel près, original intact en cas d'échec, sauvegarde pour annuler."""
+
+    def setUp(self):
+        from odysseus.backend import photometa
+        if not photometa.available():
+            self.skipTest("GExiv2 absent")
+        self.pm = photometa
+        self.d = tempfile.mkdtemp()
+
+    def tearDown(self):
+        import shutil
+        shutil.rmtree(self.d, ignore_errors=True)
+
+    def _photo(self, ext):
+        import subprocess
+        p = os.path.join(self.d, "photo." + ext)
+        subprocess.run(["convert", "-size", "64x48", "plasma:fractal", "-seed", "3", p], check=True)
+        md = self.pm._open(p)
+        md.try_set_gps_info(35.44, 30.32, 1000.0)
+        for tag, val in (("Exif.Image.Make", "Canon"), ("Exif.Image.Model", "EOS 80D"),
+                         ("Exif.Image.Artist", "Tof"), ("Exif.Photo.DateTimeOriginal", "2015:04:17 12:20:19"),
+                         ("Xmp.photoshop.City", "Petra"), ("Xmp.xmp.CreateDate", "2015-04-17T12:20:19-07:00")):
+            md.try_set_tag_string(tag, val)
+        md.try_set_orientation(self.pm._gexiv2().Orientation.ROT_90)
+        md.save_file(p)
+        return p
+
+    @staticmethod
+    def _pixels(p):
+        import subprocess
+        return subprocess.run(["convert", p, "-auto-orient", "rgb:-"], capture_output=True, check=True).stdout
+
+    def test_strip_gps_keeps_rest_and_pixels(self):
+        for ext in ("jpg", "png", "webp", "tif"):
+            with self.subTest(ext=ext):
+                p = self._photo(ext)
+                before = self.pm.summary(p)
+                self.assertIsNotNone(before["gps"])
+                self.assertTrue(before["place"])
+                pix = self._pixels(p)
+                self.pm.write(p, strip_gps=True)
+                after = self.pm.summary(p)
+                self.assertIsNone(after["gps"])
+                self.assertFalse(after["place"])
+                self.assertEqual(after["author"], "Tof")
+                self.assertIn("Canon", after["camera"])
+                self.assertEqual(self._pixels(p), pix)           # image non retouchée
+                self.assertFalse([n for n in os.listdir(self.d) if n.startswith(".odysseus-")])
+
+    def test_strip_all_keeps_orientation(self):
+        p = self._photo("jpg")
+        pix = self._pixels(p)
+        self.pm.write(p, strip_all=True)
+        md = self.pm._open(p)
+        self.assertEqual(md.try_get_orientation(), self.pm._gexiv2().Orientation.ROT_90)
+        info = self.pm.summary(p)
+        self.assertEqual((info["gps"], info["camera"], info["author"], info["date"]), (None, "", "", ""))
+        self.assertEqual(self._pixels(p), pix)
+
+    def test_fields_shift_and_copy(self):
+        p = self._photo("jpg")
+        out = self.pm.write(p, dest=self.pm.copy_name(p, "sans position"), strip_gps=True,
+                            fields={"author": "Christophe", "copyright": "© Tof 2026", "description": ""},
+                            shift=2 * 3600)
+        self.assertTrue(out.endswith("photo (sans position).jpg"))
+        self.assertIsNotNone(self.pm.summary(p)["gps"])            # original intact
+        info = self.pm.summary(out)
+        self.assertEqual((info["author"], info["copyright"], info["gps"]), ("Christophe", "© Tof 2026", None))
+        md = self.pm._open(out)
+        self.assertEqual(md.try_get_tag_string("Exif.Photo.DateTimeOriginal"), "2015:04:17 14:20:19")
+        self.assertEqual(md.try_get_tag_string("Xmp.xmp.CreateDate"), "2015-04-17T14:20:19-07:00")
+        # même nom demandé une seconde fois : « (2) », jamais d'écrasement
+        out2 = self.pm.write(p, dest=self.pm.copy_name(p, "sans position"), strip_gps=True)
+        self.assertNotEqual(out2, out)
+
+    def test_backup_restore_and_failure(self):
+        p = self._photo("jpg")
+        with open(p, "rb") as f:
+            original = f.read()
+        b = self.pm.Backups()
+        b.dir = os.path.join(self.d, "undo")
+        kept = b.keep(p)
+        self.pm.write(p, strip_all=True)
+        self.pm.restore(kept, p)
+        with open(p, "rb") as f:
+            self.assertEqual(f.read(), original)
+        bad = os.path.join(self.d, "faux.jpg")
+        with open(bad, "wb") as f:
+            f.write(b"pas une photo")
+        with self.assertRaises(Exception):
+            self.pm.write(bad, strip_gps=True)
+        with open(bad, "rb") as f:
+            self.assertEqual(f.read(), b"pas une photo")
+        self.assertFalse([n for n in os.listdir(self.d) if n.startswith(".odysseus-")])
+
+    def test_shift_formats(self):
+        from datetime import timedelta
+        h = timedelta(hours=-3)
+        self.assertEqual(self.pm._shift("2015:04:17 01:00:00", h), "2015:04:16 22:00:00")
+        self.assertEqual(self.pm._shift("2015-04-17T01:00:00Z", h), "2015-04-16T22:00:00Z")
+        self.assertEqual(self.pm._shift("2015-04-17", h), "2015-04-17")
+        self.assertIsNone(self.pm._shift("n'importe quoi", h))
+
+
+class TagsFromNameTest(unittest.TestCase):
+    def test_names(self):
+        from odysseus.backend.tags import from_filename as f
+        self.assertEqual(f("03 - Monospace.mp3"), {"tracknumber": ["3"], "title": ["Monospace"]})
+        self.assertEqual(f("03. Monospace.flac"), {"tracknumber": ["3"], "title": ["Monospace"]})
+        self.assertEqual(f("Bénabar - 03 - Monospace.mp3"), {"tracknumber": ["3"], "title": ["Monospace"]})
+        self.assertEqual(f("CD1-07 Le dîner.mp3"), {"tracknumber": ["7"], "title": ["Le dîner"]})
+        self.assertEqual(f("01_Intro.mp3"), {"tracknumber": ["1"], "title": ["Intro"]})
+        self.assertEqual(f("Bénabar - Monospace.mp3"), {"title": ["Monospace"]})
+        self.assertEqual(f("2004 - Live.mp3"), {"title": ["Live"]})           # une année n'est pas une piste
+        self.assertEqual(f("Monospace.mp3"), {"title": ["Monospace"]})

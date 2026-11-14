@@ -44,6 +44,7 @@ class TagDialog:
         self.entries: dict = {}
         self.cover = tags.KEEP                   # KEEP, None (retirée) ou (octets, type)
         self.auto_number = False
+        self.from_names = False
         n = len(self.paths)
         self.dialog, page, self.action = dialog_shell(tr("Modifier les étiquettes"), tr("Enregistrer"), 560, 760)
         self.action.set_sensitive(False)
@@ -87,6 +88,12 @@ class TagDialog:
         nums = Adw.PreferencesGroup(title=tr("Numérotation"))
         nums.add(self._pair_row(tr("Piste"), "tracknumber", "tracktotal"))
         nums.add(self._pair_row(tr("Disque"), "discnumber", "disctotal"))
+        names = Adw.ActionRow(title=tr("Titres et pistes d'après les noms de fichiers"),
+                              subtitle=tr("« 03 - Monospace.mp3 » → piste 3, titre « Monospace »"))
+        btn = Gtk.Button(label=tr("Remplir"), valign=Gtk.Align.CENTER)
+        btn.connect("clicked", lambda *_: self._fill_from_names())
+        names.add_suffix(btn)
+        nums.add(names)
         if n > 1:
             auto = Adw.ActionRow(title=tr("Numéroter dans l'ordre des noms"),
                                  subtitle=tr("Pistes 1 à {0}, dans l'ordre des noms de fichiers").format(n))
@@ -186,12 +193,12 @@ class TagDialog:
     # ------------------------------------------------------------------
     def changes(self) -> dict:
         """Champs modifiés : {champ: texte} (texte vide = effacer)."""
+        skip = ({"tracknumber"} if self.auto_number else set()) | ({"title", "tracknumber"} if self.from_names else set())
         return {k: e.get_text().strip() for k, e in self.entries.items()
-                if e.get_text().strip() != self.initial.get(k, "") and
-                not (k == "tracknumber" and self.auto_number)}
+                if k not in skip and e.get_text().strip() != self.initial.get(k, "")}
 
     def _sync(self):
-        dirty = bool(self.changes()) or self.cover is not tags.KEEP or self.auto_number
+        dirty = bool(self.changes()) or self.cover is not tags.KEEP or self.auto_number or self.from_names
         self.action.set_sensitive(dirty and bool(self.values))
 
     def _number(self):
@@ -202,6 +209,24 @@ class TagDialog:
         e.set_placeholder_text(tr("1 à {0}").format(n))
         e.set_sensitive(False)
         self.entries["tracktotal"].set_text(str(n))
+        self._sync()
+
+    def _fill_from_names(self):
+        """Titre et numéro de piste de chaque fichier d'après son nom (calculés à l'écriture)."""
+        self.from_names = True
+        self.auto_number = False
+        t = self.entries["title"]
+        t.set_text("")
+        t.set_title(tr("{0} (d'après les noms de fichiers)").format(t._label))
+        t.set_sensitive(False)
+        e = self.entries["tracknumber"]
+        e.set_text("")
+        e.set_placeholder_text(tr("noms"))
+        e.set_sensitive(False)
+        if len(self.paths) == 1:              # un seul fichier : on montre tout de suite le résultat
+            found = tags.from_filename(self.paths[0])
+            t.set_text((found.get("title") or [""])[0])
+            e.set_text((found.get("tracknumber") or [""])[0])
         self._sync()
 
     # --- pochette
@@ -262,5 +287,6 @@ class TagDialog:
         cover = self.cover
         paths = list(self.paths)
         numbered = self.auto_number
+        from_names = self.from_names
         self.dialog.close()
-        self.window.write_tags(paths, common, cover, numbered)
+        self.window.write_tags(paths, common, cover, numbered, from_names)

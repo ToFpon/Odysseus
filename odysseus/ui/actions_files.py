@@ -519,7 +519,7 @@ class FileActions:
                     if res.errors:
                         msg += " — " + ntr("{0} erreur", "{0} erreurs", len(res.errors)).format(len(res.errors))
                         self._show_errors(job.title, res.errors)
-                    if res.kind in ("trash", "move", "rename", "tags") and undo is not None:
+                    if res.kind in ("trash", "move", "rename", "tags", "photo") and undo is not None:
                         toast(self, msg, tr("Annuler"), self.undo, timeout=6)
                     elif res.kind not in ("copy", "move"):
                         toast(self, msg)
@@ -993,10 +993,12 @@ class FileActions:
         if redo:
             return {"rename": tr("Rétablir le renommage"), "move": tr("Rétablir le déplacement"),
                     "tags": tr("Rétablir la modification des étiquettes"),
+                    "photo-meta": tr("Rétablir la modification des métadonnées"),
                     "trash": tr("Rétablir la mise à la corbeille"), "copy": tr("Rétablir la copie"),
                     "create": tr("Rétablir la création")}.get(kind, tr("Rétablir"))
         return {"rename": tr("Annuler le renommage"), "move": tr("Annuler le déplacement"),
                 "tags": tr("Annuler la modification des étiquettes"),
+                "photo-meta": tr("Annuler la modification des métadonnées"),
                 "trash": tr("Annuler la mise à la corbeille"), "copy": tr("Annuler la copie"),
                 "create": tr("Annuler la création")}.get(kind, tr("Annuler la dernière opération"))
 
@@ -1058,6 +1060,41 @@ class FileActions:
                 self._update_undo_actions()
         self._run(tr("Étiquettes"), work, on_done=finished)
 
+    def _photo_steps(self, entry, redo: bool):
+        """Annuler / rétablir « Métadonnées des photos » : chaque photo reprend sa version d'avant (ou
+        d'après), gardée dans le cache. Seules les photos remises passent dans l'autre pile."""
+        from ..backend import photometa
+        items = entry[1]
+
+        def work(job):
+            res = fileops.Result("photo")
+            res.count = 0
+            done = []
+            for p, before, after in items:
+                job.check_cancel()
+                src = after if redo else before
+                try:
+                    if not src or not os.path.exists(src):
+                        raise OSError(2, tr("Version gardée introuvable"))
+                    photometa.restore(src, p)
+                    done.append((p, before, after))
+                    res.count += 1
+                except OSError as e:
+                    res.errors.append((p, e.strerror or str(e)))
+            res.photo_changes = done
+            return res
+
+        def finished(job):
+            done = getattr(job.result, "photo_changes", None)
+            if not done:
+                return
+            if redo:
+                self._push_undo(("photo-meta", done), keep_redo=True)
+            else:
+                self.redo_stack.append(("photo-meta", done))
+                self._update_undo_actions()
+        self._run(tr("Métadonnées des photos"), work, on_done=finished)
+
     def redo(self):
         """Refait la dernière opération annulée."""
         if not self.redo_stack:
@@ -1067,6 +1104,8 @@ class FileActions:
         kind = entry[0]
         if kind == "tags":
             self._tag_steps(entry, redo=True)
+        elif kind == "photo-meta":
+            self._photo_steps(entry, redo=True)
         elif kind == "batch-rename":
             self._batch_rename_steps(entry[1], redo=True)
         elif kind == "rename":
@@ -1123,10 +1162,10 @@ class FileActions:
         self.redo_stack.append(entry)
         self._update_undo_actions()
         kind = entry[0]
-        if kind == "tags":
-            self.redo_stack.pop()                   # remis par _tag_steps
+        if kind in ("tags", "photo-meta"):
+            self.redo_stack.pop()                   # remis par _tag_steps / _photo_steps
             self._update_undo_actions()
-            self._tag_steps(entry, redo=False)
+            (self._tag_steps if kind == "tags" else self._photo_steps)(entry, redo=False)
         elif kind == "batch-rename":
             self.redo_stack.pop()                   # remis par _batch_rename_steps si tout s'est passé
             self._update_undo_actions()

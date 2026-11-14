@@ -5685,3 +5685,134 @@ msgstr "Bild nicht lesbar: {0}"
 
 msgid "{0} (valeurs différentes)"
 msgstr "{0} (unterschiedliche Werte)"
+
+msgid "Métadonnées de {0} photo modifiées"
+msgid_plural "Métadonnées de {0} photos modifiées"
+msgstr[0] "Metadaten von {0} Foto geändert"
+msgstr[1] "Metadaten von {0} Fotos geändert"
+
+msgid "position GPS"
+msgstr "GPS-Position"
+
+msgid "lieu"
+msgstr "Ort"
+
+msgid "appareil photo"
+msgstr "Kamera"
+
+msgid "numéro de série de l'appareil"
+msgstr "Seriennummer der Kamera"
+
+msgid "date de prise de vue"
+msgstr "Aufnahmedatum"
+
+msgid "auteur"
+msgstr "Autor"
+
+msgid "Métadonnées des photos"
+msgstr "Foto-Metadaten"
+
+msgid "Retirer la position GPS ou toutes les métadonnées des photos, modifier auteur, copyright et description, corriger l'heure de prise de vue — sans retoucher l'image"
+msgstr "GPS-Position oder alle Metadaten aus Fotos entfernen, Autor, Copyright und Beschreibung bearbeiten, Aufnahmezeit korrigieren – ohne das Bild zu verändern"
+
+msgid "Annuler la modification des métadonnées"
+msgstr "Metadaten-Änderungen rückgängig machen"
+
+msgid "Rétablir la modification des métadonnées"
+msgstr "Metadaten-Änderungen wiederholen"
+
+msgid "Version gardée introuvable"
+msgstr "Gespeicherte Version nicht gefunden"
+
+msgid "Métadonnées de {0} photo"
+msgid_plural "Métadonnées de {0} photos"
+msgstr[0] "Metadaten von {0} Foto"
+msgstr[1] "Metadaten von {0} Fotos"
+
+msgid "Métadonnées des photos…"
+msgstr "Foto-Metadaten …"
+
+msgid "Décaler de (heures)"
+msgstr "Verschieben um (Stunden)"
+
+msgid "Décaler de (minutes)"
+msgstr "Verschieben um (Minuten)"
+
+msgid "Photos modifiées"
+msgstr "Geänderte Fotos"
+
+msgid "sans métadonnées"
+msgstr "ohne Metadaten"
+
+msgid "Confidentialité"
+msgstr "Datenschutz"
+
+msgid "Retirer la position"
+msgstr "Standort entfernen"
+
+msgid "Coordonnées GPS et lieu écrit en clair (ville, pays…)"
+msgstr "GPS-Koordinaten und Ortsangaben (Stadt, Land …)"
+
+msgid "Retirer toutes les métadonnées"
+msgstr "Alle Metadaten entfernen"
+
+msgid "Appareil, numéro de série, logiciel, dates, auteur… L'orientation de la photo est gardée."
+msgstr "Kamera, Seriennummer, Software, Daten, Autor … Die Ausrichtung des Fotos bleibt erhalten."
+
+msgid "Informations"
+msgstr "Informationen"
+
+msgid "Heure de prise de vue"
+msgstr "Aufnahmezeit"
+
+msgid "Pour corriger l'horloge de l'appareil, ou l'heure d'un voyage dans un autre fuseau"
+msgstr "Um die Uhr der Kamera zu korrigieren, oder die Zeit einer Reise in einer anderen Zeitzone"
+
+msgid "Remplacer les originaux (Ctrl+Z pour revenir)"
+msgstr "Originale ersetzen (Strg+Z zum Zurücknehmen)"
+
+msgid "Créer des copies à côté"
+msgstr "Kopien daneben erstellen"
+
+msgid "Cette photo ne contient presque aucune métadonnée."
+msgstr "Dieses Foto enthält kaum Metadaten."
+
+msgid "Aucune photo lisible."
+msgstr "Kein lesbares Foto."
+
+msgid "sans position"
+msgstr "ohne Standort"
+
+msgid "modifiée"
+msgstr "bearbeitet"
+
+msgid "{0} photo"
+msgid_plural "{0} photos"
+msgstr[0] "{0} Foto"
+msgstr[1] "{0} Fotos"
+
+msgid "Aucune de ces photos ne contient de position."
+msgstr "Keines dieser Fotos enthält einen Standort."
+
+msgid "Cette photo révèle : {0}."
+msgstr "Dieses Foto verrät: {0}."
+
+msgid "{0} photo sur {1} contient une position."
+msgid_plural "{0} photos sur {1} contiennent une position."
+msgstr[0] "{0} von {1} Fotos enthält einen Standort."
+msgstr[1] "{0} von {1} Fotos enthalten einen Standort."
+
+msgid "noms"
+msgstr "Namen"
+
+msgid "Titres et pistes d'après les noms de fichiers"
+msgstr "Titel und Tracks aus Dateinamen"
+
+msgid "« 03 - Monospace.mp3 » → piste 3, titre « Monospace »"
+msgstr "„03 - Monospace.mp3“ → Track 3, Titel „Monospace“"
+
+msgid "Remplir"
+msgstr "Ausfüllen"
+
+msgid "{0} (d'après les noms de fichiers)"
+msgstr "{0} (aus Dateinamen)"

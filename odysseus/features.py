@@ -143,6 +143,11 @@ FEATURES = [
             tr("Redimensionner, pivoter et convertir des images (JPEG, PNG, WebP, HEIC…), plusieurs à la fois"),
             "image-x-generic-symbolic", "media",
             tools=(("magick", "convert"),), packages="imagemagick"),
+    Feature("photo_metadata", tr("Métadonnées des photos"),
+            tr("Retirer la position GPS ou toutes les métadonnées des photos, modifier auteur, copyright et "
+               "description, corriger l'heure de prise de vue — sans retoucher l'image"),
+            "mark-location-symbolic", "media",
+            tools=(("gir:GExiv2",),), packages="gir1.2-gexiv2-0.10"),
     Feature("annotate", tr("Annoter une image"),
             tr("Flèches, cadres, texte, surligneur et dessin à main levée sur une image"),
             "applications-graphics-symbolic", "media", python=("cairo",)),
@@ -179,7 +184,8 @@ PACKAGE_OF = {"7zz": "7zip", "7z": "7zip", "7za": "7zip", "gs": "ghostscript", "
               "rg": "ripgrep", "grep": "grep", "pdftoppm": "poppler-utils", "zstd": "zstd", "brotli": "brotli",
               "lz4": "lz4", "dpkg-deb": "dpkg", "pkexec": "pkexec", "py:pypdf": "python3-pypdf",
               "py:cairo": "python3-cairo python3-gi-cairo", "gir:Poppler": "gir1.2-poppler-0.18",
-              "gir:Tracker": "gir1.2-tracker-3.0", "gir:Tsparql": "gir1.2-tracker-3.0"}
+              "gir:Tracker": "gir1.2-tracker-3.0", "gir:Tsparql": "gir1.2-tracker-3.0",
+              "gir:GExiv2": "gir1.2-gexiv2-0.10"}
 
 
 # greffons de bibliothèques (pas de programme à chercher dans le PATH) : fichier installé par le paquet
@@ -208,7 +214,7 @@ def present(name: str) -> bool:
     if name.startswith("gir:"):
         import gi
         try:
-            gi.require_version(name[4:], {"Poppler": "0.18", "Tracker": "3.0", "Tsparql": "3.0"}.get(name[4:], "1.0"))
+            gi.require_version(name[4:], {"Poppler": "0.18", "Tracker": "3.0", "Tsparql": "3.0", "GExiv2": "0.10"}.get(name[4:], "1.0"))
             return True
         except ValueError:
             return False

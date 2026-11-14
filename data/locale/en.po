@@ -5633,3 +5633,134 @@ msgstr "Unreadable image: {0}"
 
 msgid "{0} (valeurs différentes)"
 msgstr "{0} (different values)"
+
+msgid "Métadonnées de {0} photo modifiées"
+msgid_plural "Métadonnées de {0} photos modifiées"
+msgstr[0] "Metadata of {0} photo changed"
+msgstr[1] "Metadata of {0} photos changed"
+
+msgid "position GPS"
+msgstr "GPS position"
+
+msgid "lieu"
+msgstr "place"
+
+msgid "appareil photo"
+msgstr "camera"
+
+msgid "numéro de série de l'appareil"
+msgstr "camera serial number"
+
+msgid "date de prise de vue"
+msgstr "date taken"
+
+msgid "auteur"
+msgstr "author"
+
+msgid "Métadonnées des photos"
+msgstr "Photo Metadata"
+
+msgid "Retirer la position GPS ou toutes les métadonnées des photos, modifier auteur, copyright et description, corriger l'heure de prise de vue — sans retoucher l'image"
+msgstr "Remove the GPS position or all metadata from photos, edit author, copyright and description, fix the time taken — without touching the picture"
+
+msgid "Annuler la modification des métadonnées"
+msgstr "Undo Metadata Changes"
+
+msgid "Rétablir la modification des métadonnées"
+msgstr "Redo Metadata Changes"
+
+msgid "Version gardée introuvable"
+msgstr "Saved version not found"
+
+msgid "Métadonnées de {0} photo"
+msgid_plural "Métadonnées de {0} photos"
+msgstr[0] "Metadata of {0} photo"
+msgstr[1] "Metadata of {0} photos"
+
+msgid "Métadonnées des photos…"
+msgstr "Photo Metadata…"
+
+msgid "Décaler de (heures)"
+msgstr "Shift by (hours)"
+
+msgid "Décaler de (minutes)"
+msgstr "Shift by (minutes)"
+
+msgid "Photos modifiées"
+msgstr "Changed photos"
+
+msgid "sans métadonnées"
+msgstr "no metadata"
+
+msgid "Confidentialité"
+msgstr "Privacy"
+
+msgid "Retirer la position"
+msgstr "Remove Location"
+
+msgid "Coordonnées GPS et lieu écrit en clair (ville, pays…)"
+msgstr "GPS coordinates and place names (city, country…)"
+
+msgid "Retirer toutes les métadonnées"
+msgstr "Remove All Metadata"
+
+msgid "Appareil, numéro de série, logiciel, dates, auteur… L'orientation de la photo est gardée."
+msgstr "Camera, serial number, software, dates, author… The photo's orientation is kept."
+
+msgid "Informations"
+msgstr "Information"
+
+msgid "Heure de prise de vue"
+msgstr "Time Taken"
+
+msgid "Pour corriger l'horloge de l'appareil, ou l'heure d'un voyage dans un autre fuseau"
+msgstr "To fix the camera's clock, or the time of a trip in another time zone"
+
+msgid "Remplacer les originaux (Ctrl+Z pour revenir)"
+msgstr "Replace the originals (Ctrl+Z to go back)"
+
+msgid "Créer des copies à côté"
+msgstr "Create copies next to them"
+
+msgid "Cette photo ne contient presque aucune métadonnée."
+msgstr "This photo contains almost no metadata."
+
+msgid "Aucune photo lisible."
+msgstr "No readable photo."
+
+msgid "sans position"
+msgstr "no location"
+
+msgid "modifiée"
+msgstr "edited"
+
+msgid "{0} photo"
+msgid_plural "{0} photos"
+msgstr[0] "{0} photo"
+msgstr[1] "{0} photos"
+
+msgid "Aucune de ces photos ne contient de position."
+msgstr "None of these photos contains a location."
+
+msgid "Cette photo révèle : {0}."
+msgstr "This photo reveals: {0}."
+
+msgid "{0} photo sur {1} contient une position."
+msgid_plural "{0} photos sur {1} contiennent une position."
+msgstr[0] "{0} photo out of {1} contains a location."
+msgstr[1] "{0} photos out of {1} contain a location."
+
+msgid "noms"
+msgstr "names"
+
+msgid "Titres et pistes d'après les noms de fichiers"
+msgstr "Titles and tracks from file names"
+
+msgid "« 03 - Monospace.mp3 » → piste 3, titre « Monospace »"
+msgstr "“03 - Monospace.mp3” → track 3, title “Monospace”"
+
+msgid "Remplir"
+msgstr "Fill In"
+
+msgid "{0} (d'après les noms de fichiers)"
+msgstr "{0} (from file names)"

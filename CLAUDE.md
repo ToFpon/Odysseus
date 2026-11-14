@@ -484,6 +484,21 @@ fenêtre de recherche dans le contenu.
   réécrit sur place. Fil + progression (`write_tags`), entrée d'annulation « tags » (instantanés avant /
   après, pochette comprise : `_tag_steps`). Testé : `TagsTest` (6 formats faits par ffmpeg, relus par
   ffprobe), `etiquettes_audio` d'ui_smoke (menu, valeurs différentes, numérotation, Ctrl+Z, Rétablir).
+  « Titres et pistes d'après les noms de fichiers » (`tags.from_filename` : « 03 - X », « 03. X », « 03 X »,
+  « Artiste - 03 - X », « CD1-07 X » ; une année « 2004 - X » n'est pas une piste ; testé `TagsFromNameTest`).
+- Métadonnées des photos (fonctionnalité `photo_metadata`, gir GExiv2 0.10 → gir1.2-gexiv2-0.10 en Recommends,
+  la bibliothèque de Nautilus et Shotwell) : clic droit → « Métadonnées des photos… » (`ui/photo_meta_dialog.py`,
+  `backend/photometa.py`) — ce que la photo révèle (position, lieu, appareil, n° de série, date, auteur), retirer
+  la position (`try_delete_gps_info` + lieux en clair XMP / IPTC : ville, pays, LocationCreated…), tout retirer
+  (`clear`, orientation remise sinon la photo se couche ; profil ICC gardé par exiv2), auteur / copyright /
+  description (EXIF + XMP + IPTC), décaler l'heure (dates EXIF et XMP, forme gardée ; date seule : jours
+  entiers — `timedelta(hours=-3).days` vaut -1). Seules les métadonnées sont réécrites : image identique au
+  pixel près (testé, jpg / png / webp / tif), jamais ImageMagick `-strip` (réencodage). PyGObject perd le
+  booléen de `try_get_gps_info` (0, 0 sans position) : présence d'après les étiquettes GPSLatitude /
+  Longitude. Écriture sûre (copie cachée, fsync, échange) ; copies « nom (sans position).jpg » par `place_new`.
+  Annuler : originaux gardés par lien dur dans ~/.cache/odysseus/photo-undo (copie si autre disque, 512 Mo
+  au plus), avant ET après pour Rétablir (`_photo_steps`, `photometa.restore`), balayés au démarrage (> 1 j).
+  Testé : `PhotoMetaTest`, `metadonnees_photos` d'ui_smoke.
 - Propriétés d'une image / d'un fichier audio ou vidéo : ligne « Propriétés de l'image » / « Propriétés audio »
   / « vidéo » / « audio et vidéo » en bas, page à part (`PropertiesDialog._details_row`, lue dans un fil) =
   les extensions image-properties / audio-video-properties livrées avec Nautilus 46 (mêmes champs, même

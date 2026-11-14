@@ -12,6 +12,7 @@ Valeurs : listes de textes (un champ peut en avoir plusieurs : deux artistes). S
 from __future__ import annotations
 
 import base64
+import re
 import os
 import shutil
 from typing import Optional
@@ -317,3 +318,27 @@ def merged(values: list[dict], field: str) -> Optional[str]:
 
 def image_mime(data: bytes) -> str:
     return "image/png" if data[:8] == b"\x89PNG\r\n\x1a\n" else "image/jpeg"
+
+
+_LEADING = re.compile(r"^\s*(?:(?:cd|disc|disque)\s*\d+\s*[-_. ]\s*)?(\d{1,3})(?:\s*[-_.)\]]\s*|\s+)(.+)$", re.I)
+
+
+def from_filename(name: str) -> dict:
+    """Titre et numéro de piste d'après le nom du fichier : « 03 - Monospace.mp3 », « 03. Monospace »,
+    « 03 Monospace », « Bénabar - 03 - Monospace » → piste 3, titre « Monospace ». Sans numéro : le titre
+    seul (le nom sans extension, ou ce qui suit le dernier « - »)."""
+    stem = os.path.splitext(os.path.basename(name))[0].replace("_", " ").strip()
+    out: dict = {}
+    parts = [p.strip() for p in stem.split(" - ") if p.strip()]
+    for i, part in enumerate(parts):                # « Artiste - 03 - Titre » : le numéro peut être au milieu
+        if part.isdigit() and len(part) <= 3 and i < len(parts) - 1:
+            out["tracknumber"] = [str(int(part))]
+            out["title"] = [" - ".join(parts[i + 1:])]
+            return out
+    m = _LEADING.match(stem)
+    if m:
+        out["tracknumber"] = [str(int(m.group(1)))]
+        stem = m.group(2).strip()
+        parts = [p.strip() for p in stem.split(" - ") if p.strip()] or [stem]
+    out["title"] = [parts[-1] if len(parts) > 1 else stem]
+    return out

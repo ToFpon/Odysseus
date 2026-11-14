@@ -241,6 +241,10 @@ def context_menu(win, pane, on_item: bool) -> Gio.Menu:
             im.append(tr("Pivoter…"), "win.image-rotate")
             im.append(tr("Convertir…"), "win.image-convert")
             t.append_submenu(tr("Outils image"), im)
+    if files and len(files) == len(sel) and all(r.path for r in files) and features.available("photo_metadata"):
+        from ..backend import photometa
+        if all(photometa.supported(r.name) for r in files):    # d'après le nom : aucun accès disque ici
+            t.append(tr("Métadonnées des photos…"), "win.photo-metadata")
     if one is not None and not one.is_dir and one.content_type.startswith("image/") and features.available("annotate"):
         t.append(tr("Annoter l'image…"), "win.annotate")
     if one is not None and not one.is_dir and features.enabled("checksums"):
