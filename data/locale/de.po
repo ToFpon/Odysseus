@@ -5410,3 +5410,193 @@ msgstr "Beenden"
 
 #~ msgid "Descendre"
 #~ msgstr "Nach unten"
+
+msgid "0 seconde"
+msgstr "0 Sekunden"
+
+msgid "Propriétés audio et vidéo"
+msgstr "Audio- und Video-Eigenschaften"
+
+msgid "Type d'image"
+msgstr "Bildtyp"
+
+msgid "Largeur"
+msgstr "Breite"
+
+msgid "Hauteur"
+msgstr "Höhe"
+
+msgid "Marque de l'appareil photo"
+msgstr "Kameramarke"
+
+msgid "Temps de pose"
+msgstr "Belichtungszeit"
+
+msgid "Mode d'exposition"
+msgstr "Belichtungsprogramm"
+
+msgid "Ouverture focale"
+msgstr "Blendenwert"
+
+msgid "Vitesse ISO"
+msgstr "ISO-Empfindlichkeit"
+
+msgid "Flash déclenché"
+msgstr "Blitzlicht"
+
+msgid "Mode de mesure"
+msgstr "Messverfahren"
+
+msgid "Distance focale"
+msgstr "Brennweite"
+
+msgid "Logiciel"
+msgstr "Software"
+
+msgid "Description"
+msgstr "Beschreibung"
+
+msgid "Mots-clés"
+msgstr "Stichwörter"
+
+msgid "Créé le"
+msgstr "Erstellt am"
+
+msgid "Copyright"
+msgstr "Copyright"
+
+msgid "Classement"
+msgstr "Bewertung"
+
+msgid "Coordonnées"
+msgstr "Koordinaten"
+
+msgid "{0} heure"
+msgid_plural "{0} heures"
+msgstr[0] "{0} Stunde"
+msgstr[1] "{0} Stunden"
+
+msgid "{0} minute"
+msgid_plural "{0} minutes"
+msgstr[0] "{0} Minute"
+msgstr[1] "{0} Minuten"
+
+msgid "{0} seconde"
+msgid_plural "{0} secondes"
+msgstr[0] "{0} Sekunde"
+msgstr[1] "{0} Sekunden"
+
+msgid "Manuel"
+msgstr "Manuell"
+
+msgid "Bracketing automatique"
+msgstr "Automatische Belichtungsreihe"
+
+msgid "Inconnu"
+msgstr "Unbekannt"
+
+msgid "Moyenne pondérée au centre"
+msgstr "Mittenbetont"
+
+msgid "Spot"
+msgstr "Spot"
+
+msgid "Multi-spot"
+msgstr "Mehrfeld-Spot"
+
+msgid "Matricielle"
+msgstr "Mehrfeld"
+
+msgid "Partielle"
+msgstr "Selektiv"
+
+msgid "Autre"
+msgstr "Andere"
+
+msgid "N"
+msgstr "N"
+
+msgid "S"
+msgstr "S"
+
+msgid "E"
+msgstr "O"
+
+msgid "O"
+msgstr "W"
+
+msgid "Oups ! Quelque chose s'est mal passé."
+msgstr "Ups! Etwas ist schief gegangen."
+
+msgid "Impossible de charger les informations de l'image"
+msgstr "Bildinformationen konnten nicht geladen werden"
+
+msgid "{0} {1} {2}"
+msgstr "{0} {1} {2}"
+
+msgid "{0} {1}"
+msgstr "{0} {1}"
+
+msgid "Année"
+msgstr "Jahr"
+
+msgid "Propriétés de l'image"
+msgstr "Bildeigenschaften"
+
+msgid "Propriétés audio"
+msgstr "Audio-Eigenschaften"
+
+msgid "Propriétés vidéo"
+msgstr "Videoeigenschaften"
+
+msgid "{0} pixel"
+msgid_plural "{0} pixels"
+msgstr[0] "{0} Pixel"
+msgstr[1] "{0} Pixel"
+
+msgid "Impossible de lire ce fichier"
+msgstr "Diese Datei kann nicht gelesen werden"
+
+msgid "Conteneur"
+msgstr "Container"
+
+msgid "{0} kbit/s"
+msgstr "{0} kbps"
+
+msgid "Codec vidéo"
+msgstr "Video-Codec"
+
+msgid "Débit vidéo"
+msgstr "Video-Bitrate"
+
+msgid "Cadence"
+msgstr "Einzelbildrate"
+
+msgid "Codec audio"
+msgstr "Audio-Codec"
+
+msgid "Débit audio"
+msgstr "Audio-Bitrate"
+
+msgid "Échantillonnage"
+msgstr "Abtastrate"
+
+msgid "Canaux"
+msgstr "Kanäle"
+
+msgid "Mono"
+msgstr "Mono"
+
+msgid "{0} image par seconde"
+msgid_plural "{0} images par seconde"
+msgstr[0] "{0} Einzelbild pro Sekunde"
+msgstr[1] "{0} Einzelbilder pro Sekunde"
+
+msgid "Stéréo"
+msgstr "Stereo"
+
+msgid "Ambiophonique"
+msgstr "Surround"
+
+msgid "Moyenne globale"
+msgstr "Integral"

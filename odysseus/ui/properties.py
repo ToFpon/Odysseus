@@ -12,7 +12,7 @@ import time
 
 from gi.repository import Adw, Gdk, Gio, GLib, Gtk, Pango
 
-from ..backend import fileops, folder_colors, scanner
+from ..backend import fileinfo, fileops, folder_colors, scanner
 from ..backend.engine import human_size
 from ..i18n import ntr, tr
 from . import icons
@@ -226,6 +226,8 @@ class PropertiesDialog(DialogWindow):
             self._open_with(page, one)
         if one:
             self._permissions_row(page, one)
+        if one and not one.is_dir and not one.is_broken_link and one.path:
+            self._details_row(page, one)
         self._compute_size()
 
     @staticmethod
@@ -333,6 +335,59 @@ class PropertiesDialog(DialogWindow):
         self._is_dir = rec.is_dir
         self.nav.add(self._permissions_page(rec, s))
         self._sync_summary()
+
+    # ------------------------------------------------------------------
+    # « Propriétés de l'image » / « Propriétés audio et vidéo » (extensions livrées avec Nautilus 46)
+    def _details_row(self, page, rec):
+        kind = fileinfo.kind_of(rec.content_type, rec.name)
+        if kind is None:
+            return
+        if kind == "media":
+            # titre provisoire d'après le type (Nautilus aussi), précisé une fois le fichier lu
+            ct = rec.content_type or ""
+            kind = "audio" if ct.startswith("audio/") else "both"
+        title = fileinfo.page_title(kind)
+        g = Adw.PreferencesGroup()
+        row = Adw.ActionRow(title=title, activatable=True)
+        row.add_suffix(Gtk.Image(icon_name="go-next-symbolic"))
+        row.connect("activated", lambda *_: self.nav.push_by_tag("details"))
+        g.add(row)
+        page.add(g)
+        tv = Adw.ToolbarView()
+        tv.add_top_bar(Adw.HeaderBar())
+        content = FittedPage()
+        tv.set_content(content)
+        group = Adw.PreferencesGroup()
+        spinner = Gtk.Spinner(spinning=True, margin_top=12, margin_bottom=12)
+        group.add(spinner)
+        content.add(group)
+        nav_page = Adw.NavigationPage(title=title, child=tv, tag="details")
+        self.nav.add(nav_page)
+        path, cancel = rec.path, self._cancel
+
+        def work():
+            # dans un fil : ffprobe, lecture de l'image (gros fichier, partage réseau)
+            try:
+                if kind == "image":
+                    result = ("image", fileinfo.image_properties(path))
+                else:
+                    result = fileinfo.media_properties(path)
+            except Exception as e:  # noqa: BLE001 — jamais de page vide : l'erreur s'affiche
+                result = (kind, [(tr("Oups ! Quelque chose s'est mal passé."), str(e))])
+            if not cancel.is_set():
+                GLib.idle_add(done, *result)
+
+        def done(found, rows):
+            if cancel.is_set():
+                return False
+            label = fileinfo.page_title(found)
+            row.set_title(label)
+            nav_page.set_title(label)
+            group.remove(spinner)
+            for name, value in rows:
+                group.add(info_row(name, value))
+            return False
+        threading.Thread(target=work, daemon=True).start()
 
     def _sync_summary(self):
         try:

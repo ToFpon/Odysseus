@@ -12,7 +12,7 @@ from gi.repository import Gio  # noqa: E402
 
 from odysseus.backend import bookmarks, fileops, formats, media, scanner, search, tools, workers  # noqa: E402
 from odysseus.backend.engine import Job  # noqa: E402
-from odysseus.i18n import tr  # noqa: E402
+from odysseus.i18n import ntr, tr  # noqa: E402
 
 
 def run(func):
@@ -1070,3 +1070,158 @@ class MailFlatpakTest(unittest.TestCase):
                 self.assertIsNone(mail.flatpak_app(["/snap/bin/thunderbird"]))
             finally:
                 os.environ["PATH"] = old
+
+
+def _tiff(entries_by_ifd: dict) -> bytes:
+    """Petit bloc TIFF little-endian : {'0': [(tag, type, valeur)], 'exif': […], 'gps': […]}."""
+    import struct as _s
+    order = ["0", "exif", "gps"]
+    sizes = {1: 1, 2: 1, 3: 2, 4: 4, 5: 8, 7: 1}
+
+    def raw(typ, v):
+        if typ == 2:
+            return v.encode() + b"\0"
+        if typ == 3:
+            return b"".join(_s.pack("<H", x) for x in (v if isinstance(v, list) else [v]))
+        if typ == 4:
+            return _s.pack("<I", v)
+        if typ == 5:
+            return b"".join(_s.pack("<II", *r) for r in (v if isinstance(v, list) else [v]))
+        return bytes(v)
+    ifds = {k: list(v) for k, v in entries_by_ifd.items()}
+    if "exif" in ifds:
+        ifds["0"].append((0x8769, 4, 0))
+    if "gps" in ifds:
+        ifds["0"].append((0x8825, 4, 0))
+    offsets, pos = {}, 8
+    for k in order:
+        if k in ifds:
+            offsets[k] = pos
+            pos += 2 + 12 * len(ifds[k]) + 4
+    data_start = pos
+    blobs, out_ifds = b"", {}
+    for k in order:
+        if k not in ifds:
+            continue
+        body = _s.pack("<H", len(ifds[k]))
+        for tag, typ, v in sorted(ifds[k]):
+            if tag == 0x8769:
+                v = offsets["exif"]
+            if tag == 0x8825:
+                v = offsets["gps"]
+            r = raw(typ, v)
+            count = len(r) // sizes[typ]
+            if len(r) <= 4:
+                body += _s.pack("<HHI", tag, typ, count) + r.ljust(4, b"\0")
+            else:
+                body += _s.pack("<HHII", tag, typ, count, data_start + len(blobs))
+                blobs += r
+        out_ifds[k] = body + b"\0\0\0\0"
+    return b"II*\0" + _s.pack("<I", 8) + b"".join(out_ifds[k] for k in order if k in out_ifds) + blobs
+
+
+class FileInfoTest(unittest.TestCase):
+    """Pages « Propriétés de l'image » / « Propriétés audio et vidéo » (comme Nautilus 46)."""
+
+    def setUp(self):
+        self.d = tempfile.mkdtemp()
+
+    def tearDown(self):
+        import shutil
+        shutil.rmtree(self.d, ignore_errors=True)
+
+    def _jpeg(self, name, w, h, exif=b"", xmp=b""):
+        import struct as _s
+        import subprocess
+        path = os.path.join(self.d, name)
+        subprocess.run(["convert", "-size", f"{w}x{h}", "xc:orange", path], check=True)
+        with open(path, "rb") as f:
+            data = f.read()
+        segs = b""
+        if exif:
+            body = b"Exif\0\0" + exif
+            segs += b"\xff\xe1" + _s.pack(">H", len(body) + 2) + body
+        if xmp:
+            body = b"http://ns.adobe.com/xap/1.0/\0" + xmp
+            segs += b"\xff\xe1" + _s.pack(">H", len(body) + 2) + body
+        with open(path, "wb") as f:
+            f.write(data[:2] + segs + data[2:])
+        return path
+
+    def test_photo(self):
+        from odysseus.backend import fileinfo
+        exif = _tiff({"0": [(0x010F, 2, "Canon"), (0x0110, 2, "EOS 80D"), (0x0131, 2, "Adobe Photoshop 24.1 (Windows)"),
+                            (0x0112, 3, 6)],
+                      "exif": [(0x829A, 5, (1, 125)), (0x9202, 5, (3, 1)), (0x8827, 3, 400), (0x9209, 3, 16),
+                               (0x9207, 3, 5), (0x920A, 5, (50, 1)), (0x9003, 2, "2015:04:17 12:20:19"),
+                               (0xA402, 3, 1)],
+                      "gps": [(1, 2, "N"), (2, 5, [(30, 1), (19, 1), (12, 1)]), (3, 2, "E"),
+                              (4, 5, [(35, 1), (26, 1), (24, 1)]), (6, 5, (1000, 1))]})
+        xmp = (b'<x:xmpmeta xmlns:x="adobe:ns:meta/"><rdf:RDF xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#">'
+               b'<rdf:Description xmlns:dc="http://purl.org/dc/elements/1.1/" xmlns:xmp="http://ns.adobe.com/xap/1.0/" '
+               b'xmp:Rating="4"><dc:title><rdf:Alt><rdf:li xml:lang="x-default">Ad Deir</rdf:li></rdf:Alt></dc:title>'
+               b'<dc:subject><rdf:Bag><rdf:li>Jordanie</rdf:li><rdf:li>Petra</rdf:li></rdf:Bag></dc:subject>'
+               b'<dc:creator><rdf:Seq><rdf:li>Tof</rdf:li></rdf:Seq></dc:creator></rdf:Description></rdf:RDF></x:xmpmeta>')
+        rows = dict(fileinfo.image_properties(self._jpeg("p.jpg", 1920, 1080, exif, xmp)))
+        self.assertEqual(rows[tr("Type d'image")], "jpeg (JPEG)")
+        self.assertEqual(rows[tr("Largeur")], ntr("{0} pixel", "{0} pixels", 1080).format(1080))   # tournée
+        self.assertEqual(rows[tr("Hauteur")], ntr("{0} pixel", "{0} pixels", 1920).format(1920))
+        self.assertEqual(rows[tr("Marque de l'appareil photo")], "Canon")
+        self.assertEqual(rows[tr("Modèle de l'appareil photo")], "EOS 80D")
+        self.assertEqual(rows[tr("Temps de pose")], "1/125 s")
+        self.assertEqual(rows[tr("Ouverture focale")], "F2.8")
+        self.assertEqual(rows[tr("Vitesse ISO")], "400")
+        self.assertEqual(rows[tr("Flash déclenché")], tr("Non"))
+        self.assertEqual(rows[tr("Distance focale")], "50 mm")
+        self.assertEqual(rows[tr("Logiciel")], "Adobe Photoshop 24.1 (Windows)")
+        self.assertEqual(rows[tr("Créé le")], "2015-04-17 12:20:19")
+        self.assertEqual(rows[tr("Titre")], "Ad Deir")
+        self.assertEqual(rows[tr("Mots-clés")], "Jordanie, Petra")
+        self.assertEqual(rows[tr("Auteur")], "Tof")
+        self.assertEqual(rows[tr("Classement")], "4")
+        self.assertTrue(rows[tr("Coordonnées")].startswith("30.320000° " + tr("N") + " 35.440000° " + tr("E")))
+        self.assertTrue(rows[tr("Coordonnées")].endswith("(1000 m)"))
+
+    def test_plain_and_broken(self):
+        from odysseus.backend import fileinfo
+        rows = fileinfo.image_properties(self._jpeg("plain.jpg", 640, 480))
+        self.assertEqual([k for k, _v in rows], [tr("Type d'image"), tr("Largeur"), tr("Hauteur")])
+        bad = os.path.join(self.d, "faux.png")
+        with open(bad, "wb") as f:
+            f.write(b"pas une image")
+        self.assertEqual(fileinfo.image_properties(bad)[0][0], tr("Oups ! Quelque chose s'est mal passé."))
+
+    @unittest.skipUnless(__import__("shutil").which("ffmpeg"), "ffmpeg absent")
+    def test_media(self):
+        import subprocess
+        from odysseus.backend import fileinfo
+        mp3 = os.path.join(self.d, "03 Monospace.mp3")
+        subprocess.run(["ffmpeg", "-v", "error", "-f", "lavfi", "-i", "sine=duration=157", "-metadata", "title=Monospace",
+                        "-metadata", "artist=Bénabar", "-metadata", "album=Live au Grand Rex", "-metadata", "date=2004",
+                        "-b:a", "192k", mp3], check=True)
+        kind, rows = fileinfo.media_properties(mp3)
+        rows = dict(rows)
+        self.assertEqual(kind, "audio")
+        self.assertEqual(rows[tr("Durée")], fileinfo.duration_text(157))
+        self.assertNotIn(tr("Conteneur"), rows)              # MP3 brut : pas de conteneur, comme Nautilus
+        self.assertEqual((rows[tr("Titre")], rows[tr("Artiste")], rows[tr("Album")], rows[tr("Année")]),
+                         ("Monospace", "Bénabar", "Live au Grand Rex", "2004"))
+        self.assertEqual(rows[tr("Codec audio")], "MPEG-1 Layer 3 (MP3)")
+        self.assertEqual(rows[tr("Canaux")], tr("Mono"))
+        mkv = os.path.join(self.d, "film.mkv")
+        subprocess.run(["ffmpeg", "-v", "error", "-f", "lavfi", "-i", "testsrc=size=1920x1080:rate=24000/1001:duration=2",
+                        "-f", "lavfi", "-i", "sine=duration=2", "-ac", "6", "-c:v", "libx264", "-preset", "ultrafast",
+                        "-c:a", "aac", mkv], check=True)
+        kind, rows = fileinfo.media_properties(mkv)
+        rows = dict(rows)
+        self.assertEqual(kind, "both")
+        self.assertEqual(rows[tr("Conteneur")], "Matroska")
+        self.assertEqual(rows[tr("Dimensions")], "1920 × 1080")
+        self.assertTrue(rows[tr("Codec vidéo")].startswith("H.264 ("), rows[tr("Codec vidéo")])   # avec le profil
+        self.assertIn("23", rows[tr("Cadence")])
+        self.assertEqual(rows[tr("Canaux")], tr("Ambiophonique") + " 5.1")
+        self.assertEqual(fileinfo.duration_text(0), tr("0 seconde"))
+        self.assertEqual(fileinfo.duration_text(3725), tr("{0} {1} {2}").format(
+            ntr("{0} heure", "{0} heures", 1).format(1), ntr("{0} minute", "{0} minutes", 2).format(2),
+            ntr("{0} seconde", "{0} secondes", 5).format(5)))
+

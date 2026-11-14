@@ -467,6 +467,15 @@ fenêtre de recherche dans le contenu.
   dossiers rwx, valeurs proposées d'après l'umask, liens jamais suivis ni modifiés). Ne recalculer que
   la catégorie modifiée (tout recalculer changeait les autres catégories), jamais de chmod / chown à
   travers un lien.
+- Propriétés d'une image / d'un fichier audio ou vidéo : ligne « Propriétés de l'image » / « Propriétés audio »
+  / « vidéo » / « audio et vidéo » en bas, page à part (`PropertiesDialog._details_row`, lue dans un fil) =
+  les extensions image-properties / audio-video-properties livrées avec Nautilus 46 (mêmes champs, même
+  ordre, libellés repris de ses traductions fr / de). `backend/fileinfo.py`, sans dépendance de plus :
+  GdkPixbuf (type, taille, quart de tour EXIF), EXIF / XMP maison (JPEG, TIFF / RAW, PNG eXIf / iTXt, WebP),
+  ffprobe (noms de codecs de GStreamer pour les courants, « H.264 (High Profile) » ; pas de conteneur pour
+  un MP3 / FLAC brut ; pochette « attached_pic » ignorée). « Moyenne globale » (mesure) distincte de
+  « Moyenne » (qualité, « Medium »). Testé : `FileInfoTest` (EXIF + XMP construits par le test),
+  `proprietes_image` d'ui_smoke.
 - Favoris (fonctionnalité `starred`, COUPÉE par défaut — choix de Tof, activable dans les Préférences) = ceux de Nautilus 46 : MÊME base TinySPARQL privée
   (`$XDG_DATA_HOME/nautilus/tags`, ontologie /usr/share/nautilus/ontology — copie identique dans
   data/nautilus-ontology si Nautilus est absent), mêmes requêtes que nautilus-tag-manager.c

@@ -167,7 +167,7 @@ msgstr ""
 msgid "Date de création"
 msgstr ""
 
-#: odysseus/backend/batchrename.py:35 odysseus/ui/batch_rename.py:27
+#: odysseus/backend/batchrename.py:35 odysseus/backend/fileinfo.py:314 odysseus/ui/batch_rename.py:27
 msgid "Modèle de l'appareil photo"
 msgstr ""
 
@@ -187,7 +187,7 @@ msgstr ""
 msgid "Nom de l'artiste"
 msgstr ""
 
-#: odysseus/backend/batchrename.py:37 odysseus/ui/batch_rename.py:30 odysseus/ui/preview.py:144 odysseus/ui/preview.py:160
+#: odysseus/backend/batchrename.py:37 odysseus/backend/fileinfo.py:323 odysseus/backend/fileinfo.py:406 odysseus/ui/batch_rename.py:30
 msgid "Titre"
 msgstr ""
 
@@ -261,6 +261,292 @@ msgstr ""
 
 #: odysseus/backend/engine.py:293 odysseus/backend/pdf.py:196 odysseus/backend/search.py:129
 msgid "code {0}"
+msgstr ""
+
+#: odysseus/backend/fileinfo.py:365 odysseus/backend/fileinfo.py:392
+msgid "0 seconde"
+msgstr ""
+
+#: odysseus/backend/fileinfo.py:462
+msgid "Propriétés audio et vidéo"
+msgstr ""
+
+#: odysseus/backend/fileinfo.py:230 odysseus/ui/archive_dialogs.py:477
+msgid "Oui"
+msgstr ""
+
+#: odysseus/backend/fileinfo.py:230 odysseus/ui/archive_dialogs.py:464 odysseus/ui/archive_dialogs.py:477
+msgid "Non"
+msgstr ""
+
+#: odysseus/backend/fileinfo.py:299
+msgid "Type d'image"
+msgstr ""
+
+#: odysseus/backend/fileinfo.py:300
+msgid "Largeur"
+msgstr ""
+
+#: odysseus/backend/fileinfo.py:301
+msgid "Hauteur"
+msgstr ""
+
+#: odysseus/backend/fileinfo.py:313
+msgid "Marque de l'appareil photo"
+msgstr ""
+
+#: odysseus/backend/fileinfo.py:315
+msgid "Temps de pose"
+msgstr ""
+
+#: odysseus/backend/fileinfo.py:316
+msgid "Mode d'exposition"
+msgstr ""
+
+#: odysseus/backend/fileinfo.py:317
+msgid "Ouverture focale"
+msgstr ""
+
+#: odysseus/backend/fileinfo.py:318
+msgid "Vitesse ISO"
+msgstr ""
+
+#: odysseus/backend/fileinfo.py:319
+msgid "Flash déclenché"
+msgstr ""
+
+#: odysseus/backend/fileinfo.py:320
+msgid "Mode de mesure"
+msgstr ""
+
+#: odysseus/backend/fileinfo.py:321
+msgid "Distance focale"
+msgstr ""
+
+#: odysseus/backend/fileinfo.py:322
+msgid "Logiciel"
+msgstr ""
+
+#: odysseus/backend/fileinfo.py:324
+msgid "Description"
+msgstr ""
+
+#: odysseus/backend/fileinfo.py:325
+msgid "Mots-clés"
+msgstr ""
+
+#: odysseus/backend/fileinfo.py:326 odysseus/ui/preview.py:160
+msgid "Auteur"
+msgstr ""
+
+#: odysseus/backend/fileinfo.py:327
+msgid "Créé le"
+msgstr ""
+
+#: odysseus/backend/fileinfo.py:328
+msgid "Copyright"
+msgstr ""
+
+#: odysseus/backend/fileinfo.py:329
+msgid "Classement"
+msgstr ""
+
+#: odysseus/backend/fileinfo.py:330
+msgid "Coordonnées"
+msgstr ""
+
+#: odysseus/backend/fileinfo.py:358
+msgid "{0} heure"
+msgid_plural "{0} heures"
+msgstr[0] ""
+msgstr[1] ""
+
+#: odysseus/backend/fileinfo.py:359
+msgid "{0} minute"
+msgid_plural "{0} minutes"
+msgstr[0] ""
+msgstr[1] ""
+
+#: odysseus/backend/fileinfo.py:360
+msgid "{0} seconde"
+msgid_plural "{0} secondes"
+msgstr[0] ""
+msgstr[1] ""
+
+#: odysseus/backend/fileinfo.py:406 odysseus/ui/preview.py:144
+msgid "Artiste"
+msgstr ""
+
+#: odysseus/backend/fileinfo.py:406 odysseus/ui/preview.py:144
+msgid "Album"
+msgstr ""
+
+#: odysseus/backend/fileinfo.py:221 odysseus/ui/archive_dialogs.py:20 odysseus/ui/archive_dialogs.py:21
+msgid "Automatique"
+msgstr ""
+
+#: odysseus/backend/fileinfo.py:221
+msgid "Manuel"
+msgstr ""
+
+#: odysseus/backend/fileinfo.py:221
+msgid "Bracketing automatique"
+msgstr ""
+
+#: odysseus/backend/fileinfo.py:234
+msgid "Inconnu"
+msgstr ""
+
+#: odysseus/backend/fileinfo.py:234
+msgid "Moyenne globale"
+msgstr ""
+
+#: odysseus/backend/fileinfo.py:234
+msgid "Moyenne pondérée au centre"
+msgstr ""
+
+#: odysseus/backend/fileinfo.py:234
+msgid "Spot"
+msgstr ""
+
+#: odysseus/backend/fileinfo.py:235
+msgid "Multi-spot"
+msgstr ""
+
+#: odysseus/backend/fileinfo.py:235
+msgid "Matricielle"
+msgstr ""
+
+#: odysseus/backend/fileinfo.py:235
+msgid "Partielle"
+msgstr ""
+
+#: odysseus/backend/fileinfo.py:235
+msgid "Autre"
+msgstr ""
+
+#: odysseus/backend/fileinfo.py:281
+msgid "N"
+msgstr ""
+
+#: odysseus/backend/fileinfo.py:281
+msgid "S"
+msgstr ""
+
+#: odysseus/backend/fileinfo.py:282
+msgid "E"
+msgstr ""
+
+#: odysseus/backend/fileinfo.py:282
+msgid "O"
+msgstr ""
+
+#: odysseus/backend/fileinfo.py:293 odysseus/backend/fileinfo.py:381 odysseus/ui/properties.py:376
+msgid "Oups ! Quelque chose s'est mal passé."
+msgstr ""
+
+#: odysseus/backend/fileinfo.py:293
+msgid "Impossible de charger les informations de l'image"
+msgstr ""
+
+#: odysseus/backend/fileinfo.py:362
+msgid "{0} {1} {2}"
+msgstr ""
+
+#: odysseus/backend/fileinfo.py:364
+msgid "{0} {1}"
+msgstr ""
+
+#: odysseus/backend/fileinfo.py:390 odysseus/backend/fileinfo.py:392 odysseus/ui/menus.py:57 odysseus/ui/preview.py:134
+msgid "Durée"
+msgstr ""
+
+#: odysseus/backend/fileinfo.py:411 odysseus/ui/archive_dialogs.py:425 odysseus/ui/share_dialog.py:77
+msgid "Commentaire"
+msgstr ""
+
+#: odysseus/backend/fileinfo.py:414
+msgid "Année"
+msgstr ""
+
+#: odysseus/backend/fileinfo.py:461
+msgid "Propriétés de l'image"
+msgstr ""
+
+#: odysseus/backend/fileinfo.py:461
+msgid "Propriétés audio"
+msgstr ""
+
+#: odysseus/backend/fileinfo.py:462
+msgid "Propriétés vidéo"
+msgstr ""
+
+#: odysseus/backend/fileinfo.py:300 odysseus/backend/fileinfo.py:301
+msgid "{0} pixel"
+msgid_plural "{0} pixels"
+msgstr[0] ""
+msgstr[1] ""
+
+#: odysseus/backend/fileinfo.py:381
+msgid "Impossible de lire ce fichier"
+msgstr ""
+
+#: odysseus/backend/fileinfo.py:401
+msgid "Conteneur"
+msgstr ""
+
+#: odysseus/backend/fileinfo.py:427
+msgid "{0} kbit/s"
+msgstr ""
+
+#: odysseus/backend/fileinfo.py:432 odysseus/ui/preview.py:125
+msgid "Dimensions"
+msgstr ""
+
+#: odysseus/backend/fileinfo.py:434
+msgid "Codec vidéo"
+msgstr ""
+
+#: odysseus/backend/fileinfo.py:436
+msgid "Débit vidéo"
+msgstr ""
+
+#: odysseus/backend/fileinfo.py:439
+msgid "Cadence"
+msgstr ""
+
+#: odysseus/backend/fileinfo.py:444
+msgid "Codec audio"
+msgstr ""
+
+#: odysseus/backend/fileinfo.py:446
+msgid "Débit audio"
+msgstr ""
+
+#: odysseus/backend/fileinfo.py:452
+msgid "Échantillonnage"
+msgstr ""
+
+#: odysseus/backend/fileinfo.py:455
+msgid "Canaux"
+msgstr ""
+
+#: odysseus/backend/fileinfo.py:455
+msgid "Mono"
+msgstr ""
+
+#: odysseus/backend/fileinfo.py:439
+msgid "{0} image par seconde"
+msgid_plural "{0} images par seconde"
+msgstr[0] ""
+msgstr[1] ""
+
+#: odysseus/backend/fileinfo.py:455
+msgid "Stéréo"
+msgstr ""
+
+#: odysseus/backend/fileinfo.py:456
+msgid "Ambiophonique"
 msgstr ""
 
 #: odysseus/backend/fileops.py:102
@@ -673,7 +959,7 @@ msgstr ""
 msgid "Dossier personnel"
 msgstr ""
 
-#: odysseus/backend/scanner.py:439
+#: odysseus/backend/scanner.py:503
 msgid "Lien (brisé)"
 msgstr ""
 
@@ -1357,7 +1643,7 @@ msgstr ""
 msgid "L'archive a été créée sans eux."
 msgstr ""
 
-#: odysseus/ui/actions_archives.py:242 odysseus/ui/archive_dialogs.py:461 odysseus/ui/preview.py:253 odysseus/ui/properties.py:480
+#: odysseus/ui/actions_archives.py:242 odysseus/ui/archive_dialogs.py:461 odysseus/ui/preview.py:253 odysseus/ui/properties.py:535
 msgid "Dossiers"
 msgstr ""
 
@@ -1369,7 +1655,7 @@ msgstr ""
 msgid "Ils n'ont pas été supprimés."
 msgstr ""
 
-#: odysseus/ui/actions_files.py:1230
+#: odysseus/ui/actions_files.py:1229
 msgid "Terminé (code {0}). Appuyez sur Entrée pour fermer."
 msgstr ""
 
@@ -1413,7 +1699,7 @@ msgstr ""
 msgid "Emplacement copié"
 msgstr ""
 
-#: odysseus/ui/actions_files.py:1319
+#: odysseus/ui/actions_files.py:1318
 msgid "Supprimer définitivement « {name} » ?"
 msgid_plural "Supprimer définitivement les {n} éléments sélectionnés ?"
 msgstr[0] ""
@@ -1473,7 +1759,7 @@ msgstr ""
 msgid "Restauration"
 msgstr ""
 
-#: odysseus/ui/actions_files.py:950 odysseus/ui/properties.py:300
+#: odysseus/ui/actions_files.py:950 odysseus/ui/properties.py:302
 msgid "Aucune application"
 msgstr ""
 
@@ -1489,19 +1775,19 @@ msgstr ""
 msgid "Rien à annuler"
 msgstr ""
 
-#: odysseus/ui/actions_files.py:1180 odysseus/ui/actions_files.py:1228
+#: odysseus/ui/actions_files.py:1180 odysseus/ui/actions_files.py:1227
 msgid "Aucun terminal trouvé"
 msgstr ""
 
-#: odysseus/ui/actions_files.py:1180 odysseus/ui/actions_files.py:1228
+#: odysseus/ui/actions_files.py:1180 odysseus/ui/actions_files.py:1227
 msgid "Indiquez votre terminal dans les préférences."
 msgstr ""
 
-#: odysseus/ui/actions_files.py:1201 odysseus/ui/actions_files.py:1209
+#: odysseus/ui/actions_files.py:1203 odysseus/ui/actions_files.py:1208
 msgid "Courriel impossible"
 msgstr ""
 
-#: odysseus/ui/actions_files.py:1201
+#: odysseus/ui/actions_files.py:1203
 msgid "Installez xdg-utils (sudo apt install xdg-utils)."
 msgstr ""
 
@@ -1589,7 +1875,7 @@ msgstr ""
 msgid "Annuler la création"
 msgstr ""
 
-#: odysseus/ui/actions_files.py:1189 odysseus/ui/actions_files.py:1238
+#: odysseus/ui/actions_files.py:1189 odysseus/ui/actions_files.py:1237
 msgid "Impossible de lancer le terminal"
 msgstr ""
 
@@ -1673,7 +1959,7 @@ msgstr ""
 msgid "Annulation du déplacement"
 msgstr ""
 
-#: odysseus/ui/actions_files.py:1216
+#: odysseus/ui/actions_files.py:1215
 msgid "{0} fichier envoyé vers {1}"
 msgid_plural "{0} fichiers envoyés vers {1}"
 msgstr[0] ""
@@ -1917,10 +2203,6 @@ msgstr ""
 msgid "Ne pas enregistrer"
 msgstr ""
 
-#: odysseus/ui/archive_dialogs.py:20 odysseus/ui/archive_dialogs.py:21
-msgid "Automatique"
-msgstr ""
-
 #: odysseus/ui/archive_dialogs.py:17
 msgid "Stockage (aucune)"
 msgstr ""
@@ -2041,10 +2323,6 @@ msgstr ""
 msgid "Multivolume"
 msgstr ""
 
-#: odysseus/ui/archive_dialogs.py:425 odysseus/ui/share_dialog.py:77
-msgid "Commentaire"
-msgstr ""
-
 #: odysseus/ui/archive_dialogs.py:426
 msgid "Page de code"
 msgstr ""
@@ -2155,10 +2433,6 @@ msgstr ""
 
 #: odysseus/ui/archive_dialogs.py:464
 msgid "Oui 🔒"
-msgstr ""
-
-#: odysseus/ui/archive_dialogs.py:464 odysseus/ui/archive_dialogs.py:477
-msgid "Non"
 msgstr ""
 
 #: odysseus/ui/archive_dialogs.py:481
@@ -2291,10 +2565,6 @@ msgstr ""
 
 #: odysseus/ui/archive_dialogs.py:352 odysseus/ui/audio_dialog.py:34 odysseus/ui/audio_dialog.py:36 odysseus/ui/image_dialog.py:89
 msgid "Dossier de destination"
-msgstr ""
-
-#: odysseus/ui/archive_dialogs.py:477
-msgid "Oui"
 msgstr ""
 
 #: odysseus/ui/archive_dialogs.py:140
@@ -2583,7 +2853,7 @@ msgstr ""
 msgid "Le fichier est intact"
 msgstr ""
 
-#: odysseus/ui/checksum_window.py:83 odysseus/ui/common.py:559 odysseus/ui/dialogs.py:357 odysseus/ui/jobs.py:145
+#: odysseus/ui/checksum_window.py:83 odysseus/ui/common.py:563 odysseus/ui/dialogs.py:357 odysseus/ui/jobs.py:145
 msgid "Copier"
 msgstr ""
 
@@ -2623,55 +2893,55 @@ msgstr ""
 msgid "Valider"
 msgstr ""
 
-#: odysseus/ui/common.py:550
+#: odysseus/ui/common.py:554
 msgid "Commande équivalente"
 msgstr ""
 
-#: odysseus/ui/common.py:598
+#: odysseus/ui/common.py:602
 msgid "janv."
 msgstr ""
 
-#: odysseus/ui/common.py:598
+#: odysseus/ui/common.py:602
 msgid "févr."
 msgstr ""
 
-#: odysseus/ui/common.py:598
+#: odysseus/ui/common.py:602
 msgid "mars"
 msgstr ""
 
-#: odysseus/ui/common.py:598
+#: odysseus/ui/common.py:602
 msgid "avril"
 msgstr ""
 
-#: odysseus/ui/common.py:598
+#: odysseus/ui/common.py:602
 msgid "mai"
 msgstr ""
 
-#: odysseus/ui/common.py:598
+#: odysseus/ui/common.py:602
 msgid "juin"
 msgstr ""
 
-#: odysseus/ui/common.py:598
+#: odysseus/ui/common.py:602
 msgid "juil."
 msgstr ""
 
-#: odysseus/ui/common.py:599
+#: odysseus/ui/common.py:603
 msgid "août"
 msgstr ""
 
-#: odysseus/ui/common.py:599
+#: odysseus/ui/common.py:603
 msgid "sept."
 msgstr ""
 
-#: odysseus/ui/common.py:599
+#: odysseus/ui/common.py:603
 msgid "oct."
 msgstr ""
 
-#: odysseus/ui/common.py:599
+#: odysseus/ui/common.py:603
 msgid "nov."
 msgstr ""
 
-#: odysseus/ui/common.py:599
+#: odysseus/ui/common.py:603
 msgid "déc."
 msgstr ""
 
@@ -2683,7 +2953,7 @@ msgstr ""
 msgid "Déverrouiller"
 msgstr ""
 
-#: odysseus/ui/common.py:589
+#: odysseus/ui/common.py:593
 msgid "Aucun élément"
 msgstr ""
 
@@ -2691,37 +2961,37 @@ msgstr ""
 msgid "Le mot de passe est incorrect. Réessayez.\n"
 msgstr ""
 
-#: odysseus/ui/common.py:543
+#: odysseus/ui/common.py:547
 msgid "Parcourir…"
 msgstr ""
 
-#: odysseus/ui/common.py:553
+#: odysseus/ui/common.py:557
 msgid "Afficher la commande"
 msgstr ""
 
-#: odysseus/ui/common.py:553
+#: odysseus/ui/common.py:557
 msgid "Utile pour vos scripts"
 msgstr ""
 
-#: odysseus/ui/common.py:593
+#: odysseus/ui/common.py:597
 msgid "{name} et {n} autre"
 msgid_plural "{name} et {n} autres"
 msgstr[0] ""
 msgstr[1] ""
 
-#: odysseus/ui/common.py:612
+#: odysseus/ui/common.py:616
 msgid "{day} {month} {year}"
 msgstr ""
 
-#: odysseus/ui/common.py:609
+#: odysseus/ui/common.py:613
 msgid "Aujourd'hui à {0}"
 msgstr ""
 
-#: odysseus/ui/common.py:611
+#: odysseus/ui/common.py:615
 msgid "Hier à {0}"
 msgstr ""
 
-#: odysseus/ui/common.py:560
+#: odysseus/ui/common.py:564
 msgid "Commande copiée"
 msgstr ""
 
@@ -3655,10 +3925,6 @@ msgstr ""
 msgid "Date de modification"
 msgstr ""
 
-#: odysseus/ui/menus.py:57 odysseus/ui/preview.py:134 odysseus/ui/views.py:48 odysseus/ui/views.py:53
-msgid "Durée"
-msgstr ""
-
 #: odysseus/ui/menus.py:148
 msgid "Ouvrir avec…"
 msgstr ""
@@ -3923,7 +4189,7 @@ msgstr ""
 msgid "🔒 chiffrée"
 msgstr ""
 
-#: odysseus/ui/pane.py:263 odysseus/ui/pane.py:1025 odysseus/ui/pane.py:1029 odysseus/ui/properties.py:285
+#: odysseus/ui/pane.py:263 odysseus/ui/pane.py:1025 odysseus/ui/pane.py:1029 odysseus/ui/properties.py:287
 msgid "Dossier vide"
 msgstr ""
 
@@ -4343,7 +4609,7 @@ msgstr[1] ""
 msgid "{0} : déjà optimal, laissé tel quel ({1})"
 msgstr ""
 
-#: odysseus/ui/pdf_dialogs.py:287 odysseus/ui/properties.py:529
+#: odysseus/ui/pdf_dialogs.py:287 odysseus/ui/properties.py:584
 msgid "Images"
 msgstr ""
 
@@ -4409,18 +4675,6 @@ msgstr ""
 msgid "Fichiers (ce niveau)"
 msgstr ""
 
-#: odysseus/ui/preview.py:125
-msgid "Dimensions"
-msgstr ""
-
-#: odysseus/ui/preview.py:144
-msgid "Artiste"
-msgstr ""
-
-#: odysseus/ui/preview.py:144
-msgid "Album"
-msgstr ""
-
 #: odysseus/ui/preview.py:145
 msgid "Date"
 msgstr ""
@@ -4443,10 +4697,6 @@ msgstr ""
 
 #: odysseus/ui/preview.py:159
 msgid "Pages"
-msgstr ""
-
-#: odysseus/ui/preview.py:160
-msgid "Auteur"
 msgstr ""
 
 #: odysseus/ui/preview.py:161
@@ -4493,15 +4743,15 @@ msgstr ""
 msgid "{0} à {1}"
 msgstr ""
 
-#: odysseus/ui/properties.py:472
+#: odysseus/ui/properties.py:527
 msgid "Changer les permissions des fichiers inclus"
 msgstr ""
 
-#: odysseus/ui/properties.py:472
+#: odysseus/ui/properties.py:527
 msgid "_Changer"
 msgstr ""
 
-#: odysseus/ui/properties.py:553
+#: odysseus/ui/properties.py:608
 msgid "Icône personnalisée retirée"
 msgstr ""
 
@@ -4509,47 +4759,47 @@ msgstr ""
 msgid "Ouvrir le dossier parent"
 msgstr ""
 
-#: odysseus/ui/properties.py:283
+#: odysseus/ui/properties.py:285
 msgid "Contenus illisibles"
 msgstr ""
 
-#: odysseus/ui/properties.py:299
+#: odysseus/ui/properties.py:301
 msgid "Ouvrir avec"
 msgstr ""
 
-#: odysseus/ui/properties.py:304
+#: odysseus/ui/properties.py:306
 msgid "Changer…"
 msgstr ""
 
-#: odysseus/ui/properties.py:325
+#: odysseus/ui/properties.py:327
 msgid "Permissions"
 msgstr ""
 
-#: odysseus/ui/properties.py:373
+#: odysseus/ui/properties.py:428
 msgid "Accès"
 msgstr ""
 
-#: odysseus/ui/properties.py:382 odysseus/ui/properties.py:482 odysseus/ui/views.py:47 odysseus/ui/views.py:53
+#: odysseus/ui/properties.py:437 odysseus/ui/properties.py:537 odysseus/ui/views.py:47 odysseus/ui/views.py:53
 msgid "Propriétaire"
 msgstr ""
 
-#: odysseus/ui/properties.py:396 odysseus/ui/properties.py:402 odysseus/ui/properties.py:482
+#: odysseus/ui/properties.py:451 odysseus/ui/properties.py:457 odysseus/ui/properties.py:537
 msgid "Groupe"
 msgstr ""
 
-#: odysseus/ui/properties.py:426
+#: odysseus/ui/properties.py:481
 msgid "Définir des permissions personnalisées"
 msgstr ""
 
-#: odysseus/ui/properties.py:502
+#: odysseus/ui/properties.py:557
 msgid "Changement des permissions"
 msgstr ""
 
-#: odysseus/ui/properties.py:527
+#: odysseus/ui/properties.py:582
 msgid "Sélectionnez une icône personnalisée"
 msgstr ""
 
-#: odysseus/ui/properties.py:527
+#: odysseus/ui/properties.py:582
 msgid "_Sélectionner"
 msgstr ""
 
@@ -4565,15 +4815,15 @@ msgstr ""
 msgid "Cible du lien"
 msgstr ""
 
-#: odysseus/ui/properties.py:407 odysseus/ui/properties.py:482
+#: odysseus/ui/properties.py:462 odysseus/ui/properties.py:537
 msgid "Autres"
 msgstr ""
 
-#: odysseus/ui/properties.py:414
+#: odysseus/ui/properties.py:469
 msgid "Exécutable comme programme"
 msgstr ""
 
-#: odysseus/ui/properties.py:540
+#: odysseus/ui/properties.py:595
 msgid "Seules les images locales peuvent servir d'icône."
 msgstr ""
 
@@ -4589,15 +4839,15 @@ msgstr ""
 msgid "Dernière modification"
 msgstr ""
 
-#: odysseus/ui/properties.py:281
+#: odysseus/ui/properties.py:283
 msgid "{0}, {1}"
 msgstr ""
 
-#: odysseus/ui/properties.py:353
+#: odysseus/ui/properties.py:408
 msgid "C'est un lien : ses droits sont ceux de sa cible ; ouvrez les propriétés de la cible pour les modifier."
 msgstr ""
 
-#: odysseus/ui/properties.py:421
+#: odysseus/ui/properties.py:476
 msgid "Changer les permissions des fichiers _inclus…"
 msgstr ""
 
@@ -4605,21 +4855,21 @@ msgstr ""
 msgid "Dernier accès"
 msgstr ""
 
-#: odysseus/ui/properties.py:287
+#: odysseus/ui/properties.py:289
 msgid "{0} élément, de taille {1}"
 msgid_plural "{0} éléments, totalisant {1}"
 msgstr[0] ""
 msgstr[1] ""
 
-#: odysseus/ui/properties.py:290
+#: odysseus/ui/properties.py:292
 msgid "(certains contenus illisibles)"
 msgstr ""
 
-#: odysseus/ui/properties.py:358
+#: odysseus/ui/properties.py:413
 msgid "Vous n'êtes pas le propriétaire de cet élément, vous ne pouvez donc pas en changer les permissions."
 msgstr ""
 
-#: odysseus/ui/properties.py:382
+#: odysseus/ui/properties.py:437
 msgid "{0} (vous)"
 msgstr ""
 

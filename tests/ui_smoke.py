@@ -1856,6 +1856,43 @@ def annuler_sans_ecraser(win):
 
 
 @step
+def proprietes_image(win):
+    """Propriétés d'une image : ligne « Propriétés de l'image » en bas, page avec type et dimensions
+    (comme l'extension image-properties de Nautilus 46), lue dans un fil."""
+    from odysseus.ui.properties import PropertiesDialog
+    d = PropertiesDialog(win, [os.path.join(D, "image.png")])
+    d.present(win)
+    page = d.nav.find_page("details")
+    check(page is not None and page.get_title() == tr("Propriétés de l'image"), "ligne « Propriétés de l'image »")
+    yield Wait(5, until=lambda: page is not None and _labels(page) and tr("Largeur") in _labels(page))
+    labels = _labels(page) if page is not None else []
+    check(tr("Type d'image") in labels and tr("Hauteur") in labels, f"page de l'image remplie ({labels})")
+    check(ntr("{0} pixel", "{0} pixels", 320).format(320) in labels, "largeur 320 pixels")
+    d.close()
+    txt = os.path.join(D, "fichier 1.txt")
+    d = PropertiesDialog(win, [txt])
+    d.present(win)
+    yield pump(0.3)
+    check(d.nav.find_page("details") is None, "texte : pas de page de détails")
+    d.close()
+
+
+def _labels(widget) -> list:
+    """Titres et sous-titres des lignes sous un widget."""
+    out = []
+    stack = [widget]
+    while stack:
+        w = stack.pop()
+        if isinstance(w, Adw.ActionRow):
+            out += [w.get_title(), w.get_subtitle() or ""]
+        c = w.get_first_child()
+        while c is not None:
+            stack.append(c)
+            c = c.get_next_sibling()
+    return out
+
+
+@step
 def droits(win):
     """Propriétés : un lien ne change jamais les droits de sa cible ; le bit d'exécution d'une
     catégorie n'est pas ajouté en changeant l'accès d'une autre."""
