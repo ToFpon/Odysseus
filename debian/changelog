@@ -1,3 +1,33 @@
+odysseus (2.0.0~noble1) noble; urgency=medium
+
+  * Version majeure.
+  * Étiquettes audio (clic droit sur de la musique → « Modifier les
+    étiquettes… ») : titre, artiste, album, année, genre, piste, disque,
+    pochette ; plusieurs fichiers d'un coup (un album), numérotation dans
+    l'ordre des noms, titres et pistes d'après les noms de fichiers. MP3,
+    FLAC, Ogg, Opus, M4A, WAV, AIFF. Ctrl+Z remet les fichiers d'origine
+    à l'identique.
+  * Métadonnées des photos (clic droit → « Métadonnées des photos… ») : ce
+    que la photo révèle (position, appareil, numéro de série, date),
+    retirer la position ou tout, auteur, copyright, description, décaler
+    l'heure. L'image n'est jamais réencodée ; le résultat est vérifié.
+  * Propriétés : pages « Propriétés de l'image » et « Propriétés audio /
+    vidéo » comme Nautilus (dimensions, appareil, exposition, codecs,
+    débit, durée, étiquettes…).
+  * « Toujours utiliser pour ce type de fichiers » l'emporte aussi sur les
+    anciens réglages du même type sous un autre nom (les .m4a s'ouvraient
+    encore dans l'ancienne application).
+  * Google Drive / OneDrive : copier-coller vers un dossier local sous les
+    vrais noms (un couper-coller ne laissait que des copies nommées par
+    identifiants).
+  * Partages réseau : moins de blocages quand un dossier change ou que le
+    serveur ne répond plus ; coller et déposer fonctionnent dans un partage
+    ouvert par son adresse smb://.
+  * Audit avant publication : nombreuses corrections des nouveautés et
+    robustesse face aux fichiers abîmés.
+
+ -- Tof <nourpon@gmail.com>  Sat, 14 Nov 2026 21:10:14 +0000
+
 odysseus (1.9.6~noble1) noble; urgency=medium
 
   * Courriel : les pièces jointes arrivent aussi dans Betterbird et

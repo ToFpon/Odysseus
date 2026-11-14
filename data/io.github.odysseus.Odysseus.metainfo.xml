@@ -70,6 +70,20 @@
   </requires>
   <content_rating type="oars-1.1"/>
   <releases>
+    <release version="2.0.0" date="2026-11-14">
+      <description>
+        <p>A major release: audio tags, photo metadata, richer Properties, and a full audit.</p>
+        <ul>
+          <li>Audio tag editor (right-click on music → Edit Tags…): title, artist, album, year, genre, track and disc numbers, cover art; several files at once (album), numbering in name order, titles and track numbers filled in from file names; MP3, FLAC, Ogg, Opus, M4A, WAV, AIFF; Ctrl+Z restores the original files exactly</li>
+          <li>Photo metadata (right-click → Photo Metadata…): see what a photo reveals (location, camera, serial number, date), remove the location or everything, set author, copyright and description, shift the time; the image itself is never re-encoded, and the result is checked after writing</li>
+          <li>Properties: “Image Properties” and “Audio / Video Properties” pages like Nautilus (dimensions, camera, exposure, codecs, bitrate, duration, tags…)</li>
+          <li>“Always use for this file type”: the choice now also wins over older entries for the same type under another name (.m4a files kept opening in the previous application)</li>
+          <li>Google Drive / OneDrive: copy and paste to a local folder keeps the real names (cut and paste used to leave only identifier-named copies)</li>
+          <li>Network shares: fewer freezes when a folder changes or the server stops answering; paste and drop work in shares opened by their smb:// address</li>
+          <li>Audit before release: many fixes in the new features and robustness against damaged files</li>
+        </ul>
+      </description>
+    </release>
     <release version="1.9.6" date="2026-11-14">
       <description>
         <ul>
