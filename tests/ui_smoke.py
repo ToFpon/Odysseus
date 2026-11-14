@@ -1889,7 +1889,8 @@ def etiquettes_audio(win):
         return
     yield Wait(5, until=lambda: bool(d.values))
     check(d.entries["album"].get_text() == "Ancien", "album commun affiché")
-    check(d.entries["title"].get_text() == "" and tr("valeurs différentes") in d.entries["title"].get_title(),
+    check(d.entries["title"].get_text() == "" and
+          d.entries["title"].get_title() == tr("{0} (valeurs différentes)").format(tr("Titre")),
           f"titres différents signalés ({d.entries['title'].get_title()!r})")
     d.entries["album"].set_text("Live au Grand Rex")
     d._number()
