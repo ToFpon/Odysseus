@@ -5548,3 +5548,88 @@ msgstr "Surround"
 
 msgid "Moyenne globale"
 msgstr "Average"
+
+msgid "Étiquettes de {0} fichier modifiées"
+msgid_plural "Étiquettes de {0} fichiers modifiées"
+msgstr[0] "Tags of {0} file changed"
+msgstr[1] "Tags of {0} files changed"
+
+msgid "Étiquettes audio"
+msgstr "Audio tags"
+
+msgid "Modifier titre, artiste, album, année, numéros de piste et pochette des fichiers audio (MP3, FLAC, Ogg, Opus, M4A…), plusieurs à la fois"
+msgstr "Edit title, artist, album, year, track numbers and cover art of audio files (MP3, FLAC, Ogg, Opus, M4A…), several at once"
+
+msgid "Étiquettes"
+msgstr "Tags"
+
+msgid "Annuler la modification des étiquettes"
+msgstr "Undo Tag Changes"
+
+msgid "Rétablir la modification des étiquettes"
+msgstr "Redo Tag Changes"
+
+msgid "Étiquettes de {0} fichier"
+msgid_plural "Étiquettes de {0} fichiers"
+msgstr[0] "Tags of {0} file"
+msgstr[1] "Tags of {0} files"
+
+msgid "Modifier les étiquettes…"
+msgstr "Edit Tags…"
+
+msgid "Artiste de l'album"
+msgstr "Album Artist"
+
+msgid "Genre"
+msgstr "Genre"
+
+msgid "Modifier les étiquettes"
+msgstr "Edit Tags"
+
+msgid "Choisir une image…"
+msgstr "Choose an Image…"
+
+msgid "Retirer la pochette"
+msgstr "Remove Cover Art"
+
+msgid "Numérotation"
+msgstr "Numbering"
+
+msgid "Piste"
+msgstr "Track"
+
+msgid "Disque"
+msgstr "Disc"
+
+msgid "Pochettes différentes"
+msgstr "Different cover art"
+
+msgid "Choisir une pochette"
+msgstr "Choose Cover Art"
+
+msgid "Numéroter dans l'ordre des noms"
+msgstr "Number in name order"
+
+msgid "Numéroter"
+msgstr "Number"
+
+msgid "1 à {0}"
+msgstr "1 to {0}"
+
+msgid "Illisible : {0}"
+msgstr "Unreadable: {0}"
+
+msgid "Valeurs différentes"
+msgstr "Different values"
+
+msgid "Pistes 1 à {0}, dans l'ordre des noms de fichiers"
+msgstr "Tracks 1 to {0}, in file name order"
+
+msgid "sur"
+msgstr "of"
+
+msgid "Image illisible : {0}"
+msgstr "Unreadable image: {0}"
+
+msgid "{0} (valeurs différentes)"
+msgstr "{0} (different values)"

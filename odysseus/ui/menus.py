@@ -229,6 +229,10 @@ def context_menu(win, pane, on_item: bool) -> Gio.Menu:
             pl.append(tr("Ajouter à « {0} »").format(shown(os.path.basename(last))), "win.playlist-add")
         pl.append(tr("Ajouter à une autre liste de lecture…"), "win.playlist-add-other")
         t.append_submenu(tr("Liste de lecture"), pl)
+    if files and len(files) == len(sel) and all(r.path for r in files) and features.available("tag_editor"):
+        from ..backend import tags
+        if all(tags.supported(r.name) for r in files):        # d'après le nom : aucun accès disque ici
+            t.append(tr("Modifier les étiquettes…"), "win.edit-tags")
     if files and len(files) == len(sel) and features.available("image_tools"):
         from ..backend import images
         if all(images.is_image(r.name) for r in files):

@@ -1856,6 +1856,80 @@ def annuler_sans_ecraser(win):
 
 
 @step
+def etiquettes_audio(win):
+    """« Modifier les étiquettes… » : deux MP3, album changé pour les deux, pistes numérotées dans l'ordre
+    des noms, titres différents gardés ; Ctrl+Z remet tout, Rétablir refait."""
+    import shutil
+    import subprocess
+    from odysseus.backend import tags
+    from odysseus.ui import menus, tag_dialog
+    if not shutil.which("ffmpeg") or not tags.available():
+        print("(étiquettes : ffmpeg ou mutagen absent, étape sautée)")
+        return
+    base = os.path.join(D, "musique")
+    os.makedirs(base)
+    paths = []
+    for i, t in ((2, "Deux"), (10, "Dix")):
+        p = os.path.join(base, f"piste {i}.mp3")
+        subprocess.run(["ffmpeg", "-v", "error", "-f", "lavfi", "-i", "sine=duration=1", "-metadata", f"title={t}",
+                        "-metadata", "album=Ancien", p], check=True)
+        paths.append(p)
+    win.pane.open(base)
+    yield Wait(5, until=lambda: len(win.pane.model.items) == 2)
+    win.pane.select_names(["piste 2.mp3", "piste 10.mp3"])
+    yield pump(0.3)
+    model = menus.context_menu(win, win.pane, True)
+    check(_menu_has(model, "win.edit-tags"), "clic droit sur des MP3 : « Modifier les étiquettes… »")
+    tag_dialog._last = None
+    win.activate_action("win.edit-tags", None)
+    yield Wait(3, until=lambda: tag_dialog._last is not None)
+    d = tag_dialog._last
+    check(d is not None, "fenêtre « Modifier les étiquettes » ouverte")
+    if d is None:
+        return
+    yield Wait(5, until=lambda: bool(d.values))
+    check(d.entries["album"].get_text() == "Ancien", "album commun affiché")
+    check(d.entries["title"].get_text() == "" and tr("valeurs différentes") in d.entries["title"].get_title(),
+          f"titres différents signalés ({d.entries['title'].get_title()!r})")
+    d.entries["album"].set_text("Live au Grand Rex")
+    d._number()
+    check(d.action.get_sensitive(), "« Enregistrer » actif après une modification")
+    d._save()
+    yield wait_jobs()
+    yield pump(0.3)
+    a, b = tags.read(paths[0]), tags.read(paths[1])
+    check(a["album"] == b["album"] == ["Live au Grand Rex"], "album écrit dans les deux fichiers")
+    check((a["tracknumber"], b["tracknumber"], a["tracktotal"]) == (["1"], ["2"], ["2"]),
+          f"pistes 1 et 2 dans l'ordre des noms (« piste 2 » avant « piste 10 ») ({a.get('tracknumber')}, "
+          f"{b.get('tracknumber')})")
+    check((a["title"], b["title"]) == (["Deux"], ["Dix"]), "titres différents gardés")
+    check(win.undo_stack and win.undo_stack[-1][0] == "tags", "entrée d'annulation")
+    win.undo()
+    yield wait_jobs()
+    yield pump(0.3)
+    a = tags.read(paths[0])
+    check(a["album"] == ["Ancien"] and "tracknumber" not in a, f"Ctrl+Z : anciennes étiquettes ({a})")
+    win.redo()
+    yield wait_jobs()
+    yield pump(0.3)
+    check(tags.read(paths[1])["album"] == ["Live au Grand Rex"], "Rétablir : de nouveau modifiées")
+    win.pane.open(D)
+    yield pump(0.5)
+
+
+def _menu_has(model, action) -> bool:
+    for i in range(model.get_n_items()):
+        if model.get_item_attribute_value(i, "action", None) is not None and \
+                model.get_item_attribute_value(i, "action", None).get_string() == action:
+            return True
+        for link in ("section", "submenu"):
+            sub = model.get_item_link(i, link)
+            if sub is not None and _menu_has(sub, action):
+                return True
+    return False
+
+
+@step
 def proprietes_image(win):
     """Propriétés d'une image : ligne « Propriétés de l'image » en bas, page avec type et dimensions
     (comme l'extension image-properties de Nautilus 46), lue dans un fil."""

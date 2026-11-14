@@ -118,6 +118,10 @@ FEATURES = [
             tr("Créer une liste de lecture (.m3u) à partir de morceaux ou de dossiers, puis y ajouter d'autres "
                "morceaux pris dans d'autres dossiers (un medley)"),
             "audio-x-generic-symbolic", "media"),
+    Feature("tag_editor", tr("Étiquettes audio"),
+            tr("Modifier titre, artiste, album, année, numéros de piste et pochette des fichiers audio (MP3, "
+               "FLAC, Ogg, Opus, M4A…), plusieurs à la fois"),
+            "audio-x-generic-symbolic", "media", python=("mutagen",)),
     Feature("quick_look", tr("Aperçu rapide (Espace)"),
             tr("La barre d'espace ouvre l'aperçu de GNOME (Sushi) comme dans Nautilus ; les flèches passent "
                "au fichier suivant"),

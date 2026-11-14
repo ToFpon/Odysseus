@@ -5600,3 +5600,88 @@ msgstr "Surround"
 
 msgid "Moyenne globale"
 msgstr "Integral"
+
+msgid "Étiquettes de {0} fichier modifiées"
+msgid_plural "Étiquettes de {0} fichiers modifiées"
+msgstr[0] "Tags von {0} Datei geändert"
+msgstr[1] "Tags von {0} Dateien geändert"
+
+msgid "Étiquettes audio"
+msgstr "Audio-Tags"
+
+msgid "Modifier titre, artiste, album, année, numéros de piste et pochette des fichiers audio (MP3, FLAC, Ogg, Opus, M4A…), plusieurs à la fois"
+msgstr "Titel, Interpret, Album, Jahr, Titelnummern und Cover von Audiodateien bearbeiten (MP3, FLAC, Ogg, Opus, M4A …), auch mehrere auf einmal"
+
+msgid "Étiquettes"
+msgstr "Tags"
+
+msgid "Annuler la modification des étiquettes"
+msgstr "Tag-Änderungen rückgängig machen"
+
+msgid "Rétablir la modification des étiquettes"
+msgstr "Tag-Änderungen wiederholen"
+
+msgid "Étiquettes de {0} fichier"
+msgid_plural "Étiquettes de {0} fichiers"
+msgstr[0] "Tags von {0} Datei"
+msgstr[1] "Tags von {0} Dateien"
+
+msgid "Modifier les étiquettes…"
+msgstr "Tags bearbeiten …"
+
+msgid "Artiste de l'album"
+msgstr "Album-Interpret"
+
+msgid "Genre"
+msgstr "Genre"
+
+msgid "Modifier les étiquettes"
+msgstr "Tags bearbeiten"
+
+msgid "Choisir une image…"
+msgstr "Bild auswählen …"
+
+msgid "Retirer la pochette"
+msgstr "Cover entfernen"
+
+msgid "Numérotation"
+msgstr "Nummerierung"
+
+msgid "Piste"
+msgstr "Track"
+
+msgid "Disque"
+msgstr "CD"
+
+msgid "Pochettes différentes"
+msgstr "Unterschiedliche Cover"
+
+msgid "Choisir une pochette"
+msgstr "Cover auswählen"
+
+msgid "Numéroter dans l'ordre des noms"
+msgstr "In Namensreihenfolge nummerieren"
+
+msgid "Numéroter"
+msgstr "Nummerieren"
+
+msgid "1 à {0}"
+msgstr "1 bis {0}"
+
+msgid "Illisible : {0}"
+msgstr "Nicht lesbar: {0}"
+
+msgid "Valeurs différentes"
+msgstr "Unterschiedliche Werte"
+
+msgid "Pistes 1 à {0}, dans l'ordre des noms de fichiers"
+msgstr "Tracks 1 bis {0}, in der Reihenfolge der Dateinamen"
+
+msgid "sur"
+msgstr "von"
+
+msgid "Image illisible : {0}"
+msgstr "Bild nicht lesbar: {0}"
+
+msgid "{0} (valeurs différentes)"
+msgstr "{0} (unterschiedliche Werte)"

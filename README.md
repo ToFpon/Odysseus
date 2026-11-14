@@ -38,6 +38,7 @@ Huge folders open almost instantly: a folder of **100,000 files is displayed in 
 - metadata reads (`stat`) of all panels and columns are serialized through a single lock, which avoids the Python GIL “convoy” effect that made two panels ten times slower than one;
 - only the visible view (list, grid or columns) is attached to the model;
 - thumbnails and folder sizes are computed in a LIFO worker pool: what you are looking at comes first.
+- network shares (NAS over SMB, SFTP, FTP…) are read in one go like Nautilus does, not file by file: a folder that took over a minute on slow Wi-Fi opens in a second or two, and a share that stops answering never freezes the window. Google Drive and OneDrive (GNOME Online Accounts) show their real names, not their internal identifiers.
 
 ### Features
 
@@ -59,7 +60,7 @@ Huge folders open almost instantly: a folder of **100,000 files is displayed in 
 - **This PC** (optional, Preferences → General → Sidebar): for those coming from Windows, your folders and all your drives on one page, with a usage bar and the free space of each drive. The Desktop entry of the sidebar is optional too.
 - **Batch rename** (F2 on several items), the Nautilus 46 dialog: a template with tags (original name, numbering 1, 01, 001, date taken, camera, artist, album, track…) or find and replace, live preview with the changes highlighted, conflicts shown before anything is renamed, one Ctrl+Z to undo it all.
 - **Quick Look** with the space bar, like Nautilus: GNOME's previewer (Sushi) shows the selected file, and the arrow keys move through the folder.
-- **Properties** laid out like Nautilus 46: size under the name, free space, dates, a custom folder icon (seen by Nautilus too), permissions on their own page, with “Change Permissions for Enclosed Files…”.
+- **Properties** laid out like Nautilus 46: size under the name, free space, dates, a custom folder icon (seen by Nautilus too), permissions on their own page, with “Change Permissions for Enclosed Files…”. Photos, music and videos get Nautilus's extra pages: **Image Properties** (type, size, camera, exposure, aperture, ISO, focal length, software, keywords, author, date taken, GPS coordinates) and **Audio / Video Properties** (duration, container, title, artist, album, year, dimensions, codecs, bit rates, frame rate, sample rate, channels).
 - Copy / move with conflict dialog (skip, rename, merge, replace, apply to all), **progress window** for long operations, undo (Ctrl+Z), drag and drop, clipboard compatible with Nautilus.
 - **Archives** (F7): browse 50+ formats like folders, extract here, extract to, compress (7-Zip). Double-clicking an archive opens it in a small window, like the Archive Browser extension: the archive tree on the left (folders unfold in place, filter by name), a folder on the right; drag anything out of it to any folder — that one, Odysseus, Nautilus or the desktop — or extract everything or the selection there.
 - **Content search** (F8): search and replace text in files with ripgrep or grep, with preview and backups. Recursive file name search.
@@ -92,6 +93,7 @@ Every destructive operation is tested on throwaway trees, next to a “precious�
 
 #### Media and system
 - **Video to audio**: MP3, M4A, OGG, OPUS, FLAC, WAV.
+- **Audio tags**: right-click audio files → Edit Tags… — title, artist, album, album artist, year, genre, comment, track and disc numbers, cover art (choose, drop or remove an image). Several files at once: shared values are shown, different ones are left alone, only what you change is written; “Number in name order” numbers a whole album. MP3, FLAC, Ogg, Opus, M4A, WAV, AIFF. Files are never rewritten in place (a crash cannot damage a track), and Ctrl+Z puts the old tags back.
 - **Playlists**: right-click tracks or music folders → Playlist → create an .m3u (natural order, relative paths, titles and durations), then add tracks from other folders — or from search results — to build a medley.
 - **Image tools** (from nautilus-image-converter, plus conversion): resize, rotate, convert to JPEG, PNG, WebP, TIFF, BMP or GIF — combined in one pass (phone HEIC photos → 1920 px JPEG). New images get a suffix, or replace the originals safely.
 - **Image annotation**: arrows, frames, text, highlighter, freehand.
@@ -131,7 +133,7 @@ Or by hand, from the sources (Debian 13 reported working this way too, with GNOM
 # Debian / Ubuntu 24.04+ / Zorin OS 18
 sudo apt install python3-gi python3-gi-cairo gir1.2-gtk-4.0 gir1.2-adw-1
 # optional
-sudo apt install 7zip lbzip2 pigz ghostscript qpdf python3-pypdf ffmpeg ffmpegthumbnailer ripgrep gir1.2-poppler-0.18
+sudo apt install 7zip lbzip2 pigz ghostscript qpdf python3-pypdf ffmpeg ffmpegthumbnailer ripgrep gir1.2-poppler-0.18 python3-mutagen
 ```
 
 ```sh
@@ -191,6 +193,7 @@ Les très gros dossiers s'ouvrent quasi instantanément : un dossier de **100 00
 - les lectures de métadonnées (`stat`) de tous les panneaux et colonnes passent par un verrou unique, ce qui évite l'effet « convoi » du GIL Python qui rendait deux panneaux dix fois plus lents qu'un seul ;
 - seule la vue visible (liste, grille ou colonnes) est branchée sur le modèle ;
 - miniatures et tailles de dossiers sont calculées par une file LIFO : ce que tu regardes passe en premier.
+- les partages réseau (NAS en SMB, SFTP, FTP…) sont lus d'un coup comme dans Nautilus, pas fichier par fichier : un dossier qui prenait plus d'une minute en Wi-Fi lent s'ouvre en une ou deux secondes, et un partage qui ne répond plus ne fige jamais la fenêtre. Google Drive et OneDrive (comptes en ligne de GNOME) affichent leurs vrais noms, pas leurs identifiants internes.
 
 ### Fonctionnalités
 
@@ -212,7 +215,7 @@ Les très gros dossiers s'ouvrent quasi instantanément : un dossier de **100 00
 - **Ce PC** (en option, Préférences → Général → Barre latérale) : pour ceux qui viennent de Windows, tes dossiers et tous tes disques sur une seule page, avec une barre d'occupation et l'espace libre de chacun. Il montre aussi les emplacements réseau et la connexion à un serveur : « Autres emplacements » quitte alors la barre latérale (il revient si l'option est coupée). Le Bureau de la barre latérale est lui aussi en option.
 - **Renommage multiple** (F2 sur plusieurs éléments), le dialogue de Nautilus 46 : modèle avec balises (nom d'origine, numérotation 1, 01, 001, date de prise de vue, appareil photo, artiste, album, piste…) ou rechercher / remplacer, aperçu en direct avec les changements surlignés, conflits signalés avant de renommer quoi que ce soit, un seul Ctrl+Z pour tout annuler.
 - **Aperçu rapide** avec la barre d'espace, comme dans Nautilus : l'aperçu de GNOME (Sushi) montre le fichier sélectionné, et les flèches font défiler le dossier.
-- **Propriétés** disposées comme dans Nautilus 46 : taille sous le nom, espace libre, dates, icône de dossier personnalisée (vue aussi par Nautilus), permissions sur une page à part, avec « Changer les permissions des fichiers inclus… ».
+- **Propriétés** disposées comme dans Nautilus 46 : taille sous le nom, espace libre, dates, icône de dossier personnalisée (vue aussi par Nautilus), permissions sur une page à part, avec « Changer les permissions des fichiers inclus… ». Photos, musique et vidéos ont les pages en plus de Nautilus : **Propriétés de l'image** (type, taille, appareil photo, temps de pose, ouverture, ISO, focale, logiciel, mots-clés, auteur, date de prise de vue, coordonnées GPS) et **Propriétés audio / vidéo** (durée, conteneur, titre, artiste, album, année, dimensions, codecs, débits, cadence, échantillonnage, canaux).
 - Copie / déplacement avec gestion des conflits (ignorer, renommer, fusionner, remplacer, appliquer à tous), **fenêtre de progression** pour les opérations longues, annulation (Ctrl+Z), glisser-déposer, presse-papiers compatible avec Nautilus.
 - **Archives** (F7) : parcourir plus de 50 formats comme des dossiers, extraire ici, extraire vers, compresser (7-Zip). Un double-clic sur une archive l'ouvre dans une petite fenêtre, comme l'extension Archive Browser : l'arborescence de l'archive à gauche (dossiers dépliés sur place, filtre par nom), un dossier à droite ; n'importe quel élément se glisse vers n'importe quel dossier — celui-là, Odysseus, Nautilus ou le bureau — ou tout / la sélection s'y extrait.
 - **Recherche dans le contenu** (F8) : rechercher et remplacer du texte dans les fichiers avec ripgrep ou grep, avec aperçu et sauvegardes. Recherche récursive par nom.
@@ -245,6 +248,7 @@ Chaque opération destructrice est testée sur des arborescences jetables, à c�
 
 #### Multimédia et système
 - **Vidéo vers audio** : MP3, M4A, OGG, OPUS, FLAC, WAV.
+- **Étiquettes audio** : clic droit sur des fichiers audio → Modifier les étiquettes… — titre, artiste, album, artiste de l'album, année, genre, commentaire, numéros de piste et de disque, pochette (choisie, glissée ou retirée). Plusieurs fichiers d'un coup : les valeurs communes s'affichent, celles qui diffèrent restent telles quelles, seul ce que tu modifies est écrit ; « Numéroter dans l'ordre des noms » numérote un album entier. MP3, FLAC, Ogg, Opus, M4A, WAV, AIFF. Un fichier n'est jamais réécrit sur place (un plantage ne peut pas abîmer un morceau), et Ctrl+Z remet les anciennes étiquettes.
 - **Listes de lecture** : clic droit sur des morceaux ou des dossiers de musique → Liste de lecture → créer un .m3u (ordre naturel, chemins relatifs, titres et durées), puis y ajouter des morceaux d'autres dossiers — ou des résultats d'une recherche — pour faire un medley.
 - **Outils image** (repris de nautilus-image-converter, plus la conversion) : redimensionner, pivoter, convertir en JPEG, PNG, WebP, TIFF, BMP ou GIF — combinables en une passe (photos HEIC du téléphone → JPEG de 1920 px). Les nouvelles images reçoivent un suffixe, ou remplacent les originaux sans risque.
 - **Annotation d'images** : flèches, cadres, texte, surligneur, main levée.
@@ -284,7 +288,7 @@ Ou à la main, depuis les sources (Debian 13 signalé fonctionnel ainsi aussi, a
 # Debian / Ubuntu 24.04+ / Zorin OS 18
 sudo apt install python3-gi python3-gi-cairo gir1.2-gtk-4.0 gir1.2-adw-1
 # facultatif
-sudo apt install 7zip lbzip2 pigz ghostscript qpdf python3-pypdf ffmpeg ffmpegthumbnailer ripgrep gir1.2-poppler-0.18
+sudo apt install 7zip lbzip2 pigz ghostscript qpdf python3-pypdf ffmpeg ffmpegthumbnailer ripgrep gir1.2-poppler-0.18 python3-mutagen
 ```
 
 ```sh

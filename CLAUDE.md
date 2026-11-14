@@ -472,6 +472,18 @@ fenêtre de recherche dans le contenu.
   dossiers rwx, valeurs proposées d'après l'umask, liens jamais suivis ni modifiés). Ne recalculer que
   la catégorie modifiée (tout recalculer changeait les autres catégories), jamais de chmod / chown à
   travers un lien.
+- Étiquettes audio (fonctionnalité `tag_editor`, idée de Tof, module Python `mutagen` → python3-mutagen en
+  Recommends, `install.sh` le propose) : clic droit sur des fichiers audio → « Modifier les étiquettes… »
+  (`ui/tag_dialog.py`, menu d'après le nom seulement), moteur `backend/tags.py` — MP3 / WAV / AIFF (ID3,
+  enregistré en v2.3 : lu par les autoradios, Windows), FLAC / Ogg / Opus (commentaires Vorbis, pochette
+  METADATA_BLOCK_PICTURE), M4A / M4B. Champs : titre, artiste, album, artiste de l'album, année, genre,
+  commentaire, piste / total, disque / total, pochette (JPEG / PNG ; autre format converti en PNG). Plusieurs
+  fichiers : champ commun affiché, sinon « (valeurs différentes) » et laissé tel quel ; seuls les champs
+  modifiés sont écrits (valeurs multiples gardées), « Numéroter dans l'ordre des noms ». Écriture SÛRE : copie
+  cachée (`fileops._tmp_name`), mutagen, fsync, `os.replace`, fsync du dossier — l'original n'est jamais
+  réécrit sur place. Fil + progression (`write_tags`), entrée d'annulation « tags » (instantanés avant /
+  après, pochette comprise : `_tag_steps`). Testé : `TagsTest` (6 formats faits par ffmpeg, relus par
+  ffprobe), `etiquettes_audio` d'ui_smoke (menu, valeurs différentes, numérotation, Ctrl+Z, Rétablir).
 - Propriétés d'une image / d'un fichier audio ou vidéo : ligne « Propriétés de l'image » / « Propriétés audio »
   / « vidéo » / « audio et vidéo » en bas, page à part (`PropertiesDialog._details_row`, lue dans un fil) =
   les extensions image-properties / audio-video-properties livrées avec Nautilus 46 (mêmes champs, même

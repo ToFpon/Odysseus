@@ -1255,3 +1255,92 @@ class DefaultAppAliasTest(unittest.TestCase):
                 text = f.read()
             self.assertIn("audio/x-m4a=ithaca.desktop", text)
             self.assertIn("text/plain=gedit.desktop", text)        # les autres types ne bougent pas
+
+
+@unittest.skipUnless(__import__("shutil").which("ffmpeg"), "ffmpeg absent")
+class TagsTest(unittest.TestCase):
+    """Étiquettes audio (mutagen) : lecture, écriture, pochette, champs non touchés gardés, original intact
+    si l'écriture échoue — pour chaque format."""
+
+    FORMATS = {"mp3": ["-c:a", "libmp3lame"], "flac": ["-c:a", "flac"], "ogg": ["-c:a", "libvorbis"],
+               "opus": ["-c:a", "libopus"], "m4a": ["-c:a", "aac"], "wav": ["-c:a", "pcm_s16le"]}
+
+    def setUp(self):
+        from odysseus.backend import tags
+        if not tags.available():
+            self.skipTest("mutagen absent")
+        self.d = tempfile.mkdtemp()
+
+    def tearDown(self):
+        import shutil
+        shutil.rmtree(self.d, ignore_errors=True)
+
+    def _make(self, ext):
+        import subprocess
+        path = os.path.join(self.d, f"piste.{ext}")
+        meta = [] if ext == "wav" else ["-metadata", "title=Ancien titre", "-metadata", "artist=Bénabar",
+                                        "-metadata", "genre=Chanson"]
+        subprocess.run(["ffmpeg", "-v", "error", "-f", "lavfi", "-i", "sine=duration=1", *meta,
+                        *self.FORMATS[ext], path], check=True)
+        return path
+
+    def test_formats(self):
+        from odysseus.backend import tags
+        png = b"\x89PNG\r\n\x1a\n" + b"\0" * 64
+        for ext in self.FORMATS:
+            with self.subTest(ext=ext):
+                p = self._make(ext)
+                before = tags.read(p)
+                if ext != "wav":
+                    self.assertEqual(before.get("title"), ["Ancien titre"])
+                tags.write(p, {"title": ["Monospace"], "album": ["Live au Grand Rex"], "date": ["2004"],
+                               "tracknumber": ["3"], "tracktotal": ["12"], "discnumber": ["1"],
+                               "comment": ["Enregistré en public"], "albumartist": ["Bénabar"]},
+                           cover=(png, "image/png"))
+                got = tags.read(p)
+                self.assertEqual(got["title"], ["Monospace"])
+                self.assertEqual(got["album"], ["Live au Grand Rex"])
+                self.assertEqual(got["date"], ["2004"])
+                self.assertEqual((got["tracknumber"], got["tracktotal"]), (["3"], ["12"]))
+                self.assertEqual(got["discnumber"], ["1"])
+                self.assertEqual(got["comment"], ["Enregistré en public"])
+                self.assertEqual(got["cover"][0], png)
+                if ext != "wav":
+                    self.assertEqual(got["artist"], ["Bénabar"])          # non touché : gardé
+                    self.assertEqual(got["genre"], ["Chanson"])
+                # effacer un champ, retirer la pochette, ne changer que le total des pistes
+                tags.write(p, {"comment": [], "tracktotal": ["13"]}, cover=None)
+                got = tags.read(p)
+                self.assertNotIn("comment", got)
+                self.assertNotIn("cover", got)
+                self.assertEqual((got["tracknumber"], got["tracktotal"]), (["3"], ["13"]))
+                self.assertEqual(got["title"], ["Monospace"])
+                # instantané puis restauration (annulation)
+                snap = tags.snapshot(p)
+                tags.write(p, {"title": ["Autre"]}, cover=(png, "image/png"))
+                tags.write(p, {k: v for k, v in snap.items() if k != "cover"}, cover=snap["cover"])
+                self.assertEqual(tags.snapshot(p), snap)
+                self.assertFalse([n for n in os.listdir(self.d) if n.startswith(".odysseus-")])
+
+    def test_failure_keeps_original(self):
+        from odysseus.backend import tags
+        p = self._make("mp3")
+        with open(p, "rb") as f:
+            data = f.read()
+        bad = os.path.join(self.d, "faux.mp3")
+        with open(bad, "wb") as f:
+            f.write(b"pas du son")
+        with self.assertRaises(Exception):
+            tags.write(bad, {"title": ["x"]})
+        with open(bad, "rb") as f:
+            self.assertEqual(f.read(), b"pas du son")
+        self.assertFalse([n for n in os.listdir(self.d) if n.startswith(".odysseus-")])
+        with open(p, "rb") as f:
+            self.assertEqual(f.read(), data)
+
+    def test_merged(self):
+        from odysseus.backend import tags
+        vals = [{"album": ["A"], "title": ["x"]}, {"album": ["A"], "title": ["y"]}]
+        self.assertEqual(tags.merged(vals, "album"), "A")
+        self.assertIsNone(tags.merged(vals, "title"))
+        self.assertEqual(tags.merged(vals, "genre"), "")

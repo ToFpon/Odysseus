@@ -7,7 +7,7 @@ import os
 from gi.repository import Gio, GLib, Gtk
 
 from .. import features
-from ..backend import media
+from ..backend import fileops, media
 from ..backend.engine import ToolError
 from ..i18n import ntr, tr
 from ..settings import settings
@@ -26,7 +26,7 @@ class ToolActions:
             "image-convert": lambda: self.image_tools("convert"),
             "verify-checksums": self.verify_checksums, "checksums": self.checksums,
             "playlist-create": self.playlist_create, "playlist-add": self.playlist_add,
-            "playlist-add-other": self.playlist_add_other,
+            "playlist-add-other": self.playlist_add_other, "edit-tags": self.edit_tags,
         }
         for name, cb in acts.items():
             self._add(name, cb)
@@ -97,6 +97,43 @@ class ToolActions:
         if paths:
             from .image_dialog import ImageToolsDialog
             ImageToolsDialog(self, paths, mode).present(self)
+
+    def edit_tags(self):
+        if not self._need("tag_editor"):
+            return
+        from ..backend import tags
+        paths = [r.path for r in self.pane.selected_recs() if r.path and not r.is_dir and tags.supported(r.name)]
+        if paths:
+            from .tag_dialog import TagDialog
+            TagDialog(self, paths).present(self)
+
+    def write_tags(self, paths: list, common: dict, cover, numbered: bool):
+        """Écrit les étiquettes (fil, progression) ; une entrée d'annulation avec les valeurs d'avant."""
+        from ..backend import tags
+        n = len(paths)
+
+        def work(job):
+            res = fileops.Result("tags")
+            res.count = 0
+            changed = []
+            for i, p in enumerate(paths):
+                job.check_cancel()
+                job.progress(i / max(n, 1), os.path.basename(p))
+                changes = dict(common)
+                if numbered:
+                    changes["tracknumber"] = [str(i + 1)]
+                try:
+                    before = tags.snapshot(p)
+                    tags.write(p, changes, cover)
+                    changed.append((p, before, tags.snapshot(p)))
+                    res.count += 1
+                except Exception as e:  # noqa: BLE001 — un fichier en échec n'arrête pas les autres
+                    res.errors.append((p, str(e)))
+            res.tag_changes = changed
+            job.progress(1.0, "")
+            return res
+        self._run(ntr("Étiquettes de {0} fichier", "Étiquettes de {0} fichiers", n).format(n), work,
+                  undo=lambda r: ("tags", r.tag_changes) if getattr(r, "tag_changes", None) else None)
 
     def annotate(self):
         if not self._need("annotate"):

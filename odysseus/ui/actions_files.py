@@ -519,7 +519,7 @@ class FileActions:
                     if res.errors:
                         msg += " — " + ntr("{0} erreur", "{0} erreurs", len(res.errors)).format(len(res.errors))
                         self._show_errors(job.title, res.errors)
-                    if res.kind in ("trash", "move", "rename") and undo is not None:
+                    if res.kind in ("trash", "move", "rename", "tags") and undo is not None:
                         toast(self, msg, tr("Annuler"), self.undo, timeout=6)
                     elif res.kind not in ("copy", "move"):
                         toast(self, msg)
@@ -992,9 +992,11 @@ class FileActions:
             kind = "rename"
         if redo:
             return {"rename": tr("Rétablir le renommage"), "move": tr("Rétablir le déplacement"),
+                    "tags": tr("Rétablir la modification des étiquettes"),
                     "trash": tr("Rétablir la mise à la corbeille"), "copy": tr("Rétablir la copie"),
                     "create": tr("Rétablir la création")}.get(kind, tr("Rétablir"))
         return {"rename": tr("Annuler le renommage"), "move": tr("Annuler le déplacement"),
+                "tags": tr("Annuler la modification des étiquettes"),
                 "trash": tr("Annuler la mise à la corbeille"), "copy": tr("Annuler la copie"),
                 "create": tr("Annuler la création")}.get(kind, tr("Annuler la dernière opération"))
 
@@ -1023,6 +1025,39 @@ class FileActions:
                 self._update_undo_actions()
         self._run(tr("Renommage"), work, on_done=finished)
 
+    def _tag_steps(self, entry, redo: bool):
+        """Annuler / rétablir une modification d'étiquettes : chaque fichier reprend l'instantané d'avant
+        (ou d'après). Seuls les fichiers remis passent dans l'autre pile."""
+        from ..backend import tags
+        items = entry[1]
+
+        def work(job):
+            res = fileops.Result("tags")
+            res.count = 0
+            done = []
+            for p, before, after in items:
+                job.check_cancel()
+                snap = after if redo else before
+                try:
+                    tags.write(p, {k: v for k, v in snap.items() if k != "cover"}, snap["cover"])
+                    done.append((p, before, after))
+                    res.count += 1
+                except Exception as e:  # noqa: BLE001
+                    res.errors.append((p, str(e)))
+            res.tag_changes = done
+            return res
+
+        def finished(job):
+            done = getattr(job.result, "tag_changes", None)
+            if not done:
+                return
+            if redo:
+                self._push_undo(("tags", done), keep_redo=True)
+            else:
+                self.redo_stack.append(("tags", done))
+                self._update_undo_actions()
+        self._run(tr("Étiquettes"), work, on_done=finished)
+
     def redo(self):
         """Refait la dernière opération annulée."""
         if not self.redo_stack:
@@ -1030,7 +1065,9 @@ class FileActions:
         entry = self.redo_stack.pop()
         self._update_undo_actions()
         kind = entry[0]
-        if kind == "batch-rename":
+        if kind == "tags":
+            self._tag_steps(entry, redo=True)
+        elif kind == "batch-rename":
             self._batch_rename_steps(entry[1], redo=True)
         elif kind == "rename":
             _k, old, new = entry
@@ -1086,7 +1123,11 @@ class FileActions:
         self.redo_stack.append(entry)
         self._update_undo_actions()
         kind = entry[0]
-        if kind == "batch-rename":
+        if kind == "tags":
+            self.redo_stack.pop()                   # remis par _tag_steps
+            self._update_undo_actions()
+            self._tag_steps(entry, redo=False)
+        elif kind == "batch-rename":
             self.redo_stack.pop()                   # remis par _batch_rename_steps si tout s'est passé
             self._update_undo_actions()
             self._batch_rename_steps(entry[1], redo=False)
