@@ -88,6 +88,42 @@ def parse_tiff(data: bytes) -> dict:
     return out
 
 
+def _itxt_text(rest: bytes) -> bytes:
+    """Texte d'un bloc iTXt (après le mot-clé) : drapeau de compression, méthode, langue, mot traduit."""
+    import zlib
+    if len(rest) < 2:
+        return b""
+    compressed, body = rest[0], rest[2:]
+    _lang, _s, body = body.partition(b"\0")
+    _trans, _s, body = body.partition(b"\0")
+    if compressed:
+        try:
+            body = zlib.decompressobj().decompress(body, 16 << 20)
+        except zlib.error:
+            return b""
+    return body
+
+
+def _raw_profile(kind: bytes, rest: bytes) -> bytes:
+    """« Raw profile type … » : texte (zlib pour zTXt) « \\n<type>\\n<taille>\\n<hexadécimal> »."""
+    import binascii
+    import zlib
+    if kind == b"zTXt":
+        try:
+            text = zlib.decompressobj().decompress(rest[1:], 32 << 20)
+        except zlib.error:
+            return b""
+    elif kind == b"iTXt":
+        text = _itxt_text(rest)
+    else:
+        text = rest
+    lines = text.split(b"\n")
+    try:
+        return binascii.unhexlify(b"".join(line.strip() for line in lines[3:]))
+    except (binascii.Error, ValueError):
+        return b""
+
+
 def read_blocks(path: str) -> tuple[bytes, bytes]:
     """(bloc EXIF au format TIFF, paquet XMP) d'une image ; vides si absents."""
     exif, xmp = b"", b""
@@ -101,6 +137,8 @@ def read_blocks(path: str) -> tuple[bytes, bytes]:
                     if len(marker) < 4 or marker[0] != 0xFF or marker[1] in (0xD9, 0xDA):
                         break
                     size = struct.unpack(">H", marker[2:])[0] - 2
+                    if size < 0:                # longueur 0 ou 1 : read(-1) lisait tout le fichier
+                        break
                     if marker[1] == 0xE1:
                         block = f.read(size)
                         if block[:6] == b"Exif\0\0" and not exif:
@@ -111,7 +149,11 @@ def read_blocks(path: str) -> tuple[bytes, bytes]:
                         f.seek(size, 1)
             elif head[:2] in (b"II", b"MM"):                              # TIFF, DNG, NEF, CR2…
                 f.seek(0)
-                exif = f.read(8 * 1024 * 1024)
+                import mmap                 # IFD souvent APRÈS l'image (libtiff) : tout le fichier, sans le copier
+                try:
+                    exif = mmap.mmap(f.fileno(), 0, access=mmap.ACCESS_READ)
+                except (OSError, ValueError):
+                    exif = f.read(8 * 1024 * 1024)
             elif head[:8] == b"\x89PNG\r\n\x1a\n":                       # PNG : eXIf, iTXt XMP
                 f.seek(8)
                 while True:
@@ -124,11 +166,20 @@ def read_blocks(path: str) -> tuple[bytes, bytes]:
                     if kind == b"eXIf":
                         exif = f.read(size)
                         f.seek(4, 1)
-                    elif kind == b"iTXt":
+                    elif kind in (b"iTXt", b"zTXt", b"tEXt"):
                         chunk = f.read(size)
                         f.seek(4, 1)
-                        if chunk.startswith(b"XML:com.adobe.xmp\0"):
-                            xmp = chunk[chunk.find(b"<"):]
+                        key, _sep, rest = chunk.partition(b"\0")
+                        if key == b"XML:com.adobe.xmp" and not xmp:
+                            xmp = _itxt_text(rest)
+                        elif key.lower().startswith(b"raw profile type ") and (not exif or not xmp):
+                            # exiv2 (GIMP, Shotwell) et ImageMagick : « Raw profile type exif / xmp »
+                            blob = _raw_profile(kind, rest)
+                            what = key[len(b"raw profile type "):].lower()
+                            if what in (b"exif", b"app1") and not exif:
+                                exif = blob[6:] if blob.startswith(b"Exif\0\0") else blob
+                            elif what == b"xmp" and not xmp:
+                                xmp = blob
                     else:
                         f.seek(size + 4, 1)
             elif head[:4] == b"RIFF" and head[8:12] == b"WEBP":           # WebP : EXIF, XMP
@@ -218,12 +269,16 @@ def exposure_time(v) -> str:
 
 
 def exposure_mode(v) -> str:
+    if not isinstance(v, int):              # fichier abîmé : une liste à la place d'un nombre
+        return ""
     return {0: tr("Automatique"), 1: tr("Manuel"), 2: tr("Bracketing automatique")}.get(v, "")
 
 
 def aperture(v) -> str:
     apex = _num(v)
-    return f"F{_short(math.sqrt(2) ** apex)}" if apex is not None else ""
+    if apex is None or not -2 <= apex <= 64:   # valeur absurde (fichier abîmé) : OverflowError sinon
+        return ""
+    return f"F{_short(math.sqrt(2) ** apex)}"
 
 
 def flash(v) -> str:
@@ -231,6 +286,8 @@ def flash(v) -> str:
 
 
 def metering(v) -> str:
+    if not isinstance(v, int):
+        return ""
     return {0: tr("Inconnu"), 1: tr("Moyenne globale"), 2: tr("Moyenne pondérée au centre"), 3: tr("Spot"),
             4: tr("Multi-spot"), 5: tr("Matricielle"), 6: tr("Partielle"), 255: tr("Autre")}.get(v, "")
 
@@ -400,7 +457,9 @@ def media_properties(path: str) -> tuple[str, list[tuple[str, str]]]:
         if container:
             rows.append((tr("Conteneur"), container))
     tags: dict = {}
-    for src in [fmt] + streams:
+    # étiquettes du fichier d'abord, puis des pistes AUDIO (Ogg / Opus les y rangent) — jamais celles d'une
+    # pochette (« Cover (front) » devenait le commentaire) ni d'une piste vidéo (titre de piste Matroska)
+    for src in [fmt] + audio:
         for k, v in (src.get("tags") or {}).items():
             tags.setdefault(k.lower(), str(v).strip())
     for key, label in (("title", tr("Titre")), ("artist", tr("Artiste")), ("album", tr("Album"))):
@@ -434,7 +493,7 @@ def media_properties(path: str) -> tuple[str, list[tuple[str, str]]]:
             rows.append((tr("Codec vidéo"), codec(v)))
         if bitrate(v):
             rows.append((tr("Débit vidéo"), bitrate(v)))
-        fps = _rate(v.get("avg_frame_rate") or v.get("r_frame_rate") or "0/0")
+        fps = _rate(v.get("avg_frame_rate") or "0/0") or _rate(v.get("r_frame_rate") or "0/0")
         if fps > 1.0:
             rows.append((tr("Cadence"), ntr("{0} image par seconde", "{0} images par seconde",
                                             math.ceil(fps)).format(decimal(fps, 2))))

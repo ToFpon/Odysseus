@@ -183,7 +183,7 @@ PACKAGE_OF = {"7zz": "7zip", "7z": "7zip", "7za": "7zip", "gs": "ghostscript", "
               "lib:heif-libde265": "libheif-plugin-libde265", "lib:sushi": "gnome-sushi", "net": "samba", "lib:smbd": "samba", "lib:7zip-rar": "7zip-rar", "ffprobe": "ffmpeg", "ffmpegthumbnailer": "ffmpegthumbnailer",
               "rg": "ripgrep", "grep": "grep", "pdftoppm": "poppler-utils", "zstd": "zstd", "brotli": "brotli",
               "lz4": "lz4", "dpkg-deb": "dpkg", "pkexec": "pkexec", "py:pypdf": "python3-pypdf",
-              "py:cairo": "python3-cairo python3-gi-cairo", "gir:Poppler": "gir1.2-poppler-0.18",
+              "py:cairo": "python3-cairo python3-gi-cairo", "py:mutagen": "python3-mutagen", "gir:Poppler": "gir1.2-poppler-0.18",
               "gir:Tracker": "gir1.2-tracker-3.0", "gir:Tsparql": "gir1.2-tracker-3.0",
               "gir:GExiv2": "gir1.2-gexiv2-0.10"}
 
@@ -277,6 +277,8 @@ COMPONENTS = [
         ("ImageMagick", ("magick", "convert"), tr("Redimensionner, pivoter et convertir des images")),
         ("libde265 (HEIC)", ("lib:heif-libde265",), tr("Lire les photos HEIC des iPhone (outils image, miniatures)")),
         ("Cairo (Python)", ("py:cairo",), tr("Annoter une image, filigrane PDF")),
+        ("Mutagen", ("py:mutagen",), tr("Modifier les étiquettes des fichiers audio")),
+        ("GExiv2", ("gir:GExiv2",), tr("Métadonnées des photos : retirer la position, modifier l'auteur")),
     ]),
     (tr("Fichiers"), [
         ("Sushi", ("lib:sushi",), tr("Aperçu rapide avec la barre d'espace, comme dans Nautilus")),

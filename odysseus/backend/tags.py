@@ -14,10 +14,8 @@ from __future__ import annotations
 import base64
 import re
 import os
-import shutil
 from typing import Optional
 
-from . import fileops
 
 FIELDS = ("title", "artist", "album", "albumartist", "date", "genre", "tracknumber", "tracktotal",
           "discnumber", "disctotal", "comment")
@@ -48,11 +46,10 @@ def _open(path: str):
 def _kind(f) -> str:
     from mutagen.flac import FLAC
     from mutagen.mp4 import MP4
-    from mutagen.oggopus import OggOpus
-    from mutagen.oggvorbis import OggVorbis
+    from mutagen.ogg import OggFileType
     if isinstance(f, MP4):
         return "mp4"
-    if isinstance(f, (FLAC, OggVorbis, OggOpus)):
+    if isinstance(f, (FLAC, OggFileType)):       # FLAC, Ogg Vorbis / Opus / FLAC / Speex : commentaires Vorbis
         return "vorbis"
     return "id3"                    # MP3, WAV, AIFF
 
@@ -224,10 +221,9 @@ def _read_mp4(f) -> dict:
 
 
 def _int(vals) -> int:
-    try:
-        return int(str((vals or ["0"])[0]).strip() or 0)
-    except ValueError:
-        return 0
+    """« 3 », « 3/12 » → 3 ; texte non numérique → 0."""
+    first = _split(str((vals or ["0"])[0]))[0]
+    return int(first) if first.isdigit() else 0
 
 
 def _write_mp4(f, changes: dict, cover):
@@ -267,46 +263,44 @@ def read(path: str) -> dict:
     return _read_mp4(f) if kind == "mp4" else _read_vorbis(f) if kind == "vorbis" else _read_id3(f)
 
 
-def snapshot(path: str) -> dict:
-    """Tout ce que `write` peut changer, pour l'annulation : chaque champ (liste vide s'il manque) et la
-    pochette (None s'il n'y en a pas)."""
-    cur = read(path)
-    snap = {k: list(cur.get(k, [])) for k in FIELDS}
-    snap["cover"] = cur.get("cover")
-    return snap
-
-
-def write(path: str, changes: dict, cover=KEEP):
+def write(path: str, changes: dict, cover=KEEP) -> str:
     """Écrit les champs de `changes` ({champ: liste de valeurs, vide = effacer}) et la pochette
-    ((octets, type MIME), None = la retirer, KEEP = n'y pas toucher), sur une copie cachée échangée d'un
-    coup avec l'original. Lève OSError / ValueError / erreurs de mutagen ; l'original reste alors intact."""
+    ((octets, type MIME), None = la retirer, KEEP = n'y pas toucher), par keep.rewrite : copie cachée échangée
+    d'un coup avec l'original (cible réelle d'un lien). Renvoie le chemin écrit. L'original reste intact en
+    cas d'échec. ID3 : la version du fichier est gardée (v2.4 reste v2.4) ; un fichier sans étiquette ou en
+    v2.3 est écrit en v2.3, lue par les autoradios et Windows."""
+    from . import keep
     changes = {k: [str(v) for v in vals if str(v).strip()] for k, vals in changes.items() if k in FIELDS}
     if not changes and cover is KEEP:
-        return
-    folder = os.path.dirname(os.path.abspath(path))
-    tmp = fileops._tmp_name(folder, "tags")
-    try:
-        shutil.copy2(path, tmp)
+        return path
+
+    def edit(tmp):
         f = _open(tmp)
         kind = _kind(f)
+        version = f.tags.version[:2] if kind == "id3" and f.tags is not None else None
         (_write_mp4 if kind == "mp4" else _write_vorbis if kind == "vorbis" else _write_id3)(f, changes, cover)
         if kind == "id3":
-            f.save(v2_version=3)            # ID3v2.3 : lu par tous les lecteurs (voitures, Windows…)
+            if version is None or version < (2, 4):
+                f.tags.update_to_v23()                   # vraies trames v2.3 (TYER…), pas des v2.4 en en-tête v2.3
+                f.save(v2_version=3)
+            else:
+                f.save(v2_version=4)
         else:
             f.save()
-        fd = os.open(tmp, os.O_RDONLY)
-        try:
-            os.fsync(fd)
-        finally:
-            os.close(fd)
-        os.replace(tmp, path)
-        fileops._fsync_dir(folder)
-    except BaseException:
-        try:
-            os.unlink(tmp)
-        except OSError:
-            pass
-        raise
+    return keep.rewrite(path, edit)
+
+
+MULTI = ("artist", "albumartist", "genre")
+
+
+def from_text(field: str, text: str) -> list[str]:
+    """Texte saisi → valeurs : « ; » sépare plusieurs artistes / genres (comme à l'affichage)."""
+    text = text.strip()
+    if not text:
+        return []
+    if field in MULTI:
+        return [v.strip() for v in text.split(";") if v.strip()]
+    return [text]
 
 
 def merged(values: list[dict], field: str) -> Optional[str]:
@@ -320,21 +314,41 @@ def image_mime(data: bytes) -> str:
     return "image/png" if data[:8] == b"\x89PNG\r\n\x1a\n" else "image/jpeg"
 
 
-_LEADING = re.compile(r"^\s*(?:(?:cd|disc|disque)\s*\d+\s*[-_. ]\s*)?(\d{1,3})(?:\s*[-_.)\]]\s*|\s+)(.+)$", re.I)
+_DISC_TRACK = re.compile(r"^(?:(?:cd|disc|disque)\s*)?(\d{1,2})[-.](\d{2})(?:\s*[-_.)\]]\s*|\s+)(.+)$", re.I)
+_SEPARATED = re.compile(r"^(\d{1,3})\s*[-_.)\]]\s*(.+)$")
+_SPACED = re.compile(r"^(\d{1,3})\s+(.+)$")
+
+
+def _spaced_is_track(num: str) -> bool:
+    """« 03 Monospace », « 12 Monospace » : une piste ; « 7 Seconds », « 99 Luftballons » : un titre."""
+    return num.startswith("0") or (len(num) == 2 and int(num) <= 39)
 
 
 def from_filename(name: str) -> dict:
-    """Titre et numéro de piste d'après le nom du fichier : « 03 - Monospace.mp3 », « 03. Monospace »,
-    « 03 Monospace », « Bénabar - 03 - Monospace » → piste 3, titre « Monospace ». Sans numéro : le titre
-    seul (le nom sans extension, ou ce qui suit le dernier « - »)."""
+    """Titre et numéros d'après le nom du fichier : « 03 - Monospace.mp3 », « 03. Monospace », « 03 Monospace »,
+    « Bénabar - 03 - Monospace », « 01 - Bénabar - Monospace », « 1-01 Monospace » (disque 1, piste 1, comme
+    iTunes), « CD1-07 Le dîner ». Sans numéro : le titre seul (ce qui suit le dernier « - »)."""
     stem = os.path.splitext(os.path.basename(name))[0].replace("_", " ").strip()
     out: dict = {}
-    parts = [p.strip() for p in stem.split(" - ") if p.strip()]
-    for i, part in enumerate(parts):                # « Artiste - 03 - Titre » : le numéro peut être au milieu
-        if part.isdigit() and len(part) <= 3 and i < len(parts) - 1:
-            out["tracknumber"] = [str(int(part))]
-            out["title"] = [" - ".join(parts[i + 1:])]
-            return out
+    m = _DISC_TRACK.match(stem)
+    if m:
+        out["discnumber"] = [str(int(m.group(1)))]
+        out["tracknumber"] = [str(int(m.group(2)))]
+        stem = m.group(3).strip()
+    parts = [p.strip() for p in stem.split(" - ") if p.strip()] or [stem]
+    if "tracknumber" not in out:
+        for i, part in enumerate(parts[:-1]):       # « Artiste - 03 - Titre » / « 03 - Artiste - Titre »
+            if part.isdigit() and len(part) <= 3:
+                out["tracknumber"] = [str(int(part))]
+                out["title"] = [parts[-1]]
+                return out
+        m = _SEPARATED.match(stem) or _SPACED.match(stem)
+        if m and (m.re is _SEPARATED or _spaced_is_track(m.group(1))):
+            out["tracknumber"] = [str(int(m.group(1)))]
+            stem = m.group(2).strip()
+            parts = [p.strip() for p in stem.split(" - ") if p.strip()] or [stem]
+    out["title"] = [parts[-1]]
+    return out
     m = _LEADING.match(stem)
     if m:
         out["tracknumber"] = [str(int(m.group(1)))]

@@ -197,9 +197,16 @@ class TagDialog:
         return {k: e.get_text().strip() for k, e in self.entries.items()
                 if k not in skip and e.get_text().strip() != self.initial.get(k, "")}
 
+    NUMBERS = ("tracknumber", "tracktotal", "discnumber", "disctotal")
+
     def _sync(self):
         dirty = bool(self.changes()) or self.cover is not tags.KEEP or self.auto_number or self.from_names
-        self.action.set_sensitive(dirty and bool(self.values))
+        # numéros : chiffres seulement (« A1 » devenait 0 dans un M4A)
+        bad = [k for k in self.NUMBERS if self.entries[k].get_text().strip()
+               and not self.entries[k].get_text().strip().isdigit()]
+        for k in self.NUMBERS:
+            (self.entries[k].add_css_class if k in bad else self.entries[k].remove_css_class)("error")
+        self.action.set_sensitive(dirty and bool(self.values) and not bad)
 
     def _number(self):
         self.auto_number = True
@@ -250,10 +257,15 @@ class TagDialog:
         return bytes(out), "image/png"
 
     def _use_image(self, path: str):
-        try:
-            self._set_cover(self._load_image(path))
-        except (OSError, GLib.Error) as e:
-            self.cover_note.set_label(tr("Image illisible : {0}").format(getattr(e, "message", None) or str(e)))
+        """Lue (et convertie au besoin) dans un fil : l'image peut être grosse, ou sur un partage réseau."""
+        def work():
+            try:
+                cover = self._load_image(path)
+                GLib.idle_add(lambda: (self._set_cover(cover), False)[1])
+            except (OSError, GLib.Error) as e:
+                msg = tr("Image illisible : {0}").format(getattr(e, "message", None) or str(e))
+                GLib.idle_add(lambda: (self.cover_note.set_label(msg), False)[1])
+        threading.Thread(target=work, daemon=True).start()
 
     def _choose_cover(self):
         dlg = Gtk.FileDialog(title=tr("Choisir une pochette"), accept_label=tr("_Sélectionner"))
@@ -283,7 +295,7 @@ class TagDialog:
     # ------------------------------------------------------------------
     def _save(self):
         texts = self.changes()
-        common = {k: ([v] if v else []) for k, v in texts.items()}
+        common = {k: tags.from_text(k, v) for k, v in texts.items()}     # « A; B » → deux artistes
         cover = self.cover
         paths = list(self.paths)
         numbered = self.auto_number

@@ -1315,11 +1315,17 @@ class TagsTest(unittest.TestCase):
                 self.assertNotIn("cover", got)
                 self.assertEqual((got["tracknumber"], got["tracktotal"]), (["3"], ["13"]))
                 self.assertEqual(got["title"], ["Monospace"])
-                # instantané puis restauration (annulation)
-                snap = tags.snapshot(p)
+                # version gardée puis remise (annulation) : octet pour octet
+                from odysseus.backend import keep
+                b = keep.Backups()
+                self.addCleanup(__import__("shutil").rmtree, b.dir, True)
+                with open(p, "rb") as f:
+                    same = f.read()
+                kept = b.keep(p)
                 tags.write(p, {"title": ["Autre"]}, cover=(png, "image/png"))
-                tags.write(p, {k: v for k, v in snap.items() if k != "cover"}, cover=snap["cover"])
-                self.assertEqual(tags.snapshot(p), snap)
+                keep.restore(kept, p)
+                with open(p, "rb") as f:
+                    self.assertEqual(f.read(), same)
                 self.assertFalse([n for n in os.listdir(self.d) if n.startswith(".odysseus-")])
 
     def test_failure_keeps_original(self):
@@ -1427,11 +1433,12 @@ class PhotoMetaTest(unittest.TestCase):
         p = self._photo("jpg")
         with open(p, "rb") as f:
             original = f.read()
-        b = self.pm.Backups()
-        b.dir = os.path.join(self.d, "undo")
+        from odysseus.backend import keep
+        b = keep.Backups()
+        self.addCleanup(__import__("shutil").rmtree, b.dir, True)
         kept = b.keep(p)
         self.pm.write(p, strip_all=True)
-        self.pm.restore(kept, p)
+        keep.restore(kept, p)
         with open(p, "rb") as f:
             self.assertEqual(f.read(), original)
         bad = os.path.join(self.d, "faux.jpg")
@@ -1458,8 +1465,252 @@ class TagsFromNameTest(unittest.TestCase):
         self.assertEqual(f("03 - Monospace.mp3"), {"tracknumber": ["3"], "title": ["Monospace"]})
         self.assertEqual(f("03. Monospace.flac"), {"tracknumber": ["3"], "title": ["Monospace"]})
         self.assertEqual(f("Bénabar - 03 - Monospace.mp3"), {"tracknumber": ["3"], "title": ["Monospace"]})
-        self.assertEqual(f("CD1-07 Le dîner.mp3"), {"tracknumber": ["7"], "title": ["Le dîner"]})
+        self.assertEqual(f("CD1-07 Le dîner.mp3"), {"discnumber": ["1"], "tracknumber": ["7"], "title": ["Le dîner"]})
         self.assertEqual(f("01_Intro.mp3"), {"tracknumber": ["1"], "title": ["Intro"]})
         self.assertEqual(f("Bénabar - Monospace.mp3"), {"title": ["Monospace"]})
         self.assertEqual(f("2004 - Live.mp3"), {"title": ["Live"]})           # une année n'est pas une piste
         self.assertEqual(f("Monospace.mp3"), {"title": ["Monospace"]})
+
+
+class PhotoMetaAuditTest(unittest.TestCase):
+    """Audit 2.0 : fuites de position et pertes relevées par les agents, chacune reproduite ici."""
+
+    def setUp(self):
+        from odysseus.backend import photometa
+        if not photometa.available():
+            self.skipTest("GExiv2 absent")
+        self.pm = photometa
+        self.d = tempfile.mkdtemp()
+
+    def tearDown(self):
+        import shutil
+        shutil.rmtree(self.d, ignore_errors=True)
+
+    def _img(self, name, fmt=None):
+        import subprocess
+        p = os.path.join(self.d, name)
+        subprocess.run(["convert", "-size", "40x30", "xc:orange", p], check=True)
+        return p
+
+    def test_png_from_imagemagick_keeps_no_gps_text(self):
+        import subprocess
+        jpg = self._img("src.jpg")
+        md = self.pm._open(jpg)
+        md.try_set_gps_info(35.44, 30.32, 1000.0)
+        md.save_file(jpg)
+        png = os.path.join(self.d, "conv.png")
+        subprocess.run(["convert", jpg, png], check=True)              # recopie l'EXIF en tEXt « exif:GPS… »
+        self.pm.write(png, strip_gps=True)
+        with open(png, "rb") as f:
+            self.assertNotIn(b"GPSLatitude", f.read())
+
+    def test_webp_city_removed(self):
+        p = self._img("v.webp")
+        md = self.pm._open(p)
+        md.try_set_tag_string("Xmp.photoshop.City", "Petra")
+        md.save_file(p)
+        self.assertTrue(self.pm.summary(p)["place"])
+        self.pm.write(p, strip_gps=True)
+        with open(p, "rb") as f:
+            self.assertNotIn(b"Petra", f.read())
+
+    def test_xmp_only_and_drone_gps(self):
+        p = self._img("drone.jpg")
+        md = self.pm._open(p)
+        md.try_register_xmp_namespace("http://www.dji.com/drone-dji/1.0/", "drone-dji")
+        md.try_set_tag_string("Xmp.drone-dji.GpsLatitude", "30.32")
+        md.try_set_tag_string("Xmp.exif.GPSLongitude", "35,26.4E")
+        md.save_file(p)
+        self.assertIsNotNone(self.pm.summary(p)["gps"])               # détectée, interrupteur coché
+        self.pm.write(p, strip_gps=True)
+        self.assertIsNone(self.pm.summary(p)["gps"])
+        with open(p, "rb") as f:
+            raw = f.read()
+        self.assertNotIn(b"30.32", raw)
+
+    def test_symlink_readonly_and_sidecar(self):
+        p = self._img("vraie.jpg")
+        md = self.pm._open(p)
+        md.try_set_gps_info(35.44, 30.32, 1000.0)
+        md.save_file(p)
+        side = os.path.join(self.d, "vraie.xmp")
+        smd = self.pm._open(p)
+        with open(side, "w") as f:
+            f.write('<?xpacket begin=""?><x:xmpmeta xmlns:x="adobe:ns:meta/"><rdf:RDF '
+                    'xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#"><rdf:Description '
+                    'xmlns:exif="http://ns.adobe.com/exif/1.0/" exif:GPSLatitude="30,19.2N"/></rdf:RDF>'
+                    '</x:xmpmeta><?xpacket end="w"?>')
+        del smd
+        os.chmod(p, 0o444)
+        link = os.path.join(self.d, "lien.jpg")
+        os.symlink("vraie.jpg", link)
+        self.pm.write(link, strip_gps=True)
+        self.assertTrue(os.path.islink(link))                         # le lien reste un lien
+        self.assertIsNone(self.pm.summary(p)["gps"])                  # c'est la cible qui change
+        self.assertEqual(os.stat(p).st_mode & 0o777, 0o444)          # lecture seule gardée
+        with open(side) as f:
+            self.assertNotIn("GPSLatitude", f.read())                 # fichier XMP posé à côté
+
+    def test_hard_link_refused(self):
+        from odysseus.backend import keep
+        p = self._img("a.jpg")
+        os.link(p, os.path.join(self.d, "b.jpg"))
+        with self.assertRaises(keep.MultipleLinks):
+            self.pm.write(p, strip_all=True)
+
+    def test_dashed_exif_date_keeps_time(self):
+        from datetime import timedelta
+        self.assertEqual(self.pm._shift("2015-04-17 12:20:19", timedelta(hours=3)), "2015-04-17 15:20:19")
+        self.assertIsNone(self.pm._shift("9999:12:31 23:00:00", timedelta(hours=3)))
+
+
+@unittest.skipUnless(__import__("shutil").which("ffmpeg"), "ffmpeg absent")
+class TagsAuditTest(unittest.TestCase):
+    """Audit 2.0 : étiquettes audio."""
+
+    def setUp(self):
+        from odysseus.backend import tags
+        if not tags.available():
+            self.skipTest("mutagen absent")
+        self.tags = tags
+        self.d = tempfile.mkdtemp()
+
+    def tearDown(self):
+        import shutil
+        shutil.rmtree(self.d, ignore_errors=True)
+
+    def _ff(self, name, *args):
+        import subprocess
+        p = os.path.join(self.d, name)
+        subprocess.run(["ffmpeg", "-v", "error", "-f", "lavfi", "-i", "sine=duration=1", *args, p], check=True)
+        return p
+
+    def test_undo_restores_bytes_with_second_picture(self):
+        from mutagen.id3 import APIC, ID3
+        from odysseus.backend import keep
+        p = self._ff("a.mp3")
+        t = ID3()
+        t.add(APIC(encoding=3, mime="image/png", type=3, desc="", data=b"\x89PNG\r\n\x1a\nFRONT"))
+        t.add(APIC(encoding=3, mime="image/png", type=4, desc="dos", data=b"\x89PNG\r\n\x1a\nBACK"))
+        t.save(p)
+        with open(p, "rb") as f:
+            original = f.read()
+        b = keep.Backups()
+        self.addCleanup(__import__("shutil").rmtree, b.dir, True)
+        before = b.keep(p)
+        self.tags.write(p, {"album": ["X"]})
+        self.assertEqual(len(ID3(p).getall("APIC")), 2)              # pochette KEEP : rien n'est retiré
+        keep.restore(before, p)
+        with open(p, "rb") as f:
+            self.assertEqual(f.read(), original)
+
+    def test_id3_version_kept_and_raw_mp3(self):
+        from mutagen.id3 import ID3
+        p = self._ff("v24.mp3", "-id3v2_version", "4", "-metadata", "title=x")
+        self.tags.write(p, {"album": ["A"]})
+        self.assertEqual(ID3(p).version[:2], (2, 4))
+        p3 = self._ff("v23.mp3", "-id3v2_version", "3", "-metadata", "date=2004")
+        self.tags.write(p3, {"title": ["T"]})
+        tg = ID3(p3)
+        self.assertEqual(tg.version[:2], (2, 3))
+        with open(p3, "rb") as f:
+            raw3 = f.read()
+        self.assertIn(b"TYER", raw3)                                  # vraie trame v2.3 de l'année
+        self.assertNotIn(b"TDRC", raw3)                               # pas de trame v2.4 sous en-tête v2.3
+        raw = self._ff("brut.mp3", "-write_id3v2", "0")
+        self.tags.write(raw, {"title": ["Sans étiquette"]})          # MP3 sans ID3 : reconnu par son extension
+        self.assertEqual(self.tags.read(raw)["title"], ["Sans étiquette"])
+
+    def test_symlink_and_ogg_flac_and_mp4_track(self):
+        flac = self._ff("vraie.flac")
+        link = os.path.join(self.d, "lien.flac")
+        os.symlink("vraie.flac", link)
+        self.tags.write(link, {"title": ["T"]})
+        self.assertTrue(os.path.islink(link))
+        self.assertEqual(self.tags.read(flac)["title"], ["T"])
+        oga = self._ff("x.oga", "-c:a", "flac")
+        self.tags.write(oga, {"title": ["Ogg FLAC"]})
+        self.assertEqual(self.tags.read(oga)["title"], ["Ogg FLAC"])
+        m4a = self._ff("x.m4a", "-c:a", "aac")
+        self.tags.write(m4a, {"tracknumber": ["3/12"]})
+        self.assertEqual(self.tags.read(m4a)["tracknumber"], ["3"])
+
+    def test_from_filename_more(self):
+        f = self.tags.from_filename
+        self.assertEqual(f("1-01 Title.mp3"), {"discnumber": ["1"], "tracknumber": ["1"], "title": ["Title"]})
+        self.assertEqual(f("01 - Artist - Title.mp3"), {"tracknumber": ["1"], "title": ["Title"]})
+        self.assertEqual(f("7 Seconds.mp3"), {"title": ["7 Seconds"]})
+        self.assertEqual(f("99 Luftballons.mp3"), {"title": ["99 Luftballons"]})
+        self.assertEqual(f("12 Monospace.mp3"), {"tracknumber": ["12"], "title": ["Monospace"]})
+
+    def test_multi_values_text(self):
+        self.assertEqual(self.tags.from_text("artist", "A; B"), ["A", "B"])
+        self.assertEqual(self.tags.from_text("title", "A; B"), ["A; B"])
+
+
+class FileInfoAuditTest(unittest.TestCase):
+    """Audit 2.0 : lecteurs EXIF des Propriétés face à des fichiers abîmés ou peu courants."""
+
+    def setUp(self):
+        self.d = tempfile.mkdtemp()
+
+    def tearDown(self):
+        import shutil
+        shutil.rmtree(self.d, ignore_errors=True)
+
+    def test_png_raw_profile_and_big_tiff(self):
+        import subprocess
+        from odysseus.backend import fileinfo, photometa
+        if not photometa.available():
+            self.skipTest("GExiv2 absent")
+        png = os.path.join(self.d, "g.png")
+        subprocess.run(["convert", "-size", "40x30", "xc:red", png], check=True)
+        md = photometa._open(png)
+        md.try_set_tag_string("Exif.Image.Make", "Canon")            # exiv2 : bloc « Raw profile type exif »
+        md.save_file(png)
+        rows = dict(fileinfo.image_properties(png))
+        self.assertEqual(rows.get(tr("Marque de l'appareil photo")), "Canon")
+        tif = os.path.join(self.d, "big.tif")                          # IFD après 9 Mo d'image
+        subprocess.run(["convert", "-size", "3000x1500", "plasma:", "-orient", "RightTop", tif], check=True)
+        rows = dict(fileinfo.image_properties(tif))
+        self.assertEqual(rows[tr("Largeur")], ntr("{0} pixel", "{0} pixels", 1500).format(1500))
+
+    def test_hostile_values(self):
+        from odysseus.backend import fileinfo
+        self.assertEqual(fileinfo.aperture((3000, 1)), "")             # OverflowError avant
+        self.assertEqual(fileinfo.metering([5, 5]), "")                # liste : TypeError avant
+        self.assertEqual(fileinfo.exposure_mode([1, 2]), "")
+        bad = os.path.join(self.d, "app1.jpg")
+        with open(bad, "wb") as f:
+            f.write(b"\xff\xd8\xff\xe1\x00\x01" + b"\0" * 1000)      # longueur 1 : lisait tout le fichier
+        self.assertEqual(fileinfo.read_blocks(bad), (b"", b""))
+
+
+class DefaultAppDesktopTest(unittest.TestCase):
+    """Audit 2.0 : un « zorin-mimeapps.list » / « gnome-mimeapps.list » gardait l'ancienne application."""
+
+    def test_desktop_file(self):
+        import subprocess
+        with tempfile.TemporaryDirectory() as d:
+            apps = os.path.join(d, "share", "applications")
+            os.makedirs(apps)
+            os.makedirs(os.path.join(d, "config"))
+            for a in ("ithaca", "rhythmbox"):
+                with open(os.path.join(apps, a + ".desktop"), "w") as f:
+                    f.write(f"[Desktop Entry]\nType=Application\nName={a}\nExec=true %U\n"
+                            "MimeType=audio/mp4;audio/x-m4a;\n")
+            with open(os.path.join(d, "config", "gnome-mimeapps.list"), "w") as f:
+                f.write("# garder\n[Default Applications]\naudio/x-m4a=rhythmbox.desktop\ntext/plain=gedit.desktop\n")
+            code = ("from gi.repository import Gio\nfrom odysseus.defaultapp import set_default_app\n"
+                    "set_default_app(Gio.DesktopAppInfo.new('ithaca.desktop'), 'audio/mp4')\n"
+                    "print(Gio.AppInfo.get_default_for_type('audio/mp4', False).get_id())\n")
+            env = dict(os.environ, HOME=d, XDG_CONFIG_HOME=os.path.join(d, "config"),
+                       XDG_DATA_HOME=os.path.join(d, "share"), XDG_CURRENT_DESKTOP="zorin:GNOME")
+            out = subprocess.run([sys.executable, "-c", code], env=env, capture_output=True, text=True,
+                                 cwd=os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+            self.assertEqual(out.stdout.strip(), "ithaca.desktop", out.stderr[-400:])
+            with open(os.path.join(d, "config", "gnome-mimeapps.list")) as f:
+                text = f.read()
+            self.assertNotIn("audio/x-m4a", text)
+            self.assertIn("text/plain=gedit.desktop", text)
+            self.assertIn("# garder", text)

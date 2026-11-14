@@ -5648,7 +5648,7 @@ msgid "Numérotation"
 msgstr "Nummerierung"
 
 msgid "Piste"
-msgstr "Track"
+msgstr "Titelnummer"
 
 msgid "Disque"
 msgstr "CD"
@@ -5675,7 +5675,7 @@ msgid "Valeurs différentes"
 msgstr "Unterschiedliche Werte"
 
 msgid "Pistes 1 à {0}, dans l'ordre des noms de fichiers"
-msgstr "Tracks 1 bis {0}, in der Reihenfolge der Dateinamen"
+msgstr "Titelnummern 1 bis {0}, in der Reihenfolge der Dateinamen"
 
 msgid "sur"
 msgstr "von"
@@ -5692,7 +5692,7 @@ msgstr[0] "Metadaten von {0} Foto geändert"
 msgstr[1] "Metadaten von {0} Fotos geändert"
 
 msgid "position GPS"
-msgstr "GPS-Position"
+msgstr "GPS-Standort"
 
 msgid "lieu"
 msgstr "Ort"
@@ -5713,7 +5713,7 @@ msgid "Métadonnées des photos"
 msgstr "Foto-Metadaten"
 
 msgid "Retirer la position GPS ou toutes les métadonnées des photos, modifier auteur, copyright et description, corriger l'heure de prise de vue — sans retoucher l'image"
-msgstr "GPS-Position oder alle Metadaten aus Fotos entfernen, Autor, Copyright und Beschreibung bearbeiten, Aufnahmezeit korrigieren – ohne das Bild zu verändern"
+msgstr "GPS-Standort oder alle Metadaten aus Fotos entfernen, Autor, Copyright und Beschreibung bearbeiten, Aufnahmezeit korrigieren – ohne das Bild zu verändern"
 
 msgid "Annuler la modification des métadonnées"
 msgstr "Metadaten-Änderungen rückgängig machen"
@@ -5766,7 +5766,7 @@ msgid "Heure de prise de vue"
 msgstr "Aufnahmezeit"
 
 msgid "Pour corriger l'horloge de l'appareil, ou l'heure d'un voyage dans un autre fuseau"
-msgstr "Um die Uhr der Kamera zu korrigieren, oder die Zeit einer Reise in einer anderen Zeitzone"
+msgstr "Zum Korrigieren der Kamerauhr oder der Uhrzeit einer Reise in eine andere Zeitzone"
 
 msgid "Remplacer les originaux (Ctrl+Z pour revenir)"
 msgstr "Originale ersetzen (Strg+Z zum Zurücknehmen)"
@@ -5806,13 +5806,33 @@ msgid "noms"
 msgstr "Namen"
 
 msgid "Titres et pistes d'après les noms de fichiers"
-msgstr "Titel und Tracks aus Dateinamen"
+msgstr "Titel und Titelnummern aus Dateinamen"
 
 msgid "« 03 - Monospace.mp3 » → piste 3, titre « Monospace »"
-msgstr "„03 - Monospace.mp3“ → Track 3, Titel „Monospace“"
+msgstr "„03 - Monospace.mp3“ → Titelnummer 3, Titel „Monospace“"
 
 msgid "Remplir"
 msgstr "Ausfüllen"
 
 msgid "{0} (d'après les noms de fichiers)"
 msgstr "{0} (aus Dateinamen)"
+
+msgid "Ce fichier a plusieurs liens durs : le modifier les séparerait"
+msgstr "Diese Datei hat mehrere harte Verknüpfungen: eine Änderung würde sie trennen"
+
+msgid "Position encore présente après écriture ({0}) : photo laissée intacte"
+msgstr "Standort nach dem Schreiben noch vorhanden ({0}): Foto unverändert gelassen"
+
+msgid "Modifier les étiquettes des fichiers audio"
+msgstr "Tags von Audiodateien bearbeiten"
+
+msgid "Métadonnées des photos : retirer la position, modifier l'auteur"
+msgstr "Foto-Metadaten: Standort entfernen, Autor bearbeiten"
+
+msgid "Modifié depuis : laissé tel quel"
+msgstr "Inzwischen geändert: unverändert gelassen"
+
+msgid "{0} fichier a été modifié sans pouvoir être gardé pour Ctrl+Z (trop volumineux, sur un autre disque que le dossier personnel)."
+msgid_plural "{0} fichiers ont été modifiés sans pouvoir être gardés pour Ctrl+Z (trop volumineux, sur un autre disque que le dossier personnel)."
+msgstr[0] "{0} Datei wurde geändert, konnte aber nicht für Strg+Z aufbewahrt werden (zu groß, auf einem anderen Datenträger als der persönliche Ordner)."
+msgstr[1] "{0} Dateien wurden geändert, konnten aber nicht für Strg+Z aufbewahrt werden (zu groß, auf einem anderen Datenträger als der persönliche Ordner)."

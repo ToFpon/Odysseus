@@ -5764,3 +5764,23 @@ msgstr "Fill In"
 
 msgid "{0} (d'après les noms de fichiers)"
 msgstr "{0} (from file names)"
+
+msgid "Ce fichier a plusieurs liens durs : le modifier les séparerait"
+msgstr "This file has several hard links: editing it would split them"
+
+msgid "Position encore présente après écriture ({0}) : photo laissée intacte"
+msgstr "Location still present after writing ({0}): photo left untouched"
+
+msgid "Modifier les étiquettes des fichiers audio"
+msgstr "Edit the tags of audio files"
+
+msgid "Métadonnées des photos : retirer la position, modifier l'auteur"
+msgstr "Photo metadata: remove the location, edit the author"
+
+msgid "Modifié depuis : laissé tel quel"
+msgstr "Changed since: left as is"
+
+msgid "{0} fichier a été modifié sans pouvoir être gardé pour Ctrl+Z (trop volumineux, sur un autre disque que le dossier personnel)."
+msgid_plural "{0} fichiers ont été modifiés sans pouvoir être gardés pour Ctrl+Z (trop volumineux, sur un autre disque que le dossier personnel)."
+msgstr[0] "{0} file was changed but could not be kept for Ctrl+Z (too large, on another disk than the home folder)."
+msgstr[1] "{0} files were changed but could not be kept for Ctrl+Z (too large, on another disk than the home folder)."

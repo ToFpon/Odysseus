@@ -233,6 +233,25 @@ seconde). Testé : `GvfsScanTest` (même résultat que `scan_local`). Banc : `ap
 invité, `gvfsd` + `gvfsd-fuse` sous dbus-run-session, `gio mount smb://127.0.0.1:4450/share` (pas de
 netem dans le noyau du bac à sable : relais asyncio qui retarde chaque paquet).
 
+Audit 2.0 (5 agents, corrigé, tests `*AuditTest`) : étiquettes et métadonnées photo réécrites par
+`backend/keep.py` — `rewrite` suit les liens symboliques (la cible change, le lien reste), refuse un fichier à
+plusieurs liens durs (hors nos propres sauvegardes : `_own_links`, sinon la 2e modification était refusée),
+garde propriétaire / groupe / lecture seule, nom caché AVEC l'extension (mutagen reconnaît un MP3 sans ID3 à
+son nom) ; annulation = l'ORIGINAL gardé (lien dur dans ~/.cache/odysseus/undo, copie ≤ 512 Mo sinon, alerte
+si impossible) remis octet pour octet par `keep.restore` (avant : instantané des champs → pochettes secondaires,
+étiquettes inconnues perdues au Ctrl+Z), refusé si le fichier a changé depuis (empreinte taille + date notée à
+l'écriture, pas celle de la sauvegarde-lien) ; sauvegardes effacées dès que l'entrée quitte les deux piles
+(`_release_backups`). ID3 : version du fichier gardée (v2.4 reste v2.4 ; v2.3 par `update_to_v23`, avant :
+trames v2.4 sous en-tête v2.3). Ogg FLAC / Speex = commentaires Vorbis. Toast « Annuler » seulement si une
+entrée a été posée (sinon il annulait l'opération d'avant). Photos : position aussi en XMP seul / drones DJI
+(`_is_coord`), lieux Panasonic, blocs texte PNG « exif:GPS* » d'ImageMagick (`_scrub_png`), XMP WebP vidé laissé
+par exiv2 0.27 (`_drop_webp_xmp`), fichiers XMP posés à côté (`_edit_side`, lieux seulement : ils portent
+l'historique darktable), VÉRIFICATION après écriture (`leaks` : exiv2 + octets bruts, sinon erreur et original
+intact). Propriétés : APEX absurde, listes à la place de nombres, APP1 de longueur 0 / 1, PNG « Raw profile type
+exif / xmp » (exiv2, ImageMagick), TIFF lu par mmap (IFD après l'image), étiquettes de la pochette ignorées
+(fuzzer : 9000 fichiers mutés, aucun plantage). `<bureau>-mimeapps.list` : lignes du type / alias retirées.
+Dépôt sur les segments spéciaux de la barre de chemin : ignoré.
+
 `workers.Pool` : un fil bloqué dans un appel système ne se tue pas ; si tous sont pris depuis plus
 de 3 s, un fil est ajouté (6 au plus).
 

@@ -13,9 +13,8 @@ instantané, aucune copie), sinon copié tant que le total reste raisonnable ; b
 from __future__ import annotations
 
 import os
-import secrets
 import shutil
-import time
+import struct
 from datetime import datetime, timedelta
 from typing import Optional
 
@@ -25,8 +24,6 @@ from ..i18n import tr
 from . import fileops
 
 SUPPORTED = (".jpg", ".jpeg", ".jpe", ".png", ".webp", ".tif", ".tiff")
-UNDO_DIR = os.path.join(GLib.get_user_cache_dir(), "odysseus", "photo-undo")
-COPY_LIMIT = 512 * 1024 * 1024          # sauvegarde par copie (autre disque) : au plus 512 Mo par opération
 
 AUTHOR = ("Exif.Image.Artist", "Xmp.dc.creator", "Iptc.Application2.Byline")
 COPYRIGHT = ("Exif.Image.Copyright", "Xmp.dc.rights", "Iptc.Application2.Copyright")
@@ -85,8 +82,23 @@ def _value(md, names) -> str:
     return ""
 
 
+_COORD_WORDS = ("latitude", "longitude", "altitude", "gpslat", "gpslon", "gpsalt", "gpsposition")
+_MAKER_PLACES = (".City", ".State", ".Country", ".Landmark", ".Location")
+
+
+def _is_coord(tag: str) -> bool:
+    """Coordonnées hors du bloc GPS d'EXIF : Xmp.exif.GPS*, drones DJI (Xmp.drone-dji.GpsLatitude)…"""
+    low = tag.lower()
+    return tag.startswith("Xmp.exif.GPS") or (tag.startswith("Xmp.") and any(w in low for w in _COORD_WORDS))
+
+
+def _is_place(tag: str) -> bool:
+    return (tag in PLACE_TAGS or tag.startswith(PLACE_PREFIXES[1:])
+            or (tag.startswith("Exif.Panasonic") and tag.endswith(_MAKER_PLACES)))
+
+
 def _place_tags(md) -> list[str]:
-    return [t for t in _tags(md) if t in PLACE_TAGS or t.startswith(PLACE_PREFIXES) or t.startswith("Exif.GPSInfo.")]
+    return [t for t in _tags(md) if t.startswith("Exif.GPSInfo.") or _is_coord(t) or _is_place(t)]
 
 
 def summary(path: str) -> dict:
@@ -95,13 +107,16 @@ def summary(path: str) -> dict:
     out = {k: _value(md, names) for k, names in FIELDS.items()}
     # PyGObject perd le booléen « trouvé » de try_get_gps_info (0, 0 sans position) : d'après les étiquettes
     out["gps"] = None
+    all_tags = _tags(md)
     if md.try_has_tag("Exif.GPSInfo.GPSLatitude") and md.try_has_tag("Exif.GPSInfo.GPSLongitude"):
         try:
             g = md.try_get_gps_info()
             out["gps"] = (g.latitude, g.longitude)                 # (latitude, longitude)
         except GLib.Error:
             out["gps"] = (0.0, 0.0)
-    out["place"] = any(t in PLACE_TAGS or t.startswith(PLACE_PREFIXES[1:]) for t in _tags(md))
+    elif any(_is_coord(t) for t in all_tags):
+        out["gps"] = (0.0, 0.0)                                    # position en XMP seulement (drone, logiciel)
+    out["place"] = any(_is_place(t) for t in all_tags)
     out["camera"] = " ".join(x for x in (_value(md, ("Exif.Image.Make",)), _value(md, ("Exif.Image.Model",))) if x)
     out["date"] = _value(md, DATE_TAGS[:3])
     out["serial"] = bool(_value(md, ("Exif.Photo.BodySerialNumber", "Exif.Canon.SerialNumber",
@@ -120,17 +135,24 @@ def _shift(text: str, delta: timedelta) -> Optional[str]:
     try:
         d = datetime.strptime(s[:19], "%Y:%m:%d %H:%M:%S")
         return (d + delta).strftime("%Y:%m:%d %H:%M:%S") + s[19:]
+    except OverflowError:
+        return None
     except ValueError:
         pass
     try:
         d = datetime.fromisoformat(s.replace("Z", "+00:00"))
     except ValueError:
         return None
-    if "T" not in s:
+    if len(s) == 10:
         # date seule : décalée de jours entiers seulement (timedelta(hours=-3).days vaut -1 en Python)
         days = int(delta.total_seconds() / 86400)
         return (d + timedelta(days=days)).date().isoformat() if days else s
-    out = (d + delta).isoformat(timespec="seconds")
+    try:
+        shifted = d + delta
+    except OverflowError:
+        return None
+    sep = "T" if "T" in s else " "                    # « 2015-04-17 12:20:19 » (certains téléphones)
+    out = shifted.isoformat(sep=sep, timespec="seconds")
     return out[:-6] + "Z" if s.endswith("Z") and out.endswith("+00:00") else out
 
 
@@ -165,6 +187,10 @@ def edit(md, strip_gps: bool = False, strip_all: bool = False, fields: Optional[
             except GLib.Error:
                 pass
         if value:
+            try:
+                md.try_set_tag_string("Iptc.Envelope.CharacterSet", "\x1b%G")   # IPTC en UTF-8 (accents)
+            except GLib.Error:
+                pass
             for name in FIELDS[key]:
                 try:
                     if name.startswith("Iptc.") and len(value.encode()) > 64 and key != "description":
@@ -184,101 +210,188 @@ def edit(md, strip_gps: bool = False, strip_all: bool = False, fields: Optional[
                 pass
 
 
-def write(path: str, dest: Optional[str] = None, **changes) -> str:
-    """Écrit les métadonnées modifiées. dest None : l'original est remplacé (copie cachée échangée d'un
-    coup) ; sinon une nouvelle photo est posée sous dest (« nom (2) » si pris). Renvoie le chemin écrit."""
-    folder = os.path.dirname(os.path.abspath(dest or path))
-    tmp = fileops._tmp_name(folder, "photo")
-    try:
-        shutil.copy2(path, tmp)
-        md = _open(tmp)
-        edit(md, **changes)
-        md.save_file(tmp)
-        fd = os.open(tmp, os.O_RDONLY)
-        try:
-            os.fsync(fd)
-        finally:
-            os.close(fd)
-        if dest is None:
-            os.replace(tmp, path)
-            fileops._fsync_dir(folder)
-            return path
-        return fileops.place_new(tmp, dest)
-    except BaseException:
-        try:
-            os.unlink(tmp)
-        except OSError:
+# ----------------------------------------------------------------------
+# Ce qu'exiv2 ne voit pas ou laisse derrière lui
+
+def _png_chunks(data: bytes):
+    pos = 8
+    while pos + 8 <= len(data):
+        size, kind = struct.unpack(">I4s", data[pos:pos + 8])
+        end = pos + 12 + size
+        if end > len(data):
+            return
+        yield kind, data[pos + 8:pos + 8 + size], data[pos:end]
+        pos = end
+        if kind == b"IEND":
+            return
+
+
+def _scrub_png(path: str, everything: bool):
+    """PNG d'ImageMagick : il recopie l'EXIF en blocs texte « exif:GPSLatitude=… » (tEXt / zTXt / iTXt)
+    qu'exiv2 ne voit ni ne retire. Position : les « exif:GPS* » ; tout : tous les « exif:* » et les
+    « Raw profile type … » (blocs EXIF / XMP / IPTC d'ImageMagick et d'exiv2)."""
+    with open(path, "rb") as f:
+        data = f.read()
+    if data[:8] != b"\x89PNG\r\n\x1a\n":
+        return
+    out, changed = [data[:8]], False
+    for kind, body, raw in _png_chunks(data):
+        if kind in (b"tEXt", b"zTXt", b"iTXt"):
+            key = body.split(b"\0", 1)[0].decode("latin-1", "replace")
+            low = key.lower()
+            drop = (low.startswith("exif:gps") or "latitude" in low or "longitude" in low) or (everything and (
+                low.startswith(("exif:", "raw profile type", "xml:com.adobe.xmp")) or key in ("date:create", "date:modify", "date:timestamp")))
+            if drop:
+                changed = True
+                continue
+        out.append(raw)
+    if changed:
+        with open(path, "wb") as f:
+            f.write(b"".join(out))
+
+
+def _drop_webp_xmp(path: str):
+    """WebP : exiv2 0.27 ne retire pas un bloc XMP vidé (la ville restait dans le fichier). On retire le bloc
+    RIFF « XMP  » nous-mêmes, et le drapeau XMP de l'en-tête VP8X."""
+    with open(path, "rb") as f:
+        data = f.read()
+    if data[:4] != b"RIFF" or data[8:12] != b"WEBP":
+        return
+    out, pos = [], 12
+    while pos + 8 <= len(data):
+        kind, size = struct.unpack("<4sI", data[pos:pos + 8])
+        end = pos + 8 + size + (size & 1)
+        chunk = bytearray(data[pos:end])
+        if kind == b"VP8X" and len(chunk) > 8:
+            chunk[8] &= ~0x04 & 0xFF
+        if kind != b"XMP ":
+            out.append(bytes(chunk))
+        pos = end
+    body = b"WEBP" + b"".join(out)
+    with open(path, "wb") as f:
+        f.write(b"RIFF" + struct.pack("<I", len(body)) + body)
+
+
+def leaks(path: str, strip_gps: bool, strip_all: bool) -> list[str]:
+    """Ce qui reste alors qu'on l'a retiré (vérification après écriture, avec exiv2 ET les octets bruts)."""
+    md = _open(path)
+    left = [t for t in _place_tags(md)] if (strip_gps or strip_all) else []
+    if strip_all:
+        left += [t for t in _tags(md) if t not in ("Exif.Image.Orientation", "Xmp.tiff.Orientation")
+                 and not t.startswith("Exif.Thumbnail")]
+    with open(path, "rb") as f:
+        raw = f.read()
+    if (strip_gps or strip_all) and (b"exif:GPS" in raw or b"GPSLatitude" in raw):
+        left.append("GPSLatitude")
+    return left
+
+
+def sidecars(path: str) -> list[str]:
+    """Fichiers XMP posés à côté (« photo.xmp », « photo.jpg.xmp » — darktable, digiKam, RawTherapee…) :
+    ils gardent souvent la position et suivent la photo partout."""
+    stem = os.path.splitext(path)[0]
+    out = []
+    for cand in (stem + ".xmp", stem + ".XMP", path + ".xmp", path + ".XMP"):
+        if os.path.isfile(cand) and cand not in out:
+            out.append(cand)
+    return out
+
+
+def _edit_file(tmp: str, changes: dict):
+    md = _open(tmp)
+    edit(md, **changes)
+    md.save_file(tmp)
+    everything, gps = changes.get("strip_all"), changes.get("strip_gps")
+    low = tmp.lower()
+    if low.endswith(".png") and (gps or everything):
+        _scrub_png(tmp, bool(everything))
+    if low.endswith(".webp") and (gps or everything) and leaks(tmp, bool(gps), bool(everything)):
+        _drop_webp_xmp(tmp)
+        if everything is False and changes.get("fields"):
             pass
-        raise
+    left = leaks(tmp, bool(gps), bool(everything))
+    if left:
+        # jamais « position retirée » alors qu'elle est encore là : l'original reste intact
+        raise ValueError(tr("Position encore présente après écriture ({0}) : photo laissée intacte").format(
+            ", ".join(left[:3])))
+
+
+def write(path: str, dest: Optional[str] = None, **changes) -> str:
+    """Écrit les métadonnées modifiées. dest None : l'original est remplacé (keep.rewrite : copie cachée
+    échangée d'un coup, cible réelle d'un lien, lecture seule et propriétaire gardés) ; sinon une nouvelle
+    photo est posée sous dest (« nom (2) » si pris). Les fichiers XMP posés à côté perdent aussi la position.
+    Renvoie le chemin écrit."""
+    from . import keep
+    if dest is None:
+        out = keep.rewrite(path, lambda tmp: _edit_file(tmp, changes))
+    else:
+        folder = os.path.dirname(os.path.abspath(dest))
+        tmp = fileops._tmp_name(folder, "photo") + os.path.splitext(dest)[1].lower()
+        try:
+            shutil.copy2(keep.real(path), tmp)
+            os.chmod(tmp, (os.stat(tmp).st_mode & 0o7777) | 0o200)
+            _edit_file(tmp, changes)
+            fd = os.open(tmp, os.O_RDONLY)
+            try:
+                os.fsync(fd)
+            finally:
+                os.close(fd)
+            out = fileops.place_new(tmp, dest)
+        except BaseException:
+            try:
+                os.unlink(tmp)
+            except OSError:
+                pass
+            raise
+    if dest is None and (changes.get("strip_gps") or changes.get("strip_all")):
+        for side in dict.fromkeys(sidecars(keep.real(path)) + sidecars(path)):   # à côté du lien et de la cible
+            try:
+                keep.rewrite(side, lambda tmp: _edit_side(tmp, changes))
+            except Exception:  # noqa: BLE001 — fichier XMP illisible : la photo, elle, est faite
+                pass
+    return out
+
+
+_PLACE_LOCALS = ("city", "state", "country", "countrycode", "location", "sublocation", "provincestate",
+                 "countryname", "locationcreated", "locationshown")
+
+
+def _edit_side(tmp: str, changes: dict):
+    """Fichier XMP posé à côté : exiv2 le lit mais ne le réécrit pas. On retire nous-mêmes coordonnées et
+    lieux (attributs et éléments), préfixes d'origine gardés. Jamais le reste, même pour « tout retirer » :
+    ces fichiers portent aussi l'historique de retouche de darktable / digiKam."""
+    import io
+    import xml.etree.ElementTree as ET
+    with open(tmp, "rb") as f:
+        raw = f.read()
+    for _ev, (prefix, uri) in ET.iterparse(io.BytesIO(raw), events=("start-ns",)):
+        try:
+            ET.register_namespace(prefix, uri)
+        except ValueError:
+            pass
+    root = ET.fromstring(raw)
+
+    def bad(name: str) -> bool:
+        local = name.rsplit("}", 1)[-1]
+        low = local.lower()
+        return (local.startswith("GPS") or any(w in low for w in _COORD_WORDS) or low in _PLACE_LOCALS)
+    changed = False
+    for el in list(root.iter()):
+        for attr in [a for a in el.attrib if bad(a)]:
+            del el.attrib[attr]
+            changed = True
+        for child in [c for c in list(el) if bad(c.tag)]:
+            el.remove(child)
+            changed = True
+    if changed:
+        text = ET.tostring(root, encoding="unicode")
+        with open(tmp, "w", encoding="utf-8") as f:
+            f.write('<?xpacket begin="\ufeff" id="W5M0MpCehiHzreSzNTczkc9d"?>\n' + text + '\n<?xpacket end="w"?>\n')
 
 
 def copy_name(path: str, suffix: str) -> str:
     stem, ext = os.path.splitext(path)
     return f"{stem} ({suffix}){ext}"
-
-
-# ----------------------------------------------------------------------
-# Annulation : l'original est gardé tel quel
-
-class Backups:
-    """Originaux gardés pour Ctrl+Z, dans un dossier propre à l'opération."""
-
-    def __init__(self):
-        self.dir = os.path.join(UNDO_DIR, f"{int(time.time())}-{secrets.token_hex(4)}")
-        self.copied = 0
-        self.n = 0
-
-    def keep(self, path: str) -> Optional[str]:
-        os.makedirs(self.dir, exist_ok=True)
-        self.n += 1
-        dst = os.path.join(self.dir, str(self.n))
-        try:
-            os.link(path, dst)                         # même disque : instantané
-            return dst
-        except OSError:
-            pass
-        size = os.path.getsize(path)
-        if self.copied + size > COPY_LIMIT:
-            return None                                # trop gros pour être gardé : pas d'annulation
-        shutil.copy2(path, dst)
-        self.copied += size
-        return dst
-
-
-def restore(backup: str, path: str):
-    """Remet `backup` sous `path` (copie cachée puis échange : la sauvegarde reste intacte)."""
-    folder = os.path.dirname(os.path.abspath(path))
-    tmp = fileops._tmp_name(folder, "photo")
-    try:
-        shutil.copy2(backup, tmp)
-        fd = os.open(tmp, os.O_RDONLY)
-        try:
-            os.fsync(fd)
-        finally:
-            os.close(fd)
-        os.replace(tmp, path)
-        fileops._fsync_dir(folder)
-    except BaseException:
-        try:
-            os.unlink(tmp)
-        except OSError:
-            pass
-        raise
-
-
-def sweep_backups(max_age: float = 24 * 3600):
-    """Au démarrage : sauvegardes de plus d'un jour retirées (l'annulation ne survit pas à Odysseus)."""
-    try:
-        entries = list(os.scandir(UNDO_DIR))
-    except OSError:
-        return
-    now = time.time()
-    for e in entries:
-        try:
-            if now - e.stat(follow_symlinks=False).st_mtime > max_age:
-                shutil.rmtree(e.path, ignore_errors=True)
-        except OSError:
-            pass
 
 
 def describe(info: dict) -> list[str]:

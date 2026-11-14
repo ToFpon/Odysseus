@@ -71,8 +71,8 @@ class OdysseusApp(Adw.Application):
         gsconnect.devices.start()           # appareils GSConnect suivis dès le départ, pour le menu
         from .backend import archive
         threading.Thread(target=archive.sweep_drag_caches, daemon=True).start()   # anciens caches du glisser
-        from .backend import photometa
-        threading.Thread(target=photometa.sweep_backups, daemon=True).start()   # originaux gardés pour Ctrl+Z
+        from .backend import keep
+        threading.Thread(target=keep.sweep, daemon=True).start()   # versions gardées pour Ctrl+Z (> 1 jour)
         # new-window / dual : actions du .desktop, activées par leur nom (DBusActivatable)
         for name, cb, accels in (("new-window", self._new_window, []),
                                  ("dual", lambda: self._new_window(dual=True), []),

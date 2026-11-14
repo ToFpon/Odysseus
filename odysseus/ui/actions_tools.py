@@ -113,10 +113,14 @@ class ToolActions:
         from ..backend import tags
         n = len(paths)
 
+        from ..backend import keep
+
         def work(job):
             res = fileops.Result("tags")
             res.count = 0
-            changed = []
+            res.kept = []
+            res.no_undo = 0
+            backups = keep.Backups("tags")
             for i, p in enumerate(paths):
                 job.check_cancel()
                 job.progress(i / max(n, 1), os.path.basename(p))
@@ -126,17 +130,22 @@ class ToolActions:
                 if from_names:
                     changes.update(tags.from_filename(p))      # titre (et piste si le nom en a une)
                 try:
-                    before = tags.snapshot(p)
+                    # Ctrl+Z remet l'ORIGINAL tel quel (pochettes secondaires, étiquettes inconnues comprises)
+                    before = backups.keep(p)
                     tags.write(p, changes, cover)
-                    changed.append((p, before, tags.snapshot(p)))
+                    after = backups.keep(p) if before else None
+                    if before and after:
+                        res.kept.append((p, before, after, keep.Backups.stamp(p)))
+                    else:
+                        res.no_undo += 1
                     res.count += 1
                 except Exception as e:  # noqa: BLE001 — un fichier en échec n'arrête pas les autres
                     res.errors.append((p, str(e)))
-            res.tag_changes = changed
             job.progress(1.0, "")
             return res
         self._run(ntr("Étiquettes de {0} fichier", "Étiquettes de {0} fichiers", n).format(n), work,
-                  undo=lambda r: ("tags", r.tag_changes) if getattr(r, "tag_changes", None) else None)
+                  undo=lambda r: ("tags", r.kept) if getattr(r, "kept", None) else None,
+                  on_done=self._warn_no_undo)
 
     def photo_metadata(self):
         if not self._need("photo_metadata"):
@@ -153,11 +162,14 @@ class ToolActions:
         from ..backend import photometa
         n = len(paths)
 
+        from ..backend import keep
+
         def work(job):
             res = fileops.Result("photo")
             res.count = 0
-            backups = photometa.Backups()
-            changed = []
+            res.kept = []
+            res.no_undo = 0
+            backups = keep.Backups("photo")
             for i, p in enumerate(paths):
                 job.check_cancel()
                 job.progress(i / max(n, 1), os.path.basename(p))
@@ -168,20 +180,34 @@ class ToolActions:
                     else:
                         before = backups.keep(p)
                         photometa.write(p, **opts)
-                        if before:
-                            changed.append((p, before, backups.keep(p)))
+                        after = backups.keep(p) if before else None
+                        if before and after:
+                            res.kept.append((p, before, after, keep.Backups.stamp(p)))
+                        else:
+                            res.no_undo += 1
                     res.count += 1
                 except Exception as e:  # noqa: BLE001 — une photo en échec n'arrête pas les autres
                     res.errors.append((p, str(e)))
-            res.photo_changes = changed
             job.progress(1.0, "")
             return res
 
         def undo(r):
             if r.created:
                 return ("create", list(r.created))
-            return ("photo-meta", r.photo_changes) if getattr(r, "photo_changes", None) else None
-        self._run(ntr("Métadonnées de {0} photo", "Métadonnées de {0} photos", n).format(n), work, undo=undo)
+            return ("photo-meta", r.kept) if getattr(r, "kept", None) else None
+        self._run(ntr("Métadonnées de {0} photo", "Métadonnées de {0} photos", n).format(n), work, undo=undo,
+                  on_done=self._warn_no_undo)
+
+    def _warn_no_undo(self, job):
+        """Fichiers modifiés sans possibilité d'annuler (trop gros pour être gardés, sur un autre disque) :
+        on le dit, plutôt que de le découvrir au Ctrl+Z."""
+        n = getattr(job.result, "no_undo", 0)
+        if n:
+            alert(self, tr("Annulation impossible"),
+                  ntr("{0} fichier a été modifié sans pouvoir être gardé pour Ctrl+Z (trop volumineux, sur un "
+                      "autre disque que le dossier personnel).",
+                      "{0} fichiers ont été modifiés sans pouvoir être gardés pour Ctrl+Z (trop volumineux, sur un "
+                      "autre disque que le dossier personnel).", n).format(n))
 
     def annotate(self):
         if not self._need("annotate"):

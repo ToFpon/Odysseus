@@ -96,3 +96,40 @@ def set_default_app(app: Gio.AppInfo, ctype: str):
             app.set_as_default_for_type(alias)
         except GLib.Error:
             pass
+    # « <bureau>-mimeapps.list » (zorin-, gnome-…) passe AVANT mimeapps.list, où GIO écrit : une ligne pour
+    # ce type ou un alias y garderait l'ancienne application. Seules ces lignes-là sont retirées, le reste
+    # du fichier reste tel quel.
+    for name in names[1:]:
+        _drop_default_lines(os.path.join(config, name), ctype)
+
+
+def _drop_default_lines(path: str, ctype: str):
+    try:
+        with open(path, encoding="utf-8") as f:
+            lines = f.readlines()
+    except (OSError, UnicodeDecodeError):
+        return
+    out, section, changed = [], "", False
+    for line in lines:
+        stripped = line.strip()
+        if stripped.startswith("[") and stripped.endswith("]"):
+            section = stripped[1:-1]
+        elif section == "Default Applications" and "=" in stripped and not stripped.startswith("#"):
+            key = stripped.split("=", 1)[0].strip()
+            if key == ctype or Gio.content_type_equals(key, ctype):
+                changed = True
+                continue
+        out.append(line)
+    if changed:
+        tmp = path + ".odysseus-tmp"
+        try:
+            with open(tmp, "w", encoding="utf-8") as f:
+                f.writelines(out)
+                f.flush()
+                os.fsync(f.fileno())
+            os.replace(tmp, path)
+        except OSError:
+            try:
+                os.unlink(tmp)
+            except OSError:
+                pass

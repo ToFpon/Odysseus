@@ -12,7 +12,7 @@ from typing import Optional
 from gi.repository import Adw, Gio, GLib, Gtk
 
 from .. import features
-from ..backend import batchrename, fileops, folder_colors, formats, gioops, starred
+from ..backend import batchrename, fileops, folder_colors, formats, fsinfo, gioops, starred
 from ..backend.engine import Job, ToolError, human_size
 from ..i18n import ntr, tr
 from ..settings import settings
@@ -417,6 +417,8 @@ class FileActions:
             if paths:
                 self._trash_paths(paths)
             return
+        if dest and "://" in dest and not fsinfo.is_gio_only_uri(dest):
+            return          # Récents, Favoris, Ce PC, Réseau, admin:/// de la barre de chemin : rien à y déposer
         if dest and ("://" in dest or any("://" in p for p in paths)):
             # Google Drive / OneDrive (source ou destination) : par GIO, sous leurs vrais noms
             paths = [p for p in paths if p != dest and p.rstrip("/").rsplit("/", 1)[0] != dest.rstrip("/")]
@@ -510,16 +512,20 @@ class FileActions:
         def done(job):
             if job.state == "done":
                 res = job.result
+                pushed = False
                 if undo is not None and isinstance(res, fileops.Result):
                     entry = undo(res)
                     if entry:
                         self._push_undo(entry)
+                        pushed = True
                 if isinstance(res, fileops.Result):
                     msg = fileops.describe_result(res)
                     if res.errors:
                         msg += " — " + ntr("{0} erreur", "{0} erreurs", len(res.errors)).format(len(res.errors))
                         self._show_errors(job.title, res.errors)
-                    if res.kind in ("trash", "move", "rename", "tags", "photo") and undo is not None:
+                    # « Annuler » seulement si une entrée vient d'être posée : sinon il annulerait
+                    # l'opération d'avant (étiquettes toutes en échec, sauvegarde impossible…)
+                    if res.kind in ("trash", "move", "rename", "tags", "photo") and pushed:
                         toast(self, msg, tr("Annuler"), self.undo, timeout=6)
                     elif res.kind not in ("copy", "move"):
                         toast(self, msg)
@@ -973,10 +979,31 @@ class FileActions:
 
     def _push_undo(self, entry, keep_redo: bool = False):
         self.undo_stack.append(entry)
+        dropped = self.undo_stack[:-30]
         del self.undo_stack[:-30]
         if not keep_redo:
+            dropped += self.redo_stack
             self.redo_stack.clear()
+        self._release_backups(dropped)
         self._update_undo_actions()
+
+    def _release_backups(self, dropped: list):
+        """Versions gardées (étiquettes, photos) d'entrées sorties des deux piles : effacées tout de suite,
+        plutôt qu'au démarrage suivant (Odysseus, service D-Bus, reste lancé des jours)."""
+        import shutil
+
+        def dirs(entries):
+            out = set()
+            for e in entries:
+                if e and e[0] in ("tags", "photo-meta"):
+                    for item in e[1]:
+                        for kept in item[1:3]:
+                            if kept:
+                                out.add(os.path.dirname(kept))
+            return out
+        gone = dirs(dropped) - dirs(self.undo_stack) - dirs(self.redo_stack)
+        for d in gone:
+            shutil.rmtree(d, ignore_errors=True)
 
     def _update_undo_actions(self):
         for name, stack in (("undo", self.undo_stack), ("redo", self.redo_stack)):
@@ -1027,73 +1054,45 @@ class FileActions:
                 self._update_undo_actions()
         self._run(tr("Renommage"), work, on_done=finished)
 
-    def _tag_steps(self, entry, redo: bool):
-        """Annuler / rétablir une modification d'étiquettes : chaque fichier reprend l'instantané d'avant
-        (ou d'après). Seuls les fichiers remis passent dans l'autre pile."""
-        from ..backend import tags
-        items = entry[1]
+    def _keep_steps(self, entry, redo: bool):
+        """Annuler / rétablir les étiquettes audio ou les métadonnées photo : chaque fichier reprend sa version
+        gardée d'avant (ou d'après), octet pour octet. Un fichier modifié ailleurs depuis n'est pas touché
+        (son état ne correspond plus) ; seuls les fichiers remis passent dans l'autre pile."""
+        from ..backend import keep
+        kind, items = entry[0], entry[1]
 
         def work(job):
-            res = fileops.Result("tags")
+            res = fileops.Result("tags" if kind == "tags" else "photo")
             res.count = 0
             done = []
-            for p, before, after in items:
-                job.check_cancel()
-                snap = after if redo else before
-                try:
-                    tags.write(p, {k: v for k, v in snap.items() if k != "cover"}, snap["cover"])
-                    done.append((p, before, after))
-                    res.count += 1
-                except Exception as e:  # noqa: BLE001
-                    res.errors.append((p, str(e)))
-            res.tag_changes = done
-            return res
-
-        def finished(job):
-            done = getattr(job.result, "tag_changes", None)
-            if not done:
-                return
-            if redo:
-                self._push_undo(("tags", done), keep_redo=True)
-            else:
-                self.redo_stack.append(("tags", done))
-                self._update_undo_actions()
-        self._run(tr("Étiquettes"), work, on_done=finished)
-
-    def _photo_steps(self, entry, redo: bool):
-        """Annuler / rétablir « Métadonnées des photos » : chaque photo reprend sa version d'avant (ou
-        d'après), gardée dans le cache. Seules les photos remises passent dans l'autre pile."""
-        from ..backend import photometa
-        items = entry[1]
-
-        def work(job):
-            res = fileops.Result("photo")
-            res.count = 0
-            done = []
-            for p, before, after in items:
+            for p, before, after, stamp in items:
                 job.check_cancel()
                 src = after if redo else before
                 try:
                     if not src or not os.path.exists(src):
                         raise OSError(2, tr("Version gardée introuvable"))
-                    photometa.restore(src, p)
-                    done.append((p, before, after))
+                    # état noté juste après notre écriture (pas celui de la sauvegarde « après » : c'est un
+                    # lien dur vers le fichier, une modification sur place par un autre programme la suivrait)
+                    if keep.Backups.stamp(p)[:2] != tuple(stamp)[:2]:
+                        raise OSError(0, tr("Modifié depuis : laissé tel quel"))
+                    keep.restore(src, p)
+                    done.append((p, before, after, keep.Backups.stamp(p)))
                     res.count += 1
                 except OSError as e:
                     res.errors.append((p, e.strerror or str(e)))
-            res.photo_changes = done
+            res.kept = done
             return res
 
         def finished(job):
-            done = getattr(job.result, "photo_changes", None)
+            done = getattr(job.result, "kept", None)
             if not done:
                 return
             if redo:
-                self._push_undo(("photo-meta", done), keep_redo=True)
+                self._push_undo((kind, done), keep_redo=True)
             else:
-                self.redo_stack.append(("photo-meta", done))
+                self.redo_stack.append((kind, done))
                 self._update_undo_actions()
-        self._run(tr("Métadonnées des photos"), work, on_done=finished)
+        self._run(tr("Étiquettes") if kind == "tags" else tr("Métadonnées des photos"), work, on_done=finished)
 
     def redo(self):
         """Refait la dernière opération annulée."""
@@ -1102,10 +1101,8 @@ class FileActions:
         entry = self.redo_stack.pop()
         self._update_undo_actions()
         kind = entry[0]
-        if kind == "tags":
-            self._tag_steps(entry, redo=True)
-        elif kind == "photo-meta":
-            self._photo_steps(entry, redo=True)
+        if kind in ("tags", "photo-meta"):
+            self._keep_steps(entry, redo=True)
         elif kind == "batch-rename":
             self._batch_rename_steps(entry[1], redo=True)
         elif kind == "rename":
@@ -1163,9 +1160,9 @@ class FileActions:
         self._update_undo_actions()
         kind = entry[0]
         if kind in ("tags", "photo-meta"):
-            self.redo_stack.pop()                   # remis par _tag_steps / _photo_steps
+            self.redo_stack.pop()                   # remis par _keep_steps
             self._update_undo_actions()
-            (self._tag_steps if kind == "tags" else self._photo_steps)(entry, redo=False)
+            self._keep_steps(entry, redo=False)
         elif kind == "batch-rename":
             self.redo_stack.pop()                   # remis par _batch_rename_steps si tout s'est passé
             self._update_undo_actions()
