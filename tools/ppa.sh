@@ -20,6 +20,14 @@ if [ -n "$(git status --porcelain)" ]; then
     echo "Des modifications ne sont pas commitées : le paquet doit correspondre au dépôt."
     exit 1
 fi
+# Un « à » (octets C3 A0) en FIN de ligne du changelog : sur resolute, l'octet A0 est pris pour une espace
+# et coupé, le champ « Changes » devient de l'UTF-8 invalide et Launchpad plante à la réception
+# (« Failed to upload », OOPS — vu sur Odysseus 2.0.1). Remettre « à » au début de la ligne suivante.
+if LC_ALL=C grep -n "$(printf '\240')\$" debian/changelog; then
+    echo "debian/changelog : ligne(s) ci-dessus finissant par « à » (ou un autre caractère en ...A0) :"
+    echo "passer ce caractère au début de la ligne suivante, sinon Launchpad refuse le paquet resolute."
+    exit 1
+fi
 VERSION=$(dpkg-parsechangelog -S Version)
 DIST=$(dpkg-parsechangelog -S Distribution)
 if [ "$DIST" = "UNRELEASED" ]; then

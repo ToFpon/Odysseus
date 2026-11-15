@@ -20,6 +20,9 @@ Gestionnaire de fichiers GTK4 / libadwaita en Python, look Nautilus, intégrant 
   (pas tout essayé).
   PPA : `tools/ppa.sh` envoie la même entrée du changelog pour noble (24.04) puis resolute (26.04,
   version « X~resolute1 », réécrite dans une copie) ; le changelog du dépôt ne vise que noble.
+  Jamais de « à » en FIN de ligne du changelog (octets C3 A0) : sur resolute, A0 est pris pour une espace
+  et coupé, « Changes » devient de l'UTF-8 invalide et Launchpad plante (« Failed to upload », OOPS, sans
+  autre message — Odysseus 2.0.1, deux relances, une resolute2). `tools/ppa.sh` refuse d'envoyer dans ce cas.
   Commit « Version X » poussé sur main (debian/changelog change) : `.github/workflows/release-deb.yml` construit le
   .deb sur ubuntu-24.04 (version « X~deb1 », plus ancienne que « X~noble1 » : le PPA prend le relais) et le
   publie dans les Releases (`odysseus_X_all.deb`, notes en anglais tirées de la fiche AppStream). Aussi
