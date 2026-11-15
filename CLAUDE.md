@@ -331,6 +331,9 @@ fenêtre de recherche dans le contenu.
 - Nom du processus : `app._process_name` (prctl PR_SET_NAME) → « odysseus » dans le Moniteur
   système, `ps`, `killall` (sinon « python3 », le lanceur étant `python3 -c …`). WM_CLASS :
   `GLib.set_prgname(APP_ID)`.
+- Fenêtre fermée maximisée (ou plein écran) : rouverte maximisée (`window_maximized`, comme Nautilus), `maximize()`
+  avant l'affichage ; `window_width` / `height` = `get_default_size()`, la taille d'AVANT la maximisation (GTK 4),
+  rendue par « Restaurer ». L'hôte caché des Propriétés ne touche pas au réglage. Remarque d'un utilisateur.
 - « Ouvrir Odysseus sur » (Préférences → Général → Comportement, idée de Tof ; `ui/startup.py`) : dossier
   personnel (défaut, comme Nautilus), dernier emplacement, dossier choisi (`startup_location` / `startup_folder`).
   Seulement pour une fenêtre ouverte SANS dossier précis (`app._new_window(location=None)` : dock, menu,

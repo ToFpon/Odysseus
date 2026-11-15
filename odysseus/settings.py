@@ -31,6 +31,7 @@ DEFAULTS: dict[str, Any] = {
     # Fenêtre
     "window_width": 1180,
     "window_height": 760,
+    "window_maximized": False,      # fermée maximisée : rouverte maximisée (comme Nautilus)
     "sidebar_visible": True,
     "preview_visible": False,
     "preview_width": 340,

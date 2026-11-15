@@ -38,6 +38,8 @@ class MainWindow(FileActions, ArchiveActions, ToolActions, Adw.ApplicationWindow
         super().__init__(application=app, title=APP_NAME,
                          default_width=settings["window_width"], default_height=settings["window_height"],
                          width_request=360, height_request=360)
+        if settings["window_maximized"]:
+            self.maximize()             # avant l'affichage : la fenêtre s'ouvre directement maximisée
         self.add_css_class("odysseus-window")
         self.undo_stack: list = []
         self.redo_stack: list = []
@@ -649,8 +651,11 @@ class MainWindow(FileActions, ArchiveActions, ToolActions, Adw.ApplicationWindow
                 p.focus_view()
 
     def _on_close(self, *_):
+        # taille par défaut = celle d'avant la maximisation (GTK 4) : on la garde pour la restauration
         w, h = self.get_default_size()
         settings.data["window_width"], settings.data["window_height"] = w, h
+        if self.get_visible():          # (pas l'hôte caché des Propriétés, jamais maximisé)
+            settings.data["window_maximized"] = self.is_maximized() or self.is_fullscreen()
         settings.data["sidebar_visible"] = self.split.get_show_sidebar()
         ws = self.workspace
         settings.data["dual_panel"] = bool(ws and ws.dual)
