@@ -1,3 +1,13 @@
+odysseus (2.0.1~noble1) noble; urgency=medium
+
+  * Google Drive / OneDrive : la copie d'un dossier montre sa vraie
+    progression (fichiers et octets, « nom (12 / 70) ») au lieu de rester à
+    0 % jusqu'à la fin, et va un peu plus vite.
+  * La marque « copié » / « coupé » à côté du nom apparaît aussi sur les
+    éléments de Google Drive et OneDrive.
+
+ -- Tof <nourpon@gmail.com>  Sun, 15 Nov 2026 06:28:46 +0000
+
 odysseus (2.0.0~noble1) noble; urgency=medium
 
   * Version majeure.
