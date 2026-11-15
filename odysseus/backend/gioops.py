@@ -92,6 +92,14 @@ FILE_WEIGHT = 256 * 1024     # chaque fichier « pèse » aussi ceci dans la pro
 SCAN_ATTRS = "standard::name,standard::display-name,standard::type,standard::size"
 
 
+def _size(info: Gio.FileInfo) -> int:
+    """Taille, 0 si l'emplacement ne la donne pas : Google Drive n'en a pas pour les dossiers, et
+    get_size() sur un attribut absent écrit un CRITICAL de GIO (vu chez Tof)."""
+    if info.has_attribute("standard::size"):
+        return info.get_attribute_uint64("standard::size")
+    return 0
+
+
 class _Progress:
     """Avancement d'une copie par GIO : fichiers et octets, recensés d'abord (comme Nautilus). Avant, la
     barre n'avançait qu'à chaque élément du haut : un seul dossier = 0 % jusqu'à la fin (retour de Tof,
@@ -156,11 +164,11 @@ def _scan(job: Job, src: Gio.File, is_dir: bool, size: int, prog: _Progress, err
                     name = info.get_attribute_string("standard::display-name") or name
                 child = folder.get_child(info.get_name())
                 child_dir = info.get_file_type() == Gio.FileType.DIRECTORY
-                out.append((child, rel + (name,), child_dir, info.get_size()))
+                out.append((child, rel + (name,), child_dir, _size(info)))
                 if child_dir:
                     pending.append((child, rel + (name,)))
                 else:
-                    prog.add(info.get_size())
+                    prog.add(_size(info))
         finally:
             en.close(None)
     return out
@@ -173,7 +181,7 @@ def _copy_tree(job: Job, src: Gio.File, dst: Gio.File, errors: Optional[list] = 
     prog = prog or _Progress(job)
     if info is None:
         info = src.query_info("standard::type,standard::size", Gio.FileQueryInfoFlags.NOFOLLOW_SYMLINKS, None)
-    entries = _scan(job, src, info.get_file_type() == Gio.FileType.DIRECTORY, info.get_size(), prog, errors)
+    entries = _scan(job, src, info.get_file_type() == Gio.FileType.DIRECTORY, _size(info), prog, errors)
     _copy_entries(job, src, dst, entries, errors, prog)
 
 
@@ -272,7 +280,7 @@ def _copy_all(job: Job, sources: list[str], folder: Gio.File, prog: _Progress, r
             info = src.query_info("standard::display-name,standard::type,standard::size",
                                   Gio.FileQueryInfoFlags.NOFOLLOW_SYMLINKS, None)
             missed: list = []
-            entries = _scan(job, src, info.get_file_type() == Gio.FileType.DIRECTORY, info.get_size(),
+            entries = _scan(job, src, info.get_file_type() == Gio.FileType.DIRECTORY, _size(info),
                             prog, missed)
             planned.append((s, src, info, entries, missed))
         except GLib.Error as e:

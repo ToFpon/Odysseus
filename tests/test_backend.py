@@ -1048,6 +1048,15 @@ class NetAuditTest(unittest.TestCase):
             self.assertEqual(seen, sorted(seen))
             self.assertTrue(any(st.endswith("(35 / 70)") for st in statuses), statuses[-5:])
 
+    def test_size_missing(self):
+        """Google Drive ne donne pas de taille aux dossiers : 0, sans CRITICAL de GIO."""
+        from odysseus.backend import gioops
+        info = Gio.FileInfo()
+        info.set_file_type(Gio.FileType.DIRECTORY)
+        self.assertEqual(gioops._size(info), 0)
+        info.set_size(1234)
+        self.assertEqual(gioops._size(info), 1234)
+
     def test_cancel_midway(self):
         from odysseus.backend import gioops
         with tempfile.TemporaryDirectory() as d:
