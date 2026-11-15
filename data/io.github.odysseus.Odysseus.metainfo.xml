@@ -70,6 +70,13 @@
   </requires>
   <content_rating type="oars-1.1"/>
   <releases>
+    <release version="2.0.2" date="2026-11-15">
+      <description>
+        <ul>
+          <li>A window closed while maximized now reopens maximized; “Restore” still gives back its previous size</li>
+        </ul>
+      </description>
+    </release>
     <release version="2.0.1" date="2026-11-15">
       <description>
         <ul>

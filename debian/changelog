@@ -1,3 +1,10 @@
+odysseus (2.0.2~noble1) noble; urgency=medium
+
+  * Une fenêtre fermée maximisée se rouvre maximisée, comme Nautilus
+    (« Restaurer » rend toujours la taille d'avant).
+
+ -- Tof <nourpon@gmail.com>  Sun, 15 Nov 2026 19:05:29 +0000
+
 odysseus (2.0.1~noble1) noble; urgency=medium
 
   * Google Drive / OneDrive : la copie d'un dossier montre sa vraie
