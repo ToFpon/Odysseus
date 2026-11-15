@@ -142,7 +142,7 @@ class MillerColumn(Gtk.Box):
                 dim_all = 0.55
             else:
                 dim_icon = 0.35
-        if features.enabled("cut_dim") and clipboard.state.is_cut(rec.path):
+        if features.enabled("cut_dim") and clipboard.state.is_cut(rec.path or rec.uri):
             dim_all = 0.5
         img.set_opacity(dim_icon)
         box.set_opacity(dim_all)

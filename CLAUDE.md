@@ -673,6 +673,12 @@ fenêtre de recherche dans le contenu.
   rempli par les lectures, parents interrogés dans le fil) ; `location-changed` réémis à la fin de la
   lecture. Glisser : URI (`drag_paths`), dépôts par `common.drop_locations` → `drop_files` passe par
   `gioops.transfer` dès qu'une URI est en jeu. Testé : `GioOnlyTest` (montage simulé : pas de compte ici).
+  Copie par GIO (Drive → disque, retour de Tof : dossier de 70 petits fichiers, barre à 0 % jusqu'à la fin) :
+  tout est recensé d'abord (`gioops._scan`, type et taille tirés de l'énumération : plus de requête par
+  fichier, chacune était un aller-retour vers Google), puis copié avec une vraie progression (`_Progress` :
+  octets + 256 Ko par fichier, « nom (12 / 70) », jamais en arrière, annulation par Gio.Cancellable dans le
+  rappel de progression). Marque « copié » / « coupé » à côté du nom : cherchée par `rec.path or rec.uri`
+  (les éléments Drive n'ont que l'URI). Testé : `test_progress_single_folder`, `test_cancel_midway`.
 - Lien cassé (cible absente) comme Nautilus : seul le `lstat` répond → `scanner.apply_stat` lui donne le
   type `inode/symlink` (`BROKEN_LINK`, celui de GIO), `Rec.is_broken_link`, libellé « Lien (brisé) »
   (`type_description`), icône des liens ; Propriétés : dates du lien, pas d'« Ouvrir avec » ; ouvert :

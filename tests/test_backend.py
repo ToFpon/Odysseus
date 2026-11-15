@@ -1024,6 +1024,46 @@ class NetAuditTest(unittest.TestCase):
             self.assertTrue(res.errors[0][0].endswith("m-fifo"))
             self.assertEqual(sorted(os.listdir(os.path.join(dest, "src"))), ["a.txt", "z.txt"])
 
+    def test_progress_single_folder(self):
+        """Un seul dossier de 70 petits fichiers (retour de Tof, Google Drive) : la barre avance pendant la
+        copie, sans jamais reculer, au lieu de rester à 0 % jusqu'à la fin."""
+        from odysseus.backend import gioops
+        with tempfile.TemporaryDirectory() as d:
+            src = os.path.join(d, "gtk-4.0")
+            os.makedirs(os.path.join(src, "assets"))
+            for i in range(70):
+                with open(os.path.join(src, "assets" if i else "", f"f{i}.png"), "wb") as f:
+                    f.write(os.urandom(4000))
+            dest = os.path.join(d, "dest")
+            os.makedirs(dest)
+            seen = []
+            j = Job("t", lambda j: gioops.transfer(j, [src], dest))
+            statuses = []
+            j.subscribe(lambda job: (seen.append(job.fraction), statuses.append(job.status)))
+            j.run_sync()
+            self.assertEqual(j.state, "done", j.error)
+            self.assertEqual(len(os.listdir(os.path.join(dest, "gtk-4.0", "assets"))), 69)
+            middle = [f for f in seen if 0.1 < f < 0.9]
+            self.assertGreater(len(middle), 10, seen)
+            self.assertEqual(seen, sorted(seen))
+            self.assertTrue(any(st.endswith("(35 / 70)") for st in statuses), statuses[-5:])
+
+    def test_cancel_midway(self):
+        from odysseus.backend import gioops
+        with tempfile.TemporaryDirectory() as d:
+            src = os.path.join(d, "src")
+            os.makedirs(src)
+            for i in range(40):
+                with open(os.path.join(src, f"f{i}"), "wb") as f:
+                    f.write(b"x" * 1000)
+            dest = os.path.join(d, "dest")
+            os.makedirs(dest)
+            j = Job("t", lambda j: gioops.transfer(j, [src], dest))
+            j.subscribe(lambda job: job.fraction > 0.3 and job.cancel())
+            j.run_sync()
+            self.assertEqual(j.state, "cancelled")
+            self.assertLess(len(os.listdir(os.path.join(dest, "src"))), 40)
+
     def test_clipboard_drive(self):
         import gi
         gi.require_version("Gdk", "4.0")

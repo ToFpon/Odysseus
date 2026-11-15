@@ -233,7 +233,7 @@ class _CellMixin:
         est activée, pour ne pas décaler les noms sinon."""
         on = features.enabled("copy_mark")
         mark.set_visible(on)
-        if on and clipboard.state.is_copied(rec.path):
+        if on and clipboard.state.is_copied(rec.path or rec.uri):
             mark.add_css_class("copied")
         else:
             mark.remove_css_class("copied")
@@ -245,7 +245,7 @@ class _CellMixin:
                 dim_all = 0.55
             else:
                 dim_icon = 0.35
-        if features.enabled("cut_dim") and clipboard.state.is_cut(rec.path):
+        if features.enabled("cut_dim") and clipboard.state.is_cut(rec.path or rec.uri):
             dim_all = min(dim_all, 0.5)
         image.set_opacity(dim_icon)
         box.set_opacity(dim_all)
@@ -668,7 +668,7 @@ class ListView(Gtk.ScrolledWindow, _CellMixin):
 
         def fill():
             lbl.set_text(shown(cell_text(key, entry.rec, self.pane)))
-            lbl.set_opacity(0.5 if (features.enabled("cut_dim") and clipboard.state.is_cut(entry.rec.path)) else 1.0)
+            lbl.set_opacity(0.5 if (features.enabled("cut_dim") and clipboard.state.is_cut(entry.rec.path or entry.rec.uri)) else 1.0)
         self._track(lbl, entry, fill)
         fill()
 
