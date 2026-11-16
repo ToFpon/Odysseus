@@ -632,6 +632,13 @@ fenêtre de recherche dans le contenu.
   (`flatpak document-export --app=ID -r`, `mail.export_to_flatpak`), l'URI donnée est celle de
   /run/user/UID/doc/…. Testé : `MailFlatpakTest` (faux flatpak). Proton Mail (application de bureau) :
   n'accepte aucune pièce jointe venue d'une autre application (comme depuis Nautilus) — rien à faire.
+- Programme exécutable au double-clic (retour d'un utilisateur : « comme dans Nautilus ») : un BINAIRE (ELF,
+  AppImage ; `BINARY_TYPES`, PIE compris : application/x-pie-executable que GLib ne dit pas exécutable) avec
+  le bit x est lancé directement, sans terminal, depuis son dossier (`launches_directly` → `launch_program`),
+  comme Nautilus 46 ; un script texte exécutable s'ouvre dans l'éditeur (« Exécuter comme un programme » le
+  lance dans un terminal). Programme sans extension (« octet-stream » d'après le nom) : 4 Ko lus au double-clic,
+  disque local seulement (jamais sur le réseau depuis le fil principal) ; le menu, lui, reste sans accès
+  disque (`can_run` accepte un type inconnu). Testé : `executer_comme_programme` d'ui_smoke.
 - Application par défaut au double-clic : « doit accepter les URI » seulement si le fichier n'a pas de
   chemin local (`f.get_path() is None`, comme Nautilus) — un smb:// a son chemin FUSE ; avec
   `not is_native()`, TextMaker (%F) était écarté sur le NAS au profit de LibreOffice (%U).

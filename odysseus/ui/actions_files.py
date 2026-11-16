@@ -51,11 +51,47 @@ def terminal_command(term: str, command: list) -> list:
     return argv + ["-e"] + command          # x-terminal-emulator (Debian / Ubuntu), xterm, konsole, tilix…
 
 
+# Programmes binaires : lancés directement au double-clic, comme Nautilus 46 (un script texte, lui, s'ouvre
+# dans l'éditeur ; « Exécuter comme un programme » le lance). Les exécutables « PIE » d'aujourd'hui sont
+# application/x-pie-executable (ou x-sharedlib dans les vieilles bases MIME), que GLib ne dit pas
+# « exécutables » : ils sont comptés quand même.
+BINARY_TYPES = ("application/x-executable", "application/x-pie-executable", "application/x-sharedlib",
+                "application/vnd.appimage", "application/x-appimage")
+
+
+def _is_binary_type(ctype: str) -> bool:
+    return any(Gio.content_type_is_a(ctype, t) for t in BINARY_TYPES) and not Gio.content_type_is_a(ctype, "text/plain")
+
+
 def can_run(rec) -> bool:
-    """Comme Nautilus : script ou programme exécutable (pas un .desktop, lancé autrement)."""
-    return bool(rec is not None and rec.path and not rec.is_dir and rec.is_executable
-                and not rec.name.endswith(".desktop")
-                and Gio.content_type_can_be_executable(rec.content_type))
+    """Comme Nautilus : script ou programme exécutable (pas un .desktop, lancé autrement). D'après le nom
+    seulement (aucun accès disque dans le menu) : un exécutable au type inconnu (programme sans extension,
+    vu comme « octet-stream ») est compté."""
+    if not (rec is not None and rec.path and not rec.is_dir and rec.is_executable
+            and not rec.name.endswith(".desktop")):
+        return False
+    ctype = rec.content_type
+    return bool(Gio.content_type_can_be_executable(ctype) or _is_binary_type(ctype)
+                or Gio.content_type_is_unknown(ctype))
+
+
+def launches_directly(rec) -> bool:
+    """Double-clic : programme binaire exécutable (ELF, AppImage), lancé directement comme dans Nautilus 46
+    (retour d'un utilisateur). Programme sans extension : type lu dans le contenu (4 Ko), seulement sur un
+    disque local — aucun appel système sur un chemin réseau depuis le fil principal."""
+    if not can_run(rec) or fsinfo.is_network(rec.path):
+        return False
+    ctype = rec.content_type
+    if _is_binary_type(ctype):
+        return True
+    if not Gio.content_type_is_unknown(ctype):
+        return False                    # script texte, document… : l'application par défaut
+    try:
+        with open(rec.path, "rb") as fh:
+            data = fh.read(4096)
+    except OSError:
+        return False
+    return _is_binary_type(Gio.content_type_guess(rec.name, data)[0] or "")
 
 
 def find_editor() -> Optional[str]:
@@ -205,6 +241,10 @@ class FileActions:
         if len(recs) == 1 and activate:
             self._on_activated(self.pane, recs[0])
             return
+        if activate:                     # programmes de la sélection : lancés, chacun le sien
+            for r in [r for r in recs if launches_directly(r)]:
+                self.launch_program(r)
+                recs = [x for x in recs if x is not r]
         broken = [r for r in recs if r.is_broken_link]
         if broken:                       # comme Nautilus : le lien cassé est signalé, le reste s'ouvre
             self.report_broken_link(broken[0])
@@ -235,7 +275,18 @@ class FileActions:
         if features.enabled("archives") and formats.looks_like_archive(rec.name):
             self.browse_archive_path(path, pane)
             return
+        if launches_directly(rec):
+            self.launch_program(rec)
+            return
         open_with_default(self, path)
+
+    def launch_program(self, rec):
+        """Programme lancé comme le fait Nautilus : sans terminal, depuis son dossier, détaché d'Odysseus."""
+        try:
+            subprocess.Popen([rec.path], cwd=os.path.dirname(rec.path), start_new_session=True,
+                             stdin=subprocess.DEVNULL, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+        except OSError as e:
+            alert(self, tr("Impossible de lancer « {0} »").format(rec.name), e.strerror or str(e))
 
     def report_broken_link(self, rec):
         """Lien cassé ouvert : comme Nautilus (report_broken_symbolic_link), proposer la corbeille."""

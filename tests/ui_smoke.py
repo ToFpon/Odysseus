@@ -2411,6 +2411,28 @@ def executer_comme_programme(win):
     p.model.select_names(["notes.sh"])
     yield pump(0.2)
     check(tr("Exécuter comme un programme") not in labels(), "pas pour un script non exécutable")
+    # double-clic sur un programme binaire (ELF sans extension, AppImage) : lancé directement, comme Nautilus 46 ;
+    # un script exécutable, lui, s'ouvre dans l'éditeur (application par défaut)
+    shutil.copy("/bin/true", os.path.join(base, "mon programme"))
+    shutil.copy("/bin/true", os.path.join(base, "Outil.AppImage"))
+    shutil.copy("/bin/true", os.path.join(base, "pas exécutable"))
+    os.chmod(os.path.join(base, "pas exécutable"), 0o644)
+    p.reload() if hasattr(p, "reload") else p.open(base)
+    yield Wait(5, until=lambda: not p.model.loading and any(r.name == "Outil.AppImage" for r in p.model.items))
+    launched, opened = [], []
+    real_popen, real_open = af.subprocess.Popen, af.open_with_default
+    af.subprocess.Popen = lambda argv, **kw: launched.append((argv, kw))
+    af.open_with_default = lambda parent, path, *a, **k: opened.append(path)
+    try:
+        for name in ("mon programme", "Outil.AppImage", "mon script.sh", "pas exécutable"):
+            win._on_activated(p, [r for r in p.model.items if r.name == name][0])
+    finally:
+        af.subprocess.Popen, af.open_with_default = real_popen, real_open
+    progs = [argv[0] for argv, _kw in launched]
+    check(progs == [os.path.join(base, "mon programme"), os.path.join(base, "Outil.AppImage")]
+          and all(kw.get("cwd") == base for _a, kw in launched), f"double-clic : programmes lancés ({progs})")
+    check(opened == [script, os.path.join(base, "pas exécutable")],
+          f"script exécutable et fichier non exécutable : application par défaut ({opened})")
     p.open(D)
     yield Wait(5, until=lambda: not p.model.loading)
 
