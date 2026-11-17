@@ -165,10 +165,40 @@ def repaint_parent_on_close(win: Gtk.Window):
         parent = win.get_transient_for()
         if parent is None:
             return False
-        for delay in (0, 250):
-            GLib.timeout_add(delay, lambda p=parent: (p.get_mapped() and p.queue_draw(), False)[1])
+        # 0 et 250 ms ne suffisaient pas toujours (encore vu chez Tof, plus rarement) : l'animation de
+        # fermeture du gestionnaire de fenêtres peut durer plus longtemps
+        for delay in (0, 250, 700, 1500):
+            GLib.timeout_add(delay, lambda p=parent: (force_redraw(p), False)[1])
         return False
     win.connect("unmap", repaint)
+
+
+def force_redraw(win: Gtk.Window):
+    """Fenêtre réellement redessinée en entier. queue_draw() ne suffit pas : GTK 4 compare la nouvelle image
+    à la précédente (diff des nœuds de rendu) et ne renvoie au compositeur que ce qui a CHANGÉ — rien, si la
+    liste n'a pas bougé : l'image fantôme de la boîte fermée restait. Le contenu passe une image à une opacité
+    de 254/255 (invisible ; GTK garde l'opacité sur 255 niveaux, 0,999 était arrondi à 1 et ne changeait rien)
+    puis revient : deux images différentes, toute la fenêtre est renvoyée."""
+    if not win.get_mapped() or getattr(win, "_odysseus_nudged", False):
+        return
+    nudged = []
+    child = win.get_first_child()
+    while child is not None:
+        if child.get_opacity() == 1.0:
+            child.set_opacity(254 / 255)
+            nudged.append(child)
+        child = child.get_next_sibling()
+    if not nudged:
+        win.queue_draw()
+        return
+    win._odysseus_nudged = True
+
+    def restore():
+        for c in nudged:
+            c.set_opacity(1.0)
+        win._odysseus_nudged = False
+        return False
+    GLib.timeout_add(60, restore)
 
 
 class DialogWindow(Adw.Window):

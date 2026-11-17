@@ -39,7 +39,10 @@ Gestionnaire de fichiers GTK4 / libadwaita en Python, look Nautilus, intégrant 
   Boîte fermée / fenêtre cachée (AlertDialog, DialogWindow, ProgressWindow) : `common.repaint_parent_on_close`
   — la fenêtre de dessous est redessinée (tout de suite et 250 ms après) ; avec un thème transparent / flouté
   (X11, Zorin de Tof), l'image de la question fermée restait par-dessus la liste après « Fusionner », en fin
-  d'opération. Validé chez Tof : une dizaine d'essais, plus de fantôme.
+  d'opération. Validé chez Tof : une dizaine d'essais, plus de fantôme. Revu ensuite (plus rare, toujours là) :
+  `queue_draw()` ne suffit pas, GTK 4 ne renvoie au compositeur que ce qui a CHANGÉ (diff des nœuds de rendu)
+  → `common.force_redraw` : contenu à l'opacité 254/255 une image puis 1 (0,999 est arrondi à 1 : GTK garde
+  l'opacité sur 255 niveaux), à 0, 250, 700 et 1500 ms.
   Question de conflit : nom du dossier, pas le chemin complet (comme Nautilus).
 - Barre latérale : l'emplacement courant y est sélectionné ; jamais de bouton d'éjection pour les
   disques fstab ou internes (mêmes règles que Nautilus).
