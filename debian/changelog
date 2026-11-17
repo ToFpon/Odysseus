@@ -1,3 +1,12 @@
+odysseus (2.0.5~noble1) noble; urgency=medium
+
+  * Téléphones et appareils photo (MTP, PTP, iPhone) : la fenêtre ne se
+    fige plus en ouvrant un dossier plein de photos, comme DCIM. Le contenu
+    des sous-dossiers n'y est plus compté, et la vue est relue après
+    chaque opération.
+
+ -- Tof <nourpon@gmail.com>  Tue, 17 Nov 2026 20:52:41 +0000
+
 odysseus (2.0.4~noble1) noble; urgency=medium
 
   * Correction : après « Fusionner » ou « Remplacer », une image de la

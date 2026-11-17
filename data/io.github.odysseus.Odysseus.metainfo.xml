@@ -70,6 +70,13 @@
   </requires>
   <content_rating type="oars-1.1"/>
   <releases>
+    <release version="2.0.5" date="2026-11-17">
+      <description>
+        <ul>
+          <li>Phones and cameras (MTP, PTP, iPhone): the window no longer freezes when opening a folder with many photos, such as DCIM; folder sizes are not counted on these devices, and the view is refreshed after each operation</li>
+        </ul>
+      </description>
+    </release>
     <release version="2.0.4" date="2026-11-17">
       <description>
         <ul>
