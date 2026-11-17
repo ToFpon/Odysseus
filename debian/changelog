@@ -1,3 +1,12 @@
+odysseus (2.0.4~noble1) noble; urgency=medium
+
+  * Correction : après « Fusionner » ou « Remplacer », une image de la
+    question pouvait rester par-dessus la liste des fichiers (thème
+    transparent). La fenêtre de progression attend maintenant la fin de
+    l'animation de fermeture avant de revenir.
+
+ -- Tof <nourpon@gmail.com>  Tue, 17 Nov 2026 06:35:00 +0000
+
 odysseus (2.0.3~noble1) noble; urgency=medium
 
   * Double-clic sur un programme (exécutable binaire ou AppImage) : il se
