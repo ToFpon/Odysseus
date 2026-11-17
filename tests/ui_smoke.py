@@ -1654,6 +1654,32 @@ def dialogues_fenetres(win):
     check(replies == ["skip"], f"réponse transmise ({replies})")
     pw.set_visible(False)
 
+    # opération en cours : la fenêtre de progression ne revient qu'après l'animation de fermeture de la
+    # question (présentée dans le même instant, le gestionnaire de fenêtres gardait une image de la question
+    # à moitié repliée par-dessus la liste, vu chez Tof après « Fusionner »)
+    import threading
+    from odysseus.ui.jobs import RESHOW_AFTER_QUESTION_MS, manager
+    gate = threading.Event()
+    job = manager.submit("essai", lambda j: gate.wait(20))
+    job.file_operation = True
+    job.progress_shown = True
+    yield pump(0.2)
+    before = list(Gtk.Window.list_toplevels())
+    type(win)._conflict_dialog(win, c, lambda r, a: replies.append(r))
+    yield pump(0.4)
+    q = [w for w in opened(before) if w is not pw]
+    check(len(q) == 1 and not pw.get_visible(), "opération en cours : progression effacée pendant la question")
+    for w in q:
+        w.response("skip")
+    yield pump(0.1)
+    check(not pw.get_visible(), "question fermée : progression pas remontrée dans le même instant")
+    yield pump(RESHOW_AFTER_QUESTION_MS / 1000 + 0.4)
+    check(pw.get_visible(), "puis remontrée, l'animation de fermeture passée")
+    gate.set()
+    yield Wait(5, until=lambda: job.state == "done")
+    yield pump(0.3)
+    check(not pw.get_visible(), "opération finie : progression cachée")
+
 
 @step
 def grille_noms_dans_la_case(win):

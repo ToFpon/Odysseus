@@ -70,6 +70,9 @@ class JobManager(GObject.Object):
 
 manager = JobManager()
 
+# fenêtre de progression remontrée après une question : animation de fermeture finie (GNOME ~250 ms)
+RESHOW_AFTER_QUESTION_MS = 600
+
 STATE_ICONS = {
     "pending": "content-loading-symbolic",
     "running": "media-playback-start-symbolic",
@@ -313,6 +316,7 @@ class ProgressWindow(Adw.Window):
         self.set_content(tv)
         self.rows: dict[int, JobRow] = {}
         self._questions = 0          # questions (conflit…) ouvertes : la fenêtre s'efface devant elles
+        self._reshow = 0
         manager.connect("changed", lambda *_: self.refresh())
 
     def question_opened(self):
@@ -321,11 +325,22 @@ class ProgressWindow(Adw.Window):
         self.set_visible(False)
 
     def question_closed(self):
+        """Remontrée seulement une fois l'animation de fermeture de la question finie. Présentée dans le même
+        instant (la réponse arrive AVANT la fermeture), puis souvent recachée aussitôt (une fusion va vite),
+        elle laissait le gestionnaire de fenêtres bloqué sur une image de la question à moitié repliée par-
+        dessus la liste (vu chez Tof, surtout après « Fusionner », thème transparent sous X11)."""
         self._questions = max(self._questions - 1, 0)
+        if self._reshow:
+            GLib.source_remove(self._reshow)
+        self._reshow = GLib.timeout_add(RESHOW_AFTER_QUESTION_MS, self._reshow_after_question)
+
+    def _reshow_after_question(self):
+        self._reshow = 0
         if not self._questions and any(getattr(j, "file_operation", False) and
                                        getattr(j, "progress_shown", False) for j in manager.running):
             self.refresh()
             self.present()
+        return False
 
     def _fit(self):
         """Hauteur ajustée au nombre d'opérations (jusqu'à 520 px, puis défilement). GTK garde la

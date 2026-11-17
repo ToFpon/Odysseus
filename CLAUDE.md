@@ -42,7 +42,12 @@ Gestionnaire de fichiers GTK4 / libadwaita en Python, look Nautilus, intégrant 
   d'opération. Validé chez Tof : une dizaine d'essais, plus de fantôme. Revu ensuite (plus rare, toujours là) :
   `queue_draw()` ne suffit pas, GTK 4 ne renvoie au compositeur que ce qui a CHANGÉ (diff des nœuds de rendu)
   → `common.force_redraw` : contenu à l'opacité 254/255 une image puis 1 (0,999 est arrondi à 1 : GTK garde
-  l'opacité sur 255 niveaux), à 0, 250, 700 et 1500 ms.
+  l'opacité sur 255 niveaux), à 0, 250, 700 et 1500 ms. Ça n'a PAS suffi : le fantôme est coupé en bas (bouton
+  « Fusionner » à moitié), c'est une image de l'ANIMATION de fermeture (la boîte rattachée se replie vers le haut)
+  restée sur l'écran du gestionnaire de fenêtres. Cause probable : la fenêtre de progression était présentée
+  dans le même instant (la réponse arrive avant la fermeture) puis souvent recachée aussitôt (fusion rapide).
+  `ProgressWindow.question_closed` la remontre après `RESHOW_AFTER_QUESTION_MS` (600 ms), si l'opération tourne
+  encore ; testé dans `dialogues_fenetres` d'ui_smoke.
   Question de conflit : nom du dossier, pas le chemin complet (comme Nautilus).
 - Barre latérale : l'emplacement courant y est sélectionné ; jamais de bouton d'éjection pour les
   disques fstab ou internes (mêmes règles que Nautilus).
