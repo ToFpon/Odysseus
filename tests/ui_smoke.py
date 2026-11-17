@@ -437,6 +437,44 @@ def dossier_bloque(win):
 
 
 @step
+def telephone_mtp(win):
+    """Téléphone en MTP (Pixel 7 d'un utilisateur : fenêtre figée en entrant dans DCIM) : l'appareil ne traite
+    qu'une demande à la fois. Ni surveillance (posée depuis le fil principal, elle attendait derrière le
+    comptage de DCIM/Camera) ni comptage des sous-dossiers. Imité : un dossier déclaré « téléphone »."""
+    from odysseus.backend import fsinfo
+    phone = os.path.join(TMP, "telephone-mtp")
+    os.makedirs(os.path.join(phone, "DCIM", "Camera"), exist_ok=True)
+    for i in range(3):
+        open(os.path.join(phone, "DCIM", "Camera", f"PXL_{i}.jpg"), "w").close()
+    saved = fsinfo.is_gvfs_device, fsinfo.is_network
+    fsinfo.is_gvfs_device = lambda path: bool(path) and path.startswith(phone)
+    fsinfo.is_network = lambda path: bool(path) and (path.startswith(phone) or saved[1](path))
+    p = win.pane
+    try:
+        p.open(os.path.join(phone, "DCIM"))
+        yield Wait(5, until=lambda: not p.model.loading)
+        yield pump(0.4)
+        cam = next((r for r in p.model.all if r.name == "Camera"), None)
+        check(cam is not None, "DCIM lu")
+        check(p.model._monitor is None, "téléphone : aucune surveillance posée (elle figeait la fenêtre)")
+        check(cam is not None and cam.get("count") == -1 and not cam.get("count_pending"),
+              "téléphone : Camera n'est pas compté (le téléphone reste libre)")
+        p.open(os.path.join(phone, "DCIM", "Camera"))
+        yield Wait(5, until=lambda: not p.model.loading)
+        check(len(p.model.all) == 3, "Camera s'ouvre")
+        win.run_transfer([os.path.join(D, "fichier 1.txt")], os.path.join(phone, "DCIM", "Camera"))
+        yield Wait(8, until=lambda: any(r.name == "fichier 1.txt" for r in p.model.all))
+        check(any(r.name == "fichier 1.txt" for r in p.model.all),
+              "copie vers le téléphone : le dossier est relu (pas de surveillance pour la voir)")
+    finally:
+        fsinfo.is_gvfs_device, fsinfo.is_network = saved
+    p.open(D)
+    yield Wait(5, until=lambda: not p.model.loading)
+    yield pump(0.3)
+    check(p.model._monitor is not None, "dossier local : surveillance toujours posée")
+
+
+@step
 def partage_gele(win):
     """Partage réseau qui ne répond plus (NAS éteint, Wi-Fi coupé) : Nautilus se fige. Imité par une
     vraie image FAT montée avec fusefat, processus FUSE gelé (SIGSTOP) : tout appel système sur ses

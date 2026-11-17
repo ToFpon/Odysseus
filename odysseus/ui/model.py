@@ -196,7 +196,12 @@ class DirModel(GObject.Object, Gio.ListModel):
         # disque réseau : la surveillance (inotify_add_watch) parcourt le chemin et bloque si le serveur
         # ne répond plus — vu sur un montage FUSE gelé. Posée une fois la lecture réussie (_loaded),
         # quand le serveur vient de répondre, jamais avant.
-        self._monitor_after_load = network
+        self._monitor_after_load = network and not fsinfo.is_gvfs_device(location)
+        # téléphone / appareil photo (MTP, PTP, iPhone) : jamais de surveillance. inotify sur leur chemin FUSE ne
+        # voit de toute façon aucun changement venu de l'appareil, et le poser interroge l'appareil, qui ne traite
+        # qu'UNE demande à la fois : derrière le comptage des milliers de photos de DCIM/Camera, le fil principal
+        # attendait — fenêtre figée, « Forcer à quitter ou attendre » (retour d'un utilisateur, Pixel 7). Nos
+        # propres copies relisent le dossier ; F5 aussi.
         if local and not network:
             self._start_monitor(location)
         elif not local:

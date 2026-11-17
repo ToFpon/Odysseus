@@ -563,6 +563,7 @@ class FileActions:
 
     def _run(self, title: str, func, refresh_dir: Optional[str] = None, on_done=None, undo=None):
         def done(job):
+            self._refresh_devices()      # même annulée ou en erreur : une partie a peut-être changé
             if job.state == "done":
                 res = job.result
                 pushed = False
@@ -779,6 +780,13 @@ class FileActions:
                       undo=lambda r: ("batch-rename", list(r.moved)) if r.moved else None)
         BatchRenameDialog(self, items, apply).present()
 
+    def _refresh_devices(self):
+        """Téléphone / appareil photo : pas de surveillance (voir DirModel.load) ; après nos propres opérations,
+        les panneaux qui en affichent un dossier sont relus (sélection gardée)."""
+        for p in self.all_panes():
+            if p.mode == "fs" and p.location and fsinfo.is_gvfs_device(p.location):
+                p.refresh()
+
     def new_folder(self):
         p = self.pane
         if p.mode == "archive":
@@ -805,6 +813,7 @@ class FileActions:
                 alert(self, tr("Création impossible"), getattr(e, "strerror", None) or str(e))
                 return
             self._push_undo(("create", [path]))
+            self._refresh_devices()
             GLib.timeout_add(300, lambda: (p.select_names([name]), False)[1])
         self.ask_name(tr("Nouveau dossier"), fileops.unique_name(folder, tr("Nouveau dossier"), True),
                       tr("Créer"), make, folder, select_stem=False)
@@ -835,6 +844,7 @@ class FileActions:
                 alert(self, tr("Création impossible"), getattr(e, "strerror", None) or str(e))
                 return
             self._push_undo(("create", [path]))
+            self._refresh_devices()
             GLib.timeout_add(300, lambda: (p.select_names([name]), False)[1])
         self.ask_name(tr("Nouveau document"), initial, tr("Créer"), make, folder)
 

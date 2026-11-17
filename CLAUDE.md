@@ -273,6 +273,16 @@ réseau, `_follow_moves` sans isdir, Courriel (`document-export` Flatpak) dans u
 smb://… ouvert par son URI (mode « remote » avec chemin FUSE) : Ctrl+V et dépôt dans ce chemin (avant : rien).
 Question « Supprimer définitivement » et erreurs : vrais noms Drive (`scanner.display_name`), pas les IDs.
 
+Téléphone / appareil photo (MTP, PTP, iPhone ; `fsinfo.is_gvfs_device`) : l'appareil ne traite qu'UNE demande à
+la fois. Retour d'un utilisateur (Pixel 7, Odysseus 2.0.4) : en entrant dans DCIM, fenêtre figée, « Forcer à
+quitter ou attendre » ; pas reproduit chez Tof (Pixel 8a, peu de photos). Cause trouvée : la surveillance
+(inotify sur le chemin FUSE) était posée DEPUIS LE FIL PRINCIPAL juste après la lecture, pendant que le comptage
+des sous-dossiers (Camera : des milliers de photos) occupait l'appareil → le fil principal attendait derrière.
+Maintenant : aucune surveillance sur ces appareils (inotify n'y voit de toute façon rien venu de l'appareil, ni
+nos copies faites par GIO), aucun comptage des sous-dossiers (case vide), et après chacune de nos opérations les
+panneaux qui affichent un appareil sont relus (`ActionsFiles._refresh_devices` : fin de `_run`, nouveau dossier,
+nouveau document). Testé : `telephone_mtp` d'ui_smoke (dossier déclaré « téléphone »).
+
 `workers.Pool` : un fil bloqué dans un appel système ne se tue pas ; si tous sont pris depuis plus
 de 3 s, un fil est ajouté (6 au plus).
 

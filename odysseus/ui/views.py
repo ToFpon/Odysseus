@@ -93,7 +93,11 @@ def cell_text(key: str, rec: Rec, pane: "Pane") -> str:
         if rec.is_dir:
             n = rec.get("count")
             if n is None:
-                if rec.path and pane.mode != "archive":
+                if rec.path and pane.mode != "archive" and fsinfo.is_gvfs_device(rec.path):
+                    # téléphone : pas de comptage (l'appareil ne traite qu'une demande à la fois ; compter
+                    # DCIM/Camera faisait attendre tout le reste, jusqu'à l'ouverture de Camera elle-même)
+                    rec.set("count", -1)
+                elif rec.path and pane.mode != "archive":
                     request_count(rec, pane)
                 n = rec.get("children")
             return "" if n is None or n < 0 else ntr("{0} élément", "{0} éléments", n).format(n)
