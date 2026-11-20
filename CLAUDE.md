@@ -49,6 +49,9 @@ Gestionnaire de fichiers GTK4 / libadwaita en Python, look Nautilus, intégrant 
   `ProgressWindow.question_closed` la remontre après `RESHOW_AFTER_QUESTION_MS` (600 ms), si l'opération tourne
   encore ; testé dans `dialogues_fenetres` d'ui_smoke.
   Question de conflit : nom du dossier, pas le chemin complet (comme Nautilus).
+  Boîte « Renommer » / « Nouveau dossier » (`ask_name`) : largeur d'après le nom (`name_dialog_width`, 420 à
+  760 px) — Adw.MessageDialog seul faisait ~370 px, un nom long était coupé (remarque d'un utilisateur ; Nautilus
+  montre le nom entier dans sa bulle).
 - Barre latérale : l'emplacement courant y est sélectionné ; jamais de bouton d'éjection pour les
   disques fstab ou internes (mêmes règles que Nautilus).
   Bureau et « Ce PC » en option (`sidebar_desktop`, `sidebar_this_pc`, suivis en direct par

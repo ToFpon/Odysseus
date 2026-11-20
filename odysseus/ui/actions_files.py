@@ -94,6 +94,22 @@ def launches_directly(rec) -> bool:
     return _is_binary_type(Gio.content_type_guess(rec.name, data)[0] or "")
 
 
+NAME_DIALOG_MIN = 420     # « Nouveau dossier », noms courts : un peu plus large que la boîte d'origine
+NAME_DIALOG_MAX = 760
+
+
+def name_dialog_width(widget: Gtk.Widget, text: str) -> int:
+    """Largeur de la boîte « Renommer » / « Nouveau dossier » : le nom entier lisible dans le champ, comme la
+    bulle de Nautilus (remarque d'un utilisateur : Adw.MessageDialog seul fait ~370 px, un nom long y était
+    coupé aux deux bouts). Mesuré dans la police du champ ; marges de la boîte (2 × 24), du champ (2 × 12),
+    bouton crayon, plus une marge pour taper."""
+    try:
+        w = widget.create_pango_layout(text).get_pixel_size()[0]
+    except (TypeError, AttributeError):
+        w = 8 * len(text)
+    return max(NAME_DIALOG_MIN, min(NAME_DIALOG_MAX, w + 150))
+
+
 def find_editor() -> Optional[str]:
     if settings["text_editor"] and shutil.which(settings["text_editor"].split()[0]):
         return settings["text_editor"]
@@ -667,6 +683,7 @@ class FileActions:
         d.set_default_response("ok")
         d.set_close_response("cancel")
         d.set_extra_child(col)
+        d.set_default_size(name_dialog_width(row, shown(initial)), -1)
 
         # nom non UTF-8 : le champ montre « caf�.txt » ; inchangé, il ne doit pas renommer le fichier
         same = shown(current) if current else None
