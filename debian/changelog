@@ -1,3 +1,10 @@
+odysseus (2.0.6~noble1) noble; urgency=medium
+
+  * Les boîtes « Renommer » et « Nouveau dossier » s'élargissent selon
+    le nom : un nom de fichier long se lit en entier, comme dans Nautilus.
+
+ -- Tof <nourpon@gmail.com>  Fri, 20 Nov 2026 18:22:25 +0000
+
 odysseus (2.0.5~noble1) noble; urgency=medium
 
   * Téléphones et appareils photo (MTP, PTP, iPhone) : la fenêtre ne se
