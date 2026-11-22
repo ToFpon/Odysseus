@@ -9,6 +9,8 @@ Gestionnaire de fichiers GTK4 / libadwaita en Python, look Nautilus, intégrant 
   apparence, mêmes gestes, mêmes libellés ; ce qui manque à Nautilus (double panneau, archives qu'on
   parcourt et dont on glisse le contenu, tri dans le menu du fond…) s'ajoute sans le dépayser.
 - Répondre à Tof en français, tutoiement, avis francs. Messages de commit en français.
+- Dossiers des dépôts chez Tof (la casse compte, dans les commandes à lui donner) : ~/argos, ~/Calypso,
+  ~/Ithaca, ~/Nausicaa, ~/Odysseus, ~/Sirene, ~/Telemaque. Toujours donner les commandes complètes, `git pull` compris.
 - Cible : Zorin OS 18.1 (Ubuntu 24.04, GNOME 46, X11, GTK 4.14, libadwaita 1.5). Pas d'API plus récente.
   Validé aussi par des utilisateurs sous Wayland (Zorin 18) ; Ubuntu 26.04 (GNOME 50, Wayland seul) :
   premier essai rapide concluant (lancement, navigation), retours sur la durée attendus.
