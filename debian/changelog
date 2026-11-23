@@ -1,3 +1,26 @@
+odysseus (2.0.7~noble1) noble; urgency=medium
+
+  * Audit des défauts invisibles : cinq domaines passés au crible, chaque
+    défaut reproduit puis corrigé.
+  * « Remplacer » met l'élément remplacé dans la corbeille, et Ctrl+Z le
+    remet en place (avant : supprimé pour de bon, destination vide).
+  * Recherche, Corbeille, Favoris : après un tri ou en fin de recherche,
+    seul l'élément choisi reste sélectionné, plus tous les homonymes.
+  * Annuler après une opération arrêtée en cours, annuler une mise dans
+    la corbeille et le bouton « Annuler » des notifications visent les
+    bons éléments.
+  * Installateur de paquets : un chemin contenant « : » (partage réseau,
+    téléphone) installe vraiment le paquet au lieu d'un faux succès.
+  * Nombre d'éléments des dossiers jamais vide, copie massive vers le
+    dossier affiché sans rechargement, fichier modifié remis à sa place.
+  * Recherche dans le contenu : plus de blocage, « Arrêter » immédiat.
+  * Réglages : un nom non UTF-8 n'empêche plus leur enregistrement ; une
+    opération en cours garde Odysseus ouvert.
+  * Outils PDF et image avec « % » dans les noms, empreintes BLAKE2,
+    extraction audio et listes de lecture aux noms particuliers.
+
+ -- Tof <nourpon@gmail.com>  Mon, 23 Nov 2026 08:44:20 +0000
+
 odysseus (2.0.6~noble1) noble; urgency=medium
 
   * Les boîtes « Renommer » et « Nouveau dossier » s'élargissent selon

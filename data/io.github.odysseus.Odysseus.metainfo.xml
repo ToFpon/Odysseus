@@ -70,6 +70,21 @@
   </requires>
   <content_rating type="oars-1.1"/>
   <releases>
+    <release version="2.0.7" date="2026-11-23">
+      <description>
+        <p>Audit of hidden defects: five areas checked, every defect reproduced and fixed.</p>
+        <ul>
+          <li>“Replace” now moves the replaced item to the trash, and undo puts it back (it used to be deleted for good, leaving the destination empty after an undo)</li>
+          <li>Search, Trash, Starred: after sorting or at the end of a search, only the chosen item stays selected, not every file with the same name</li>
+          <li>Undo after an operation stopped halfway, undoing a trash operation, and the “Undo” button of notifications now act on the right items</li>
+          <li>Package installer: a package whose path contains “:” (network share, phone) is really installed instead of reporting a false success</li>
+          <li>Folder item counts no longer stay empty, large copies into the shown folder no longer reload it, and modified files keep the sort order</li>
+          <li>Content search can no longer hang forever, and “Stop” works at once</li>
+          <li>Settings: a folder with a non-UTF-8 name no longer prevents saving them; an operation in progress keeps Odysseus running</li>
+          <li>Names with “%” in PDF and image tools, BLAKE2 checksum files, audio extraction from files with non-UTF-8 names, playlists with “#” names</li>
+        </ul>
+      </description>
+    </release>
     <release version="2.0.6" date="2026-11-20">
       <description>
         <ul>
