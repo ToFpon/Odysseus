@@ -280,7 +280,7 @@ msgstr "Done"
 msgid "Mot de passe manquant ou incorrect"
 msgstr "Missing or wrong password"
 
-#: odysseus/backend/engine.py:191 odysseus/backend/images.py:135
+#: odysseus/backend/engine.py:191 odysseus/backend/images.py:152
 #: odysseus/ui/checksum_window.py:137
 msgid "Annulé"
 msgstr "Cancelled"
@@ -302,7 +302,7 @@ msgstr "Password required or wrong"
 msgid "Échec : "
 msgstr "Failed: "
 
-#: odysseus/backend/engine.py:294 odysseus/backend/pdf.py:196
+#: odysseus/backend/engine.py:294 odysseus/backend/pdf.py:213
 #: odysseus/backend/search.py:151
 msgid "code {0}"
 msgstr "code {0}"
@@ -889,23 +889,23 @@ msgstr "Fastest"
 msgid "Image Windows, déduplication"
 msgstr "Windows image, deduplication"
 
-#: odysseus/backend/images.py:118
+#: odysseus/backend/images.py:119
 msgid "ImageMagick n'est pas installé"
 msgstr "ImageMagick is not installed"
 
-#: odysseus/backend/images.py:180
+#: odysseus/backend/images.py:200
 msgid "Aucune image n'a pu être traitée"
 msgstr "No image could be processed"
 
-#: odysseus/backend/images.py:123 odysseus/backend/media.py:184
+#: odysseus/backend/images.py:124 odysseus/backend/media.py:190
 msgid "{0} ({1} sur {2})"
 msgstr "{0} ({1} of {2})"
 
-#: odysseus/backend/images.py:138
+#: odysseus/backend/images.py:155
 msgid "ImageMagick a échoué"
 msgstr "ImageMagick failed"
 
-#: odysseus/backend/images.py:141
+#: odysseus/backend/images.py:158
 msgid ""
 "Décodeur HEIC absent. Installez-le avec :\n"
 "{0}"
@@ -917,7 +917,7 @@ msgstr ""
 msgid "Ce fichier a plusieurs liens durs : le modifier les séparerait"
 msgstr "This file has several hard links: editing it would split them"
 
-#: odysseus/backend/media.py:200
+#: odysseus/backend/media.py:213
 msgid "Aucune piste audio n'a pu être extraite"
 msgstr "No audio track could be extracted"
 
@@ -941,55 +941,59 @@ msgstr "Prepress (colours preserved)"
 msgid "Par défaut"
 msgstr "Default"
 
-#: odysseus/backend/pdf.py:458
+#: odysseus/backend/pdf.py:477
 msgid "Dessin du filigrane…"
 msgstr "Drawing the watermark…"
 
-#: odysseus/backend/pdf.py:219
+#: odysseus/backend/pdf.py:167
+msgid "Le PDF produit est vide ou incomplet"
+msgstr "The resulting PDF is empty or incomplete"
+
+#: odysseus/backend/pdf.py:236
 msgid "Ghostscript est introuvable (sudo apt install ghostscript)"
 msgstr "Ghostscript not found (sudo apt install ghostscript)"
 
-#: odysseus/backend/pdf.py:264
+#: odysseus/backend/pdf.py:282
 msgid "Aucun fichier à fusionner"
 msgstr "No files to merge"
 
-#: odysseus/backend/pdf.py:434 odysseus/ui/menus.py:356
+#: odysseus/backend/pdf.py:453 odysseus/ui/menus.py:356
 msgid "Document vide"
 msgstr "Empty document"
 
-#: odysseus/backend/pdf.py:451
+#: odysseus/backend/pdf.py:470
 msgid "Indiquez un texte ou une image"
 msgstr "Enter a text or choose an image"
 
-#: odysseus/backend/pdf.py:506 odysseus/backend/pdf.py:545
+#: odysseus/backend/pdf.py:526 odysseus/backend/pdf.py:565
 msgid "Aucune page sélectionnée"
 msgstr "No page selected"
 
-#: odysseus/backend/pdf.py:515
+#: odysseus/backend/pdf.py:535
 msgid "Impossible de supprimer toutes les pages"
 msgstr "Cannot delete every page"
 
-#: odysseus/backend/pdf.py:486
+#: odysseus/backend/pdf.py:505
 msgid "Aplatissement"
 msgstr "Flattening"
 
-#: odysseus/backend/pdf.py:221
+#: odysseus/backend/pdf.py:238
 msgid "« {0} » n'est pas un PDF valide"
 msgstr "“{0}” is not a valid PDF"
 
-#: odysseus/backend/pdf.py:465
+#: odysseus/backend/pdf.py:484
 msgid "Application sur {0} pages…"
 msgstr "Applying to {0} pages…"
 
-#: odysseus/backend/pdf.py:480
+#: odysseus/backend/pdf.py:499
 msgid "Installez qpdf pour appliquer un filigrane (sudo apt install qpdf)"
 msgstr "Install qpdf to apply a watermark (sudo apt install qpdf)"
 
-#: odysseus/backend/pdf.py:484
+#: odysseus/backend/pdf.py:503
 msgid "L'aplatissement demande Ghostscript (sudo apt install ghostscript)"
 msgstr "Flattening requires Ghostscript (sudo apt install ghostscript)"
 
-#: odysseus/backend/pdf.py:533 odysseus/backend/pdf.py:563
+#: odysseus/backend/pdf.py:553 odysseus/backend/pdf.py:583
 msgid "Installez qpdf (sudo apt install qpdf)"
 msgstr "Install qpdf (sudo apt install qpdf)"
 
@@ -1001,19 +1005,19 @@ msgstr "all"
 msgid "Page {0} hors du document ({1} pages)"
 msgstr "Page {0} is outside the document ({1} pages)"
 
-#: odysseus/backend/pdf.py:273
+#: odysseus/backend/pdf.py:291
 msgid "{0} : aucune page sélectionnée"
 msgstr "{0}: no page selected"
 
-#: odysseus/backend/pdf.py:282
+#: odysseus/backend/pdf.py:300
 msgid "Fusion de {0} fichiers…"
 msgstr "Merging {0} files…"
 
-#: odysseus/backend/pdf.py:300
+#: odysseus/backend/pdf.py:318
 msgid "Fusion"
 msgstr "Merging"
 
-#: odysseus/backend/pdf.py:302
+#: odysseus/backend/pdf.py:321
 msgid "Installez qpdf pour fusionner des PDF (sudo apt install qpdf)"
 msgstr "Install qpdf to merge PDFs (sudo apt install qpdf)"
 
@@ -1021,11 +1025,11 @@ msgstr "Install qpdf to merge PDFs (sudo apt install qpdf)"
 msgid "« {0} » n'est pas un numéro de page"
 msgstr "“{0}” is not a page number"
 
-#: odysseus/backend/pdf.py:187
+#: odysseus/backend/pdf.py:204
 msgid "page {0} sur {1}"
 msgstr "page {0} of {1}"
 
-#: odysseus/backend/pdf.py:297
+#: odysseus/backend/pdf.py:315
 msgid "Le choix des pages demande qpdf ou pypdf (sudo apt install qpdf)"
 msgstr "Choosing pages requires qpdf or pypdf (sudo apt install qpdf)"
 
@@ -1057,7 +1061,7 @@ msgstr "author"
 msgid "Position encore présente après écriture ({0}) : photo laissée intacte"
 msgstr "Location still present after writing ({0}): photo left untouched"
 
-#: odysseus/backend/playlist.py:122 odysseus/ui/actions_tools.py:315
+#: odysseus/backend/playlist.py:125 odysseus/ui/actions_tools.py:315
 msgid "Aucun morceau de musique dans la sélection"
 msgstr "No music tracks in the selection"
 
@@ -1074,120 +1078,120 @@ msgstr "Link (broken)"
 msgid "encodage non UTF-8, fichier laissé intact"
 msgstr "not UTF-8 encoded, file left untouched"
 
-#: odysseus/backend/tools.py:312
+#: odysseus/backend/tools.py:355
 msgid "Personnalisé"
 msgstr "Custom"
 
-#: odysseus/backend/tools.py:313
+#: odysseus/backend/tools.py:356
 msgid "1,44 Mo (disquette)"
 msgstr "1.44 MB (floppy)"
 
-#: odysseus/backend/tools.py:314
+#: odysseus/backend/tools.py:357
 msgid "10 Mo (pièce jointe)"
 msgstr "10 MB (attachment)"
 
-#: odysseus/backend/tools.py:315
+#: odysseus/backend/tools.py:358
 msgid "25 Mo (courriel)"
 msgstr "25 MB (email)"
 
-#: odysseus/backend/tools.py:316
+#: odysseus/backend/tools.py:359
 msgid "100 Mo"
 msgstr "100 MB"
 
-#: odysseus/backend/tools.py:317
+#: odysseus/backend/tools.py:360
 msgid "650 Mo (CD)"
 msgstr "650 MB (CD)"
 
-#: odysseus/backend/tools.py:318
+#: odysseus/backend/tools.py:361
 msgid "700 Mo (CD)"
 msgstr "700 MB (CD)"
 
-#: odysseus/backend/tools.py:319
+#: odysseus/backend/tools.py:362
 msgid "2 Go"
 msgstr "2 GB"
 
-#: odysseus/backend/tools.py:320
+#: odysseus/backend/tools.py:363
 msgid "4 Go (FAT32)"
 msgstr "4 GB (FAT32)"
 
-#: odysseus/backend/tools.py:321
+#: odysseus/backend/tools.py:364
 msgid "4,7 Go (DVD)"
 msgstr "4.7 GB (DVD)"
 
-#: odysseus/backend/tools.py:322
+#: odysseus/backend/tools.py:365
 msgid "8,5 Go (DVD DL)"
 msgstr "8.5 GB (DVD DL)"
 
-#: odysseus/backend/tools.py:323
+#: odysseus/backend/tools.py:366
 msgid "25 Go (Blu-ray)"
 msgstr "25 GB (Blu-ray)"
 
-#: odysseus/backend/tools.py:429
+#: odysseus/backend/tools.py:472
 msgid "Inventaire des fichiers…"
 msgstr "Listing files…"
 
-#: odysseus/backend/tools.py:575
+#: odysseus/backend/tools.py:618
 msgid "Faible"
 msgstr "Weak"
 
-#: odysseus/backend/tools.py:594
+#: odysseus/backend/tools.py:637
 msgid "Banc d'essai en cours…"
 msgstr "Benchmark running…"
 
-#: odysseus/backend/tools.py:338
+#: odysseus/backend/tools.py:381
 msgid "La taille doit être positive"
 msgstr "Size must be positive"
 
-#: odysseus/backend/tools.py:387
+#: odysseus/backend/tools.py:430
 msgid "Choisissez le premier volume (fichier se terminant par .001)"
 msgstr "Choose the first volume (file ending in .001)"
 
-#: odysseus/backend/tools.py:394
+#: odysseus/backend/tools.py:437
 msgid "Aucun volume trouvé"
 msgstr "No volumes found"
 
-#: odysseus/backend/tools.py:563 odysseus/ui/properties.py:48
+#: odysseus/backend/tools.py:606 odysseus/ui/properties.py:48
 #: odysseus/ui/properties.py:27 odysseus/ui/properties.py:32
 msgid "Aucun"
 msgstr "None"
 
-#: odysseus/backend/tools.py:577
+#: odysseus/backend/tools.py:620
 msgid "Moyen"
 msgstr "Fair"
 
-#: odysseus/backend/tools.py:588
+#: odysseus/backend/tools.py:631
 msgid "7-Zip est introuvable"
 msgstr "7-Zip not found"
 
-#: odysseus/backend/tools.py:499
+#: odysseus/backend/tools.py:542
 msgid "Comparaison"
 msgstr "Comparison"
 
-#: odysseus/backend/tools.py:579
+#: odysseus/backend/tools.py:622
 msgid "Fort"
 msgstr "Strong"
 
-#: odysseus/backend/tools.py:581
+#: odysseus/backend/tools.py:624
 msgid "Très fort"
 msgstr "Very strong"
 
-#: odysseus/backend/tools.py:333
+#: odysseus/backend/tools.py:376
 msgid "Taille invalide : {text}"
 msgstr "Invalid size: {text}"
 
-#: odysseus/backend/tools.py:402
+#: odysseus/backend/tools.py:445
 msgid "Le fichier existe déjà : {out}"
 msgstr "File already exists: {out}"
 
-#: odysseus/backend/tools.py:602
+#: odysseus/backend/tools.py:645
 msgid "Dictionnaire 2^{0}"
 msgstr "Dictionary 2^{0}"
 
-#: odysseus/backend/tools.py:270
+#: odysseus/backend/tools.py:313
 msgid "Passe {0}/{passes} — {1}"
 msgstr "Pass {0}/{passes} — {1}"
 
-#: odysseus/backend/tools.py:366
+#: odysseus/backend/tools.py:409
 msgid "Volume {i} — {0}"
 msgstr "Volume {i} — {0}"
 
@@ -3334,11 +3338,11 @@ msgstr "Yesterday at {0}"
 msgid "Commande copiée"
 msgstr "Command copied"
 
-#: odysseus/ui/deb_dialog.py:107
+#: odysseus/ui/deb_dialog.py:123
 msgid "Installation en cours… (mot de passe administrateur demandé)"
 msgstr "Installing… (administrator password requested)"
 
-#: odysseus/ui/deb_dialog.py:125 odysseus/ui/jobs.py:215
+#: odysseus/ui/deb_dialog.py:142 odysseus/ui/jobs.py:215
 msgid "Fermer"
 msgstr "Close"
 
@@ -3346,11 +3350,11 @@ msgstr "Close"
 msgid "Installer un paquet"
 msgstr "Install a package"
 
-#: odysseus/ui/deb_dialog.py:27
+#: odysseus/ui/deb_dialog.py:32
 msgid "Installer"
 msgstr "Install"
 
-#: odysseus/ui/deb_dialog.py:44
+#: odysseus/ui/deb_dialog.py:49
 msgid ""
 "N'installez que des paquets de source sûre : un paquet a tous les droits sur "
 "le système."
@@ -3358,40 +3362,48 @@ msgstr ""
 "Only install packages from trusted sources: a package has full rights over "
 "the system."
 
-#: odysseus/ui/deb_dialog.py:47
+#: odysseus/ui/deb_dialog.py:52
 msgid "Vérification des dépendances…"
 msgstr "Checking dependencies…"
 
-#: odysseus/ui/deb_dialog.py:85
+#: odysseus/ui/deb_dialog.py:95
+msgid "Impossible de lire le paquet."
+msgstr "Could not read the package."
+
+#: odysseus/ui/deb_dialog.py:98
 msgid ""
 "Impossible de vérifier les dépendances (apt indisponible ou paquet invalide)."
 msgstr "Cannot check dependencies (apt unavailable or invalid package)."
 
-#: odysseus/ui/deb_dialog.py:127 odysseus/ui/deb_dialog.py:128
+#: odysseus/ui/deb_dialog.py:146 odysseus/ui/deb_dialog.py:147
+msgid "Le paquet n'a pas été installé."
+msgstr "The package was not installed."
+
+#: odysseus/ui/deb_dialog.py:150 odysseus/ui/deb_dialog.py:151
 msgid "✓ Paquet installé."
 msgstr "✓ Package installed."
 
-#: odysseus/ui/deb_dialog.py:75
+#: odysseus/ui/deb_dialog.py:85
 msgid "Version {0}"
 msgstr "Version {0}"
 
-#: odysseus/ui/deb_dialog.py:87
+#: odysseus/ui/deb_dialog.py:100
 msgid "✓ Aucune dépendance supplémentaire à installer."
 msgstr "✓ No additional dependency to install."
 
-#: odysseus/ui/deb_dialog.py:130
+#: odysseus/ui/deb_dialog.py:153
 msgid "Authentification refusée ou annulée."
 msgstr "Authentication refused or cancelled."
 
-#: odysseus/ui/deb_dialog.py:79
+#: odysseus/ui/deb_dialog.py:89
 msgid "version installée : {0}"
 msgstr "installed version: {0}"
 
-#: odysseus/ui/deb_dialog.py:89
+#: odysseus/ui/deb_dialog.py:102
 msgid "Paquets supplémentaires qui seront installés :"
 msgstr "Additional packages that will be installed:"
 
-#: odysseus/ui/deb_dialog.py:132 odysseus/ui/deb_dialog.py:133
+#: odysseus/ui/deb_dialog.py:155 odysseus/ui/deb_dialog.py:156
 msgid "L'installation a échoué (code {0})."
 msgstr "Installation failed (code {0})."
 

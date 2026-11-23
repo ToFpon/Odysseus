@@ -19,6 +19,11 @@ class DebInstallerDialog(DialogWindow):
         self.path = path
         self.proc = None
         self.done = False
+        self.copy = None             # copie sûre du paquet pour apt (debpkg.safe_copy)
+        self.info = None
+        self.connect("close-request", lambda *_: (debpkg.discard_copy(self.copy)
+                                                  if self.proc is None or self.proc.poll() is not None else None,
+                                                  False)[1])
         tv = Adw.ToolbarView()
         hb = Adw.HeaderBar(show_end_title_buttons=False, show_start_title_buttons=False)
         self.cancel = Gtk.Button(label=tr("Annuler"))
@@ -67,7 +72,12 @@ class DebInstallerDialog(DialogWindow):
 
     def _load(self):
         inf = debpkg.info(self.path)
-        deps = debpkg.missing_dependencies(self.path)
+        try:
+            self.copy = debpkg.safe_copy(self.path)   # chemin sûr pour apt (« : », partage GVfs)
+        except OSError:
+            self.copy = None
+        deps = debpkg.missing_dependencies(self.copy) if self.copy else None
+        self.info = inf
         GLib.idle_add(self._loaded, inf, deps)
 
     def _loaded(self, inf, deps):
@@ -81,6 +91,9 @@ class DebInstallerDialog(DialogWindow):
         self.desc.set_text(inf.description)
         self.deps_spin.set_spinning(False)
         self.deps_spin.set_visible(False)
+        if self.copy is None:
+            self.deps.set_text(tr("Impossible de lire le paquet."))
+            return False
         if deps is None:
             self.deps.set_text(tr("Impossible de vérifier les dépendances (apt indisponible ou paquet invalide)."))
         elif not deps:
@@ -102,7 +115,10 @@ class DebInstallerDialog(DialogWindow):
 
     def _install(self):
         self.install.set_sensitive(False)
-        cmd = debpkg.install_command(self.path)
+        # une fois l'administrateur authentifié, apt (root) ne peut plus être arrêté d'ici : pas de bouton
+        # « Annuler » qui fermerait la fenêtre en laissant croire que l'installation est interrompue
+        self.cancel.set_sensitive(False)
+        cmd = debpkg.install_command(self.copy)
         self._append("$ " + " ".join(cmd) + "\n", self.tag_dim)
         self.status.set_text(tr("Installation en cours… (mot de passe administrateur demandé)"))
 
@@ -122,7 +138,14 @@ class DebInstallerDialog(DialogWindow):
 
     def _finished(self, rc):
         self.done = True
+        self.cancel.set_sensitive(True)
         self.cancel.set_label(tr("Fermer"))
+        debpkg.discard_copy(self.copy)
+        if rc == 0 and self.info.version and debpkg.installed_version(self.info.name) != self.info.version:
+            # filet : apt a répondu 0 sans installer ce paquet-là
+            self.status.set_text(tr("Le paquet n'a pas été installé."))
+            self._append("\n" + tr("Le paquet n'a pas été installé.") + "\n", self.tag_err)
+            return False
         if rc == 0:
             self.status.set_text(tr("✓ Paquet installé."))
             self._append("\n" + tr("✓ Paquet installé.") + "\n", self.tag_ok)
@@ -139,4 +162,5 @@ class DebInstallerDialog(DialogWindow):
                 self.proc.terminate()
             except OSError:
                 pass
+        debpkg.discard_copy(getattr(self, "copy", None))
         self.close()

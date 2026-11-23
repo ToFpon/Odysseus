@@ -278,7 +278,7 @@ réseau, `_follow_moves` sans isdir, Courriel (`document-export` Flatpak) dans u
 smb://… ouvert par son URI (mode « remote » avec chemin FUSE) : Ctrl+V et dépôt dans ce chemin (avant : rien).
 Question « Supprimer définitivement » et erreurs : vrais noms Drive (`scanner.display_name`), pas les IDs.
 
-Audit « invisible » (novembre 2026, agents fils, annuler, modèle, réglages ; corrigé — l'audit des outils externes reste à finir ; tests
+Audit « invisible » (novembre 2026, 5 agents : fils, annuler, modèle, réglages, outils externes ; corrigé, tests
 `test_undo_audit` — cas dans `undo_audit_cases.py`, lancé dans un processus à part avec son propre bus, car il
 change HOME / XDG). Annuler : « Remplacer » met l'élément remplacé à la CORBEILLE (`fileops._retire`, repli
 suppression définitive là où il n'y en a pas : FUSE, tmpfs…) et Ctrl+Z le remet (`Result.replaced`, URI
@@ -314,6 +314,21 @@ partagé et compté (`_prop_users`), jamais pris pour « dernier emplacement » 
 systemd : la ligne du DESSUS de mountinfo gagne (`fsinfo.mounts`), « autofs » traité comme réseau ; dossiers
 utilisateur / signets sur un NAS (ou lien vers lui) montrés sans isdir / realpath (`sidebar._network_target`) ;
 `features` : vrais booléens seulement ; metadata.json non dict ignoré.
+Outils externes (`test_tools_audit`) : .deb dont le chemin contient « : » (partage GVfs « smb-share:server=… »,
+téléphone, « Logiciels: pilotes ») — apt-get le prenait pour « paquet:arch », ne faisait RIEN et répondait 0
+(« ✓ Paquet installé ») : copie sous un nom sûr dans un dossier lisible par root (`debpkg.safe_copy`, aussi pour
+la simulation), version vérifiée après coup (`installed_version`), simulation sans le paquet lui-même = échec ;
+« Annuler » grisé pendant l'installation (root : rien ne l'arrête d'ici). Ghostscript : « % » de -sOutputFile est
+un gabarit → `pdf._gs_output` (« %% ») ; filet `_check_output` (vide ou pages manquantes : gs pdfimage24 répondait
+0 sans rien écrire, filigrane aplati de 0 octet annoncé réussi). ImageMagick 6 : « %d », « %o », « %x » d'un
+chemin sont des gabarits et « %% » n'échappe pas → liens aux noms sûrs dans un dossier privé (`images.process`,
+seulement si un chemin contient « % » ; « fd:N » ne marche pas avec cet IM6). Sur place à travers un lien
+symbolique : le VRAI fichier est remplacé (`pdf._finish` / `_tmp_near`), plus le lien. Extraire l'audio : sortie
+cachée puis `place_new` (plus de `-y` sous le vrai nom), sortie de ffmpeg en `errors="replace"` (nom ou
+étiquette non UTF-8 : exception, ffmpeg bloqué). Fichiers d'empreintes : algorithme d'après le nom (B2SUMS →
+BLAKE2b) et tous les candidats de la longueur calculés en une lecture (SHA-256 dans un « .md5 »), lignes échappées
+de sha256sum (`_unescape_gnu`), nom finissant par une espace. Listes de lecture : « #1 Hit.mp3 » / « ␣x.mp3 »
+écrits « ./… » et relus sans strip. `pdf.page_count` en `errors="replace"`.
 
 Téléphone / appareil photo (MTP, PTP, iPhone ; `fsinfo.is_gvfs_device`) : l'appareil ne traite qu'UNE demande à
 la fois. Retour d'un utilisateur (Pixel 7, Odysseus 2.0.4) : en entrant dans DCIM, fenêtre figée, « Forcer à

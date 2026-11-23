@@ -156,11 +156,44 @@ _LEN_TO_ALGO = {8: "CRC32", 32: "MD5", 40: "SHA-1", 56: "SHA-224", 64: "SHA-256"
 
 
 def _guess_algo(checksum_file: str, digest: str) -> str:
+    named = _algo_from_name(os.path.basename(checksum_file))
+    if named and len(digest) in _DIGEST_CANDIDATES and named in _DIGEST_CANDIDATES[len(digest)]:
+        return named
     ext = checksum_file.lower().rsplit(".", 1)[-1]
     for algo, e in HASH_FILE_EXT.items():
-        if e == ext:
+        if e == ext and algo in _DIGEST_CANDIDATES.get(len(digest), [algo]):
             return algo
     return _LEN_TO_ALGO.get(len(digest), "SHA-256")
+
+
+def _algo_from_name(name: str) -> Optional[str]:
+    """B2SUMS / b2sums.txt (Arch Linux) → BLAKE2b, SHA512SUMS → SHA-512, SHA3-256SUMS → SHA3-256."""
+    m = _CHECKSUM_NAME.match(name)
+    if not m:
+        return None
+    k = m.group(1).upper()
+    if k in ("B2", "BLAKE2B", "BLAKE2"):
+        return "BLAKE2b"
+    if k.startswith("SHA3-"):
+        return k.replace("SHA3-", "SHA3-")
+    if k.startswith("SHA") and k[3:].isdigit():
+        return "SHA-" + ("1" if k[3:] == "1" else k[3:])
+    return {"MD5": "MD5", "SHA": "SHA-1"}.get(k)
+
+
+def _unescape_gnu(name: str) -> str:
+    r"""Nom « échappé » de sha256sum (ligne commençant par « \ ») : \\ → \, \n → retour à la ligne."""
+    out, i = [], 0
+    while i < len(name):
+        c = name[i]
+        if c == "\\" and i + 1 < len(name):
+            nxt = name[i + 1]
+            out.append("\n" if nxt == "n" else "\r" if nxt == "r" else nxt)
+            i += 2
+            continue
+        out.append(c)
+        i += 1
+    return "".join(out)
 
 
 # Longueur de l'empreinte (en hexadécimal) → algorithmes possibles, du plus courant au plus rare
@@ -203,9 +236,13 @@ def verify_hash_file(job: Job, checksum_file: str) -> list[dict]:
     todo = []
     with open(checksum_file, encoding="utf-8", errors="replace") as fh:
         for line in fh:
-            line = line.strip()
-            if not line or line.startswith((";", "#")):
+            # seulement la fin de ligne : un nom peut finir par une espace (« absent » sinon)
+            line = line.rstrip("\r\n")
+            if not line.strip() or line.lstrip().startswith((";", "#")):
                 continue
+            escaped = line.startswith("\\")
+            if escaped:
+                line = line[1:]
             m = _LINE_BSD.match(line)
             if m:
                 algo = m.group(1).upper().replace("SHA", "SHA-").replace("SHA--", "SHA-")
@@ -215,7 +252,8 @@ def verify_hash_file(job: Job, checksum_file: str) -> list[dict]:
                 continue
             m = _LINE_GNU.match(line)
             if m and not checksum_file.lower().endswith(".sfv"):
-                todo.append((m.group(2), m.group(1).lower(), _guess_algo(checksum_file, m.group(1))))
+                name = _unescape_gnu(m.group(2)) if escaped else m.group(2)
+                todo.append((name, m.group(1).lower(), _guess_algo(checksum_file, m.group(1))))
                 continue
             m = _LINE_SFV.match(line)
             if m:
@@ -229,18 +267,23 @@ def verify_hash_file(job: Job, checksum_file: str) -> list[dict]:
         if not os.path.isfile(path):
             out.append({"path": path, "algo": algo, "expected": expected, "actual": "", "status": "missing"})
             continue
-        h = HASH_ALGOS[algo]()
+        # algorithme deviné d'abord, puis les autres de cette longueur, en une seule lecture : un fichier
+        # d'empreintes dont le nom trompe (SHA-256 dans un « .md5 ») ne donne plus « différent » à tort
+        algos = [algo] + [a for a in _DIGEST_CANDIDATES.get(len(expected), []) if a != algo]
+        hs = {a: HASH_ALGOS[a]() for a in algos}
         try:
             with open(path, "rb") as fh:
                 for b in iter(lambda: fh.read(1 << 20), b""):
                     job.check_cancel()
-                    h.update(b)
+                    for h in hs.values():
+                        h.update(b)
         except OSError:
             out.append({"path": path, "algo": algo, "expected": expected, "actual": "", "status": "unreadable"})
             continue
-        actual = h.hexdigest()
-        out.append({"path": path, "algo": algo, "expected": expected, "actual": actual,
-                    "status": "ok" if actual.lower() == expected.lower() else "mismatch"})
+        match = next((a for a in algos if hs[a].hexdigest().lower() == expected.lower()), None)
+        shown_algo = match or algo
+        out.append({"path": path, "algo": shown_algo, "expected": expected, "actual": hs[shown_algo].hexdigest(),
+                    "status": "ok" if match else "mismatch"})
     job.progress(1.0, "")
     return out
 

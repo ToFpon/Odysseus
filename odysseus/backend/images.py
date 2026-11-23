@@ -11,6 +11,7 @@ from __future__ import annotations
 import os
 import shutil
 import subprocess
+import tempfile
 from dataclasses import dataclass
 
 from gi.repository import Gio, GLib
@@ -128,9 +129,25 @@ def process(job: Job, sources: list[str], o: Options, on_file=None) -> fileops.R
         dst = os.path.join(folder, name)
         tmp = fileops._tmp_name(folder, "image")
         ok = False
+        safe = None
         try:
-            p = job.popen(command(src, tmp, o), stdout=subprocess.DEVNULL, stderr=subprocess.PIPE, text=True)
+            im_src, im_out = src, tmp
+            if "%" in src or "%" in tmp:
+                # ImageMagick lit « %d », « %o », « %x »… d'un chemin comme un gabarit, à l'entrée comme à la
+                # sortie (« 50%off.png », dossier « Taux 5%o » : « no images defined ») et « %% » n'y échappe
+                # pas : il ne voit que des liens aux noms sûrs, dans un dossier privé (audit de novembre 2026)
+                safe = tempfile.mkdtemp(prefix="odysseus-img-")
+                im_src = os.path.join(safe, "in" + os.path.splitext(src)[1].lower())
+                os.symlink(os.path.abspath(src), im_src)
+                with open(tmp, "x"):
+                    pass
+                im_out = os.path.join(safe, "out")
+                os.symlink(tmp, im_out)
+            p = job.popen(command(im_src, im_out, o), stdout=subprocess.DEVNULL, stderr=subprocess.PIPE, text=True,
+                          errors="replace")
             _out, err = p.communicate()
+            if safe and os.path.isfile(im_out) and not os.path.islink(im_out):
+                shutil.move(im_out, tmp)               # un codeur a recréé la sortie au lieu d'écrire à travers
             if job.cancelled:
                 raise OSError(0, tr("Annulé"))
             if p.returncode != 0 or not os.path.isfile(tmp) or os.path.getsize(tmp) == 0:
@@ -173,6 +190,9 @@ def process(job: Job, sources: list[str], o: Options, on_file=None) -> fileops.R
                     on_file(i, False)
                 job.check_cancel()
             res.errors.append((src, getattr(e, "strerror", None) or getattr(e, "message", None) or str(e)))
+        finally:
+            if safe:
+                shutil.rmtree(safe, ignore_errors=True)
         if on_file:
             on_file(i, ok)
     job.progress(1.0)

@@ -73,8 +73,11 @@ def collect(paths: list[str], job: Optional[Job] = None) -> list[str]:
 
 
 def _entry(track: str, folder: str) -> str:
-    """Chemin écrit dans la liste : relatif à son dossier, séparateurs « / »."""
-    return os.path.relpath(track, folder)
+    """Chemin écrit dans la liste : relatif à son dossier, séparateurs « / ». Un nom qui commence par
+    « # » (« #1 Hit.mp3 ») serait lu comme un commentaire, une espace de tête retirée par les lecteurs :
+    « ./ » devant (comme Ithaca)."""
+    rel = os.path.relpath(track, folder)
+    return "./" + rel if rel[:1] in ("#", " ", "\t") else rel
 
 
 def _extinf(track: str) -> str:
@@ -135,8 +138,8 @@ def create(job: Job, tracks: list[str], dest: str) -> str:
 
 def _resolve(line: str, folder: str) -> Optional[str]:
     """Morceau désigné par une ligne de la liste (chemin relatif, absolu ou file://)."""
-    line = line.strip()
-    if not line or line.startswith("#"):
+    line = line.rstrip("\r\n")                    # pas les espaces : un nom peut commencer par une espace
+    if not line.strip() or line.startswith("#"):
         return None
     if line.startswith("file://"):
         from gi.repository import Gio

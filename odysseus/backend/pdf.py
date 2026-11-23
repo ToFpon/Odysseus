@@ -84,7 +84,7 @@ def page_sizes(path: str) -> list[tuple[float, float]]:
 
 def page_count(path: str) -> int:
     if qpdf():
-        r = subprocess.run([qpdf(), "--show-npages", path], capture_output=True, text=True)
+        r = subprocess.run([qpdf(), "--show-npages", path], capture_output=True, text=True, errors="replace")
         if r.returncode in (0, 3) and r.stdout.strip().isdigit():
             return int(r.stdout.strip())
     try:
@@ -155,7 +155,22 @@ def to_qpdf_ranges(indices: list[int]) -> str:
     return ",".join(parts)
 
 
+def _gs_output(path: str) -> str:
+    """-sOutputFile de Ghostscript : « % » y est un gabarit de numéro de page — un dossier « TVA 20 % »
+    faisait échouer la compression, et l'aplatissement écrivait AILLEURS (code 0, PDF vide)."""
+    return "-sOutputFile=" + path.replace("%", "%%")
+
+
+def _check_output(path: str, pages: int = 0):
+    """Filet : Ghostscript peut répondre 0 sans rien écrire (pages manquantes)."""
+    if not os.path.exists(path) or os.path.getsize(path) == 0 or (pages and page_count(path) != pages):
+        raise ToolError(tr("Le PDF produit est vide ou incomplet"))
+
+
 def _tmp_near(dst: str, suffix: str = ".pdf") -> str:
+    if os.path.islink(dst):
+        # sur place à travers un lien : le vrai fichier est remplacé, pas le lien (voir _finish)
+        dst = os.path.realpath(dst)
     fd, tmp = tempfile.mkstemp(suffix=suffix, prefix=".odysseus-", dir=os.path.dirname(os.path.abspath(dst)))
     os.close(fd)
     return tmp
@@ -167,7 +182,9 @@ def _finish(tmp: str, dst: str, src: str = "") -> str:
     « nom (2) ». Renvoie le chemin final."""
     normal_mode(tmp, like=dst)        # mkstemp crée en 0600 ; « pivoter » sur place gardait 0600
     if src and os.path.realpath(dst) == os.path.realpath(src):
-        os.replace(tmp, dst)
+        # le VRAI fichier : remplacer le chemin d'un lien symbolique en faisait un fichier ordinaire, et
+        # le PDF visé restait tel quel (audit de novembre 2026)
+        os.replace(tmp, os.path.realpath(dst))
         return dst
     from .fileops import place_new
     return place_new(tmp, dst)
@@ -224,12 +241,13 @@ def compress(job: Job, src: str, dst: str, level: str = "/ebook", grayscale: boo
     tmp = _tmp_near(dst)
     argv = [exe, "-sDEVICE=pdfwrite", "-dCompatibilityLevel=1.5", f"-dPDFSETTINGS={level}",
             "-dNOPAUSE", "-dBATCH", "-dDetectDuplicateImages=true", "-dCompressFonts=true",
-            f"-sOutputFile={tmp}"]
+            _gs_output(tmp)]
     if grayscale:
         argv += ["-sColorConversionStrategy=Gray", "-dProcessColorModel=/DeviceGray"]
     argv.append(src)
     try:
         _run(job, argv, os.path.basename(src), n, base)
+        _check_output(tmp, n)
         after = os.path.getsize(tmp)
         if keep_if_bigger and after >= before:
             os.remove(tmp)
@@ -297,7 +315,8 @@ def merge(job: Job, items: list[tuple[str, str]], dst: str) -> str:
                 raise ToolError(tr("Le choix des pages demande qpdf ou pypdf (sudo apt install qpdf)"))
             total = sum(n for _p, _i, n in selections)
             _run(job, [gs(), "-sDEVICE=pdfwrite", "-dNOPAUSE", "-dBATCH", "-dPDFSETTINGS=/default",
-                       f"-sOutputFile={tmp}"] + [p for p, _i, _n in selections], tr("Fusion"), total)
+                       _gs_output(tmp)] + [p for p, _i, _n in selections], tr("Fusion"), total)
+            _check_output(tmp, total)
         else:
             raise ToolError(tr("Installez qpdf pour fusionner des PDF (sudo apt install qpdf)"))
         return _finish(tmp, dst)
@@ -483,7 +502,8 @@ def watermark(job: Job, src: str, dst: str, o: WatermarkOptions) -> str:
             if not exe:
                 raise ToolError(tr("L'aplatissement demande Ghostscript (sudo apt install ghostscript)"))
             _run(job, [exe, "-sDEVICE=pdfimage24", f"-r{int(o.dpi)}", "-sCompression=JPEG", "-dJPEGQ=90",
-                       "-dNOPAUSE", "-dBATCH", f"-sOutputFile={flat}", tmp], tr("Aplatissement"), n, (0.5, 0.5))
+                       "-dNOPAUSE", "-dBATCH", _gs_output(flat), tmp], tr("Aplatissement"), n, (0.5, 0.5))
+            _check_output(flat, n)
             dst = _finish(flat, dst, src)
             os.remove(tmp)
         else:

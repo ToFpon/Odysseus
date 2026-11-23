@@ -4,7 +4,9 @@ from __future__ import annotations
 
 import os
 import re
+import shutil
 import subprocess
+import tempfile
 from dataclasses import dataclass
 from typing import Optional
 
@@ -49,21 +51,56 @@ def info(path: str) -> DebInfo:
     return d
 
 
+def safe_copy(path: str) -> str:
+    """Copie du paquet sous un nom sûr, dans un dossier lisible par root : apt-get prend un chemin qui
+    contient « : » (partage GVfs « smb-share:server=… », téléphone, dossier « Logiciels: pilotes »)
+    pour « paquet:architecture », ne fait RIEN et répond 0 — « ✓ Paquet installé » sans rien
+    d'installé (audit de novembre 2026). Le chemin FUSE de GVfs n'est d'ailleurs pas lisible par root.
+    À retirer par discard_copy."""
+    folder = tempfile.mkdtemp(prefix="odysseus-deb-")
+    os.chmod(folder, 0o755)                      # apt lit en tant qu'utilisateur _apt quand il peut
+    dst = os.path.join(folder, "paquet.deb")
+    shutil.copyfile(path, dst)
+    os.chmod(dst, 0o644)
+    return dst
+
+
+def discard_copy(copy: str):
+    if copy and os.path.basename(os.path.dirname(copy)).startswith("odysseus-deb-"):
+        shutil.rmtree(os.path.dirname(copy), ignore_errors=True)
+
+
+def installed_version(name: str) -> str:
+    """Version installée (vide si le paquet n'est pas installé)."""
+    try:
+        r = subprocess.run(["dpkg-query", "-W", "-f=${Status}|${Version}", name], capture_output=True,
+                           text=True, errors="replace", timeout=10)
+    except (OSError, subprocess.SubprocessError):
+        return ""
+    status, _, ver = r.stdout.partition("|")
+    return ver if "install ok installed" in status else ""
+
+
 def missing_dependencies(path: str) -> Optional[list[str]]:
     """Paquets que apt ajouterait (simulation). None si la simulation est impossible."""
     try:
-        r = subprocess.run(["apt-get", "install", "--simulate", "--no-install-recommends", path],
-                           capture_output=True, text=True, timeout=60)
+        r = subprocess.run(["apt-get", "install", "--simulate", "--no-install-recommends", os.path.abspath(path)],
+                           capture_output=True, text=True, errors="replace", timeout=60)
     except (OSError, subprocess.SubprocessError):
         return None
     name = info(path).name
     deps = []
+    seen = False                                 # le paquet lui-même doit apparaître (filet : rien pris)
     for line in (r.stdout + r.stderr).splitlines():
         if line.startswith("Inst "):
             parts = line.split()
             if parts[1] != name:
                 deps.append(parts[1] + (" " + parts[2] if len(parts) > 2 else ""))
+            else:
+                seen = True
     if r.returncode != 0 and not deps:
+        return None
+    if not seen and not deps and not info(path).installed:
         return None
     return deps
 

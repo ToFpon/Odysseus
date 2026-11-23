@@ -160,8 +160,12 @@ def extract_audio(job: Job, videos: list[str], fmt: str, quality: str, dest_dir:
     for i, video in enumerate(videos):
         job.check_cancel()
         out = audio_output(video, fmt, dest_dir)
+        # écrit sous un nom caché (même extension : ffmpeg en déduit le format), posé ensuite sans jamais
+        # écraser (place_new) — avant, `-y` sous le vrai nom : deux extractions simultanées dans le même
+        # fichier, un fichier tronqué sous le vrai nom si Odysseus est tué
+        tmp = os.path.join(os.path.dirname(out), f".odysseus-audio-{os.urandom(4).hex()}{os.path.splitext(out)[1]}")
         duration = probe_duration(video) or 0.0
-        cmd = ["ffmpeg", "-y", "-hide_banner", "-i", video, "-vn", "-progress", "pipe:1", "-nostats"]
+        cmd = ["ffmpeg", "-n", "-hide_banner", "-i", video, "-vn", "-progress", "pipe:1", "-nostats"]
         if quality == "copy":
             cmd += ["-acodec", "copy"]
         elif fmt in LOSSLESS:
@@ -172,8 +176,10 @@ def extract_audio(job: Job, videos: list[str], fmt: str, quality: str, dest_dir:
             cmd += ["-acodec", codec, "-b:a", OPUS_BITRATES[quality]]
         else:
             cmd += ["-acodec", codec, "-b:a", QUALITY_BITRATES[quality]]
-        cmd.append(out)
-        p = job.popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True)
+        cmd.append(tmp)
+        # errors="replace" : un nom ou une étiquette non UTF-8 (que ffmpeg réaffiche) levait
+        # UnicodeDecodeError — lot arrêté, tube plus lu, ffmpeg bloqué en écrivant sa progression
+        p = job.popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True, errors="replace")
         tail = []
         for line in p.stdout:
             line = line.strip()
@@ -185,9 +191,16 @@ def extract_audio(job: Job, videos: list[str], fmt: str, quality: str, dest_dir:
             elif not re.match(r"^\w+=", line):
                 tail.append(line)
         ok = p.wait() == 0 and not job.cancelled
-        if not ok and os.path.exists(out):
+        if ok:
             try:
-                os.remove(out)
+                from .fileops import place_new
+                out = place_new(tmp, out)
+            except OSError as e:
+                ok = False
+                tail.append(e.strerror or str(e))
+        if not ok and os.path.exists(tmp):
+            try:
+                os.remove(tmp)
             except OSError:
                 pass
         if not ok and not job.cancelled:
