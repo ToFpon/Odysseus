@@ -182,6 +182,8 @@ class Pane(Gtk.Box):
             starred.listeners.remove(self._on_starred)
         self.drag.forget()
         self.model.cancel()
+        if self.miller is not None:
+            self.miller.stop()
         # recherche dans les sous-dossiers et pages spéciales : continuaient en fond après la fermeture
         # de l'onglet (os.walk de /usr, moniteurs de volumes, réseau)
         self._stop_search()
@@ -925,6 +927,8 @@ class Pane(Gtk.Box):
         self.view_mode = mode
         if save:
             settings["view_mode"] = mode
+        if leaving_columns and self.miller is not None:
+            self.miller.stop()                     # plus de surveillance des dossiers des colonnes
         if mode == "columns":
             self._ensure_miller().open(self.location)
         elif self.mode == "fs" and (leaving_columns or self.model.location != self.location or self.model.static
@@ -1370,6 +1374,8 @@ class Pane(Gtk.Box):
             k = (0 if f == needle else 1 if f.startswith(words[0]) else 2, len(f), i)
             if key is None or k < key:
                 best, key = i, k
+        if items[best] is getattr(self, "_auto_pick", None) and self.model.selection.is_selected(best):
+            return          # inchangé : ne pas ramener la vue sur lui à chaque lot de résultats
         self._auto_pick = items[best]
         self.model.selection.set_selection(Gtk.Bitset.new_range(best, 1), Gtk.Bitset.new_range(0, len(items)))
         self.scroll_to(best)

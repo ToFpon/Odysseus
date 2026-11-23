@@ -230,12 +230,22 @@ class FileManager1:
         hidden = None
         if host is None:
             hidden = host = MainWindow(self.app)
+        elif not host.get_visible() and getattr(host, "_prop_users", 0):
+            hidden = host                        # hôte caché d'autres Propriétés : partagé, compté
         dlg = PropertiesDialog(host, paths)
         dlg.set_application(self.app)            # garde Odysseus ouvert tant qu'elle l'est
         if hidden is not None:
+            hidden._prop_users = getattr(hidden, "_prop_users", 0) + 1
+
             def closed(*_):
                 def drop():
-                    if not hidden.get_visible():
+                    # détruit seulement quand les DERNIÈRES Propriétés qui s'en servent sont fermées
+                    # (avant : la première fermée le détruisait sous les autres)
+                    hidden._prop_users -= 1
+                    if hidden._prop_users <= 0 and not hidden.get_visible():
+                        teardown = getattr(hidden, "_teardown", None)
+                        if teardown is not None and not getattr(hidden, "_torn_down", False):
+                            teardown()
                         hidden.destroy()
                     return False
                 GLib.idle_add(drop)              # « Ouvrir le dossier parent » ferme puis l'affiche

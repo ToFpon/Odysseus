@@ -97,6 +97,8 @@ class DirModel(GObject.Object, Gio.ListModel):
         self._monitor_after_load = False
         self._pending: dict = {}
         self._pending_id = 0
+        self._quiet_scan = False        # relecture silencieuse en cours (_rescan_quiet)
+        self._quiet_seq = 0             # relectures GIO : la plus récente gagne
         self._index: Optional[dict] = None
 
     # -- Gio.ListModel -----------------------------------------------------
@@ -142,6 +144,7 @@ class DirModel(GObject.Object, Gio.ListModel):
     # -- chargement --------------------------------------------------------
     def cancel(self):
         self._gen += 1
+        self._quiet_scan = False
         self._cancel.set()
         self._cancel = threading.Event()
         self._stop_monitor()
@@ -173,7 +176,7 @@ class DirModel(GObject.Object, Gio.ListModel):
                         GLib.idle_add(self._loaded, gen, recs, None, True)
                     elif local:
                         recs = scanner.scan_local(location, cancel, with_stat=False)
-                        if len(recs) <= STAT_INLINE or self.sort_key not in ("name", "type"):
+                        if len(recs) <= STAT_INLINE or self.sort_key != "name":
                             scanner.stat_all(recs, cancel)
                             GLib.idle_add(self._loaded, gen, recs, None, True)
                         else:
@@ -231,8 +234,75 @@ class DirModel(GObject.Object, Gio.ListModel):
 
     def _stats_done(self, gen):
         if gen == self._gen:
-            self.refresh_rows()
+            if self.sort_key != "name":
+                self.resort()               # tri par taille / date demandé pendant la lecture des tailles
+            else:
+                self.refresh_rows()
         return False
+
+    def _rescan_quiet(self):
+        """Relit un dossier local dans un fil et fusionne le résultat sans changer d'état."""
+        location, gen, cancel = self.location, self._gen, self._cancel
+        self._quiet_scan = True
+
+        def work():
+            recs = None
+            try:
+                with scanner.scan_slot():
+                    if not cancel.is_set():
+                        recs = scanner.scan_local(location, cancel, with_stat=False)
+                        scanner.stat_all(recs, cancel)
+            except Exception:  # noqa: BLE001 — dossier disparu entre-temps : la surveillance le dira
+                recs = None
+            GLib.idle_add(self._rescanned, gen, recs)
+        threading.Thread(target=work, daemon=True).start()
+
+    def _rescanned(self, gen, recs):
+        self._quiet_scan = False
+        if gen != self._gen or recs is None:
+            return False
+        self._merge(recs)
+        return False
+
+    def _merge(self, recs: list):
+        """Remplace le contenu par recs en gardant les objets des éléments inchangés (miniatures,
+        lignes) et en ne signalant à GTK que la plage qui diffère : le défilement ne saute pas."""
+        sel = self.selected_recs()
+        old_by = {rec_ident(r): r for r in self.all}
+        merged, touched = [], []
+        for n in recs:
+            o = old_by.get(rec_ident(n))
+            if o is not None and o.is_dir == n.is_dir:
+                if (o.size, o.mtime, o.mode, o.ctype) != (n.size, n.mtime, n.mode, n.ctype):
+                    o.ctype, o.is_link = n.ctype, n.is_link
+                    o.size, o.mtime, o.mode, o.uid, o.gid = n.size, n.mtime, n.mode, n.uid, n.gid
+                    if o.extra:
+                        for k in ("thumb", "thumb_fail", "duration", "count", "meta",
+                                  "count_pending", "duration_pending"):
+                            o.extra.pop(k, None)
+                    touched.append(o)
+                o.stat_ok = True
+                merged.append(o)
+            else:
+                merged.append(n)
+        self.all = scanner.sort_recs(merged, self.sort_key, self.sort_reverse, self.folders_first)
+        old_items = self.items
+        items = [r for r in self.all if self._visible(r)]
+        a = 0
+        while a < len(old_items) and a < len(items) and old_items[a] is items[a]:
+            a += 1
+        b = 0
+        while b < len(old_items) - a and b < len(items) - a and old_items[-1 - b] is items[-1 - b]:
+            b += 1
+        self.items = items
+        self._index = None
+        removed, added = len(old_items) - a - b, len(items) - a - b
+        if removed or added:
+            self.items_changed(a, removed, added)
+            if sel:
+                self.select_recs(sel)
+        for r in touched:
+            self.notify_rec(r)
 
     def set_static(self, location: str, recs: list[Rec]):
         """Contenu fourni de l'extérieur : archive, résultats de recherche."""
@@ -348,9 +418,12 @@ class DirModel(GObject.Object, Gio.ListModel):
             return
         bits = Gtk.Bitset.new_empty()
         ids = {id(r) for r in recs}
-        names = {r.name for r in recs}
+        # l'élément relu est un nouvel objet : reconnu par son chemin (ou URI, chemin dans l'archive),
+        # jamais par le seul nom — dans une recherche, la Corbeille ou les Favoris, des homonymes
+        # étaient sélectionnés avec lui (Suppr les jetait tous ; audit de novembre 2026)
+        keys = {rec_ident(r) for r in recs}
         for i, r in enumerate(self.items):
-            if id(r) in ids or r.name in names:
+            if id(r) in ids or rec_ident(r) in keys:
                 bits.add(i)
         mask = Gtk.Bitset.new_range(0, len(self.items)) if self.items else Gtk.Bitset.new_empty()
         self.selection.set_selection(bits, mask)
@@ -391,18 +464,21 @@ class DirModel(GObject.Object, Gio.ListModel):
         location, gen, cancel = self.location, self._gen, self._cancel
         if not location or self.static or self.loading:
             return False
+        self._quiet_seq += 1
+        seq = self._quiet_seq
 
         def work():
             try:
                 recs = scanner.scan_gio(Gio.File.new_for_uri(location), cancel)
             except Exception:
                 return
-            GLib.idle_add(self._reloaded, gen, recs)
+            GLib.idle_add(self._reloaded, gen, recs, seq)
         threading.Thread(target=work, daemon=True).start()
         return False
 
-    def _reloaded(self, gen, recs):
-        if gen == self._gen:
+    def _reloaded(self, gen, recs, seq=None):
+        # deux relectures superposées : celle qui finit la dernière n'est pas forcément la plus récente
+        if gen == self._gen and (seq is None or seq == self._quiet_seq):
             self.all = scanner.sort_recs(recs, self.sort_key, self.sort_reverse, self.folders_first)
             self._publish(keep_selection=True)
             self.emit("state", "ready")
@@ -437,17 +513,20 @@ class DirModel(GObject.Object, Gio.ListModel):
 
     def _flush_changes(self):
         self._pending_id = 0
+        if not self.location or self.static:
+            self._pending.clear()
+            return False
+        if self.loading or self._quiet_scan:
+            # lecture en cours : appliqués à l'ANCIENNE liste, ils étaient écrasés par le résultat du
+            # scan (fichier arrivé pendant l'ouverture absent jusqu'à F5) — on les garde pour après
+            self._pending_id = GLib.timeout_add(150, self._flush_changes)
+            return False
         paths = list(self._pending)
         self._pending.clear()
-        if not self.location or self.static:
-            return False
-        if len(paths) > 300:
-            sel = self.selected_recs()
-            loc = self.location
-            names = [r.name for r in sel]
-            self.load(loc)
-            if names:
-                self.connect_once_ready(lambda: self.select_names(names))
+        if len(paths) > 300 and not fsinfo.is_network(self.location):
+            # rafale (copie massive vers ce dossier) : relecture SILENCIEUSE, sans page « Chargement… »,
+            # défilement et sélection gardés (avant : un chargement complet par lot de 150 ms)
+            self._rescan_quiet()
             return False
         paths = [p for p in paths if os.path.dirname(p) == self.location]
         if fsinfo.is_network(self.location):
@@ -512,6 +591,19 @@ class DirModel(GObject.Object, Gio.ListModel):
             self._index = None
             self.items_changed(j, 0, 1)
 
+    def value_arrived(self, r: Rec, sort_key: str):
+        """Valeur calculée après coup (nombre d'éléments d'un dossier, durée) : si la liste est triée
+        dessus, la ligne prend sa place — sinon la liste n'était plus triée et les insertions suivantes
+        (dichotomie) tombaient au mauvais endroit."""
+        if self.sort_key != sort_key or self.static or r not in self.all:
+            self.notify_rec(r)
+            return
+        sel = r in self.selected_recs()
+        self._remove_rec(r)
+        self._insert_rec(r)
+        if sel:
+            self.select_recs(self.selected_recs() + [r])
+
     def _remove_rec(self, r: Rec):
         try:
             self.all.remove(r)
@@ -525,8 +617,11 @@ class DirModel(GObject.Object, Gio.ListModel):
 
     def _update_rec(self, old: Rec, new: Rec):
         # type changé (fichier vide remplacé par le vrai, ex. « x.zip » de Firefox écrasé par
-        # « x.zip.part ») : l'icône suit ; trié par type, la ligne change de place
-        if old.is_dir != new.is_dir or (old.ctype != new.ctype and self.sort_key == "type"):
+        # « x.zip.part ») : l'icône suit ; trié par type, la ligne change de place. Même chose pour
+        # toute clé de tri qui change (date, taille : fichier réécrit), sinon la liste n'était plus
+        # triée et les insertions suivantes (dichotomie) tombaient au mauvais endroit
+        kf = scanner._key_func(self.sort_key)
+        if old.is_dir != new.is_dir or kf(old) != kf(new):
             sel = old in self.selected_recs()
             self._remove_rec(old)
             self._insert_rec(new)
@@ -537,9 +632,14 @@ class DirModel(GObject.Object, Gio.ListModel):
         old.size, old.mtime, old.mode, old.uid, old.gid = new.size, new.mtime, new.mode, new.uid, new.gid
         old.stat_ok = True
         if old.extra:
-            for k in ("thumb", "thumb_fail", "duration", "count", "meta"):
+            for k in ("thumb", "thumb_fail", "duration", "count", "meta", "count_pending", "duration_pending"):
                 old.extra.pop(k, None)
         self.notify_rec(old)
+
+
+def rec_ident(r: Rec):
+    """Identité d'un élément d'un relevé à l'autre : chemin, URI, chemin dans l'archive, sinon nom."""
+    return r.path or r.uri or r.get("inner") or r.name
 
 
 def _is_uri(location: str) -> bool:
@@ -598,6 +698,13 @@ class Selection(GObject.Object, Gio.ListModel, Gtk.SelectionModel):
         return self.model.get_item(i)
 
     def _on_items_changed(self, _m, pos, removed, added):
+        # clic différé (« lui seul ») : la position suit l'élément, abandonnée s'il est retiré
+        p = self._pending
+        if p is not None and p >= pos:
+            if p < pos + removed:
+                self.cancel_pending()
+            else:
+                self._pending = p + added - removed
         self.bits.splice(pos, removed, added)
         self.items_changed(pos, removed, added)
 

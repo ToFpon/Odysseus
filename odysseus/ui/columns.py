@@ -223,7 +223,7 @@ class MillerView(Gtk.ScrolledWindow):
             p = parent
         while (c := self.chain.get_first_child()) is not None:
             self.chain.remove(c)
-        self.columns.clear()
+        self.stop()
         for i, d in enumerate(chain):
             col = self._append(d)
             if i + 1 < len(chain):
@@ -260,9 +260,19 @@ class MillerView(Gtk.ScrolledWindow):
         adj.set_value(adj.get_upper())
         return False
 
-    def refresh(self):
+    def stop(self):
+        """Colonnes retirées : leurs dossiers cessent d'être surveillés (sinon chaque saut par la barre
+        latérale laissait des moniteurs inotify vivants, retenus par leur propre rappel)."""
         for c in self.columns:
+            c.model.cancel()
+        self.columns.clear()
+
+    def refresh(self):
+        # F5 : chaque colonne garde le dossier ouvert à sa droite sélectionné (les éléments sont neufs)
+        for i, c in enumerate(self.columns):
             c.model.load(c.path)
+            if i + 1 < len(self.columns):
+                c._pending_select = os.path.basename(self.columns[i + 1].path.rstrip("/"))
 
     def set_show_hidden(self, value: bool):
         for c in self.columns:

@@ -67,6 +67,12 @@ class OdysseusApp(Adw.Application):
             Gtk.IconTheme.get_for_display(display).add_search_path(icons)
         from .ui.dialogs import apply_theme
         apply_theme()
+        # une opération en cours garde l'application en vie, même sans fenêtre : fermer la fenêtre
+        # principale puis celle d'une archive, ou des Propriétés ouvertes depuis le bureau pendant
+        # « Changer les permissions des fichiers inclus », tuait l'opération sans question
+        from .ui.jobs import manager
+        self._held = False
+        manager.connect("changed", self._sync_hold)
         from .backend import gsconnect
         gsconnect.devices.start()           # appareils GSConnect suivis dès le départ, pour le menu
         from .backend import archive
@@ -105,8 +111,17 @@ class OdysseusApp(Adw.Application):
             self._fm1.stop()
             self._fm1 = None
 
+    def _sync_hold(self, manager):
+        busy = bool(manager.running)
+        if busy and not self._held:
+            self._held = True
+            self.hold()
+        elif not busy and self._held:
+            self._held = False
+            self.release()
+
     def _quit(self):
-        win = self._window()
+        win = self._window(visible_only=True)
         if win is not None:                 # Ctrl+Q : le dernier emplacement est celui de la fenêtre active
             from .ui import startup
             startup.remember(win)
@@ -128,28 +143,34 @@ class OdysseusApp(Adw.Application):
         win.present()
         return win
 
-    def _window(self):
+    def _window(self, visible_only: bool = False):
+        """Fenêtre principale à utiliser. visible_only : jamais l'hôte CACHÉ des Propriétés ouvertes depuis
+        le bureau (Ctrl+Q y mémorisait son dossier personnel comme « dernier emplacement », le dock le
+        montrait au lieu d'appliquer « Ouvrir Odysseus sur »)."""
         from .ui.window import MainWindow
         win = self.get_active_window()
-        if not isinstance(win, MainWindow):     # les Propriétés ouvertes depuis le bureau en sont une aussi
-            wins = [w for w in self.get_windows() if isinstance(w, MainWindow)]
+        if not isinstance(win, MainWindow) or (visible_only and not win.get_visible()):
+            wins = [w for w in self.get_windows() if isinstance(w, MainWindow)
+                    and (w.get_visible() or not visible_only)]
             win = wins[0] if wins else None
         return win
 
     def do_activate(self):
-        win = self._window()
+        win = self._window(visible_only=True)
         if win is None:
             win = self._new_window()
         win.present()
 
     def do_open(self, files, n, hint):
-        win = self._window() or self._new_window(files[0].get_path() or files[0].get_uri())
-        for i, f in enumerate(files):
-            loc = f.get_path() or f.get_uri()
-            if i == 0 and win.pane:
-                win.open_location(loc)
-            else:
-                win.new_tab(loc)
+        # dossier ouvert depuis une autre application (dock, clé USB, « gio open ») : un NOUVEL onglet,
+        # comme la ligne de commande — avant, il remplaçait l'onglet en cours (dossier et sélection perdus)
+        win = self._window(visible_only=True)
+        locs = [f.get_path() or f.get_uri() for f in files]
+        if win is None:
+            win = self._new_window(locs[0])
+            locs = locs[1:]
+        for loc in locs:
+            win.new_tab(loc)
         win.present()
 
     def do_command_line(self, cmd):

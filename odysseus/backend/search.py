@@ -9,7 +9,10 @@ from __future__ import annotations
 import os
 import re
 import shutil
+import signal
 import subprocess
+import threading
+import time
 from dataclasses import dataclass
 from typing import Callable, Optional
 
@@ -104,10 +107,28 @@ def run(q: Query, on_batch: Callable[[list], None], cancelled: Callable[[], bool
                              errors="replace", start_new_session=True)
     except OSError as e:
         return 0, False, str(e)
+    # sortie d'erreur lue à part (dernières lignes gardées) : non lue, au-delà de 64 Ko de « Permission
+    # non accordée » (recherche dans / ou /etc), grep se bloquait en écrivant et nous en lisant — pour
+    # toujours ; « Arrêter » tue l'outil tout de suite, même s'il ne trouve rien (audit de novembre 2026)
+    tail: list = []
+
+    def drain():
+        for line in p.stderr:
+            tail.append(line)
+            del tail[:-5]
+
+    def watch():
+        while p.poll() is None:
+            if cancelled():
+                _kill(p)
+                return
+            time.sleep(0.2)
+    threading.Thread(target=drain, daemon=True).start()
+    threading.Thread(target=watch, daemon=True).start()
     batch, count, truncated = [], 0, False
     for raw in p.stdout:
         if cancelled():
-            p.kill()
+            _kill(p)
             break
         m = parse_line(raw)
         if m is None:
@@ -119,16 +140,27 @@ def run(q: Query, on_batch: Callable[[list], None], cancelled: Callable[[], bool
             batch = []
         if count >= limit:
             truncated = True
-            p.kill()
+            _kill(p)
             break
     if batch:
         on_batch(batch)
     p.wait()
     err = ""
     if p.returncode not in (0, 1, -9) and not cancelled() and not truncated:
-        err = (p.stderr.read() or "").strip().splitlines()[-1:] or [tr("code {0}").format(p.returncode)]
-        err = err[0]
+        lines = "".join(tail).strip().splitlines()
+        err = lines[-1] if lines else tr("code {0}").format(p.returncode)
     return count, truncated, err
+
+
+def _kill(p):
+    """L'outil et ses enfants (groupe de processus : start_new_session)."""
+    try:
+        os.killpg(p.pid, signal.SIGKILL)
+    except OSError:
+        try:
+            p.kill()
+        except OSError:
+            pass
 
 
 def compile_rx(q: Query) -> re.Pattern:

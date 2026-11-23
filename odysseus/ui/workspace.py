@@ -153,7 +153,7 @@ class Workspace(Gtk.Box):
         bar = PathBar(compact=True)
         bar.connect("navigate", lambda _b, loc: (pane.open(loc) if loc else pane.focus_view(), self.set_active(pane)))
         bar.connect("navigate-tab", lambda _b, loc: self.window.new_tab(loc))
-        bar.connect("drop", lambda _b, paths, target: self.window.drop_files(paths, target, "auto"))
+        bar.connect("drop", lambda _b, paths, target, mode: self.window.drop_files(paths, target, mode))
         pane.pathbar = bar
         pane.top.append(bar)
         self.window.update_pane_pathbar(pane)

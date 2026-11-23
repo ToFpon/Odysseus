@@ -48,6 +48,8 @@ def _fb() -> dict:
                 _fallback = json.load(fh)
         except (OSError, ValueError):
             _fallback = {}
+        if not isinstance(_fallback, dict):       # « null », « [] » : chaque lecture levait
+            _fallback = {}
     return _fallback
 
 

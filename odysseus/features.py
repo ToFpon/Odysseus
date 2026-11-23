@@ -168,7 +168,8 @@ def enabled(fid: str) -> bool:
     f = BY_ID.get(fid)
     if f is None:
         return False
-    return bool(settings["features"].get(fid, f.default))
+    v = settings["features"].get(fid, f.default)
+    return v if isinstance(v, bool) else bool(f.default)      # « "false" » retouché à la main ≠ activé
 
 
 def set_enabled(fid: str, value: bool):

@@ -80,7 +80,8 @@ def locations() -> tuple[Optional[str], Optional[str], int]:
 def remember(window) -> None:
     """Retient les emplacements de l'onglet affiché de cette fenêtre (sans prévenir les écouteurs
     des réglages : rien à redessiner)."""
-    if settings["startup_location"] != "last" or getattr(window, "_torn_down", False):
+    if settings["startup_location"] != "last" or getattr(window, "_torn_down", False) \
+            or not window.get_visible():         # hôte caché des Propriétés : pas un emplacement choisi
         return
     ws = getattr(window, "workspace", None)
     if ws is None or not ws.panes:

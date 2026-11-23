@@ -22,7 +22,7 @@ class Pool:
 
     def __init__(self, threads: int = 2, limit: int = 4000, max_threads: int = 6):
         self._tasks: "OrderedDict[object, tuple]" = OrderedDict()
-        self._running: set = set()
+        self._running: dict = {}     # clé -> rappels attendant la tâche en cours
         self._busy: dict = {}        # fil -> début de sa tâche en cours
         self._cv = threading.Condition()
         self._limit = limit
@@ -43,31 +43,44 @@ class Pool:
             if all(now - t > self.STUCK for t in self._busy.values()):
                 self._spawn()
 
-    def submit(self, key, func: Callable[[], object], callback: Callable[[object], None]):
+    def submit(self, key, func: Callable[[], object], callback: Callable[[object], None],
+               dropped: Callable[[], None] = None):
+        """Doublon (même clé en attente ou en cours) : son rappel s'ajoute à ceux de la tâche, il n'est
+        plus jeté — la ligne relue (F5, dossier modifié) attendait sinon pour toujours un résultat
+        rendu à l'ancienne ligne (nombre d'éléments, durée vides ; audit de novembre 2026). Tâche
+        retirée parce que la file déborde : dropped() est appelé (la ligne pourra redemander)."""
         with self._cv:
             if key in self._running:
+                self._running[key].append((callback, dropped))
                 return
             if key in self._tasks:
+                self._tasks[key][1].append((callback, dropped))
                 self._tasks.move_to_end(key)
             else:
-                self._tasks[key] = (func, callback)
+                self._tasks[key] = (func, [(callback, dropped)])
                 while len(self._tasks) > self._limit:
-                    self._tasks.popitem(last=False)
+                    _k, (_f, waiting) = self._tasks.popitem(last=False)
+                    for _cb, drop in waiting:
+                        if drop is not None:
+                            GLib.idle_add(_dropped, drop)
             self._maybe_grow()
             self._cv.notify()
 
     def discard(self, predicate: Callable[[object], bool]):
         with self._cv:
             for k in [k for k in self._tasks if predicate(k)]:
-                del self._tasks[k]
+                _f, waiting = self._tasks.pop(k)
+                for _cb, drop in waiting:
+                    if drop is not None:
+                        GLib.idle_add(_dropped, drop)
 
     def _loop(self):
         while True:
             with self._cv:
                 while not self._tasks:
                     self._cv.wait()
-                key, (func, callback) = self._tasks.popitem(last=True)
-                self._running.add(key)
+                key, (func, waiting) = self._tasks.popitem(last=True)
+                self._running[key] = waiting
                 me = threading.get_ident()
                 self._busy[me] = time.monotonic()
             try:
@@ -75,9 +88,18 @@ class Pool:
             except Exception:  # noqa: BLE001 — un fichier illisible ne doit rien casser
                 result = None
             with self._cv:
-                self._running.discard(key)
+                waiting = self._running.pop(key, [])
                 self._busy.pop(me, None)
-            GLib.idle_add(_deliver, callback, result)
+            for callback, _drop in waiting:
+                GLib.idle_add(_deliver, callback, result)
+
+
+def _dropped(drop):
+    try:
+        drop()
+    except Exception as e:  # noqa: BLE001
+        print("[odysseus] worker dropped:", e)
+    return False
 
 
 def _deliver(callback, result):

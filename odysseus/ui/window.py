@@ -107,7 +107,7 @@ class MainWindow(FileActions, ArchiveActions, ToolActions, Adw.ApplicationWindow
         tv.add_top_bar(hb)
         self.sidebar = Sidebar()
         self.sidebar.connect("open", self._on_sidebar_open)
-        self.sidebar.connect("drop", lambda _s, paths, target: self.drop_files(paths, target, "auto"))
+        self.sidebar.connect("drop", lambda _s, paths, target, mode: self.drop_files(paths, target, mode))
         tv.set_content(self.sidebar)
         return tv
 
@@ -132,7 +132,7 @@ class MainWindow(FileActions, ArchiveActions, ToolActions, Adw.ApplicationWindow
         self.pathbar = PathBar(menu_factory=menus.folder_menu)
         self.pathbar.connect("navigate", self._on_path_navigate)
         self.pathbar.connect("navigate-tab", lambda _b, loc: self.new_tab(loc))
-        self.pathbar.connect("drop", lambda _b, paths, target: self.drop_files(paths, target, "auto"))
+        self.pathbar.connect("drop", lambda _b, paths, target, mode: self.drop_files(paths, target, mode))
         bar.append(self.pathbar)
 
         self.ops_btn = OperationsButton()

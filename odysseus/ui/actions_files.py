@@ -130,6 +130,27 @@ def _desktop_app_for(command: str):
         if app.get_executable() and os.path.basename(app.get_executable()) == exe:
             return app
     return None
+def _case_only(folder: str, text: str, same: Optional[str]) -> bool:
+    """Renommer en ne changeant que la casse sur un support insensible à la casse (FAT, exFAT) :
+    « Photo.jpg » « existe » parce que c'est le fichier lui-même. Seulement si aucun élément ne porte
+    exactement ce nom (sur ext4, « Photo.jpg » et « photo.jpg » peuvent être deux fichiers)."""
+    if not same or text.casefold() != same.casefold():
+        return False
+    try:
+        return text not in os.listdir(folder)
+    except OSError:
+        return False
+
+
+def _put_back_replaced(job, res, replaced: dict):
+    """Annulation d'un « Remplacer » : les éléments remplacés sortent de la corbeille, à leur place
+    (le nouvel élément vient d'en partir)."""
+    if not replaced:
+        return
+    back = fileops.restore_trashed_uris(job, replaced, partial_ok=True)
+    res.errors += back.errors
+
+
 class FileActions:
     """Mélangé à MainWindow."""
 
@@ -580,9 +601,16 @@ class FileActions:
     def _run(self, title: str, func, refresh_dir: Optional[str] = None, on_done=None, undo=None):
         def done(job):
             self._refresh_devices()      # même annulée ou en erreur : une partie a peut-être changé
+            if job.state == "cancelled" and undo is not None and isinstance(job.partial, fileops.Result):
+                # « Annuler » pendant l'opération : ce qui a déjà été fait reste annulable par Ctrl+Z
+                # (avant : aucune entrée, et Ctrl+Z défaisait l'opération d'AVANT)
+                entry = undo(job.partial)
+                if entry:
+                    self._push_undo(entry)
             if job.state == "done":
                 res = job.result
                 pushed = False
+                entry = None
                 if undo is not None and isinstance(res, fileops.Result):
                     entry = undo(res)
                     if entry:
@@ -596,7 +624,7 @@ class FileActions:
                     # « Annuler » seulement si une entrée vient d'être posée : sinon il annulerait
                     # l'opération d'avant (étiquettes toutes en échec, sauvegarde impossible…)
                     if res.kind in ("trash", "move", "rename", "tags", "photo") and pushed:
-                        toast(self, msg, tr("Annuler"), self.undo, timeout=6)
+                        toast(self, msg, tr("Annuler"), lambda e=entry: self._undo_entry(e), timeout=6)
                     elif res.kind not in ("copy", "move"):
                         toast(self, msg)
                     self._select_created(res)
@@ -656,8 +684,9 @@ class FileActions:
         # seulement ce qui a été créé / déplacé : dans un dossier fusionné, pas ce qu'il contenait déjà
         # un déplacement ne s'annule jamais comme une copie (corbeille) : ses fichiers n'existent plus
         # qu'à la destination
-        undo = (lambda r: (("move", list(r.new_moves)) if r.new_moves else None) if move else
-                (("copy", list(r.new_items)) if r.new_items else None))
+        # 3e élément : éléments remplacés (à la corbeille), remis à leur place par l'annulation
+        undo = (lambda r: (("move", list(r.new_moves), dict(r.replaced)) if r.new_moves else None) if move else
+                (("copy", list(r.new_items), dict(r.replaced)) if r.new_items else None))
         self._run(title, lambda j: fileops.transfer(j, paths, dest, self._ask_conflict, move=move), dest,
                   undo=undo)
 
@@ -692,7 +721,8 @@ class FileActions:
             err = fileops.valid_name(text)
             if err:
                 return err
-            if folder and text != same and os.path.lexists(os.path.join(folder, text)):
+            if folder and text != same and os.path.lexists(os.path.join(folder, text)) \
+                    and not _case_only(folder, text, same):
                 return tr("« {0} » existe déjà").format(text)
             if taken is not None and text != same and text in taken:      # noms dans une archive
                 return tr("« {0} » existe déjà").format(text)
@@ -837,7 +867,9 @@ class FileActions:
 
     def new_file_named(self, template: str = ""):
         p = self.pane
-        folder = p.current_dir() if p.mode == "fs" else ""
+        # même règle que « Nouveau dossier » : aussi dans une recherche (dossier de départ) et un smb://
+        # ouvert par son URI (chemin FUSE) — avant, rien ne se passait, sans message
+        folder = p.current_dir()
         if not folder and self._gio_dir():
             def make_gio(name):
                 try:
@@ -898,24 +930,27 @@ class FileActions:
 
     def _trash_paths(self, paths: list[str]):
         def undo(res):
-            return ("trash", list(res.trashed)) if res.trashed else None
+            return ("trash", list(res.trashed), dict(res.trash_uris)) if res.trashed else None
 
         def done(job):
             # pas de corbeille sur ce support : comme Nautilus, proposer la suppression définitive
             left = getattr(job.result, "no_trash", None) if job.state == "done" else None
-            if not left:
-                return
-            alert(self, ntr("Impossible de déplacer le fichier vers la corbeille, voulez-vous le supprimer "
-                            "immédiatement ?",
-                            "Impossible de déplacer les fichiers vers la corbeille, voulez-vous les supprimer "
-                            "immédiatement ?", len(left)),
-                  describe_paths(left) + "\n" + tr("Ce support n'a pas de corbeille."),
-                  responses=(("cancel", tr("Annuler")), ("delete", tr("Supprimer"))), destructive="delete",
-                  default="cancel",
-                  callback=lambda r: r == "delete" and self._run(tr("Suppression définitive"),
-                                                                 lambda j: fileops.delete(j, left)))
+            if left:
+                self._offer_delete(left)
         self._run(ntr("Mise à la corbeille de {0} élément", "Mise à la corbeille de {0} éléments",
                       len(paths)).format(len(paths)), lambda j: fileops.trash(j, paths), undo=undo, on_done=done)
+
+    def _offer_delete(self, left: list):
+        """Support sans corbeille : comme Nautilus, proposer la suppression définitive."""
+        alert(self, ntr("Impossible de déplacer le fichier vers la corbeille, voulez-vous le supprimer "
+                        "immédiatement ?",
+                        "Impossible de déplacer les fichiers vers la corbeille, voulez-vous les supprimer "
+                        "immédiatement ?", len(left)),
+              describe_paths(left) + "\n" + tr("Ce support n'a pas de corbeille."),
+              responses=(("cancel", tr("Annuler")), ("delete", tr("Supprimer"))), destructive="delete",
+              default="cancel",
+              callback=lambda r: r == "delete" and self._run(tr("Suppression définitive"),
+                                                             lambda j: fileops.delete(j, left)))
 
     def delete(self):
         p = self.pane
@@ -1230,13 +1265,34 @@ class FileActions:
             def done(j):
                 res = j.result
                 if isinstance(res, fileops.Result) and res.trashed:
-                    self._push_undo(("trash", list(res.trashed)), keep_redo=True)
+                    self._push_undo(("trash", list(res.trashed), dict(res.trash_uris)), keep_redo=True)
             self._run(tr("Mise à la corbeille"), lambda j: fileops.trash(j, originals), on_done=done)
         elif kind in ("copy", "create"):
-            # l'annulation les avait mis à la corbeille : on les en sort
-            self._run(tr("Restauration depuis la corbeille"),
-                      lambda j: fileops.restore_trashed_paths(j, entry[1]),
-                      on_done=lambda j: self._push_undo(entry, keep_redo=True))
+            # l'annulation les avait mis à la corbeille : on sort de la corbeille CES éléments-là (URI
+            # notées à l'annulation), et l'entrée suivante vise l'endroit où ils sont réellement revenus
+            # (« a (2).txt » si un autre « a.txt » est apparu entre-temps — avant, le Ctrl+Z suivant mettait
+            # ce fichier-là, le travail de l'utilisateur, à la corbeille)
+            uris = entry[3] if len(entry) > 3 else None
+
+            def work(j):
+                if uris:
+                    return fileops.restore_trashed_uris(j, uris)
+                return fileops.restore_trashed_paths(j, entry[1])
+
+            def redone(j):
+                back = list(j.result.created) if isinstance(j.result, fileops.Result) else []
+                if back:
+                    self._push_undo((kind, back), keep_redo=True)
+            self._run(tr("Restauration depuis la corbeille"), work, on_done=redone)
+
+    def _undo_entry(self, entry):
+        """Bouton « Annuler » d'une notification : annule CETTE opération, seulement si elle est encore
+        la dernière (avant : le sommet de la pile — un renommage fait entre-temps, ou une copie finie
+        après, était défait à sa place)."""
+        if self.undo_stack and self.undo_stack[-1] is entry:
+            self.undo()
+        else:
+            toast(self, tr("Une autre opération a été faite depuis : rien n'a été annulé"))
 
     def undo(self):
         if not self.undo_stack:
@@ -1281,10 +1337,31 @@ class FileActions:
                         res.moved.append((dst, src))
                     except OSError as e:
                         res.errors.append((dst, e.strerror or str(e)))
+                _put_back_replaced(j, res, replaced)
                 return res
+            replaced = entry[2] if len(entry) > 2 else {}
+            if replaced:
+                self._drop_redo(entry)             # un remplacement ne se rejoue pas
             self._run(tr("Annulation du déplacement"), work)
         elif kind == "trash":
             originals = entry[1]
+            uris = entry[2] if len(entry) > 2 else {}
+
+            def work_trash(j):
+                # les éléments jetés par CETTE opération (URI notées), pas le plus récent homonyme de la
+                # corbeille ; ceux sans URI connue (pas de GVfs) : par leur chemin d'origine, comme avant
+                known = {p: uris[p] for p in originals if p in uris}
+                rest = [p for p in originals if p not in uris]
+                res = fileops.restore_trashed_uris(j, known, partial_ok=True)
+                if rest:
+                    try:
+                        r = fileops.restore_trashed_paths(j, rest)
+                        res.created += r.created
+                        res.errors += r.errors
+                    except ToolError as e:
+                        res.errors.append((rest[0], e.args[0] if e.args else str(e)))
+                fileops._raise_partial(res)
+                return res
 
             def restored(j):
                 # Rétablir doit renvoyer à la corbeille ce qui vient d'en sortir, là où c'est arrivé :
@@ -1298,12 +1375,40 @@ class FileActions:
                             del self.redo_stack[i]
                         break
                 self._update_undo_actions()
-            self._run(tr("Restauration depuis la corbeille"),
-                      lambda j: fileops.restore_trashed_paths(j, originals), on_done=restored)
+            self._run(tr("Restauration depuis la corbeille"), work_trash, on_done=restored)
         elif kind in ("copy", "create"):
             paths = [p for p in entry[1] if os.path.lexists(p)]
-            if paths:
-                self._run(tr("Annulation : mise à la corbeille"), lambda j: fileops.trash(j, paths))
+            replaced = entry[2] if len(entry) > 2 else {}
+
+            def work_copy(j):
+                res = fileops.trash(j, paths) if paths else fileops.Result("trash")
+                _put_back_replaced(j, res, replaced)
+                return res
+
+            def undone(j):
+                res = j.result if isinstance(j.result, fileops.Result) else None
+                if res is not None and res.no_trash:
+                    # support sans corbeille : rien n'a été retiré, on le dit et on propose de supprimer
+                    self._offer_delete(res.no_trash)
+                if res is None or replaced or not res.trashed:
+                    self._drop_redo(entry)             # rien à rétablir (ou un remplacement)
+                else:
+                    self._set_redo(entry, (kind, entry[1], {}, dict(res.trash_uris)))
+            if paths or replaced:
+                self._run(tr("Annulation : mise à la corbeille"), work_copy, on_done=undone)
+            else:
+                self._drop_redo(entry)
+
+    def _drop_redo(self, entry):
+        self.redo_stack[:] = [e for e in self.redo_stack if e is not entry]
+        self._update_undo_actions()
+
+    def _set_redo(self, entry, new):
+        for i, e in enumerate(self.redo_stack):
+            if e is entry:
+                self.redo_stack[i] = new
+                break
+        self._update_undo_actions()
 
     # ------------------------------------------------------------------
     # Divers

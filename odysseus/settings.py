@@ -106,8 +106,14 @@ class Settings:
                 loaded = json.load(fh)
             if isinstance(loaded, dict):
                 self.data.update({k: v for k, v in loaded.items() if _fits(k, v)})
-        except (OSError, ValueError):
+        except OSError:
             pass
+        except ValueError:
+            # fichier abîmé (coupure de courant) : gardé à côté plutôt qu'écrasé au premier enregistrement
+            try:
+                os.replace(path, path + ".bad")
+            except OSError:
+                pass
         self._listeners = []
 
     def __getitem__(self, key):
@@ -127,14 +133,22 @@ class Settings:
             self._listeners.remove(cb)
 
     def save(self):
+        # ensure_ascii : un chemin non UTF-8 (clé FAT, zip venu de Windows : « caf\udce9 ») s'écrit
+        # « \udce9 » et se relit à l'identique ; sans lui, json levait UnicodeEncodeError à CHAQUE
+        # enregistrement suivant (plus rien de retenu, fermeture de fenêtre interrompue)
+        tmp = self.path + ".tmp"
         try:
             os.makedirs(os.path.dirname(self.path), exist_ok=True)
-            tmp = self.path + ".tmp"
             with open(tmp, "w", encoding="utf-8") as fh:
-                json.dump(self.data, fh, indent=2, ensure_ascii=False)
+                json.dump(self.data, fh, indent=2, ensure_ascii=True)
+                fh.flush()
+                os.fsync(fh.fileno())
             os.replace(tmp, self.path)
-        except OSError:
-            pass
+        except (OSError, ValueError, TypeError):
+            try:
+                os.remove(tmp)
+            except OSError:
+                pass
 
 
 settings = Settings()

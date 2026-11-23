@@ -17,7 +17,7 @@ from ..backend import bookmarks, devices, fsinfo, scanner, starred, trashwatch
 from ..backend.engine import human_size
 from ..i18n import ntr, tr
 from ..settings import settings
-from .common import SpringLoad, alert, ask_text, drop_locations, popup_menu, shown, space_later, toast
+from .common import SpringLoad, alert, ask_text, drop_locations, drop_mode, popup_menu, shown, space_later, toast
 
 UNMOUNT_NOTIFICATION = "unmount"        # même identifiant : « Écriture… » est remplacée par « … retiré »
 
@@ -106,13 +106,36 @@ def places(desktop: bool = True, trash: bool = True) -> list[tuple[str, str, str
         if d == GLib.UserDirectory.DIRECTORY_DESKTOP and not desktop:
             continue
         p = GLib.get_user_special_dir(d)
-        if p and p != home and os.path.isdir(p):
+        if p and p != home and _local_isdir(p):
             dirs.append((icon, GLib.filename_display_basename(p), p))
     dirs.sort(key=lambda e: scanner.collate_key(e[1]))
     out.extend(dirs)
     if trash:
         out.append(("user-trash-symbolic", tr("Corbeille"), TRASH))
     return out
+
+
+def _network_target(p: str) -> bool:
+    """Dossier sur un partage réseau, ou lien (« ~/Musique » → NAS) qui y mène : lu sans le suivre."""
+    if fsinfo.is_network(p):
+        return True
+    try:
+        if os.path.islink(p):                   # lstat du lien, sur le disque local
+            target = os.path.join(os.path.dirname(p), os.readlink(p))
+            return fsinfo.is_network(os.path.abspath(target))
+    except OSError:
+        pass
+    return False
+
+
+def _local_isdir(p: str) -> bool:
+    """Dossier utilisateur (Musique, Vidéos…) : sur un partage réseau, montré sans vérification — un NAS
+    éteint figeait sinon la fenêtre à l'ouverture (isdir sur le fil principal ; audit de novembre 2026)."""
+    return True if _network_target(p) else os.path.isdir(p)
+
+
+def _local_realpath(p: str) -> str:
+    return p if _network_target(p) else os.path.realpath(p)
 
 
 def _gvfs(scheme: str) -> bool:
@@ -145,7 +168,7 @@ class Sidebar(Gtk.Box):
     __gtype_name__ = "OdysseusSidebar"
     __gsignals__ = {
         "open": (GObject.SignalFlags.RUN_FIRST, None, (str, str)),      # cible, où : here / tab / other
-        "drop": (GObject.SignalFlags.RUN_FIRST, None, (object, str)),
+        "drop": (GObject.SignalFlags.RUN_FIRST, None, (object, str, str)),   # chemins, cible, action
     }
 
     def __init__(self):
@@ -229,10 +252,14 @@ class Sidebar(Gtk.Box):
             return
         def run():
             self._trash_pending = 0
+            # comptages superposés (corbeille vidée, clé lente) : seul le plus récent s'affiche, sinon
+            # un comptage lent fini en dernier laissait « 523 » sur une corbeille vide
+            self._trash_seq = seq = getattr(self, "_trash_seq", 0) + 1
+
             def work():
                 n = trashwatch.count_and_sync()
                 dirs = [d for d in trashwatch.trash_dirs() if os.path.isdir(d)]
-                GLib.idle_add(lambda: (self._trash_counted(n, dirs), False)[1])
+                GLib.idle_add(lambda: (seq == self._trash_seq and self._trash_counted(n, dirs), False)[1])
             threading.Thread(target=work, daemon=True).start()
             return False
         self._trash_pending = GLib.timeout_add(500, run)
@@ -325,12 +352,12 @@ class Sidebar(Gtk.Box):
         # comme Nautilus : un signet vers un dossier déjà affiché plus haut (Documents, Images…,
         # que Thunar met souvent en signets) n'est pas montré une seconde fois. Il reste dans le
         # fichier des signets, partagé avec Thunar et Nautilus : le supprimer ici l'enlevait partout.
-        shown = {os.path.realpath(t) for _i, _l, t in places(desktop=settings["sidebar_desktop"], trash=False)}
+        shown = {_local_realpath(t) for _i, _l, t in places(desktop=settings["sidebar_desktop"], trash=False)}
         for b in items:
             p = b.path
             # signet vers un disque réseau : montré sans vérification (serveur mort : stat et realpath
             # bloquaient le démarrage et chaque relecture des signets)
-            if p is not None and not fsinfo.is_network(p) and (not os.path.exists(p) or os.path.realpath(p) in shown):
+            if p is not None and not _network_target(p) and (not os.path.exists(p) or os.path.realpath(p) in shown):
                 continue
             icon = "folder-symbolic" if p else "folder-remote-symbolic"
             self.bm_list.append(SidebarRow(icon, b.title, p or b.uri, kind="bookmark",
@@ -719,7 +746,7 @@ class Sidebar(Gtk.Box):
                 starred.star(ok)
             return bool(ok)
         if isinstance(row, SidebarRow) and row.target and (row.target == TRASH or "://" not in row.target):
-            self.emit("drop", paths, row.target)
+            self.emit("drop", paths, row.target, "move" if row.target == TRASH else drop_mode(target))
             return True
         # déposer un dossier entre les lignes : nouveau signet
         added = 0

@@ -317,7 +317,9 @@ class ProgressWindow(Adw.Window):
         self.rows: dict[int, JobRow] = {}
         self._questions = 0          # questions (conflit…) ouvertes : la fenêtre s'efface devant elles
         self._reshow = 0
-        manager.connect("changed", lambda *_: self.refresh())
+        # débranchée avec sa fenêtre (sinon reconstruite à chaque opération pour une fenêtre disparue)
+        hid = manager.connect("changed", lambda *_: self.refresh())
+        self.connect("destroy", lambda *_: manager.disconnect(hid))
 
     def question_opened(self):
         """Une question « Remplacer ? » s'ouvre : sinon cette fenêtre passerait devant elle."""

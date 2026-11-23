@@ -117,7 +117,7 @@ class OtherLocations(Gtk.Box):
 
         self.monitor = Gio.VolumeMonitor.get()
         self._ids: list = []             # branchés à l'affichage (refresh), retirés par stop(), comme Ce PC
-        self._dev_pending = False
+        self._dev_pending = 0
         self._net_monitor: Optional[Gio.FileMonitor] = None
         self._net_pending = 0
         self._net_token = 0
@@ -146,16 +146,21 @@ class OtherLocations(Gtk.Box):
         if self._net_monitor is not None:
             self._net_monitor.cancel()
             self._net_monitor = None
+        if self._net_pending:                    # page quittée : plus de découverte réseau relancée
+            GLib.source_remove(self._net_pending)
+            self._net_pending = 0
+        if self._dev_pending:
+            GLib.source_remove(self._dev_pending)
+            self._dev_pending = 0
         self._net_token += 1
 
     # -- Sur cet appareil ------------------------------------------------
     def _queue_devices(self):
         if not self._dev_pending:
-            self._dev_pending = True
-            GLib.timeout_add(300, self._fill_devices)
+            self._dev_pending = GLib.timeout_add(300, self._fill_devices)
 
     def _fill_devices(self):
-        self._dev_pending = False
+        self._dev_pending = 0
         while (c := self.dev_list.get_first_child()) is not None:
             self.dev_list.remove(c)
         root = LocationRow(Gio.ThemedIcon.new("drive-harddisk"), GLib.get_os_info("NAME") or "/",

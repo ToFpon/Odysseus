@@ -142,7 +142,7 @@ def request_count(rec: Rec, pane: "Pane"):
 
     def done(n):
         rec.set("count", n if n is not None else -1)
-        model.notify_rec(rec)
+        model.value_arrived(rec, "size")
     network = fsinfo.is_network(path)
 
     def work():
@@ -150,7 +150,8 @@ def request_count(rec: Rec, pane: "Pane"):
         # serveur mort garderait le tour et chaque lecture locale attendrait 0,3 s
         with (contextlib.nullcontext() if network else scanner.scan_slot()):
             return scanner.count_children(path, hidden)
-    pool_for(path).submit(("count", path, hidden), work, done)
+    pool_for(path).submit(("count", path, hidden), work, done,
+                          dropped=lambda: rec.set("count_pending", False))
 
 
 def request_duration(rec: Rec, pane: "Pane"):
@@ -161,8 +162,9 @@ def request_duration(rec: Rec, pane: "Pane"):
 
     def done(d):
         rec.set("duration", d if d is not None else -1.0)
-        model.notify_rec(rec)
-    pool_for(path).submit(("dur", path), lambda: media.durations.duration(path, mtime), done)
+        model.value_arrived(rec, "duration")
+    pool_for(path).submit(("dur", path), lambda: media.durations.duration(path, mtime), done,
+                          dropped=lambda: rec.set("duration_pending", False))
 
 
 class _CellMixin:

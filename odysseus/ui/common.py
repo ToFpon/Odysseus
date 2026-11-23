@@ -17,7 +17,7 @@ gi.require_version("Adw", "1")
 from gi.repository import Adw, Gdk, Gio, GLib, GObject, Gtk  # noqa: E402
 
 from ..i18n import ntr, tr  # noqa: E402
-from ..backend import fsinfo, scanner  # noqa: E402
+from ..backend import scanner  # noqa: E402
 
 
 def shown(text) -> str:
@@ -700,6 +700,19 @@ def _drop_popover(parent: Gtk.Widget):
 
 def bidir():
     return GObject.BindingFlags.BIDIRECTIONAL | GObject.BindingFlags.SYNC_CREATE
+
+
+def drop_mode(target) -> str:
+    """Action d'un dépôt sur une cible qui n'est pas une vue (barre latérale, barre de chemin) : Ctrl
+    (copie) et Maj (déplacement) respectés, une source qui n'offre que la copie n'est jamais déplacée ;
+    sinon « auto » (même disque : déplacer, ailleurs : copier), comme Pane._decide_action."""
+    drop = target.get_current_drop() if target is not None else None
+    acts = drop.get_actions() if drop is not None else 0
+    if acts == Gdk.DragAction.COPY:
+        return "copy"
+    if acts == Gdk.DragAction.MOVE:
+        return "move"
+    return "auto"
 
 
 def drop_locations(value) -> list[str]:

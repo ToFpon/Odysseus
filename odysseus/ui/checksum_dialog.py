@@ -7,7 +7,7 @@ import os
 from gi.repository import Adw, Gtk
 
 from ..i18n import ntr, tr
-from .common import DialogWindow, markup_safe, shown
+from .common import DialogWindow, markup_safe
 
 STATUS = {
     "ok": ("emblem-ok-symbolic", "success"),

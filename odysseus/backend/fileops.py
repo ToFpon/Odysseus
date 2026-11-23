@@ -61,6 +61,10 @@ class Result:
     new_items: list = field(default_factory=list)    # chemins créés (racines des créations)
     new_moves: list = field(default_factory=list)    # (ancien, nouveau) des éléments déplacés
     no_trash: list = field(default_factory=list)     # corbeille impossible sur ce support
+    # « Remplacer » : l'élément remplacé part à la CORBEILLE (avant : supprimé pour de bon, et Ctrl+Z
+    # retirait le nouveau sans rien remettre — destination vide). Chemin -> URI trash:/// pour l'annuler.
+    replaced: dict = field(default_factory=dict)
+    trash_uris: dict = field(default_factory=dict)  # mise à la corbeille : chemin d'origine -> URI trash:///
 
 
 # ---------------------------------------------------------------------------
@@ -170,6 +174,7 @@ class _Copier:
         self._names: dict = {}       # FAT… : dossier -> {nom.casefold(): nom réel}, voir _existing()
         self.made: set = set()       # destinations créées (chemins exacts)
         self.roots: list = []        # (source, destination) des créations dont le parent existait
+        self.replaced: list = []     # éléments remplacés, mis à la corbeille (voir Result.replaced)
 
     def tick(self, force: bool = False):
         now = time.monotonic()
@@ -503,7 +508,15 @@ class _Copier:
             self._forget(src, roots_before)
             return None
         try:
-            _swap_into(tmp, dst)
+            if _retire(dst):
+                self.replaced.append(dst)
+                try:
+                    _rename_new(tmp, dst)
+                except FileExistsError:
+                    # un autre programme a posé un élément à ce nom entre-temps : on n'y touche pas
+                    raise OSError(errno.EEXIST, tr("« {0} » existe déjà").format(os.path.basename(dst)))
+            else:
+                _swap_into(tmp, dst)
             _fsync_dir(os.path.dirname(dst))
             del self.roots[roots_before:]          # ce qui était sous le nom temporaire
             self._made(src, dst)
@@ -699,6 +712,36 @@ def _rename2(a: str, b: str, flags: int) -> bool:
     raise OSError(err, os.strerror(err), b)
 
 
+def _retire(path: str) -> bool:
+    """Élément remplacé : à la corbeille (récupérable, Ctrl+Z le remet). False si ce support n'en a
+    pas (FUSE, réseau, tmpfs…) : l'appelant le remplace alors définitivement, comme Nautilus."""
+    try:
+        return Gio.File.new_for_path(path).trash(None)
+    except GLib.Error:
+        return False
+
+
+def _trash_stamp() -> str:
+    """Début d'une opération, au format de trash::deletion-date (heure locale, à la seconde)."""
+    return time.strftime("%Y-%m-%dT%H:%M:%S")
+
+
+def trashed_uris(job: Job, origs, since: str) -> dict:
+    """URI trash:/// des éléments jetés depuis `since` : chemin d'origine -> URI (le plus récent).
+    Annuler remet CET élément-là, pas un homonyme jeté avant ou depuis une autre fenêtre."""
+    wanted = set(origs)
+    if not wanted:
+        return {}
+    best: dict = {}
+    for info, f in trash_items(job):
+        orig = trash_orig_path(info)
+        if orig in wanted:
+            date = info.get_attribute_string("trash::deletion-date") or ""
+            if date >= since and (orig not in best or date > best[orig][0]):
+                best[orig] = (date, f.get_uri())
+    return {o: u for o, (_d, u) in best.items()}
+
+
 def _swap_into(new: str, dst: str):
     """Met new à la place de dst. Fichier sur fichier : os.replace, atomique. Dossier : échange
     atomique si possible (le nom visé existe à tout instant), puis l'ancien, désormais sous le nom
@@ -828,7 +871,11 @@ def _move_same_disk(src: str, dst: str, dest_dir: str, name: str, copier: "_Copi
                 return
             else:
                 try:
-                    _swap_into(src, dst)
+                    if _retire(dst):
+                        copier.replaced.append(dst)
+                        _rename_new(src, dst)
+                    else:
+                        _swap_into(src, dst)
                     res.moved.append((src, dst))
                     res.created.append(dst)
                     direct.append((src, dst))
@@ -866,11 +913,37 @@ def transfer(job: Job, sources: list[str], dest_dir: str, ask: Asker, move: bool
         dest_dev = os.stat(dest_dir).st_dev
     except OSError as e:
         raise ToolError(e.strerror or str(e))
-
-    # Déplacements sur le même disque : simples renommages, sans mesure préalable.
-    to_copy = []
     direct = []                    # déplacements par simple renommage : (ancien, nouveau)
     copier = _Copier(job, ask, 0, 0, move)
+    since = _trash_stamp()
+    try:
+        _transfer(job, sources, dest_dir, move, res, dest_dev, direct, copier)
+    finally:
+        # annulé en cours de route aussi : ce qui a été fait reste annulable (job.partial), sinon
+        # Ctrl+Z défaisait l'opération D'AVANT (audit de novembre 2026)
+        res.new_items = [d for _s, d in direct] + [d for _s, d in copier.roots]
+        if move:
+            res.new_moves = list(direct)
+            for s_, d in copier.roots:
+                if not os.path.lexists(s_):
+                    res.new_moves.append((s_, d))
+                elif os.path.isdir(s_) and not os.path.islink(s_):
+                    # dossier en partie déplacé (un élément refusé est resté) : annuler doit ramener ce qui
+                    # est parti, élément par élément — avant, l'annulation devenait celle d'une COPIE et
+                    # mettait à la corbeille les seuls exemplaires des fichiers déplacés
+                    res.new_moves.extend(_moved_parts(s_, d))
+        if copier.replaced:
+            res.replaced = trashed_uris(job, copier.replaced, since)
+        job.partial = res
+    res.errors.extend(copier.errors)
+    _raise_partial(res)
+    return res
+
+
+def _transfer(job: Job, sources: list, dest_dir: str, move: bool, res: Result, dest_dev: int, direct: list,
+              copier: "_Copier"):
+    # Déplacements sur le même disque : simples renommages, sans mesure préalable.
+    to_copy = []
     kind = fsinfo.fs_type(os.path.realpath(dest_dir))     # clé atteinte par un lien symbolique
     copier.windows, copier.fat = kind in fsinfo.WINDOWS_LIKE, kind in fsinfo.FAT
     copier.gio_device = fsinfo.is_gvfs_device(dest_dir)
@@ -938,20 +1011,6 @@ def transfer(job: Job, sources: list[str], dest_dir: str, ask: Asker, move: bool
         finally:
             settle()          # annulation, erreur : les éléments entièrement copiés sont bien déplacés
         copier.tick(force=True)
-    res.new_items = [d for _s, d in direct] + [d for _s, d in copier.roots]
-    if move:
-        res.new_moves = list(direct)
-        for s_, d in copier.roots:
-            if not os.path.lexists(s_):
-                res.new_moves.append((s_, d))
-            elif os.path.isdir(s_) and not os.path.islink(s_):
-                # dossier en partie déplacé (un élément refusé est resté) : annuler doit ramener ce qui
-                # est parti, élément par élément — avant, l'annulation devenait celle d'une COPIE et
-                # mettait à la corbeille les seuls exemplaires des fichiers déplacés
-                res.new_moves.extend(_moved_parts(s_, d))
-    res.errors.extend(copier.errors)
-    _raise_partial(res)
-    return res
 
 
 def _moved_parts(src_root: str, dst_root: str) -> list:
@@ -988,17 +1047,22 @@ def _raise_partial(res: Result):
 
 def trash(job: Job, paths: list[str]) -> Result:
     res = Result("trash")
-    for i, p in enumerate(paths):
-        job.check_cancel()
-        job.progress(i / max(len(paths), 1), tr("Mise à la corbeille de « {0} »").format(os.path.basename(p)))
-        try:
-            Gio.File.new_for_path(p).trash(None)
-            res.trashed.append(p)
-        except GLib.Error as e:
-            if e.matches(Gio.io_error_quark(), Gio.IOErrorEnum.NOT_SUPPORTED):
-                res.no_trash.append(p)      # tmpfs, montage système… : l'interface propose de supprimer
-            else:
-                res.errors.append((p, e.message))
+    since = _trash_stamp()
+    try:
+        for i, p in enumerate(paths):
+            job.check_cancel()
+            job.progress(i / max(len(paths), 1), tr("Mise à la corbeille de « {0} »").format(os.path.basename(p)))
+            try:
+                Gio.File.new_for_path(p).trash(None)
+                res.trashed.append(p)
+            except GLib.Error as e:
+                if e.matches(Gio.io_error_quark(), Gio.IOErrorEnum.NOT_SUPPORTED):
+                    res.no_trash.append(p)      # tmpfs, montage système… : l'interface propose de supprimer
+                else:
+                    res.errors.append((p, e.message))
+    finally:
+        res.trash_uris = trashed_uris(job, res.trashed, since)
+        job.partial = res
     if not res.no_trash:
         _raise_partial(res)
     return res
@@ -1076,7 +1140,7 @@ def empty_trash(job: Job) -> int:
     return n
 
 
-def restore_from_trash(job: Job, uris: list[str]) -> Result:
+def restore_from_trash(job: Job, uris: list[str], partial_ok: bool = False) -> Result:
     """Remet des éléments de la corbeille à leur emplacement d'origine."""
     res = Result("restore")
     for uri in uris:
@@ -1096,7 +1160,23 @@ def restore_from_trash(job: Job, uris: list[str]) -> Result:
             res.created.append(target)
         except (GLib.Error, OSError) as e:
             res.errors.append((uri, getattr(e, "message", None) or str(e)))
-    _raise_partial(res)
+    if not partial_ok:
+        _raise_partial(res)
+    return res
+
+
+def restore_trashed_uris(job: Job, uris: dict, partial_ok: bool = False) -> Result:
+    """Annulation : remet ces éléments précis de la corbeille ({chemin d'origine : URI trash:///}) ;
+    disparus entre-temps (corbeille vidée, supprimés depuis la page Corbeille) → une erreur claire au lieu
+    de « 0 élément restauré »."""
+    there, gone = [], []
+    for orig, u in uris.items():
+        (there if Gio.File.new_for_uri(u).query_exists(None) else gone).append(orig)
+    res = restore_from_trash(job, [uris[o] for o in there], partial_ok=True) if there else Result("restore")
+    for orig in gone:
+        res.errors.append((orig, tr("n'est plus dans la corbeille")))
+    if not partial_ok:
+        _raise_partial(res)
     return res
 
 

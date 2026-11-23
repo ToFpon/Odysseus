@@ -15,7 +15,7 @@ from gi.repository import Adw, Gio, GLib, Gtk
 from ..backend import tools
 from ..backend.engine import Job, human_size
 from ..i18n import tr
-from .common import copy_to_clipboard, markup_safe, shown, toast
+from .common import copy_to_clipboard, markup_safe, toast
 
 # calculés à l'ouverture, en une seule lecture du fichier
 ALGOS = ("MD5", "SHA-1", "SHA-256", "SHA-512")

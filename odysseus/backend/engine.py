@@ -126,6 +126,7 @@ class Job:
     _listeners: list = field(default_factory=list)
     needs_password: bool = False
     _thread: Optional[threading.Thread] = None
+    partial: object = None          # résultat de ce qui a été fait avant une annulation (fileops.Result)
 
     # -- notifications ---------------------------------------------------
     def subscribe(self, cb: Callable[["Job"], None]):

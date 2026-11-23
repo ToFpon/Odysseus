@@ -942,9 +942,18 @@ class NtfsFuseTest(unittest.TestCase):
         j = Job("x", lambda j: fileops.transfer(j, [os.path.join(self.src, "docs")], self.key,
                                                  ask("replace"))).run_sync()
         self.assertEqual(j.state, "done", j.error)
-        got = {k: v for k, v in tree(self.key).items() if not k.startswith("$")}
+        got = {k: v for k, v in tree(self.key).items() if not k.startswith(("$", ".Trash"))}
         self.assertEqual(got, {"docs": "<dossier>", os.path.join("docs", "sous"): "<dossier>",
                                os.path.join("docs", "sous", "neuf.txt"): b"neuf"})
+        # l'ancien dossier remplacé est dans la corbeille du disque, pas perdu
+        trashed = [k for k in tree(self.key) if k.startswith(".Trash") and k.endswith("vieux.txt")]
+        self.assertEqual(len(trashed), 1, tree(self.key))
+        # repli sans échange atomique (renameat2 absent sous FUSE) : le nom visé reste valable
+        write(os.path.join(self.key, "b", "vieux.txt"), "vieux")
+        write(os.path.join(self.key, "nouveau", "n.txt"), "n")
+        fileops._swap_into(os.path.join(self.key, "nouveau"), os.path.join(self.key, "b"))
+        self.assertEqual(tree(os.path.join(self.key, "b")), {"n.txt": b"n"})
+        self.assertFalse(os.path.exists(os.path.join(self.key, "nouveau")))
 
 
 class FsInfoTest(unittest.TestCase):

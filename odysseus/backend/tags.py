@@ -349,10 +349,3 @@ def from_filename(name: str) -> dict:
             parts = [p.strip() for p in stem.split(" - ") if p.strip()] or [stem]
     out["title"] = [parts[-1]]
     return out
-    m = _LEADING.match(stem)
-    if m:
-        out["tracknumber"] = [str(int(m.group(1)))]
-        stem = m.group(2).strip()
-        parts = [p.strip() for p in stem.split(" - ") if p.strip()] or [stem]
-    out["title"] = [parts[-1] if len(parts) > 1 else stem]
-    return out

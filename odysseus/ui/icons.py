@@ -177,7 +177,8 @@ def request_meta(rec: Rec, model):
         if meta:
             model.notify_rec(rec)
     rec.set("meta", {})       # évite les demandes en double avant la réponse
-    pool_for(path).submit(("meta", path), lambda: folder_colors.read(path), done)
+    pool_for(path).submit(("meta", path), lambda: folder_colors.read(path), done,
+                          dropped=lambda: rec.set("meta", None))
 
 
 def thumbnails_wanted(rec: Rec) -> bool:

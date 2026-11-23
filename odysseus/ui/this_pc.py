@@ -164,6 +164,9 @@ class ThisPC(Gtk.Box):
         if self._net_pending:
             GLib.source_remove(self._net_pending)
             self._net_pending = 0
+        if self._pending:
+            GLib.source_remove(self._pending)
+            self._pending = 0
         self._net_token += 1
         if self._cancel is not None:
             self._cancel.cancel()

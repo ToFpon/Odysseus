@@ -278,6 +278,43 @@ réseau, `_follow_moves` sans isdir, Courriel (`document-export` Flatpak) dans u
 smb://… ouvert par son URI (mode « remote » avec chemin FUSE) : Ctrl+V et dépôt dans ce chemin (avant : rien).
 Question « Supprimer définitivement » et erreurs : vrais noms Drive (`scanner.display_name`), pas les IDs.
 
+Audit « invisible » (novembre 2026, agents fils, annuler, modèle, réglages ; corrigé — l'audit des outils externes reste à finir ; tests
+`test_undo_audit` — cas dans `undo_audit_cases.py`, lancé dans un processus à part avec son propre bus, car il
+change HOME / XDG). Annuler : « Remplacer » met l'élément remplacé à la CORBEILLE (`fileops._retire`, repli
+suppression définitive là où il n'y en a pas : FUSE, tmpfs…) et Ctrl+Z le remet (`Result.replaced`, URI
+trash:/// relevées en une lecture en fin d'opération par `trashed_uris`) ; avant, l'ancien était supprimé et
+Ctrl+Z laissait la destination vide. Mise à la corbeille : URI notées (`Result.trash_uris`), l'annulation remet
+CET élément (`restore_trashed_uris`), pas le plus récent homonyme ; disparu → « n'est plus dans la corbeille ».
+Opération annulée en cours : `job.partial` (transfer / trash, dans un finally) → entrée posée quand même (avant,
+Ctrl+Z défaisait l'opération d'AVANT). Bouton « Annuler » d'une notification = SON entrée (`_undo_entry`), refusé
+si ce n'est plus la dernière. Rétablir une copie : entrée = où elle est revenue (« a (2).txt »), jamais le fichier
+de l'utilisateur ; annuler sans corbeille : question « supprimer ? » (`_offer_delete`). Dépôt sur la barre latérale /
+barre de chemin : Ctrl / Maj respectés (`common.drop_mode`). Renommer en changeant la casse sur FAT / exFAT
+(`_case_only`). « Nouveau document » en recherche / smb:// comme « Nouveau dossier ».
+Modèle : sélection gardée par identité (`model.rec_ident` : chemin / URI / chemin dans l'archive), jamais par le
+nom — dans une recherche, la Corbeille, les Favoris, tous les homonymes étaient sélectionnés (Suppr les jetait
+tous). Changements reçus pendant la lecture du dossier : gardés pour après (`_flush_changes` attend `loading`).
+Rafale > 300 changements (copie massive vers le dossier affiché) : relecture SILENCIEUSE (`_rescan_quiet` →
+`_merge` : objets gardés, une seule plage signalée à GTK, défilement gardé) au lieu d'un chargement complet par
+lot. Clé de tri modifiée (date, taille) → la ligne change de place ; nombre d'éléments / durée arrivés après coup
+en tri par taille / durée : `value_arrived`. Lecture en deux temps (> 4000) seulement en tri par nom (le tri par
+type devinait le type avant le stat) ; tri demandé pendant les stat → retrié à la fin. Clic différé : la position
+suit les insertions. Recherche : la vue n'est plus ramenée au meilleur résultat à chaque lot. Colonnes : F5 garde
+le chemin sélectionné, colonnes retirées = surveillance arrêtée (`MillerView.stop`, fuite inotify).
+Fils : `workers.Pool` garde TOUS les rappels d'une clé (ligne relue pendant le calcul : nombre d'éléments vide pour
+toujours) et prévient `dropped` d'une tâche retirée ; recherche dans le contenu (`search.run`) : stderr lu à part
+(au-delà de 64 Ko de « Permission non accordée », grep et nous nous attendions à vie), « Arrêter » tue le groupe de
+processus tout de suite ; compteur de la corbeille et relectures GIO : le plus récent gagne (numéros de séquence) ;
+minuteurs d'Autres emplacements / Ce PC retirés à l'arrêt.
+Réglages : settings.json en `ensure_ascii` (un dernier emplacement non UTF-8 bloquait TOUT enregistrement) + fsync,
+JSON abîmé gardé en `.bad` ; une opération en cours garde l'application en vie (`app._sync_hold` : fermer la
+fenêtre principale puis l'archive, ou des Propriétés venues du bureau, la tuait) ; hôte caché des Propriétés
+partagé et compté (`_prop_users`), jamais pris pour « dernier emplacement » ni montré par le dock
+(`app._window(visible_only=True)`) ; dossier ouvert depuis une autre application = nouvel onglet ; automontage
+systemd : la ligne du DESSUS de mountinfo gagne (`fsinfo.mounts`), « autofs » traité comme réseau ; dossiers
+utilisateur / signets sur un NAS (ou lien vers lui) montrés sans isdir / realpath (`sidebar._network_target`) ;
+`features` : vrais booléens seulement ; metadata.json non dict ignoré.
+
 Téléphone / appareil photo (MTP, PTP, iPhone ; `fsinfo.is_gvfs_device`) : l'appareil ne traite qu'UNE demande à
 la fois. Retour d'un utilisateur (Pixel 7, Odysseus 2.0.4) : en entrant dans DCIM, fenêtre figée, « Forcer à
 quitter ou attendre » ; pas reproduit chez Tof (Pixel 8a, peu de photos). Cause trouvée : la surveillance

@@ -35,7 +35,12 @@ def mounts() -> list[tuple[str, str]]:
                     out.append((_unescape(fields[4]), right.split()[0]))
     except OSError:
         pass
-    out.sort(key=lambda m: len(m[0]), reverse=True)
+    # même point de montage plusieurs fois (automontage systemd : « autofs » puis le cifs / nfs monté
+    # par-dessus) : la DERNIÈRE ligne est celle du dessus de la pile, elle passe en premier — sinon un NAS
+    # en x-systemd.automount n'était pas reconnu comme réseau (plus aucune protection : fenêtre figée
+    # NAS éteint ; audit de novembre 2026)
+    order = {id(m): i for i, m in enumerate(out)}
+    out.sort(key=lambda m: (len(m[0]), order[id(m)]), reverse=True)
     return out
 
 
@@ -54,7 +59,10 @@ def fs_type(path: str) -> Optional[str]:
 # smb://, sftp://… de GVfs vus par leur chemin /run/user/UID/gvfs/…
 NETWORK = {"cifs", "smb3", "smbfs", "nfs", "nfs4", "9p", "afs", "ceph", "glusterfs", "davfs", "ncpfs",
            "fuse.sshfs", "fuse.gvfsd-fuse", "fuse.rclone", "fuse.s3fs", "fuse.curlftpfs", "fuse.glusterfs",
-           "fuse.davfs2", "fuse.smbnetfs", "fuse.cryfs"}
+           "fuse.davfs2", "fuse.smbnetfs", "fuse.cryfs",
+           # point d'automontage pas encore monté : y toucher (stat, isdir) déclenche le montage, qui peut
+           # attendre le serveur jusqu'à son délai (90 s) — traité avec les mêmes précautions
+           "autofs"}
 _cached: tuple = (0.0, [])
 
 

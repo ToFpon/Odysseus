@@ -15,7 +15,7 @@ from gi.repository import Gdk, Gio, GLib, GObject, Gtk
 
 from ..backend import fsinfo, scanner
 from ..i18n import tr
-from .common import SpringLoad, drop_locations
+from .common import SpringLoad, drop_locations, drop_mode
 from .common import shown as _shown
 
 
@@ -39,7 +39,7 @@ class PathBar(Gtk.Box):
     __gsignals__ = {
         "navigate": (GObject.SignalFlags.RUN_FIRST, None, (str,)),
         "navigate-tab": (GObject.SignalFlags.RUN_FIRST, None, (str,)),
-        "drop": (GObject.SignalFlags.RUN_FIRST, None, (object, str)),
+        "drop": (GObject.SignalFlags.RUN_FIRST, None, (object, str, str)),   # chemins, cible, action
     }
 
     def __init__(self, compact: bool = False, menu_factory: Optional[Callable[[], Gio.MenuModel]] = None):
@@ -192,7 +192,7 @@ class PathBar(Gtk.Box):
             widget.remove_css_class("drop-row")
             paths = drop_locations(value)
             if paths:
-                self.emit("drop", paths, target)
+                self.emit("drop", paths, target, drop_mode(_t))
             return bool(paths)
         t.connect("drop", drop)
         widget.add_controller(t)
