@@ -329,8 +329,19 @@ class _CellMixin:
             icon.set_child(box)
         drag.connect("prepare", prepare)
         drag.connect("drag-begin", begin)
-        drag.connect("drag-end", lambda *_: (DRAG_PATHS.clear(), pane.clear_drop_highlight()))
+        drag.connect("drag-end", lambda *_: (DRAG_PATHS.clear(), pane.clear_drop_highlight(),
+                                             self._set_rubberband(True)))
         widget.add_controller(drag)
+        click =Gtk.GestureClick(button=Gdk.BUTTON_PRIMARY)
+        click.connect("pressed", lambda *_: self._set_rubberband(False))
+        click.connect("released", lambda *_: self._set_rubberband(True))
+        click.connect("stopped", lambda *_: self._set_rubberband(True))
+        widget.add_controller(click)
+
+    def _set_rubberband(self, enabled: bool):
+        view = getattr(self, "view", None)
+        if view is not None and view.get_enable_rubberband() != enabled:
+            view.set_enable_rubberband(enabled)
 
     def _attach_drop(self, widget):
         """Déposer sur un dossier : copie ou déplacement dans ce dossier."""

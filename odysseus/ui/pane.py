@@ -507,6 +507,8 @@ class Pane(Gtk.Box):
     def open(self, location: str, push: bool = True, select: Optional[list] = None) -> bool:
         """Ouvre un emplacement : dossier, URI GIO, archive, ou fichier (son dossier, fichier sélectionné)."""
         loc = os.path.expanduser(location.strip())
+        for v in (self.list_view, self.grid_view):
+            v._set_rubberband(True)
         if loc.startswith("file://"):
             loc = Gio.File.new_for_uri(loc).get_path() or loc
         if loc in PAGES:
