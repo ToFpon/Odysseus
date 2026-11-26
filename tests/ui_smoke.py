@@ -3610,6 +3610,39 @@ def gestionnaire_par_defaut(win):
 
 
 @step
+def grille_garde_sa_place(win):
+    """Photo cliquée (focus) dans une grande grille, puis supprimée : la grille de GTK 4.14 retombait en haut
+    (retour d'un utilisateur : 300 photos à trier, redescendre après chaque suppression ; Nautilus garde sa place)."""
+    folder = os.path.join(TMP, "tri-photos")
+    os.makedirs(folder)
+    for i in range(300):
+        open(os.path.join(folder, f"IMG_{i:04d}.jpg"), "wb").close()
+    p = win.pane
+    p.open(folder)
+    yield Wait(5, until=lambda: not p.model.loading and len(p.model.items) == 300)
+    win.activate_action("win.view-mode", GLib.Variant.new_string("grid"))
+    yield pump(0.8)
+    view = p.active_view
+    adj = view.get_vadjustment()
+    adj.set_value(adj.get_upper() - adj.get_page_size())
+    yield pump(0.6)
+    names = [r.name for r in p.model.items]
+    victim = names.index("IMG_0290.jpg")
+    view.view.scroll_to(victim, Gtk.ListScrollFlags.FOCUS | Gtk.ListScrollFlags.SELECT, None)
+    yield pump(0.5)
+    before = adj.get_value()
+    check(before > 1000, f"grille défilée vers le bas ({before:.0f})")
+    os.remove(os.path.join(folder, "IMG_0290.jpg"))
+    yield Wait(3, until=lambda: len(p.model.items) == 299)
+    yield pump(0.8)
+    check(abs(adj.get_value() - before) < 300, f"photo supprimée : la grille garde sa place ({before:.0f} → {adj.get_value():.0f})")
+    focus = win.get_focus()
+    check(focus is not None and focus.is_ancestor(view.view), "le focus reste dans la grille (clavier)")
+    win.activate_action("win.view-mode", GLib.Variant.new_string("list"))
+    yield pump(0.3)
+
+
+@step
 def fonctionnalites(win):
     from odysseus import features
     features.set_enabled("dual_panel", False)

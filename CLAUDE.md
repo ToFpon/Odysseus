@@ -676,6 +676,12 @@ fenêtre de recherche dans le contenu.
   cellule libérée reste dans la liste de la colonne → segfault à la suppression suivante d'une ligne,
   `gtk_column_view_column_queue_resize`). `ListView.update_columns` reconstruit la vue avec les
   bonnes colonnes. Symboles de libgtk-4 : `.ddeb` sur launchpad.net (même Build ID) + gdb.
+- Gtk.GridView (GTK 4.14) : la case qui a le FOCUS clavier retirée (photo cliquée puis Suppr, ou supprimée par un
+  autre programme), la grille retombe EN HAUT à la mise en page suivante (retour d'un utilisateur : 300 photos à
+  trier ; Nautilus garde sa place ; la vue en liste, elle, ne saute pas). `Pane._keep_grid_place` : position notée
+  pendant le signal (encore juste), remise si la grille a sauté, focus à la voisine (`scroll_to` FOCUS). PIÈGE : quand
+  le signal arrive, GTK a déjà DÉTACHÉ la case retirée — le focus pointe dessus mais elle n'est plus dans la grille
+  (`get_root()` vide) : tester aussi ce cas. Testé : `grille_garde_sa_place` d'ui_smoke (échoue sur l'ancien code).
 - Ne jamais rebrancher une vue sur son modèle PENDANT un signal items-changed (GtkListItemManager
   est en plein traitement) : `Pane._on_items_changed` passe par `idle_add`.
 - Panneau retiré (sortie du double panneau, onglet fermé) : `Pane.retire()` (réglages, presse-papiers,

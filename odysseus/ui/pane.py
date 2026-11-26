@@ -1080,15 +1080,45 @@ class Pane(Gtk.Box):
                                                 and self.refresh(), False)[1])
         threading.Thread(target=work, daemon=True).start()
 
-    def _on_items_changed(self, _m, _pos, removed, added):
+    def _on_items_changed(self, _m, pos, removed, added):
         """Fichier arrivé dans un dossier vide (copie, surveillance) ou dernier fichier supprimé :
         passer de la page « Dossier vide » à la liste, et inversement. Jamais PENDANT le signal :
         _show_content rebranche la vue sur le modèle, et GTK (GtkListItemManager) est alors au milieu
         de son propre traitement de items-changed — l'état devient incohérent et GTK plante plus
         tard (segfault vu après un glisser vers un panneau vide)."""
+        if removed and self.view_mode == "grid":
+            self._keep_grid_place(pos)
         if not (removed or added) or self._empty_check_id:
             return
         self._empty_check_id = GLib.idle_add(self._check_empty_page)
+
+    def _keep_grid_place(self, pos: int):
+        """Bug de Gtk.GridView (GTK 4.14) : la case qui a le FOCUS clavier retirée (photo cliquée puis Suppr), la
+        grille retombe en haut à la mise en page suivante — dans un dossier de 300 photos, il fallait redescendre
+        après chaque suppression (retour d'un utilisateur ; Nautilus garde sa place). La position est notée ici
+        (encore juste pendant le signal), remise si la grille a sauté, et le focus va à la voisine."""
+        view = self.active_view
+        grid = getattr(view, "view", None)
+        win = self.get_root()
+        focus = win.get_focus() if isinstance(win, Gtk.Window) else None
+        # le focus était dans la grille : soit il y est encore, soit sur la case retirée — déjà DÉTACHÉE par GTK
+        # quand ce signal nous arrive (plus dans la fenêtre : get_root() vide)
+        if (not isinstance(grid, Gtk.GridView) or focus is None
+                or not (focus.is_ancestor(grid) or focus.get_root() is None)):
+            return
+        adj = view.get_vadjustment()
+        value = adj.get_value()
+
+        def restore():
+            if self.get_root() is None or self.view_mode != "grid":
+                return False
+            if adj.get_value() < value - 1:
+                adj.set_value(min(value, max(0.0, adj.get_upper() - adj.get_page_size())))
+            n = self.model.get_n_items()
+            if n:
+                grid.scroll_to(min(pos, n - 1), Gtk.ListScrollFlags.FOCUS, None)    # visible : pas de défilement
+            return False
+        GLib.idle_add(restore)
 
     def _on_gone(self):
         """Dossier affiché supprimé, jeté ou déplacé : remonter au plus proche parent existant."""
