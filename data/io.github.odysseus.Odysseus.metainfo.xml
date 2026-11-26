@@ -70,6 +70,13 @@
   </requires>
   <content_rating type="oars-1.1"/>
   <releases>
+    <release version="2.0.8" date="2026-11-26">
+      <description>
+        <ul>
+          <li>Grid view: deleting a photo you just clicked no longer scrolls back to the top of a large folder; the view keeps its place and the focus moves to the next photo</li>
+        </ul>
+      </description>
+    </release>
     <release version="2.0.7" date="2026-11-23">
       <description>
         <p>Audit of hidden defects: five areas checked, every defect reproduced and fixed.</p>

@@ -1,3 +1,11 @@
+odysseus (2.0.8~noble1) noble; urgency=medium
+
+  * Vue en grille : supprimer une photo qu'on vient de cliquer ne ramène
+    plus en haut d'un grand dossier ; la vue garde sa place et le focus
+    passe à la photo voisine.
+
+ -- Tof <nourpon@gmail.com>  Thu, 26 Nov 2026 11:05:48 +0000
+
 odysseus (2.0.7~noble1) noble; urgency=medium
 
   * Audit des défauts invisibles : cinq domaines passés au crible, chaque
