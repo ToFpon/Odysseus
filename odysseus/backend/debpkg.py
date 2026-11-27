@@ -61,8 +61,28 @@ def safe_copy(path: str) -> str:
     os.chmod(folder, 0o755)                      # apt lit en tant qu'utilisateur _apt quand il peut
     dst = os.path.join(folder, "paquet.deb")
     shutil.copyfile(path, dst)
-    os.chmod(dst, 0o644)
+    # lecture seule : le paquet montré (infos lues sur CETTE copie) est celui qu'apt installera ; un programme
+    # qui voudrait le remplacer pendant la demande de mot de passe doit d'abord changer ses droits (audit 2026)
+    os.chmod(dst, 0o444)
     return dst
+
+
+def sweep_copies(max_age_s: float = 3600):
+    """Copies oubliées (dialogue fermé pendant la préparation), balayées au démarrage."""
+    import time
+    base = tempfile.gettempdir()
+    try:
+        names = os.listdir(base)
+    except OSError:
+        return
+    for name in names:
+        p = os.path.join(base, name)
+        if name.startswith("odysseus-deb-") and not os.path.islink(p):
+            try:
+                if time.time() - os.lstat(p).st_mtime > max_age_s and os.lstat(p).st_uid == os.getuid():
+                    shutil.rmtree(p, ignore_errors=True)
+            except OSError:
+                pass
 
 
 def discard_copy(copy: str):

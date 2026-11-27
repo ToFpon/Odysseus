@@ -339,6 +339,47 @@ BLAKE2b) et tous les candidats de la longueur calculés en une lecture (SHA-256 
 de sha256sum (`_unescape_gnu`), nom finissant par une espace. Listes de lecture : « #1 Hit.mp3 » / « ␣x.mp3 »
 écrits « ./… » et relus sans strip. `pdf.page_count` en `errors="replace"`.
 
+Audit « Mister Audit » (novembre 2026, 5 agents : réseau, recherche / renommage, propriétés / sécurité, archives,
+fenêtres / D-Bus ; corrigé, tests `Audit3ArchiveTest`, `SearchAudit2026Test`, `test_perm_audit`, `nas_releve`) :
+- Archives : ajout de deux éléments du même nom dans un sous-dossier → la préparation (lien symbolique déjà posé)
+  écrivait le second PAR-DESSUS l'original de l'utilisateur → refusé (« Plusieurs éléments portent le même nom ») ;
+  préparation par `_stage_tree` (liens durs, liens symboliques recréés) dans `.odysseus-stage-*` À CÔTÉ de l'archive
+  (jamais /tmp) + `-snl` partout (un « up -> .. » rangeait le parent 40 fois) ; modifications d'UNE archive
+  sérialisées (`_one_at_a_time` : deux ajouts rapprochés, l'un perdu, les deux « réussis ») ; « \ » gardé dans les
+  noms de tar (faux dossier impossible à extraire / supprimer) ; archive ouverte depuis une autre archive
+  (`opened_from_archive` : copie odysseus-view-*) en lecture seule (`archive.modifiable`) ; glisser d'un contenu
+  chiffré sans mot de passe : message au lieu de rien ; dépôt dans le panneau de la fenêtre d'archive = copie (Maj
+  déplace), Drive par `drop_locations`. LAISSÉ : mot de passe visible dans `ps` pendant que 7-Zip tourne (7-Zip ne le
+  lit pas autrement : essayé par stdin, refusé) ; caches du glisser dans /tmp (jusqu'à 4 Go, tmpfs sur Debian).
+- Réseau : sous gvfsd-fuse, UN montage pour tous les partages / appareils → `fsinfo.volume_key` (le partage lui-même :
+  « mtp:host=… », « smb-share:… ») pour décider déplacer / copier (téléphone → NAS DÉPLAÇAIT les photos) ;
+  `drop_files` « auto » sur le réseau par cette clé, sans stat (isdir borné : NAS mort) ; lignes de dossier des
+  panneaux smb:// / Drive acceptent le dépôt (`views.target_of`) et passent par `drop_locations` ; `_rescanned`
+  ne touche le drapeau `_quiet_scan` que pour la génération courante, page d'erreur → vrai rechargement ;
+  `_keep_grid_place` seulement si la case retirée avait le focus (détachée) ; renommer / annuler / rétablir relisent
+  les dossiers sans surveillance ; `_refresh_devices` saute les montages noyau surveillés (cifs, nfs : inotify voit
+  nos opérations), relit les téléphones sans tout recharger, et trouve les autres fenêtres même si la sienne est
+  fermée (`Gio.Application.get_default`).
+- Propriétés / sécurité : `chmod_tree` par descripteurs (O_NOFOLLOW relatif au parent, fichiers par O_PATH +
+  /proc/self/fd : un lien glissé pendant le parcours rendait ~/.ssh 0777) et dossier changé APRÈS son contenu si le
+  propriétaire perd l'accès ; `chmod_nofollow` / lchown pour un seul élément ; « Ouvrir en tant qu'administrateur » :
+  `admin_uri` échappé (« Wi-Fi #2.nmconnection » ouvrait et enregistrait « Wi-Fi ») ; partage Samba : caractères de
+  contrôle refusés (fichier de partage mal formé, plus aucun partage lisible), « info » lu même en erreur ; Propriétés
+  d'une grosse sélection : ensemble au lieu de liste (N²) ; copie du .deb en 0444, infos lues SUR la copie, balayée
+  au démarrage. LAISSÉS : partage invité d'un dossier du dossier personnel 0750 (comme nautilus-share), dialogue de
+  partage qui attend `net` sur le fil principal.
+- Recherche : sortie de grep / rg lue en OCTETS par enregistrements (`parse_records` : le chemin peut contenir
+  « \n » — « a\nb.txt » donnait « b.txt » RELATIF et « Remplacer » modifiait un autre fichier ; noms non UTF-8
+  gardés) ; rg `--no-ignore` ; Remplacer : vrai fichier derrière un lien, temporaire exclusif, fsync ; renommage
+  multiple : les plus profonds d'abord + chemins réécrits après un dossier renommé (dossier + contenu ensemble),
+  chemins d'arrivée finaux pour l'annulation ; résultats de recherche suivis après nos opérations
+  (`DirModel.static_follow`) ; « fini » lu avec le dernier lot ; nom replié mis en cache (`DirModel.folded`).
+- Fenêtres / D-Bus : annulation d'une opération finie après la fermeture de sa fenêtre → fenêtre vivante ; Ctrl+Q
+  avec des opérations : UNE question avant de fermer (fenêtres d'archive / Propriétés ne comptent plus) ; recherche
+  différée retirée au `_teardown` ; ligne de commande et FileManager1 : jamais l'hôte caché des Propriétés
+  (`visible_only`) ; fenêtre vidée par un onglet glissé : pas d'écriture de dual_panel / taille ; FileManager1 :
+  URI relatives ignorées, parent d'une URI par GIO, `lexists` borné sur le réseau.
+
 Téléphone / appareil photo (MTP, PTP, iPhone ; `fsinfo.is_gvfs_device`) : l'appareil ne traite qu'UNE demande à
 la fois. Retour d'un utilisateur (Pixel 7, Odysseus 2.0.4) : en entrant dans DCIM, fenêtre figée, « Forcer à
 quitter ou attendre » ; pas reproduit chez Tof (Pixel 8a, peu de photos). Cause trouvée : la surveillance

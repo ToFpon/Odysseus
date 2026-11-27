@@ -65,7 +65,11 @@ def available() -> bool:
     return bool(shutil.which("net"))
 
 
-def _run(args: list[str]) -> str:
+def _control(text: str) -> bool:
+    return any(ord(c) < 32 or ord(c) == 127 for c in text)
+
+
+def _run(args: list[str], partial_ok: bool = False) -> str:
     if not available():
         raise ShareError(tr("Samba n'est pas installé"), "missing")
     if len(args) > 1:
@@ -78,6 +82,10 @@ def _run(args: list[str]) -> str:
                            stdin=subprocess.DEVNULL)
     except (OSError, subprocess.TimeoutExpired) as e:
         raise ShareError(str(e))
+    if p.returncode != 0 and partial_ok and p.stdout.strip():
+        # « info » : un partage mal formé (fait ailleurs) fait répondre 255, la liste des autres est là — avant,
+        # tous les emblèmes disparaissaient et aucun partage ne pouvait plus être changé (audit 2026)
+        return p.stdout
     if p.returncode != 0:
         msg = (p.stderr or p.stdout).strip()
         if "do not have permission" in msg or "Permission denied" in msg:
@@ -124,7 +132,7 @@ def parse_info(text: str) -> dict[str, Share]:
 def refresh() -> dict[str, Share]:
     """Relit les partages (lève ShareError). Un dossier peut avoir plusieurs partages : le premier."""
     global _cache, _stamp
-    _cache = parse_info(_run(["info"]))
+    _cache = parse_info(_run(["info"], partial_ok=True))
     _stamp = time.monotonic()
     return _cache
 
@@ -164,6 +172,10 @@ def validate_name(name: str, path: str) -> tuple[str, str]:
     name = name.strip()
     if not name:
         return tr("Le nom du partage ne peut pas être vide"), ""
+    if _control(name) or _control(path):
+        # un retour à la ligne est écrit TEL QUEL dans le fichier du partage : fichier mal formé, et « net
+        # usershare info » échouait ensuite pour TOUS les partages (audit 2026)
+        return tr("Caractères de contrôle (retour à la ligne…) interdits dans un partage"), ""
     bad = sorted({c for c in name if c in FORBIDDEN})
     if bad:
         return tr("Caractères interdits dans un nom de partage : {0}").format(" ".join(bad)), ""
@@ -183,7 +195,10 @@ def add(share: Share, guests: Optional[bool] = None):
     """Crée (ou remplace, s'il porte le même nom) le partage. guests : Samba autorise-t-il l'invité ?"""
     if guests is None:
         guests = guests_allowed()
-    args = ["add", share.name, share.path, share.comment, _acl(share.writable)]
+    if _control(share.name) or _control(share.path):
+        raise ShareError(tr("Caractères de contrôle (retour à la ligne…) interdits dans un partage"))
+    comment = "".join(" " if ord(c) < 32 or ord(c) == 127 else c for c in share.comment)   # collé avec un retour
+    args = ["add", share.name, share.path, comment, _acl(share.writable)]
     if guests:
         args.append("guest_ok=y" if share.guest_ok else "guest_ok=n")
     _run(args)

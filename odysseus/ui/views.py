@@ -21,7 +21,7 @@ from ..backend.workers import pool_for
 from ..i18n import ntr, tr
 from ..settings import settings
 from . import clipboard, icons
-from .common import SpringLoad, date_label, perms_label, shown
+from .common import SpringLoad, date_label, drop_locations, perms_label, shown
 
 if TYPE_CHECKING:
     from .pane import Pane
@@ -336,23 +336,35 @@ class _CellMixin:
         """Déposer sur un dossier : copie ou déplacement dans ce dossier."""
         t = Gtk.DropTarget.new(Gdk.FileList, Gdk.DragAction.COPY | Gdk.DragAction.MOVE)
 
+        def target_of(rec):
+            """Où déposer sur cette ligne : son chemin (aussi le chemin FUSE d'un dossier de smb://… ouvert par
+            son URI), ou son URI dans Google Drive. Avant (audit 2026), les lignes des panneaux « remote »
+            refusaient : le dépôt tombait dans le dossier affiché au lieu du sous-dossier visé."""
+            if rec is None or not rec.is_dir:
+                return None
+            if self.pane.mode == "fs":
+                return rec.path
+            if self.pane.mode == "remote":
+                return rec.path or (rec.uri if self.pane._gio_drop_dest() else None)
+            return None
+
         def accept(_t, drop):
-            rec = getattr(_t.get_widget(), "_rec", None)
-            return bool(rec is not None and rec.is_dir and rec.path and self.pane.mode == "fs")
+            return bool(target_of(getattr(_t.get_widget(), "_rec", None)))
 
         def spring():
             # au moment d'ouvrir : la cellule montre-t-elle toujours ce dossier, et y déposer
             # a-t-il un sens (pas un des dossiers qu'on fait glisser, ni leur propre dossier) ?
             rec = getattr(t.get_widget(), "_rec", None)
-            if rec is None or rec.path != t._spring_path or not rec.is_dir or self.pane.mode != "fs":
+            dest = target_of(rec)
+            if not dest or dest != t._spring_path:
                 return
-            if rec.path in DRAG_PATHS or not self.pane.preferred_action(t.get_current_drop(), rec):
+            if dest in DRAG_PATHS or not self.pane.preferred_action(t.get_current_drop(), rec):
                 return
             # la cellule va être recyclée pour le nouveau dossier sans recevoir « leave » : sans ça,
             # la surbrillance de dépôt restait sur une ligne du nouveau dossier
             t.get_widget().remove_css_class("drop-row")
             t._spring_path = None
-            self.pane.open(rec.path)
+            self.pane.open(rec.uri if self.pane.mode == "remote" and rec.uri else rec.path)
         t._spring = SpringLoad(t, spring)        # le contrôleur, jamais la cellule (voir plus haut)
         t._spring_path = None
 
@@ -360,8 +372,9 @@ class _CellMixin:
             w = _t.get_widget()
             w.add_css_class("drop-row")
             rec = getattr(w, "_rec", None)
-            if rec is not None and rec.path != _t._spring_path:
-                _t._spring_path = rec.path
+            dest = target_of(rec)
+            if dest and dest != _t._spring_path:
+                _t._spring_path = dest
                 _t._spring.enter(x, y)
             return self.pane.preferred_action(_t.get_current_drop(), rec)
 
@@ -377,11 +390,13 @@ class _CellMixin:
         def drop(_t, value, x, y):
             w = _t.get_widget()
             w.remove_css_class("drop-row")
-            rec = getattr(w, "_rec", None)
-            paths = [f.get_path() for f in value.get_files() if f.get_path()]
-            if rec is None or not paths or rec.path in paths:
+            dest = target_of(getattr(w, "_rec", None))
+            # drop_locations : un élément Google Drive reste une URI (son chemin FUSE n'a que des identifiants :
+            # copie sous les ID, et Maj supprimait les originaux du Drive — audit 2026)
+            paths = drop_locations(value)
+            if not dest or not paths or dest in paths:
                 return False
-            self.pane.handle_drop(paths, rec.path, _t.get_current_drop())
+            self.pane.handle_drop(paths, dest, _t.get_current_drop())
             return True
         t.connect("accept", accept)
         t.connect("enter", enter)

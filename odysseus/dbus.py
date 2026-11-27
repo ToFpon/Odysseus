@@ -190,17 +190,24 @@ class FileManager1:
 
     def _call(self, conn, sender, path, iface, method, params, invocation):
         uris = params.unpack()[0]
-        paths = [Gio.File.new_for_uri(u).get_path() or u for u in uris]
+        # ni chemin absolu ni URI avec un schéma (« etc ») : ignoré — relatif au dossier du service (/), il montrait
+        # les Propriétés de /etc (audit 2026)
+        paths = [Gio.File.new_for_uri(u).get_path() or u for u in uris
+                 if u.startswith("/") or GLib.uri_peek_scheme(u)]
         GLib.idle_add(self._handle, method, paths)
         invocation.return_value(None)
 
     def _handle(self, method, paths):
         if method == "ShowItemProperties":
-            existing = [p for p in paths if os.path.lexists(p)]
+            from .backend import fsinfo
+            # réseau : jamais d'appel système sur le fil principal (un NAS éteint figeait la fenêtre)
+            existing = [p for p in paths if "://" in p or
+                        (fsinfo.bounded(os.path.lexists, p, default=False) if fsinfo.is_network(p)
+                         else os.path.lexists(p))]
             if existing:                 # chemin inexistant : pas de fenêtre de propriétés vide
                 self.show_properties(existing)
             return False
-        win = self.app._window() or self.app._new_window()
+        win = self.app._window(visible_only=True) or self.app._new_window()
         if method == "ShowFolders":
             for i, p in enumerate(paths):
                 win.open_location(p) if i == 0 else win.new_tab(p)
@@ -209,6 +216,11 @@ class FileManager1:
             # fichier, et la sélection seulement dans le premier)
             groups: dict = {}
             for p in paths:
+                if "://" in p:              # URI (trash:///x…) : son parent par GIO, pas « trash: »
+                    f = Gio.File.new_for_uri(p)
+                    parent = f.get_parent()
+                    groups.setdefault(parent.get_uri() if parent else p, []).append(f.get_basename() or "")
+                    continue
                 groups.setdefault(os.path.dirname(p.rstrip("/")) or "/", []).append(os.path.basename(p.rstrip("/")))
             for i, (folder, names) in enumerate(groups.items()):
                 if i == 0:

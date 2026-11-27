@@ -151,6 +151,13 @@ def _put_back_replaced(job, res, replaced: dict):
     res.errors += back.errors
 
 
+
+def admin_uri(path: str) -> str:
+    """admin:// d'un chemin, ÉCHAPPÉ comme une URI (comme Nautilus) : collé tel quel, « # », « ? » et « %41 »
+    étaient lus par GVfs comme fragment, requête, caractère codé — « Wi-Fi #2.nmconnection » ouvrait (et
+    l'éditeur enregistrait en root) « Wi-Fi » (audit 2026)."""
+    return "admin://" + Gio.File.new_for_path(path).get_uri()[len("file://"):]
+
 class FileActions:
     """Mélangé à MainWindow."""
 
@@ -520,12 +527,18 @@ class FileActions:
                      ntr("Copie de {0} élément", "Copie de {0} éléments", n)).format(n)
             self._run_gio(title, lambda j: gioops.transfer(j, paths, dest, move=move))
             return
-        if not dest or not os.path.isdir(dest):
+        network = bool(dest) and (fsinfo.is_network(dest) or any(fsinfo.is_network(p) for p in paths))
+        # partage mort : jamais d'appel système bloquant sur le fil principal (glisser vers un NAS éteint)
+        if not dest or not (fsinfo.bounded(os.path.isdir, dest, default=False) if network else os.path.isdir(dest)):
             return
         paths = [p for p in paths if p != dest and os.path.dirname(p.rstrip("/")) != dest or action == "link"]
         if not paths:
             return
-        if action == "auto":
+        if action == "auto" and network:
+            # sous gvfsd-fuse, téléphone et NAS ont le même st_dev : « même disque » = même partage (sans stat)
+            key = fsinfo.volume_key(dest)
+            action = "move" if all(fsinfo.volume_key(p) == key for p in paths) else "copy"
+        elif action == "auto":
             try:
                 dev = os.stat(dest).st_dev
                 action = "move" if all(os.lstat(p).st_dev == dev for p in paths) else "copy"
@@ -628,6 +641,7 @@ class FileActions:
                     elif res.kind not in ("copy", "move"):
                         toast(self, msg)
                     self._select_created(res)
+                    self._update_searches(res)
                     if res.kind in ("move", "rename"):
                         self._follow_moves(res)
                     if res.kind in ("trash", "delete", "restore", "move"):
@@ -657,6 +671,23 @@ class FileActions:
             if fsinfo.is_network(dst) or "://" in dst or os.path.isdir(dst):
                 for p in self.all_panes():
                     p.follow_move(src, dst)
+
+    def _update_searches(self, res=None, gone=(), moved=()):
+        """Résultats de recherche de toutes les fenêtres : ce qui vient d'être jeté / supprimé / déplacé."""
+        if res is not None:
+            gone = list(res.trashed) + (list(res.created) if res.kind == "delete" else [])
+            moved = list(res.moved)
+        if not gone and not moved:
+            return
+        app = self.get_application() if hasattr(self, "get_application") else None
+        app = app or Gio.Application.get_default()
+        windows = [w for w in app.get_windows() if hasattr(w, "all_panes")] if app is not None else [self]
+        for w in windows:
+            if getattr(w, "_torn_down", False):
+                continue
+            for p in w.all_panes():
+                if p.mode == "search":
+                    p.model.static_follow(gone, moved)
 
     def _follow_rename(self, old: str, new: str):
         """Annuler / rétablir un renommage de dossier : les panneaux ouverts dedans le suivent."""
@@ -783,6 +814,7 @@ class FileActions:
                         alert(self, tr("Renommage impossible"), e.message)
                         return
                     p.model.reload_quiet()
+                    self._refresh_devices()            # le même smb:// affiché dans une autre fenêtre
                 self.ask_name(tr("Renommer"), rec.name, tr("Renommer"), apply_gio, select_stem=not rec.is_dir,
                               current=rec.name)
             return
@@ -795,6 +827,8 @@ class FileActions:
                 alert(self, tr("Renommage impossible"), getattr(e, "strerror", None) or str(e))
                 return
             self._push_undo(("rename", rec.path, target))
+            self._update_searches(moved=[(rec.path, target)])
+            self._refresh_devices()      # téléphone (pas de surveillance), partage réseau : nouveau nom affiché
             if starred.available():
                 starred.moved([(rec.path, target)])
             if rec.is_dir:
@@ -834,18 +868,27 @@ class FileActions:
         photo supprimée encore là, jusqu'à F5 — inotify ne voit rien de ce que GIO fait sur le partage, et GVfs
         n'a pas de surveillance pour smb). Relecture discrète : défilement et sélection gardés."""
         app = self.get_application() if hasattr(self, "get_application") else None
+        if app is None and hasattr(self, "get_application"):
+            # fenêtre fermée pendant l'opération (elle n'a plus d'application) : les AUTRES fenêtres doivent quand
+            # même voir le résultat (audit 2026)
+            app = Gio.Application.get_default()
         windows = [w for w in app.get_windows() if hasattr(w, "all_panes")] if app is not None else [self]
         for w in windows:
+            if getattr(w, "_torn_down", False):
+                continue
             for p in w.all_panes():
                 if not p.location:
                     continue
-                if p.mode == "fs" and fsinfo.is_gvfs_device(p.location):
+                if p.mode == "fs" and not fsinfo.is_network(p.location):
+                    continue
+                if p.mode == "fs" and p.model._monitor is not None and "/gvfs/" not in p.location:
+                    continue        # cifs / nfs / sshfs du noyau : inotify voit nos propres opérations
+                if p.mode not in ("fs", "remote"):
+                    continue
+                if p.miller is not None and p.view_mode == "columns":
                     p.refresh()
-                elif p.mode == "remote" or p.mode == "fs" and fsinfo.is_network(p.location):
-                    if p.miller is not None and p.view_mode == "columns":
-                        p.refresh()
-                    else:
-                        p.model.refresh_quiet()
+                else:
+                    p.model.refresh_quiet()     # téléphone compris : sans tout recharger (une demande à la fois)
 
     def new_folder(self):
         p = self.pane
@@ -1080,12 +1123,12 @@ class FileActions:
         demandé par polkit au montage."""
         if not features.available("admin"):
             return
-        self.get_application()._new_window("admin://" + path)
+        self.get_application()._new_window(admin_uri(path))
 
     def _admin_file(self, rec):
         """Fichier : l'application par défaut l'ouvre par admin:// (ou par le chemin FUSE de GVfs si
         elle ne gère pas les URI) ; l'enregistrement se fait alors avec les droits root."""
-        f = Gio.File.new_for_uri("admin://" + rec.path)
+        f = Gio.File.new_for_uri(admin_uri(rec.path))
         app = Gio.AppInfo.get_default_for_type(rec.content_type, False)
         if app is None:
             alert(self, tr("Aucune application"), tr("Aucune application n'ouvre ce type de fichier."))
@@ -1113,6 +1156,14 @@ class FileActions:
         f.mount_enclosing_volume(Gio.MountMountFlags.NONE, Gtk.MountOperation.new(self), None, mounted)
 
     def _push_undo(self, entry, keep_redo: bool = False):
+        if getattr(self, "_torn_down", False):
+            # opération finie après la fermeture de SA fenêtre : son annulation va à une fenêtre vivante (avant :
+            # posée sur la fenêtre morte, Ctrl+Z ailleurs ne faisait rien — audit 2026)
+            app = Gio.Application.get_default()
+            live = app._window(visible_only=True) if app is not None and hasattr(app, "_window") else None
+            if live is not None and live is not self:
+                live._push_undo(entry, keep_redo)
+                return
         self.undo_stack.append(entry)
         dropped = self.undo_stack[:-30]
         del self.undo_stack[:-30]
@@ -1246,6 +1297,7 @@ class FileActions:
                 fileops.rename(old, os.path.basename(new))
                 self._push_undo(entry, keep_redo=True)
                 self._follow_rename(old, new)
+                self._refresh_devices()
             except (OSError, ToolError) as e:
                 alert(self, tr("Rétablissement impossible"), getattr(e, "strerror", None) or str(e))
         elif kind == "move":
@@ -1330,6 +1382,7 @@ class FileActions:
                 fileops.rename(new, os.path.basename(old))
                 toast(self, tr("Renommage annulé"))
                 self._follow_rename(new, old)
+                self._refresh_devices()
             except (OSError, ToolError) as e:
                 self.redo_stack.pop()
                 self._update_undo_actions()

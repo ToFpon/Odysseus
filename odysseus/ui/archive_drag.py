@@ -19,6 +19,13 @@ from ..backend import archive
 from ..backend.engine import Job
 from ..i18n import tr
 
+
+def _password_hint() -> str:
+    """Contenu chiffré, noms lisibles : aucun mot de passe n'a encore été demandé, le glisser ne disait rien
+    (audit 2026). Le double-clic, lui, demande le mot de passe et le garde pour la session."""
+    return tr("Archive protégée par un mot de passe : ouvrez d'abord un de ses éléments (double-clic) pour le "
+              "saisir, puis glissez de nouveau")
+
 # (chemin dans l'archive, dossier ?, taille connue)
 Item = tuple[str, bool, int]
 
@@ -122,6 +129,10 @@ class DragCache:
     def _done(self, job, token, items):
         if self.job is job:
             self.job = None
+        if token == self.token and job.needs_password and self.waiting:
+            self.waiting = False
+            self.message(_password_hint())
+            return False
         if token != self.token or job.state != "done" or not job.result:
             return False
         # garder la sélection de CE moment (elle a pu changer pendant l'extraction), pas celle du départ
@@ -156,6 +167,8 @@ class DragCache:
             inners, root = [it[0] for it in missing], self._ensure_root()
             job = Job("drag", lambda j: self._extract(j, inners, path, password, root)).run_sync()
             if job.state != "done" or not job.result:
+                if job.needs_password:          # contenu chiffré, noms lisibles : le glisser ne disait rien
+                    self.message(_password_hint())
                 return []
             self._store(job.result, keep=[it[0] for it in items])
         out = [p for p in (self.cached(it[0]) for it in items) if p]

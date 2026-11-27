@@ -21,9 +21,10 @@ class DebInstallerDialog(DialogWindow):
         self.done = False
         self.copy = None             # copie sûre du paquet pour apt (debpkg.safe_copy)
         self.info = None
-        self.connect("close-request", lambda *_: (debpkg.discard_copy(self.copy)
+        self.closed = False
+        self.connect("close-request", lambda *_: (setattr(self, "closed", True), debpkg.discard_copy(self.copy)
                                                   if self.proc is None or self.proc.poll() is not None else None,
-                                                  False)[1])
+                                                  False)[2])
         tv = Adw.ToolbarView()
         hb = Adw.HeaderBar(show_end_title_buttons=False, show_start_title_buttons=False)
         self.cancel = Gtk.Button(label=tr("Annuler"))
@@ -71,11 +72,15 @@ class DebInstallerDialog(DialogWindow):
         threading.Thread(target=self._load, daemon=True).start()
 
     def _load(self):
-        inf = debpkg.info(self.path)
         try:
-            self.copy = debpkg.safe_copy(self.path)   # chemin sûr pour apt (« : », partage GVfs)
+            copy = debpkg.safe_copy(self.path)        # chemin sûr pour apt (« : », partage GVfs)
         except OSError:
-            self.copy = None
+            copy = None
+        if self.closed:                               # fermé pendant la copie : rien ne doit traîner dans /tmp
+            debpkg.discard_copy(copy)
+            return
+        self.copy = copy
+        inf = debpkg.info(copy or self.path)          # ce qui est montré = ce qui sera installé
         deps = debpkg.missing_dependencies(self.copy) if self.copy else None
         self.info = inf
         GLib.idle_add(self._loaded, inf, deps)

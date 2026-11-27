@@ -250,13 +250,14 @@ class PropertiesDialog(DialogWindow):
             unreadable = False
             last = time.monotonic()
             stack = list(paths)
+            roots = set(paths)
             while stack and not cancel.is_set():
                 p = stack.pop()
                 try:
                     s = os.lstat(p)
                 except OSError:
                     continue
-                if p not in paths or len(paths) > 1:
+                if len(paths) > 1 or p not in roots:      # ensemble : la liste coûtait N² (100 000 éléments)
                     items += 1
                 if st.S_ISDIR(s.st_mode):
                     try:
@@ -484,8 +485,8 @@ class PropertiesDialog(DialogWindow):
         gid = row._gids[row.get_selected()]
         try:
             if st.S_ISLNK(os.lstat(self._mode_path).st_mode):
-                return                  # jamais à travers un lien
-            os.chown(self._mode_path, -1, gid)
+                return                  # un lien : rien (et lchown ci-dessous ne le suivrait jamais)
+            os.chown(self._mode_path, -1, gid, follow_symlinks=False)
         except OSError as e:
             toast(self, e.strerror or str(e))
 
@@ -516,7 +517,8 @@ class PropertiesDialog(DialogWindow):
         if mode == old:
             return
         try:
-            os.chmod(self._mode_path, mode)
+            # jamais à travers un lien, même posé depuis le lstat ci-dessus (audit 2026)
+            chmod_nofollow(self._mode_path, lambda s: mode if st.S_IMODE(s.st_mode) == old else None)
         except OSError as e:
             toast(self, e.strerror or str(e))
         self._sync_summary()
@@ -608,37 +610,98 @@ class PropertiesDialog(DialogWindow):
         toast(self, tr("Icône personnalisée retirée"), tr("Annuler"), undo)
 
 
+_DIR_FLAGS = os.O_RDONLY | os.O_DIRECTORY | os.O_NOFOLLOW | os.O_CLOEXEC
+
+
+def chmod_nofollow(path: str, mode_of, dir_fd=None) -> bool:
+    """chmod SANS JAMAIS suivre un lien, même posé entre la vérification et le changement (audit 2026 : un
+    membre du groupe remplaçait un sous-dossier par un lien vers ~/.ssh pendant le parcours, qui en faisait du
+    0777). L'élément est ouvert en O_PATH|O_NOFOLLOW, vérifié par fstat, changé par /proc/self/fd (os.chmod
+    n'a pas follow_symlinks=False sous Linux). `mode_of(st)` donne le mode voulu, ou None pour ne rien faire.
+    Renvoie False si c'est un lien (laissé tel quel)."""
+    fd = os.open(path, os.O_PATH | os.O_NOFOLLOW | os.O_CLOEXEC, dir_fd=dir_fd)
+    try:
+        s = os.fstat(fd)
+        if st.S_ISLNK(s.st_mode):
+            return False
+        mode = mode_of(s)
+        if mode is not None and mode != st.S_IMODE(s.st_mode):
+            os.chmod(f"/proc/self/fd/{fd}", mode)
+        return True
+    finally:
+        os.close(fd)
+
+
 def chmod_tree(job, folder: str, fperm: int, fmask: int, dperm: int, dmask: int) -> fileops.Result:
     """Comme Nautilus (nautilus_file_set_permissions_recursive) : le dossier et tout ce qu'il contient ;
     fichiers : lecture / écriture (l'exécution reste), dossiers : lecture / écriture / accès. Les liens
-    symboliques ne sont ni suivis ni modifiés."""
+    symboliques ne sont ni suivis ni modifiés : parcours par descripteurs (chaque dossier ouvert en O_NOFOLLOW
+    RELATIVEMENT à son parent), un lien glissé entre deux étapes ne mène nulle part. Un dossier dont le
+    propriétaire perd la lecture ou l'accès est changé APRÈS son contenu (sinon on s'enfermait dehors)."""
     res = fileops.Result("chmod")
-    todo = [folder]
     done = 0
-    while todo:
-        job.check_cancel()
-        d = todo.pop()
-        try:
-            s = os.lstat(d)
-            if not st.S_ISDIR(s.st_mode):
-                continue
-            os.chmod(d, (st.S_IMODE(s.st_mode) & ~dmask) | dperm)
+
+    def dir_mode(fd):
+        return (st.S_IMODE(os.fstat(fd).st_mode) & ~dmask) | dperm
+
+    def enter(fd, path):
+        """Dossier ouvert : changé tout de suite, ou noté pour après son contenu ; ses éléments listés."""
+        nonlocal done
+        mode = dir_mode(fd)
+        later = (mode & 0o500) != 0o500
+        if not later:
+            os.fchmod(fd, mode)
             done += 1
-            with os.scandir(d) as it:
-                entries = list(it)
-        except OSError as err:
-            res.errors.append((d, err.strerror or str(err)))
-            continue
-        for e in entries:
+        with os.scandir(fd) as it:
+            entries = [(e.name, e.is_dir(follow_symlinks=False), e.is_file(follow_symlinks=False)) for e in it]
+        return [fd, path, entries, mode if later else None]
+
+    try:
+        top = os.open(folder, _DIR_FLAGS)
+    except OSError as err:
+        res.errors.append((folder, err.strerror or str(err)))
+        return res
+    try:
+        stack = [enter(top, folder)]
+    except OSError as err:
+        os.close(top)
+        res.errors.append((folder, err.strerror or str(err)))
+        return res
+    try:
+        while stack:
+            job.check_cancel()
+            frame = stack[-1]
+            fd, path, entries, later = frame
+            if not entries:
+                stack.pop()
+                try:
+                    if later is not None:
+                        os.fchmod(fd, later)
+                        done += 1
+                except OSError as err:
+                    res.errors.append((path, err.strerror or str(err)))
+                finally:
+                    os.close(fd)
+                job.progress(None, ntr("{0} élément", "{0} éléments", done).format(done))
+                continue
+            name, is_dir, is_file = entries.pop()
+            child = os.path.join(path, name)
             try:
-                if e.is_dir(follow_symlinks=False):
-                    todo.append(e.path)
-                elif e.is_file(follow_symlinks=False):
-                    m = st.S_IMODE(e.stat(follow_symlinks=False).st_mode)
-                    os.chmod(e.path, (m & ~fmask) | fperm)
-                    done += 1
+                if is_dir:
+                    cfd = os.open(name, _DIR_FLAGS, dir_fd=fd)
+                    try:
+                        stack.append(enter(cfd, child))
+                    except OSError:
+                        os.close(cfd)
+                        raise
+                elif is_file:
+                    if chmod_nofollow(name, lambda s: (st.S_IMODE(s.st_mode) & ~fmask) | fperm
+                                      if st.S_ISREG(s.st_mode) else None, dir_fd=fd):
+                        done += 1
             except OSError as err:
-                res.errors.append((e.path, err.strerror or str(err)))
-        job.progress(None, ntr("{0} élément", "{0} éléments", done).format(done))
+                res.errors.append((child, err.strerror or str(err)))
+    finally:
+        for frame in stack:          # annulé : descripteurs rendus
+            os.close(frame[0])
     res.count = done
     return res

@@ -274,8 +274,16 @@ class DirModel(GObject.Object, Gio.ListModel):
         threading.Thread(target=work, daemon=True).start()
 
     def _rescanned(self, gen, recs):
+        if gen != self._gen:
+            # relecture d'un AUTRE dossier (on a navigué entre-temps) : surtout ne pas toucher au drapeau de
+            # celle qui tourne peut-être pour le dossier affiché (audit 2026 : relectures en double, et un
+            # élément tout juste arrivé effacé par une liste plus ancienne)
+            return False
         self._quiet_scan = False
-        if gen != self._gen or recs is None:
+        if recs is None:
+            return False
+        if self.error:
+            self.load(self.location)        # « Accès impossible » affiché et le partage répond de nouveau
             return False
         self._merge(recs)
         return False
@@ -346,6 +354,36 @@ class DirModel(GObject.Object, Gio.ListModel):
     def finish_static(self):
         self.resort()
 
+    def static_follow(self, gone=(), moved=()):
+        """Résultats de recherche (contenu statique, pas de surveillance) après NOS opérations : éléments jetés,
+        supprimés ou déplacés hors de leur place retirés, renommés suivis (audit 2026 : ils restaient affichés,
+        resélectionnables, et Suppr / F2 dessus finissaient en « introuvable »)."""
+        if not self.static or not (gone or moved):
+            return
+        gone = {g.rstrip("/") for g in gone}
+        heads = tuple(g + "/" for g in gone)
+        renamed = {s.rstrip("/"): d.rstrip("/") for s, d in moved}
+        keep, changed = [], False
+        for r in self.all:
+            p = r.path
+            if p and (p in gone or p.startswith(heads)):
+                changed = True
+                continue
+            if p in renamed:
+                r.path, r.name = renamed[p], os.path.basename(renamed[p])
+                r.set("fold", None)
+                changed = True
+            else:
+                for s, d in renamed.items():
+                    if p and p.startswith(s + "/"):
+                        r.path = d + p[len(s):]
+                        changed = True
+                        break
+            keep.append(r)
+        if changed:
+            self.all = keep
+            self._publish(keep_selection=True)
+
     def set_error(self, message: str):
         self.cancel()
         self.error = message
@@ -359,6 +397,16 @@ class DirModel(GObject.Object, Gio.ListModel):
         self._publish(keep_selection=False)
 
     # -- tri / filtre ------------------------------------------------------
+    @staticmethod
+    def folded(r: Rec) -> str:
+        """Nom sans accents ni casse, calculé une fois par élément (taper pour aller au fichier, meilleur
+        résultat : à chaque touche, 100 500 noms repliés prenaient 0,4 s — audit 2026)."""
+        f = r.get("fold")
+        if f is None:
+            f = fold(r.name)
+            r.set("fold", f)
+        return f
+
     def _visible(self, r: Rec) -> bool:
         if r.hidden and not self.show_hidden:
             return False

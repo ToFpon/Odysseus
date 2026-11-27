@@ -617,3 +617,84 @@ class AuditFailedExtractTest(unittest.TestCase):
             j = Job("x", lambda j: archive.extract(j, arc, archive.ExtractOptions(subfolder="always"))).run_sync()
             self.assertNotEqual(j.state, "done")
             self.assertEqual(os.listdir(d), ["abime.7z"])
+
+
+class Audit3ArchiveTest(unittest.TestCase):
+    """Audit 2026 (archives) : chaque cas échouait sur l'ancien code."""
+
+    def setUp(self):
+        self.tmp = tempfile.TemporaryDirectory()
+        self.d = self.tmp.name
+        self.arc = os.path.join(self.d, "a.7z")
+        seed = os.path.join(self.d, "seed")
+        with open(seed, "w") as f:
+            f.write("s")
+        run(lambda j: archive.create(j, [seed], self.arc, archive.CreateOptions(fmt="7z")))
+
+    def tearDown(self):
+        self.tmp.cleanup()
+
+    def _names(self):
+        return sorted(e.path for e in archive.list_archive(self.arc).entries)
+
+    def test_same_name_twice_refused_original_kept(self):
+        for sub, text in (("A", "contenu A"), ("B", "contenu B")):
+            os.makedirs(os.path.join(self.d, sub))
+            with open(os.path.join(self.d, sub, "notes.txt"), "w") as f:
+                f.write(text)
+        j = Job("t", lambda j: archive.add_to_archive(
+            j, self.arc, [os.path.join(self.d, "A", "notes.txt"), os.path.join(self.d, "B", "notes.txt")],
+            "sous")).run_sync()
+        self.assertNotEqual(j.state, "done")
+        with open(os.path.join(self.d, "A", "notes.txt")) as f:
+            self.assertEqual(f.read(), "contenu A")          # avant : écrasé par le contenu de B
+
+    def test_links_stored_as_links_root_and_subfolder(self):
+        proj = os.path.join(self.d, "proj")
+        os.makedirs(proj)
+        with open(os.path.join(proj, "f"), "w") as f:
+            f.write("x")
+        os.symlink("..", os.path.join(proj, "up"))
+        run(lambda j: archive.add_to_archive(j, self.arc, [proj], ""))
+        run(lambda j: archive.add_to_archive(j, self.arc, [proj], "dedans"))
+        names = self._names()
+        self.assertIn("proj/up", names)
+        self.assertIn("dedans/proj/up", names)
+        self.assertFalse(any("up/" in n for n in names), names)     # avant : proj/up/proj/up/… sur 40 niveaux
+        self.assertFalse(any(n.startswith(".odysseus-stage") for n in os.listdir(self.d)))
+
+    def test_two_adds_at_once_both_kept(self):
+        files = []
+        for name in ("un", "deux"):
+            p = os.path.join(self.d, name)
+            with open(p, "wb") as f:
+                f.write(os.urandom(3_000_000))
+            files.append(p)
+        jobs = [Job("t", lambda j, p=p: archive.add_to_archive(j, self.arc, [p], "")) for p in files]
+        for j in jobs:
+            j.start()
+        for j in jobs:
+            j.wait()
+        self.assertEqual([j.state for j in jobs], ["done", "done"])
+        self.assertEqual(self._names(), ["deux", "seed", "un"])
+
+    def test_backslash_in_tar_name_is_a_name(self):
+        import io
+        import tarfile
+        tar = os.path.join(self.d, "bs.tar")
+        with tarfile.open(tar, "w") as t:
+            ti = tarfile.TarInfo("a\\b.txt")
+            ti.size = 6
+            t.addfile(ti, io.BytesIO(b"secret"))
+        self.assertEqual([e.path for e in archive.list_archive(tar).entries], ["a\\b.txt"])
+        out = run(lambda j: archive.extract_to_temp(j, tar, ["a\\b.txt"]))
+        with open(os.path.join(out, "a\\b.txt")) as f:
+            self.assertEqual(f.read(), "secret")
+        shutil.rmtree(out)
+        run(lambda j: archive.delete_from_archive(j, tar, ["a\\b.txt"]))
+
+    def test_nested_copy_is_read_only(self):
+        self.assertTrue(archive.modifiable(self.arc))
+        inner = os.path.join(tempfile.gettempdir(), "odysseus-view-xyz", "inner.zip")
+        self.assertTrue(archive.opened_from_archive(inner))
+        self.assertFalse(archive.modifiable(inner))

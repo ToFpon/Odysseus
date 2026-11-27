@@ -52,8 +52,10 @@ def ext_list(text: str) -> list[str]:
 def build_cmd(q: Query) -> list[str]:
     exts = ext_list(q.exts)
     if tool() == "rg":
+        # --no-ignore : comme grep (et Nautilus), les fichiers ignorés par git sont cherchés aussi — sinon une
+        # recherche dans build/ ou *.log d'un dépôt git ne trouvait rien (audit 2026)
         cmd = ["rg", "--line-number", "--no-heading", "--color=never", "--null", "--max-columns=400",
-               "--max-columns-preview"]
+               "--max-columns-preview", "--no-ignore"]
         if not q.case:
             cmd.append("--ignore-case")
         if not q.regex:
@@ -85,26 +87,44 @@ def build_cmd(q: Query) -> list[str]:
         cmd.append(f"--include=*.{e}")
     if q.recursive:
         return cmd + ["--", q.pattern, q.folder]
+    # fichiers ordinaires seulement, jamais un lien (grep le suivrait, et « Remplacer » remplaçait le lien
+    # par un fichier — audit 2026)
     files = [os.path.join(q.folder, f) for f in sorted(os.listdir(q.folder))
-             if os.path.isfile(os.path.join(q.folder, f))]
+             if os.path.isfile(os.path.join(q.folder, f)) and not os.path.islink(os.path.join(q.folder, f))]
     return cmd + ["--", q.pattern] + (files or ["/dev/null"])
 
 
-def parse_line(raw: str) -> Optional[Match]:
-    if "\0" not in raw:
-        return None
-    path, rest = raw.split("\0", 1)
-    num, _, text = rest.partition(":")
-    if not num.isdigit():
-        return None
-    return Match(path, int(num), text.rstrip("\n"))
+def parse_records(buf: bytes) -> tuple[list, bytes]:
+    """Résultats complets de `buf` (octets de grep / rg --null) et le reste à compléter. Un enregistrement =
+    chemin \0 numéro « : » texte \n — le CHEMIN peut contenir « \n » (nom de fichier permis sous Linux), le
+    texte non. Avant (lecture ligne par ligne), « a\nb.txt » donnait le chemin RELATIF « b.txt », et
+    « Remplacer » modifiait le b.txt du dossier courant d'Odysseus (audit 2026). Noms non UTF-8 gardés tels
+    quels (surrogateescape) : ils s'ouvrent et se remplacent."""
+    out = []
+    while True:
+        z = buf.find(b"\0")
+        if z < 0:
+            break
+        nl = buf.find(b"\n", z + 1)
+        if nl < 0:
+            break
+        path, rest = buf[:z], buf[z + 1:nl]
+        buf = buf[nl + 1:]
+        num, _, text = rest.partition(b":")
+        if not num.isdigit():
+            continue
+        p = os.fsdecode(path)
+        if not os.path.isabs(p):
+            continue
+        out.append(Match(p, int(num), text.decode("utf-8", "replace").rstrip("\r")))
+    return out, buf
 
 
 def run(q: Query, on_batch: Callable[[list], None], cancelled: Callable[[], bool], limit: int = MAX_RESULTS) -> tuple:
     """Recherche ; on_batch(list[Match]) appelé régulièrement. Renvoie (nombre, limite atteinte, erreur)."""
     try:
-        p = subprocess.Popen(build_cmd(q), stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True,
-                             errors="replace", start_new_session=True)
+        p = subprocess.Popen(build_cmd(q), stdout=subprocess.PIPE, stderr=subprocess.PIPE,
+                             start_new_session=True)
     except OSError as e:
         return 0, False, str(e)
     # sortie d'erreur lue à part (dernières lignes gardées) : non lue, au-delà de 64 Ko de « Permission
@@ -114,7 +134,7 @@ def run(q: Query, on_batch: Callable[[list], None], cancelled: Callable[[], bool
 
     def drain():
         for line in p.stderr:
-            tail.append(line)
+            tail.append(line.decode("utf-8", "replace"))
             del tail[:-5]
 
     def watch():
@@ -126,22 +146,25 @@ def run(q: Query, on_batch: Callable[[list], None], cancelled: Callable[[], bool
     threading.Thread(target=drain, daemon=True).start()
     threading.Thread(target=watch, daemon=True).start()
     batch, count, truncated = [], 0, False
-    for raw in p.stdout:
+    pending = b""
+    while not truncated:
+        chunk = p.stdout.read1(65536)
+        if not chunk:
+            break
         if cancelled():
             _kill(p)
             break
-        m = parse_line(raw)
-        if m is None:
-            continue
-        batch.append(m)
-        count += 1
-        if len(batch) >= 100:
-            on_batch(batch)
-            batch = []
-        if count >= limit:
-            truncated = True
-            _kill(p)
-            break
+        found, pending = parse_records(pending + chunk)
+        for m in found:
+            batch.append(m)
+            count += 1
+            if len(batch) >= 100:
+                on_batch(batch)
+                batch = []
+            if count >= limit:
+                truncated = True
+                _kill(p)
+                break
     if batch:
         on_batch(batch)
     p.wait()
@@ -248,20 +271,35 @@ def apply_replace(q: Query, targets: dict, replacement: str, backup: bool = True
                     n_file += n
         if not n_file:
             continue
+        tmp = None
         try:
+            from .fileops import _fsync_dir, _tmp_name
+            # lien symbolique : c'est le VRAI fichier qu'on remplace, le lien reste (audit 2026 : le lien
+            # devenait un fichier, le vrai restait tel quel)
+            real = os.path.realpath(path)
             if backup:
                 bak = backup_name(path)
-                shutil.copy2(path, bak)
+                shutil.copy2(real, bak)
                 if backups is not None:
                     backups.append(bak)
-            st = os.stat(path)
-            tmp = os.path.join(os.path.dirname(path), f".odysseus-remplacer-{os.getpid()}")
-            with open(tmp, "w", encoding="utf-8", newline="") as fh:
+            st = os.stat(real)
+            folder = os.path.dirname(real)
+            tmp = _tmp_name(folder, "remplacer")
+            # création exclusive (jamais à travers un lien posé sous ce nom), mise sur disque avant l'échange
+            fd = os.open(tmp, os.O_WRONLY | os.O_CREAT | os.O_EXCL | os.O_NOFOLLOW, 0o600)
+            with os.fdopen(fd, "w", encoding="utf-8", newline="") as fh:
                 fh.write("\n".join(parts))
+                fh.flush()
+                os.fsync(fh.fileno())
             os.chmod(tmp, st.st_mode & 0o7777)
-            os.replace(tmp, path)
+            os.replace(tmp, real)
+            tmp = None
+            _fsync_dir(folder)
             total += n_file
             files += 1
         except OSError as e:
             errors.append((path, e.strerror or str(e)))
+        finally:
+            if tmp is not None and os.path.lexists(tmp):
+                os.unlink(tmp)
     return total, files, errors

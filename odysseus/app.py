@@ -37,6 +37,11 @@ def _inside_archive(path: str) -> bool:
     return False
 
 
+
+def _sweep_deb_copies():
+    from .backend import debpkg
+    debpkg.sweep_copies()
+
 class OdysseusApp(Adw.Application):
     def __init__(self):
         super().__init__(application_id=APP_ID,
@@ -77,6 +82,7 @@ class OdysseusApp(Adw.Application):
         gsconnect.devices.start()           # appareils GSConnect suivis dès le départ, pour le menu
         from .backend import archive
         threading.Thread(target=archive.sweep_drag_caches, daemon=True).start()   # anciens caches du glisser
+        threading.Thread(target=_sweep_deb_copies, daemon=True).start()           # copies .deb oubliées
         from .backend import keep
         threading.Thread(target=keep.sweep, daemon=True).start()   # versions gardées pour Ctrl+Z (> 1 jour)
         # new-window / dual : actions du .desktop, activées par leur nom (DBusActivatable)
@@ -122,6 +128,23 @@ class OdysseusApp(Adw.Application):
 
     def _quit(self):
         win = self._window(visible_only=True)
+        from .ui.jobs import manager
+        if manager.running and not getattr(self, "_quit_confirmed", False) and win is not None:
+            # opérations en cours : UNE question, avant de fermer quoi que ce soit (audit 2026 : les fenêtres se
+            # fermaient sans rien demander, l'opération continuait sans fenêtre)
+            from .ui.common import alert
+
+            def resp(r):
+                if r == "quit":
+                    for j in manager.running:
+                        j.cancel()
+                    self._quit_confirmed = True
+                    self._quit()
+            alert(win, tr("Des opérations sont en cours"), tr("Quitter maintenant les annulera."),
+                  responses=(("cancel", tr("Continuer")), ("quit", tr("Quitter"))), destructive="quit",
+                  default="cancel", callback=resp)
+            return
+        self._quit_confirmed = False
         if win is not None:                 # Ctrl+Q : le dernier emplacement est celui de la fenêtre active
             from .ui import startup
             startup.remember(win)
@@ -197,7 +220,7 @@ class OdysseusApp(Adw.Application):
                     continue
                 locs.append(path or f.get_uri())
         dual = True if opts.get("dual") else None
-        win = self._window()
+        win = self._window(visible_only=True)    # jamais l'hôte caché des Propriétés venues du bureau
         pair = locs[1] if dual and len(locs) >= 2 else None    # --dual A B : un seul onglet A | B
         if win is None or opts.get("new-window"):
             win = self._new_window(locs[0] if locs else None, dual=dual)

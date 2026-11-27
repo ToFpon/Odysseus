@@ -22,7 +22,7 @@ from ..backend.engine import PasswordRequired, human_size
 from ..i18n import ntr, tr
 from ..settings import session_passwords, settings
 from .archive_drag import DragCache
-from .common import ask_password, open_with_default, popup_menu, shown, toast
+from .common import ask_password, drop_locations, drop_mode, open_with_default, popup_menu, shown, toast
 from .icons import ctype_icon, gicon_for
 from .model import fold, matches, query_words
 
@@ -250,12 +250,15 @@ class FolderPanel(Gtk.Box):
 
     def _on_drop(self, target, value, x, y):
         self.remove_css_class("drop-hover")
-        paths = [f.get_path() for f in value.get_files() if f.get_path()]
+        paths = drop_locations(value)            # Google Drive : URI, jamais le chemin FUSE à identifiants
         if not paths:
             return False
         ok, pt = target.get_widget().compute_point(self.view, Graphene.Point().init(x, y))
         dest = self._folder_at(pt.x, pt.y) if ok else self.path
-        self.win.copy_into(paths, dest)
+        # le pointeur montrait une COPIE, mais « auto » déplaçait sur un même disque (audit 2026) : copie, sauf
+        # Maj (déplacer) demandé explicitement
+        mode = drop_mode(target)
+        self.win.copy_into(paths, dest, "copy" if mode == "auto" else mode)
         return True
 
 
@@ -559,9 +562,9 @@ class ArchiveWindow(Adw.ApplicationWindow):
         self.host.present()
         return self.host
 
-    def copy_into(self, paths: list[str], dest: str):
+    def copy_into(self, paths: list[str], dest: str, mode: str = "auto"):
         cache = os.path.join(tempfile.gettempdir(), archive.DRAG_PREFIX)
-        action = "copy" if all(p.startswith(cache) for p in paths) else "auto"
+        action = "copy" if all(p.startswith(cache) for p in paths) else mode
         self.host_window().drop_files(paths, dest, action)
 
     def extract(self, selection: bool):

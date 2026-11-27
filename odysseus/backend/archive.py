@@ -76,8 +76,12 @@ class ArchiveListing:
     def __post_init__(self):
         self._children: dict[str, list[Entry]] = {}
         self._by_path: dict[str, Entry] = {}
+        # « \ » = séparateur des archives faites sous Windows (zip, rar…) ; dans un tar, c'est un caractère du
+        # nom (« a\b.txt » est un nom Linux valide) : converti, il devenait un faux dossier qu'on ne pouvait
+        # ni extraire ni supprimer (audit 2026)
+        windows = not (self.kind == "tar-stream" or str(self.info.get("Type", "")).lower() == "tar")
         for e in self.entries:
-            e.path = e.path.replace("\\", "/").strip("/")
+            e.path = (e.path.replace("\\", "/") if windows else e.path).strip("/")
             self._by_path[e.path] = e
         # dossiers implicites
         for e in list(self.entries):
@@ -1111,10 +1115,65 @@ def test(job: Job, archive: str, password: str = "") -> str:
 # Modifier une archive existante
 # ---------------------------------------------------------------------------
 
+def opened_from_archive(path: str) -> bool:
+    """Archive ouverte depuis une autre archive (double-clic sur inner.zip dans outer.zip) : c'est une copie
+    extraite dans un dossier temporaire (odysseus-view-*, odysseus-drag-*). La modifier ne touchait que cette
+    copie, jamais réécrite dans l'archive d'origine, puis effacée — ajout « réussi », perdu (audit 2026)."""
+    return any(part.startswith(("odysseus-view-", "odysseus-drag-"))
+               for part in os.path.realpath(path).split(os.sep))
+
+
+def modifiable(path: str) -> bool:
+    """Format modifiable par 7-Zip ET vraie archive de l'utilisateur (pas une copie temporaire)."""
+    return formats.is_modifiable(path) and not opened_from_archive(path)
+
+
+_LOCKS: dict = {}
+_LOCKS_GUARD = threading.Lock()
+
+
+def _one_at_a_time(fn):
+    """Une seule modification à la fois par archive (audit 2026) : chaque 7-Zip réécrit l'archive à partir de
+    l'ancienne version et la dernière posée gagnait — deux ajouts rapprochés, l'un des deux perdu, les deux
+    annoncés réussis. Les suivantes attendent leur tour."""
+    import functools
+
+    @functools.wraps(fn)
+    def run(job, archive, *args, **kw):
+        key = os.path.realpath(archive)
+        with _LOCKS_GUARD:
+            lock = _LOCKS.setdefault(key, threading.Lock())
+        with lock:
+            return fn(job, archive, *args, **kw)
+    return run
+
+
+def _stage_tree(src: str, dst: str):
+    """Copie de préparation d'un élément à ajouter : liens durs pour les fichiers (rien n'est copié sur un même
+    disque, sinon copie), liens symboliques RECRÉÉS tels quels (jamais suivis), dossiers recréés."""
+    if os.path.islink(src):
+        os.symlink(os.readlink(src), dst)
+    elif os.path.isdir(src):
+        os.mkdir(dst)
+        for name in os.listdir(src):
+            _stage_tree(os.path.join(src, name), os.path.join(dst, name))
+    else:
+        try:
+            os.link(src, dst)
+        except OSError:
+            shutil.copy2(src, dst)
+
+@_one_at_a_time
 def add_to_archive(job: Job, archive: str, files: list[str], inner_dir: str = "",
                    password: str = "", encrypt_names: bool = False) -> None:
     if not formats.is_modifiable(archive):
         raise ToolError(tr("Ce format ne peut pas être modifié ; convertissez-le d'abord (7Z, ZIP, TAR, WIM)"))
+    names = [os.path.basename(f.rstrip("/")) for f in files]
+    twice = sorted({n for n in names if names.count(n) > 1})
+    if twice:
+        # deux « notes.txt » venus de dossiers différents : l'archive ne peut en garder qu'un — et la préparation
+        # écrivait le second PAR-DESSUS le premier, chez l'utilisateur (audit 2026)
+        raise ToolError(tr("Plusieurs éléments portent le même nom : {0}").format(", ".join(twice)))
     extra = []
     if password:
         extra.append("-p" + password)
@@ -1122,30 +1181,26 @@ def add_to_archive(job: Job, archive: str, files: list[str], inner_dir: str = ""
             extra.append("-mhe=on")
     inner_dir = inner_dir.strip("/")
     if not inner_dir:
-        argv = [_7z(), "a"] + extra + ["-sccUTF-8"] + SEVENZ_PROGRESS + ["--", archive] + \
+        # -snl : liens stockés comme liens, comme à la création — suivis, un « up -> .. » rangeait le dossier
+        # parent (l'archive comprise) des dizaines de fois (audit 2026)
+        argv = [_7z(), "a"] + extra + ["-sccUTF-8", "-snl"] + SEVENZ_PROGRESS + ["--", archive] + \
             [os.path.abspath(f).rstrip("/") for f in files]
         job.run_tool(argv, label=tr("Ajout"))
         return
-    # 7-Zip n'a pas d'option « ajouter dans un sous-dossier » : on prépare l'arborescence
-    with tempfile.TemporaryDirectory(prefix="odysseus-") as tmp:
+    # 7-Zip n'a pas d'option « ajouter dans un sous-dossier » : on prépare l'arborescence, à côté de l'archive
+    # (même disque : liens durs, rien n'est copié ; jamais dans /tmp, parfois en mémoire)
+    with tempfile.TemporaryDirectory(prefix=".odysseus-stage-", dir=os.path.dirname(os.path.abspath(archive))) as tmp:
         stage = os.path.join(tmp, inner_dir)
         os.makedirs(stage, exist_ok=True)
         for f in files:
-            target = os.path.join(stage, os.path.basename(f.rstrip("/")))
-            try:
-                os.symlink(os.path.abspath(f), target)
-            except OSError:
-                if os.path.isdir(f):
-                    shutil.copytree(f, target)
-                else:
-                    shutil.copy2(f, target)
+            _stage_tree(os.path.abspath(f.rstrip("/")), os.path.join(stage, os.path.basename(f.rstrip("/"))))
         top = inner_dir.split("/", 1)[0]
-        # 7-Zip suit les liens symboliques par défaut sous Linux : le contenu réel est stocké.
-        argv = [_7z(), "a"] + extra + ["-sccUTF-8"] + SEVENZ_PROGRESS + \
+        argv = [_7z(), "a"] + extra + ["-sccUTF-8", "-snl"] + SEVENZ_PROGRESS + \
             ["--", os.path.abspath(archive), top]
         job.run_tool(argv, cwd=tmp, label=tr("Ajout"))
 
 
+@_one_at_a_time
 def delete_from_archive(job: Job, archive: str, paths: list[str], password: str = "") -> None:
     if not formats.is_modifiable(archive):
         raise ToolError(tr("Ce format ne peut pas être modifié"))
@@ -1192,6 +1247,7 @@ def _tar_delete(job: Job, archive: str, paths: list[str]):
             os.unlink(tmp)
 
 
+@_one_at_a_time
 def rename_in_archive(job: Job, archive: str, old: str, new: str, password: str = "") -> None:
     if not formats.is_modifiable(archive):
         raise ToolError(tr("Ce format ne peut pas être modifié"))
@@ -1200,6 +1256,7 @@ def rename_in_archive(job: Job, archive: str, old: str, new: str, password: str 
     job.run_tool(argv, label=tr("Renommage"))
 
 
+@_one_at_a_time
 def new_folder_in_archive(job: Job, archive: str, inner_path: str, password: str = "") -> None:
     with tempfile.TemporaryDirectory(prefix="odysseus-") as tmp:
         os.makedirs(os.path.join(tmp, inner_path.strip("/")))

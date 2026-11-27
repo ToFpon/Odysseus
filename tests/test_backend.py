@@ -1,4 +1,5 @@
 """Tests du moteur d'Odysseus (sans interface)."""
+import shutil
 import os
 import sys
 import tempfile
@@ -426,6 +427,83 @@ class SearchTest(unittest.TestCase):
         self.assertEqual((total, files, errors), (1, 1, []))
         self.assertEqual(open(a).read(), "x = 1\nsalut monde\nBonjour encore\n")
         self.assertTrue(os.path.exists(a + ".bak"))
+
+
+class SearchAudit2026Test(unittest.TestCase):
+    """Audit 2026 : noms avec retour à la ligne / non UTF-8, .gitignore, Remplacer à travers un lien — avec rg
+    ET avec grep."""
+
+    def setUp(self):
+        self.tmp = tempfile.TemporaryDirectory()
+        self.d = os.fsencode(self.tmp.name)
+        os.makedirs(os.path.join(self.d, b"d"))
+        for name in (b"a\nb.txt", b"caf\xe9.txt"):
+            with open(os.path.join(self.d, b"d", name), "wb") as f:
+                f.write(b"needle\nkeep\n")
+        self.cwd_victim = os.path.join(self.d, b"b.txt")       # le « b.txt » relatif d'avant
+        with open(self.cwd_victim, "wb") as f:
+            f.write(b"needle\nkeep\n")
+        self.old_cwd = os.getcwd()
+        os.chdir(self.d)
+
+    def tearDown(self):
+        os.chdir(self.old_cwd)
+        self.tmp.cleanup()
+
+    def each_tool(self):
+        real = search.tool
+        for name in ("rg", "grep"):
+            if shutil.which(name):
+                search.tool = lambda name=name: name
+                try:
+                    yield name
+                finally:
+                    search.tool = real
+
+    def test_newline_and_latin1_names(self):
+        folder = os.fsdecode(os.path.join(self.d, b"d"))
+        for name in self.each_tool():
+            q = search.Query("needle", folder)
+            out = []
+            search.run(q, out.extend, lambda: False)
+            paths = sorted(os.fsencode(m.path) for m in out)
+            self.assertEqual(paths, sorted([os.path.join(self.d, b"d", b"a\nb.txt"),
+                                            os.path.join(self.d, b"d", b"caf\xe9.txt")]), name)
+            total, files, errors = search.apply_replace(q, {m.path: {m.line} for m in out}, "X", backup=False)
+            self.assertEqual((files, errors), (2, []), name)
+            with open(self.cwd_victim, "rb") as f:
+                self.assertEqual(f.read(), b"needle\nkeep\n", name)      # jamais touché
+            for n in (b"a\nb.txt", b"caf\xe9.txt"):
+                with open(os.path.join(self.d, b"d", n), "wb") as f:
+                    f.write(b"needle\nkeep\n")
+
+    def test_gitignored_files_found(self):
+        folder = os.path.join(self.tmp.name, "depot")
+        os.makedirs(os.path.join(folder, ".git"))
+        os.makedirs(os.path.join(folder, "build"))
+        with open(os.path.join(folder, ".gitignore"), "w") as f:
+            f.write("build/\n")
+        for rel in ("a.txt", "build/log.txt"):
+            with open(os.path.join(folder, rel), "w") as f:
+                f.write("aiguille\n")
+        for name in self.each_tool():
+            out = []
+            search.run(search.Query("aiguille", folder), out.extend, lambda: False)
+            self.assertEqual(len(out), 2, name)
+
+    def test_replace_through_symlink_keeps_link(self):
+        real_dir = os.path.join(self.tmp.name, "vrai")
+        os.makedirs(real_dir)
+        target = os.path.join(real_dir, "cible.txt")
+        with open(target, "w") as f:
+            f.write("needle\n")
+        link = os.path.join(self.tmp.name, "lien.txt")
+        os.symlink(target, link)
+        q = search.Query("needle", self.tmp.name)
+        search.apply_replace(q, {link: {1}}, "X", backup=False)
+        self.assertTrue(os.path.islink(link))
+        with open(target) as f:
+            self.assertEqual(f.read(), "X\n")
 
 
 class ReplaceTest(unittest.TestCase):

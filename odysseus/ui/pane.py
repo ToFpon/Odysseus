@@ -70,7 +70,7 @@ def _same_fs(src: str, dest: str) -> bool:
     if "://" in src or "://" in dest:
         return src.split("/", 3)[:3] == dest.split("/", 3)[:3]     # même compte Google Drive
     if fsinfo.is_network(src) or fsinfo.is_network(dest):
-        return fsinfo.mount_point(src) == fsinfo.mount_point(dest)
+        return fsinfo.volume_key(src) == fsinfo.volume_key(dest)
     return os.lstat(src).st_dev == os.stat(dest).st_dev
 
 class Pane(Gtk.Box):
@@ -886,23 +886,27 @@ class Pane(Gtk.Box):
                         r.set("location", rel or os.path.basename(root) or root)
                         with lock:
                             batch.append(r)
-                        state["count"] += 1
-                        if state["count"] >= SEARCH_LIMIT:
-                            state["done"] = True
-                            return
-            state["done"] = True
+                            state["count"] += 1
+                            if state["count"] >= SEARCH_LIMIT:
+                                state["done"] = True
+                                return
+            with lock:
+                state["done"] = True
 
         def pump():
             if cancel.is_set():
                 return False
             with lock:
+                # « fini » lu AVEC le lot : lu après, les derniers résultats ajoutés entre-temps étaient perdus
+                # (audit 2026)
+                done = state["done"]
                 items = batch[:]
                 batch.clear()
             self.model.append_static(items)
             if items:
                 self._keep_best(query)
             self._update_state()
-            if state["done"]:
+            if done:
                 self.model.finish_static()
                 self.spinner.stop()
                 self._update_state(final=True)
@@ -1110,10 +1114,10 @@ class Pane(Gtk.Box):
         grid = getattr(view, "view", None)
         win = self.get_root()
         focus = win.get_focus() if isinstance(win, Gtk.Window) else None
-        # le focus était dans la grille : soit il y est encore, soit sur la case retirée — déjà DÉTACHÉE par GTK
-        # quand ce signal nous arrive (plus dans la fenêtre : get_root() vide)
-        if (not isinstance(grid, Gtk.GridView) or focus is None
-                or not (focus.is_ancestor(grid) or focus.get_root() is None)):
+        # seulement si la case retirée AVAIT le focus — GTK l'a déjà DÉTACHÉE quand ce signal nous arrive (plus
+        # dans la fenêtre : get_root() vide). Une autre case retirée (relecture d'un NAS, fichier supprimé par un
+        # autre programme) ne fait pas sauter la grille : scroll_to l'y aurait ramenée (audit 2026)
+        if not isinstance(grid, Gtk.GridView) or focus is None or focus.get_root() is not None:
             return
         adj = view.get_vadjustment()
         value = adj.get_value()
@@ -1374,7 +1378,8 @@ class Pane(Gtk.Box):
     def _ta_select(self):
         needle = fold(self._ta_text)
         items = self.model.items
-        found = next((i for i, r in enumerate(items) if fold(r.name).startswith(needle)), -1)
+        folded = self.model.folded
+        found = next((i for i, r in enumerate(items) if folded(r).startswith(needle)), -1)
         self.type_ahead_label.set_label(self._ta_text)
         self.type_ahead_label.set_visible(True)
         # rien ne commence ainsi : l'encart le signale, la sélection ne bouge pas
@@ -1408,8 +1413,9 @@ class Pane(Gtk.Box):
         if not needle or not items or not self.model.selection or self.view_mode == "columns":
             return
         best, key = -1, None
+        folded = self.model.folded
         for i, r in enumerate(items):
-            f = fold(r.name)
+            f = folded(r)
             k = (0 if f == needle else 1 if f.startswith(words[0]) else 2, len(f), i)
             if key is None or k < key:
                 best, key = i, k

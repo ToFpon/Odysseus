@@ -8,7 +8,7 @@ from typing import Optional
 from gi.repository import Gio, GLib
 
 from .. import features
-from ..backend import folder_colors, formats, media, playlist, starred
+from ..backend import archive, folder_colors, formats, media, playlist, starred
 from ..i18n import tr
 from ..settings import settings
 from .common import shown
@@ -390,7 +390,7 @@ def _archive_menu(pane, sel) -> Gio.Menu:
         s.append(tr("Propriétés de l'archive"), "win.archive-info")
         m.append_section(None, s)
     s = Gio.Menu()
-    if formats.is_modifiable(pane.archive_path):
+    if archive.modifiable(pane.archive_path):
         s.append(tr("Ajouter des fichiers…"), "win.archive-add")
         s.append(tr("Nouveau dossier…"), "win.new-folder")
         if len(sel) == 1:

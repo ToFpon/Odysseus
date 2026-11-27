@@ -651,14 +651,17 @@ class MainWindow(FileActions, ArchiveActions, ToolActions, Adw.ApplicationWindow
                 p.focus_view()
 
     def _on_close(self, *_):
-        # taille par défaut = celle d'avant la maximisation (GTK 4) : on la garde pour la restauration
-        w, h = self.get_default_size()
-        settings.data["window_width"], settings.data["window_height"] = w, h
-        if self.get_visible():          # (pas l'hôte caché des Propriétés, jamais maximisé)
-            settings.data["window_maximized"] = self.is_maximized() or self.is_fullscreen()
-        settings.data["sidebar_visible"] = self.split.get_show_sidebar()
         ws = self.workspace
-        settings.data["dual_panel"] = bool(ws and ws.dual)
+        if self.tab_view.get_n_pages() or ws is not None:
+            # (fenêtre vidée par un onglet glissé ailleurs : ni son état ni sa taille ne sont un choix — avant,
+            # « dual_panel » repassait à faux, audit 2026)
+            # taille par défaut = celle d'avant la maximisation (GTK 4) : on la garde pour la restauration
+            w, h = self.get_default_size()
+            settings.data["window_width"], settings.data["window_height"] = w, h
+            if self.get_visible():          # (pas l'hôte caché des Propriétés, jamais maximisé)
+                settings.data["window_maximized"] = self.is_maximized() or self.is_fullscreen()
+            settings.data["sidebar_visible"] = self.split.get_show_sidebar()
+            settings.data["dual_panel"] = bool(ws and ws.dual)
         settings.save()
         app = self.get_application()
         others = [w for w in (app.get_windows() if app else []) if isinstance(w, MainWindow) and w is not self
@@ -669,7 +672,9 @@ class MainWindow(FileActions, ArchiveActions, ToolActions, Adw.ApplicationWindow
         from ..backend.media import durations
         durations.flush()
         running = [j for j in manager.running]
-        if running and len(self.get_application().get_windows()) <= 1:
+        # question si c'est la dernière fenêtre PRINCIPALE visible (une fenêtre d'archive ou des Propriétés ne
+        # comptent pas : avant, Ctrl+Q fermait tout sans rien demander — audit 2026) ; Ctrl+Q a déjà demandé
+        if running and not others and not getattr(app, "_quitting", False):
             from .common import alert
 
             def resp(r):
@@ -691,6 +696,9 @@ class MainWindow(FileActions, ArchiveActions, ToolActions, Adw.ApplicationWindow
         if getattr(self, "_torn_down", False):
             return
         self._torn_down = True
+        if getattr(self, "_search_id", 0):      # recherche tapée juste avant de fermer : jamais lancée après
+            GLib.source_remove(self._search_id)
+            self._search_id = 0
         for p in list(self.all_panes()):
             p.retire()
         settings.disconnect(self._on_setting)

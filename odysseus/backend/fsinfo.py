@@ -95,6 +95,18 @@ def mount_point(path: str) -> str:
     return "/"
 
 
+def volume_key(path: str) -> str:
+    """Le « disque » d'un chemin, pour choisir entre déplacer et copier : son point de montage — sauf sous
+    gvfsd-fuse (/run/user/UID/gvfs), UN montage pour TOUS les partages et appareils de GVfs : là, c'est le
+    partage lui-même (« mtp:host=Pixel_7 », « smb-share:server=nas,share=photos »). Avant (audit 2026) : glisser
+    des photos du téléphone vers le NAS les DÉPLAÇAIT (« même disque »), supprimées du téléphone."""
+    point = mount_point(path)
+    rest = os.path.abspath(path)[len(point.rstrip("/")) + 1:]
+    if os.path.basename(point.rstrip("/")) == "gvfs" and rest:
+        return point.rstrip("/") + "/" + rest.split("/", 1)[0]
+    return point
+
+
 _stalled: dict[str, threading.Thread] = {}     # point de montage → fil resté bloqué dessus
 
 

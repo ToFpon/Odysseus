@@ -273,6 +273,13 @@ def apply(pairs: list[tuple[str, str]], progress: Optional[Callable[[int, int], 
                     pass
             return False
         done.append((origin[id(t)], dst))
+        # un dossier renommé : les éléments qui restent à renommer DEDANS ont changé de chemin (audit 2026 :
+        # dossier « Photos » + ses photos sélectionnés ensemble → photos « introuvables »)
+        prefix = src.rstrip("/") + "/"
+        for other in todo:
+            for i in (0, 1):
+                if other[i].startswith(prefix):
+                    other[i] = dst.rstrip("/") + "/" + other[i][len(prefix):]
         if progress:
             progress(len(done) + len(errors), total)
         return True
@@ -281,9 +288,11 @@ def apply(pairs: list[tuple[str, str]], progress: Optional[Callable[[int, int], 
         sources = {key(t[0]) for t in todo}
         free = [t for t in todo if key(t[1]) not in sources or key(t[1]) == key(t[0])]
         if free:
-            for t in free:
-                todo.remove(t)
-                rename_one(t)
+            # les plus profonds d'abord : le contenu d'un dossier avant le dossier lui-même
+            for t in sorted(free, key=lambda t: t[0].count("/"), reverse=True):
+                if t in todo:
+                    todo.remove(t)
+                    rename_one(t)
             continue
         # uniquement des cycles : on en sort un sous un nom temporaire, la suite se débloque
         t = todo[0]
@@ -295,7 +304,14 @@ def apply(pairs: list[tuple[str, str]], progress: Optional[Callable[[int, int], 
             errors.append((origin[id(t)], e.strerror or str(e)))
             continue
         t[0] = tmp
-    return done, errors
+    # chemins d'arrivée tels qu'ils sont À LA FIN (un dossier parent renommé après eux) : l'annulation s'en sert
+    final = []
+    for i, (old, new) in enumerate(done):
+        for old2, new2 in done[i + 1:]:
+            if new.startswith(old2.rstrip("/") + "/"):
+                new = new2.rstrip("/") + "/" + new[len(old2.rstrip("/")) + 1:]
+        final.append((old, new))
+    return final, errors
 
 
 # ----------------------------------------------------------------------

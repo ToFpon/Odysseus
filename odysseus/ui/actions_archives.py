@@ -301,8 +301,9 @@ class ArchiveActions:
     def add_to_open_archive(self, pane, paths: Optional[list] = None):
         if pane.mode != "archive":
             return
-        if not formats.is_modifiable(pane.archive_path):
-            toast(self, tr("Ce format d'archive ne peut pas être modifié"))
+        if not archive.modifiable(pane.archive_path):
+            toast(self, tr("Archive ouverte depuis une autre archive : en lecture seule") if
+                  archive.opened_from_archive(pane.archive_path) else tr("Ce format d'archive ne peut pas être modifié"))
             return
         if paths is None:
             choose_files(self, tr("Ajouter à l'archive"), os.path.dirname(pane.archive_path),
@@ -336,7 +337,7 @@ class ArchiveActions:
               callback=go)
 
     def rename_in_archive(self, pane, rec):
-        if not formats.is_modifiable(pane.archive_path):
+        if not archive.modifiable(pane.archive_path):
             return
         old = rec.get("inner", rec.name)
         parent = old.rsplit("/", 1)[0] + "/" if "/" in old else ""
@@ -354,7 +355,7 @@ class ArchiveActions:
         self.ask_name(tr("Renommer"), rec.name, tr("Renommer"), apply, current=rec.name, taken=taken)
 
     def delete_in_archive(self, pane):
-        if not formats.is_modifiable(pane.archive_path):
+        if not archive.modifiable(pane.archive_path):
             return
         paths = [r.get("inner", r.name) for r in pane.selected_recs()]
         if not paths:
@@ -378,7 +379,7 @@ class ArchiveActions:
               default="cancel", callback=go)
 
     def new_folder_in_archive(self, pane):
-        if not formats.is_modifiable(pane.archive_path):
+        if not archive.modifiable(pane.archive_path):
             return
         arch, pw = pane.archive_path, pane.password
 
