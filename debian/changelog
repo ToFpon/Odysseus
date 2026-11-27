@@ -1,3 +1,12 @@
+odysseus (2.0.10~noble1) noble; urgency=medium
+
+  * NAS : glisser des fichiers d'une autre fenêtre vers un partage ouvert
+    depuis la barre latérale (smb://) fonctionne de nouveau.
+  * Partages réseau : ce qu'Odysseus copie, déplace ou supprime apparaît
+    tout de suite, dans toutes les fenêtres, sans F5.
+
+ -- Tof <nourpon@gmail.com>  Fri, 27 Nov 2026 15:59:03 +0000
+
 odysseus (2.0.9~noble1) noble; urgency=medium
 
   * Annoter une image : Ctrl+Z marche aussi quand le curseur est dans le
