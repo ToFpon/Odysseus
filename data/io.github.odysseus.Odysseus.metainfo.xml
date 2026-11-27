@@ -70,6 +70,19 @@
   </requires>
   <content_rating type="oars-1.1"/>
   <releases>
+    <release version="2.1.0" date="2026-11-27">
+      <description>
+        <p>A full audit, about forty fixes. The most important:</p>
+        <ul>
+          <li>Archives: adding two files with the same name into an archive folder no longer overwrites one of your originals; two additions in a row are both kept; links are stored as links</li>
+          <li>Dragging photos from a phone to a NAS copies them instead of moving them</li>
+          <li>Search and replace: a file name containing a line break can no longer make another file change; names that are not UTF-8 work; files ignored by git are searched too</li>
+          <li>Changing the permissions of a folder and its contents never follows a symbolic link, even one swapped in during the change</li>
+          <li>Open as administrator: names containing #, ? or % open the right file</li>
+          <li>Ctrl+Q with an operation running asks once before closing anything; search results follow deletions and renames</li>
+        </ul>
+      </description>
+    </release>
     <release version="2.0.10" date="2026-11-27">
       <description>
         <ul>

@@ -1,3 +1,23 @@
+odysseus (2.1.0~noble1) noble; urgency=medium
+
+  * Audit complet, une quarantaine de corrections, dont :
+  * Archives : deux fichiers du même nom ajoutés dans un dossier de
+    l'archive n'écrasent plus un de vos originaux ; deux ajouts
+    rapprochés sont gardés tous les deux ; liens gardés comme liens.
+  * Glisser des photos du téléphone vers un NAS les copie au lieu de
+    les déplacer.
+  * Rechercher / remplacer : un nom de fichier avec un retour à la
+    ligne ne peut plus faire modifier un autre fichier ; noms non UTF-8
+    pris en charge ; fichiers ignorés par git cherchés aussi.
+  * Droits d'un dossier et de son contenu : jamais à travers un lien
+    symbolique, même glissé pendant le changement.
+  * Ouvrir en tant qu'administrateur : les noms avec #, ? ou % ouvrent
+    le bon fichier.
+  * Ctrl+Q pendant une opération : une seule question avant de fermer ;
+    les résultats de recherche suivent suppressions et renommages.
+
+ -- Tof <nourpon@gmail.com>  Fri, 27 Nov 2026 18:14:57 +0000
+
 odysseus (2.0.10~noble1) noble; urgency=medium
 
   * NAS : glisser des fichiers d'une autre fenêtre vers un partage ouvert
