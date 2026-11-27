@@ -682,6 +682,10 @@ fenêtre de recherche dans le contenu.
   pendant le signal (encore juste), remise si la grille a sauté, focus à la voisine (`scroll_to` FOCUS). PIÈGE : quand
   le signal arrive, GTK a déjà DÉTACHÉ la case retirée — le focus pointe dessus mais elle n'est plus dans la grille
   (`get_root()` vide) : tester aussi ce cas. Testé : `grille_garde_sa_place` d'ui_smoke (échoue sur l'ancien code).
+- Annoter (`ui/annotate.py`, retour d'un utilisateur, même code repris dans Argos) : raccourcis en CAPTURE
+  (Gtk.ShortcutController LOCAL + PropagationPhase.CAPTURE) — curseur dans « Épaisseur », la SpinButton prenait Ctrl+Z
+  et le dessin n'était pas annulé ; le canevas prend le focus quand on dessine. Fermeture : une seule question
+  (`_close_asked`), fenêtre détruite en idle après elle (« A window is shown after it has been destroyed » vu une fois).
 - Ne jamais rebrancher une vue sur son modèle PENDANT un signal items-changed (GtkListItemManager
   est en plein traitement) : `Pane._on_items_changed` passe par `idle_add`.
 - Panneau retiré (sortie du double panneau, onglet fermé) : `Pane.retire()` (réglages, presse-papiers,
