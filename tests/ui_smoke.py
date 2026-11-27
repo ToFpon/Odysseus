@@ -475,6 +475,54 @@ def telephone_mtp(win):
 
 
 @step
+def nas_releve(win):
+    """NAS (retour d'un utilisateur) : photos copiées d'une fenêtre vers le NAS ouvert dans une AUTRE fenêtre,
+    absentes jusqu'à F5 ; supprimée, la photo restait affichée. inotify ne voit rien de ce que GIO fait sur un
+    partage et GVfs n'a pas de surveillance pour smb : après nos opérations, les dossiers réseau de toutes les
+    fenêtres sont relus. Imité : un dossier déclaré « réseau », sa surveillance retirée. Et le glisser vers un
+    smb://… ouvert par son URI était refusé au survol (rien ne se passait)."""
+    from odysseus.backend import fsinfo
+    nas = os.path.join(TMP, "nas-photos")
+    os.makedirs(nas, exist_ok=True)
+    open(os.path.join(nas, "deja.jpg"), "w").close()
+    saved = fsinfo.is_network
+    fsinfo.is_network = lambda path: bool(path) and (path.startswith(nas) or saved(path))
+    app = win.get_application()
+    w2 = app._new_window(nas)
+    p2 = w2.pane
+    try:
+        yield Wait(5, until=lambda: not p2.model.loading and any(r.name == "deja.jpg" for r in p2.model.all))
+        yield pump(0.3)
+        if p2.model._monitor is not None:          # aveugle, comme sur un vrai partage smb
+            p2.model._monitor.cancel()
+            p2.model._monitor = None
+        src = os.path.join(D, "fichier 1.txt")
+        win.run_transfer([src], nas)
+        yield Wait(8, until=lambda: any(r.name == "fichier 1.txt" for r in p2.model.all))
+        check(any(r.name == "fichier 1.txt" for r in p2.model.all),
+              "NAS dans une autre fenêtre : la copie apparaît sans F5")
+        os.makedirs(os.path.join(TMP, "nas-retour"), exist_ok=True)
+        win.run_transfer([os.path.join(nas, "fichier 1.txt")], os.path.join(TMP, "nas-retour"), move=True)
+        yield Wait(8, until=lambda: not any(r.name == "fichier 1.txt" for r in p2.model.all))
+        check(not any(r.name == "fichier 1.txt" for r in p2.model.all),
+              "NAS : l'élément parti du partage disparaît sans F5")
+        # glisser vers smb://… ouvert par son URI : accepté au survol (avant : « aucune action », dépôt jamais reçu)
+        saved_mode, saved_loc = p2.mode, p2.location
+        p2.mode, p2.location = "remote", "smb://nas.local/photos"
+        p2.current_dir = lambda: nas
+        try:
+            check(bool(p2.preferred_action(None, None)), "smb://… ouvert par son URI : dépôt accepté au survol")
+            check(p2.drop_dir() == nas, "smb://… : déposé dans son chemin FUSE")
+        finally:
+            p2.mode, p2.location = saved_mode, saved_loc
+            del p2.current_dir
+    finally:
+        fsinfo.is_network = saved
+        w2.close()
+    yield pump(0.3)
+
+
+@step
 def partage_gele(win):
     """Partage réseau qui ne répond plus (NAS éteint, Wi-Fi coupé) : Nautilus se fige. Imité par une
     vraie image FAT montée avec fusefat, processus FUSE gelé (SIGSTOP) : tout appel système sur ses

@@ -276,6 +276,15 @@ gardé. Fil principal : changements d'un dossier réseau lus dans un fil (`DirMo
 ordre par `_NET_CHANGES`), aperçu d'un dossier réseau sans stat, `starred.can_star` sans realpath sur le
 réseau, `_follow_moves` sans isdir, Courriel (`document-export` Flatpak) dans un fil, sortie en surrogateescape.
 smb://… ouvert par son URI (mode « remote » avec chemin FUSE) : Ctrl+V et dépôt dans ce chemin (avant : rien).
+NAS (retour d'un utilisateur, 2.0.9) : glisser d'une fenêtre vers un smb://… ouvert par son URI ne faisait RIEN —
+`preferred_action` répondait 0 au survol (mode « remote »), GTK n'envoyait jamais le dépôt, alors que Ctrl+V
+marchait → `Pane.drop_dir` (dossier affiché / chemin FUSE du smb:// / URI Drive) sert au survol ET au dépôt. Et le
+dossier du NAS ne montrait ni la copie ni la suppression avant F5 (inotify ne voit rien de ce que GIO fait sur un
+partage ; GVfs n'a pas de surveillance pour smb) → `_refresh_devices` relit, après chacune de nos opérations, les
+dossiers réseau / smb:// / téléphones de TOUTES les fenêtres (avant : téléphones de la fenêtre courante seulement),
+par `DirModel.refresh_quiet` (local, partage GVfs par `scan_gvfs` ou URI GIO ; fusion : défilement et sélection
+gardés). Testé : `nas_releve` d'ui_smoke (dossier déclaré réseau, surveillance retirée, deuxième fenêtre ; échoue
+sur l'ancien code).
 Question « Supprimer définitivement » et erreurs : vrais noms Drive (`scanner.display_name`), pas les IDs.
 
 Audit « invisible » (novembre 2026, 5 agents : fils, annuler, modèle, réglages, outils externes ; corrigé, tests

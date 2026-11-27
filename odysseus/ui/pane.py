@@ -332,10 +332,8 @@ class Pane(Gtk.Box):
                 if paths:
                     self.emit("files-dropped", paths, "", "archive")
                 return bool(paths)
-            dest = self.location
-            if self.mode == "remote" and not self._gio_drop_dest() and self.current_dir():
-                dest = self.current_dir()      # smb://… ouvert par son URI : déposé dans son chemin FUSE
-            elif self.mode != "fs" and not self._gio_drop_dest():
+            dest = self.drop_dir()             # smb://… ouvert par son URI : son chemin FUSE
+            if not dest:
                 return False
             self.handle_drop(paths, dest, t.get_current_drop())
             return True
@@ -379,12 +377,23 @@ class Pane(Gtk.Box):
             return "copy"
         return "move"
 
+    def drop_dir(self) -> Optional[str]:
+        """Où va un dépôt dans le vide du panneau : le dossier affiché ; smb://… ouvert par son URI : son chemin
+        FUSE ; Google Drive : l'URI (copie par GIO) ; ailleurs (recherche, corbeille…) : nulle part."""
+        if self._gio_drop_dest():
+            return self.location
+        if self.mode == "remote" and self.current_dir():
+            return self.current_dir()
+        return self.location if self.mode == "fs" else None
+
     def preferred_action(self, drop: Optional[Gdk.Drop], rec: Optional[Rec]) -> Gdk.DragAction:
         if self.mode == "archive":
             return Gdk.DragAction.COPY
-        if self.mode != "fs" and rec is None and not self._gio_drop_dest():
+        # smb://… ouvert par son URI (NAS de la barre latérale) : le survol répondait « aucune action » et GTK
+        # n'envoyait jamais le dépôt — rien ne se passait, alors que Ctrl+V marchait (retour d'un utilisateur)
+        dest = (rec.path or rec.uri) if rec is not None else self.drop_dir()
+        if not dest:
             return 0
-        dest = (rec.path or rec.uri) if rec is not None else self.location
         # Les drapeaux GTK ne supportent pas l'arithmétique en Python (acts - 1 vaut None) : en entier.
         acts = int(drop.get_actions()) if drop is not None else 0
         if acts and not (acts & (acts - 1)):     # une seule action possible (touche enfoncée)

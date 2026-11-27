@@ -828,11 +828,24 @@ class FileActions:
         BatchRenameDialog(self, items, apply).present()
 
     def _refresh_devices(self):
-        """Téléphone / appareil photo : pas de surveillance (voir DirModel.load) ; après nos propres opérations,
-        les panneaux qui en affichent un dossier sont relus (sélection gardée)."""
-        for p in self.all_panes():
-            if p.mode == "fs" and p.location and fsinfo.is_gvfs_device(p.location):
-                p.refresh()
+        """Après nos propres opérations, les dossiers que personne ne surveille pour nous sont relus, dans TOUTES
+        les fenêtres (copie d'une fenêtre vers une autre) : téléphone / appareil photo (pas de surveillance, voir
+        DirModel.load), partage réseau et smb://… (retour d'un utilisateur : photo copiée sur le NAS absente,
+        photo supprimée encore là, jusqu'à F5 — inotify ne voit rien de ce que GIO fait sur le partage, et GVfs
+        n'a pas de surveillance pour smb). Relecture discrète : défilement et sélection gardés."""
+        app = self.get_application() if hasattr(self, "get_application") else None
+        windows = [w for w in app.get_windows() if hasattr(w, "all_panes")] if app is not None else [self]
+        for w in windows:
+            for p in w.all_panes():
+                if not p.location:
+                    continue
+                if p.mode == "fs" and fsinfo.is_gvfs_device(p.location):
+                    p.refresh()
+                elif p.mode == "remote" or p.mode == "fs" and fsinfo.is_network(p.location):
+                    if p.miller is not None and p.view_mode == "columns":
+                        p.refresh()
+                    else:
+                        p.model.refresh_quiet()
 
     def new_folder(self):
         p = self.pane

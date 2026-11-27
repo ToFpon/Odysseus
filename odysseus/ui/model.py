@@ -240,18 +240,34 @@ class DirModel(GObject.Object, Gio.ListModel):
                 self.refresh_rows()
         return False
 
+    def refresh_quiet(self):
+        """Relecture discrète (sans chargement visible, défilement et sélection gardés) : dossiers que personne ne
+        surveille pour nous — partage réseau, smb://… — après nos propres opérations."""
+        if self.location and not self.static and not self.loading and not self._quiet_scan:
+            self._rescan_quiet()
+
     def _rescan_quiet(self):
-        """Relit un dossier local dans un fil et fusionne le résultat sans changer d'état."""
+        """Relit le dossier dans un fil (local, partage réseau ou URI GIO) et fusionne le résultat sans changer
+        d'état."""
         location, gen, cancel = self.location, self._gen, self._cancel
         self._quiet_scan = True
+        local = not _is_uri(location)
+        network = local and fsinfo.is_network(location)
 
         def work():
             recs = None
             try:
-                with scanner.scan_slot():
-                    if not cancel.is_set():
-                        recs = scanner.scan_local(location, cancel, with_stat=False)
-                        scanner.stat_all(recs, cancel)
+                uri = scanner.gvfs_uri(location) if network else None
+                if not local:
+                    recs = scanner.scan_gio(Gio.File.new_for_uri(location), cancel)
+                elif uri:
+                    recs = scanner.scan_gvfs(location, uri, cancel)
+                else:
+                    # disque réseau : pas de tour (un serveur mort le garderait)
+                    with (scanner.scan_slot() if not network else contextlib.nullcontext()):
+                        if not cancel.is_set():
+                            recs = scanner.scan_local(location, cancel, with_stat=False)
+                            scanner.stat_all(recs, cancel)
             except Exception:  # noqa: BLE001 — dossier disparu entre-temps : la surveillance le dira
                 recs = None
             GLib.idle_add(self._rescanned, gen, recs)
