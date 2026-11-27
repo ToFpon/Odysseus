@@ -1,3 +1,10 @@
+odysseus (2.0.9~noble1) noble; urgency=medium
+
+  * Annoter une image : Ctrl+Z marche aussi quand le curseur est dans le
+    champ « Épaisseur » ; fermeture de la fenêtre plus sûre.
+
+ -- Tof <nourpon@gmail.com>  Fri, 27 Nov 2026 11:29:14 +0000
+
 odysseus (2.0.8~noble1) noble; urgency=medium
 
   * Vue en grille : supprimer une photo qu'on vient de cliquer ne ramène
