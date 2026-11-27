@@ -1,6 +1,7 @@
 odysseus (2.1.0~noble1) noble; urgency=medium
 
-  * Audit complet, une quarantaine de corrections, dont :
+  * Audit en profondeur, une quarantaine de corrections, parmi
+    lesquelles :
   * Archives : deux fichiers du même nom ajoutés dans un dossier de
     l'archive n'écrasent plus un de vos originaux ; deux ajouts
     rapprochés sont gardés tous les deux ; liens gardés comme liens.
